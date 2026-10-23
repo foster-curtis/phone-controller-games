@@ -374,7 +374,7 @@ Rules:
   - [x] Joystick, buttons, hold-to-pause, input sender
   - [x] All screens + overlays, name prefill, emoji hotbar
   - [x] Wake Lock / orientation handling + `?dev=1` mode
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
   - [ ] **User approved C1 (controller on real phones)**
 - **M6**
   - [ ] Host boot, room + lobby QR, net ↔ match ↔ sim wiring, fixed-step loop + interpolation
