@@ -429,6 +429,18 @@ Format: `- [M#] decision: one line, with the reason.`
 - [plan] brand: fonts load from Google Fonts per `head.html` (no self-hosting). Phaser waits on `loadBrandFonts()` (3 s timeout, then fallback stacks). Unit/e2e tests block font requests; only the M7 screenshots need them.
 - [plan] brand: kit files are placed as a Vite app root expects (`src/styles/`, `public/`); the `head.html` snippet is kept at `brand/head.html` for reference. There's no SVG favicon on purpose (per the kit note).
 - [plan] CI: GitHub Actions runs Standard checks on push. Nothing is pushed until the Final handoff. No relay origin allowlist in v1 (generic, in-memory, no data at rest).
+- [M0] decision: Prettier ignores `SPEC.md`/`BUILD_PLAN.md` (not Prettier-formatted; reflowing their tables would churn every rebase) and `index.html`/`play.html` (keeps the brand head snippet verbatim).
+- [M0] decision: `.gitattributes` forces LF (`* text=auto eol=lf`): this machine has `core.autocrlf=true`, and CRLF worktree checkouts would fail `format:check`.
+- [M0] decision: Phaser is imported as `import * as Phaser from 'phaser'` (the default import also works; the namespace form matches the `export =` typings and the ESM build's named exports).
+- [M0] decision: Vitest uses `test.projects` (node; jsdom for `src/controller/**`) with `passWithNoTests`; `test.css.include` covers `brand.css`, otherwise Vitest stubs CSS and `brand.css?raw` is empty.
+- [M0] decision: `check:bundle` detects Phaser by its minified banner strings (`Phaser v`, `phaser.io`) and requires the host bundle to match (detector self-check). Controller chunks are found from `dist/play.html` + the manifest, since an entry with no JS of its own has no manifest key.
+- [M0] decision: Playwright config is a stub (`testDir: e2e`, Chromium); `pnpm e2e` passes with no tests until M6. CI runs Node 24 (`@types/node` 24). The relay runs via `tsx` (`start`/`dev`) and depends on `@pcg/net-client` for protocol types. esbuild (from tsx) is in `onlyBuiltDependencies`.
+- [M0] contract: relay heartbeat uses WebSocket ping/pong control frames (browsers answer automatically), so the envelope has no ping message. Host→phone data arrives as `{ t: "msg", from: HOST_SENDER ("host") }`.
+- [M0] contract: `RosterEntry = { playerId, playerKey, connected }`; `RelayErrorCode = room-full | no-room | room-locked | room-closed | bad-request`; clients surface errors as `RelayError` (`.code`).
+- [M0] contract: `HostMsg = { t: "screen", screen }` with `screen.kind` as the discriminator (nested, not spread, for clean typing). Joining, charging, self-paused and reconnecting are phone-local states.
+- [M0] contract: sim world origin = arena center, units = logical px of the 1920×1080 canvas. The sim owns the 5 s ghost spawn delay: `eliminated` carries `respawnMs`, then `ghostSpawned` fires.
+- [M0] contract: match is clock-free (`tick(dtMs)` drives countdowns and rate limits); `MatchDeps` stays `{ sim, send, kick, storage }`; match declares its own `RelayPeer` because it may not import net-client.
+- [M0] contract: `theme.ts` line heights are px (unitless CSS values multiplied out); `steam`/`scrim` live in `theme.translucent`; `--radius-round` (50%) isn't mirrored (draw circles). `loadBrandFonts` resolves `true` only if every face loaded; faces derive from `theme.type`.
 
 ## 9. Final handoff
 
