@@ -357,7 +357,7 @@ Rules:
   - [x] Codec + HostClient
   - [x] ControllerClient + reconnect/backoff + player key
   - [x] Integration test vs real relay
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
 - **M3**
   - [ ] Roster, profiles, leader + handoff
   - [ ] Round flow, scoring, target, match end/rematch/lobby
