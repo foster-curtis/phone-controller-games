@@ -3,6 +3,8 @@
 //
 // World space: origin at the arena center, units = logical px of the 1920×1080 host canvas, +y down.
 // One `step()` advances exactly 1/60 s (SPEC §8); the host loop (src/host/loop) owns the accumulator.
+// Angles are radians, 0 = +x, increasing clockwise on screen (because +y is down). Velocities px/s.
+// Stick input uses the same axes: +x right, +y down.
 import type { InputTuple } from '../../shared/messages';
 
 /** Eggs and ghosts are keyed by the owning player's id. */
@@ -18,38 +20,47 @@ export interface EggState {
   id: SimPlayerId;
   x: number;
   y: number;
-  /** radians */
+  /** Facing (radians): the last non-zero stick direction. Eggs never spin physically. */
   angle: number;
+  /** Velocity, px/s. */
   vx: number;
   vy: number;
+  /** Collision radius, px. */
   radius: number;
+  /** Ignoring input (countdown, self-pause, disconnect); still hittable and can ring out. */
   frozen: boolean;
-  /** 0..1 slam charge while SLAM is held, else 0. */
+  /** 0..1 slam charge while SLAM is held (linear over the max charge time), else 0. */
   slamCharge: number;
   /** Post-slam mass boost active. */
   massBoost: boolean;
   /** 0..1 fraction of the dash cooldown remaining (0 = ready). */
   dashCooldown: number;
+  /** Still charging and the charge is full (`slamCharge === 1`): the max-charge flash. */
+  slamMax: boolean;
 }
 
 export interface GhostState {
   id: SimPlayerId;
   x: number;
   y: number;
-  /** 0..1 pulse wind-up (telegraph), 0 when idle. */
+  /** 0..1 pulse wind-up (telegraph ring), 0 when idle; > 0 for exactly the wind-up time. */
   windup: number;
   /** 0..1 fraction of the pulse cooldown remaining (0 = ready). */
   cooldown: number;
 }
 
 export interface SimSnapshot {
-  /** Steps since `startRound`. */
+  /** Steps since `startRound` (0 right after it). */
   tick: number;
   arena: {
+    /** Current rim radius, px. An egg is out once its center is farther than this from (0, 0). */
     radius: number;
-    /** Radius at round start. */
+    /** Radius at round start (∝ √players). */
     startRadius: number;
-    /** The arena is currently shrinking (HUD shrink warning). */
+    /**
+     * The arena is currently shrinking (HUD shrink warning / edge pulse): false for the first 10 s,
+     * true during the linear shrink, false again once it holds at the minimum.
+     */
     shrinking: boolean;
   };
   /** Eggs still on the pan. */
@@ -88,6 +99,5 @@ export interface SimOptions {
   seed?: number;
 }
 
-export function createSim(_opts: SimOptions = {}): Sim {
-  throw new Error('createSim: not implemented (M4)');
-}
+/** `createSim(opts?: SimOptions): Sim` — implemented in ./index (M4). */
+export { createSim } from './index';

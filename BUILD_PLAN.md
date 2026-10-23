@@ -365,10 +365,10 @@ Rules:
   - [x] Screens for every §6.7 state + emoji rate limit
   - [x] Merged to `main`
 - **M4**
-  - [ ] World, steering, dash, slam, mass boost
-  - [ ] Arena shrink, ring-out, last touch
-  - [ ] Ghosts (sensor, wind-up, pulse, cooldown)
-  - [ ] Freeze rule, tunneling + determinism tests, fixedStep + interpolate
+  - [x] World, steering, dash, slam, mass boost
+  - [x] Arena shrink, ring-out, last touch
+  - [x] Ghosts (sensor, wind-up, pulse, cooldown)
+  - [x] Freeze rule, tunneling + determinism tests, fixedStep + interpolate
   - [ ] Merged to `main`
 - **M5**
   - [x] Joystick, buttons, hold-to-pause, input sender
@@ -470,6 +470,15 @@ Format: `- [M#] decision: one line, with the reason.`
 - [M3] decision: screens are sent per phone, only when they change; `countdown.ms` / `eliminated.respawnMs` are rounded up to whole seconds (3-2-1, 5…1 updates). The ghost screen follows the sim's `ghostSpawned`. `spectating` = got no egg this round (mid-match joiners, key rejoiners, players disconnected at round start).
 - [M3] decision: while the host is hidden, inputs, leader/host actions and emoji are ignored. A relay rejoin (same id) clears self-pause; the phone re-sends `pause` if its overlay is still up. Emoji cooldown is keyed by player key.
 - [M3] decision: restore lands on results; a persisted round 0 restores to the lobby and a finished match to matchEnd. Peers the save doesn't know join as spectators; saved players missing from the roster are disconnected.
+- [M4] contract+: `EggState.slamMax` (charging at full charge → max-charge flash); `sim/types.ts` now documents every `SimSnapshot` field meaning for F2 (`angle` = facing, velocities px/s, `windup` > 0 for exactly the wind-up) and re-exports the real `createSim` from `sim/index.ts` (signature unchanged). SPEC §6.4 Slam updated.
+- [M4] decision: tunneling — the 36-angle max-slam test already passes with 1 substep at the starting 2000 px/s (and fails at 15000 px/s with 1 substep, so it can catch tunneling); kept 2 substeps of 1000/120 for tuning headroom (passes even at 15000 px/s). No speed cap.
+- [M4] decision: starting values (`sim/config.ts`, human units converted in `world.ts`): egg r 36, density 0.001, frictionAir 0.06, restitution 0.8; steer 1080 px/s² (≈300 px/s terminal), ×0.35 while charging; dash Δv 1200 px/s, 1.5 s; slam Δv 700→2000 px/s over 1 s, mass ×3 for 0.3 s; ghost r 28, 1440 px/s², pulse Δv 400 px/s within 170 px, 0.4 s wind-up, 4 s cooldown, 5 s spawn; arena 180·√n, min 40%, 10 s hold, 45 s shrink; credit 3 s.
+- [M4] decision: impulses (dash, slam, pulse) are a Δv applied as a one-substep `applyForce` (F = m·Δv/dt), so they don't depend on mass or substep count; the only direct velocity write is the freeze.
+- [M4] decision: timers are whole fixed steps (`msToSteps`), so cooldowns/wind-ups/boosts are exact and deterministic; a dash is ready again 90 steps after firing; ghost pulse cooldown starts when it fires.
+- [M4] decision: stick axes match world space (+x right, +y down); the first sample from a player only baselines its counters, and a counter going backwards (phone reload) re-baselines without a press.
+- [M4] decision: the shrink "warning flag" is `arena.shrinking`: false for 10 s, true for the 45 s linear shrink (`shrinkStart` fires on its first step), false while holding at the minimum. No separate pre-shrink warning phase (the spec gives no duration for one).
+- [M4] decision: slam = charge from a `slamCount` increment, release when the SLAM bit is seen up (a tap between samples = zero-charge slam); a re-boost refreshes the 0.3 s but never stacks. Dash and slam are independent (dash allowed while charging). Frozen eggs drop a charge without firing it.
+- [M4] decision: ghosts are sensors (no egg collision response, ignored for last touch), spawn at the center, and are clamped to the current radius by repositioning; a pulse pushes every egg whose center is within 170 px, with no falloff.
 
 ## 9. Final handoff
 

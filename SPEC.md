@@ -116,6 +116,7 @@ _All numbers are starting values for tuning._
 - **Slam (SLAM button, hold-and-release):**
   - Hold to charge, up to ~1 s. While charging: reduced movement, vulnerable.
   - Release: large impulse scaled by charge time + brief mass boost (~0.3 s) so the slammer wins the collision.
+  - The sim snapshot carries `slamCharge` (0..1) and `slamMax` (still holding at full charge → the max-charge flash).
 - **Ring-out:** eliminated when the body's **center** crosses the arena edge.
 - **Shrink:** full size for ~10 s → edge pulses as a warning → linear shrink over ~45 s to a minimum radius, then holds until the round ends.
 
