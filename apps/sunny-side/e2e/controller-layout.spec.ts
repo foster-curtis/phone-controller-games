@@ -42,13 +42,13 @@ for (const [w, h] of [
     expect(j.cx).toBeGreaterThan(110);
     expect(h - j.cy).toBeGreaterThan(100);
     if (w === 932) {
-      // M5-fix-5 vs M5-fix-4 (DASH 575.5,232.2; SLAM 832,330; stick 119.1,325.4).
+      // M5-fix-6: DASH 575.5,232.2 unchanged; SLAM ~(732,275); stick ~(219,271).
       expect(Math.abs(d.cx - 575.5)).toBeLessThanOrEqual(2);
       expect(Math.abs(d.cy - 232.2)).toBeLessThanOrEqual(2);
-      expect(Math.abs(s.cx - (832 - 100))).toBeLessThanOrEqual(15);
-      expect(Math.abs(s.cy - (330 - 100))).toBeLessThanOrEqual(15);
-      expect(Math.abs(j.cx - (119.1 + 100))).toBeLessThanOrEqual(15);
-      expect(Math.abs(j.cy - (325.4 - 100))).toBeLessThanOrEqual(15);
+      expect(Math.abs(s.cx - 732)).toBeLessThanOrEqual(10);
+      expect(Math.abs(s.cy - 275)).toBeLessThanOrEqual(10);
+      expect(Math.abs(j.cx - 219)).toBeLessThanOrEqual(10);
+      expect(Math.abs(j.cy - 271)).toBeLessThanOrEqual(10);
       console.log('932x430 centers', { slam: [s.cx, s.cy], stick: [j.cx, j.cy] });
       // Nearest-center split: a touch in DASH's column but nearer SLAM presses SLAM.
       const mx = (d.cx + s.cx) / 2 + 20;

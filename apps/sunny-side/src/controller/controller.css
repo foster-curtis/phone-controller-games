@@ -573,9 +573,9 @@ input {
   /* M5-fix-5: stick moves up/right, SLAM/PULSE up/left of their M5-fix-4 spots (100 px at 932x430,
      scaled down on smaller viewports; SLAM's x shift is also capped so its arc keeps >= 16 px from DASH). */
   --stick-dx: min(100px, 10.7vw);
-  --stick-dy: min(100px, 23.2dvh);
+  --stick-dy: min(55px, 12.8dvh);
   --slam-dx: clamp(0px, calc(37.5vw - 240px), 100px);
-  --slam-dy: min(100px, 23.2dvh);
+  --slam-dy: min(55px, 12.8dvh);
 }
 
 /* The whole left half is the stick's touch area; the stick rests at the bottom-left when idle. */
