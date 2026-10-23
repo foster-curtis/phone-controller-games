@@ -34,8 +34,8 @@ export const SIM_CONFIG = {
   },
 
   dash: {
-    /** Instant Δv (impulse / mass). */
-    dv: 1200,
+    /** Instant Δv (impulse / mass). M4 start 1200; −20% at C2 (too strong in the 2-player arena). */
+    dv: 960,
     cooldownMs: 1500,
   },
 
@@ -58,8 +58,8 @@ export const SIM_CONFIG = {
     cooldownMs: 4000,
     /** Eggs whose center is within this distance of the ghost's center get pushed. */
     pulseRadius: 170,
-    /** ≈ ⅓ of a dash. */
-    pulseDv: 1200 / 3,
+    /** ≈ ⅓ of a dash (follows the dash: 400 → 320 px/s at C2). */
+    pulseDv: 960 / 3,
     spawnDelayMs: 5000,
   },
 

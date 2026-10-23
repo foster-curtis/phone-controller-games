@@ -492,6 +492,7 @@ Format: `- [M#] decision: one line, with the reason.`
 - [M6] decision: LAN URL: a dev-only Vite plugin (`vite.config.ts`, helpers in `src/host/lan.ts` + unit test) prints `TV host (open this on the TV/laptop): http://<LAN IP>:<port>/` under Vite's URLs, preferring physical adapters/192.168 over WSL/Hyper-V/Docker ones, and exposes the IP as `import.meta.env.VITE_LAN_HOST` for the host's localhost banner. `tsconfig` gains `allowImportingTsExtensions` so the config can import `lan.ts` with its extension (Vite's native config loader warns otherwise).
 - [M6] decision: the room never locks (mid-match joiners spectate per SPEC §6.3); `maxPlayers` = 8. A reclaimed room calls `match.restore(roster)`; if the relay hands a *new* room after we had one (old room expired while away), the host clears the saved match and reloads into it.
 - [M6] decision: the host Wake Lock is requested at boot, on the first pointer/key gesture and on every return to visible; feature-detected (absent on LAN http).
+- [M4-fix-1] decision: dash Δv 1200 → 960 px/s (−20%, C2 note: too strong in the 2-player arena), global, not scaled by player count (re-judged at C3). Ghost pulse Δv scaled 400 → 320 px/s (960/3): at 400 the "≈ ⅓ of a dash" test measured 0.41 (limit 0.37). Slam unchanged. New dash test asserts 960.
 - [M6] decision: Playwright runs 1 worker (each spec drives a host + phones on one relay), phones use a 844×390 landscape viewport in their own contexts (own player keys); the host reads `window.__pcg` (Vite dev ⇒ debug on).
 
 ## 9. Final handoff

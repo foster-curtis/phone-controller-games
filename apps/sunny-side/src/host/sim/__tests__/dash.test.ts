@@ -31,6 +31,15 @@ describe('dash', () => {
     expect(egg(sim, 'a').vy).toBeLessThan(-SIM_CONFIG.dash.dv * 0.9);
   });
 
+  it('C2 tuning: dash Δv is 960 px/s, and a dash from rest yields ≈ 960 px/s on the next step', () => {
+    expect(SIM_CONFIG.dash.dv).toBe(960);
+    const { sim, pads } = big();
+    pads.a!.stick(100, 0).dash();
+    sim.step();
+    expect(egg(sim, 'a').vx).toBeGreaterThan(960 * 0.9);
+    expect(egg(sim, 'a').vx).toBeLessThanOrEqual(960);
+  });
+
   it('uses facing on a neutral stick', () => {
     const { sim, pads } = big();
     pads.a!.stick(0, 100); // face down (+y)
