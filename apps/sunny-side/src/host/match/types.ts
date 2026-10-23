@@ -1,6 +1,12 @@
 // Match flow contract (SPEC §6.3, §6.5, §6.7): roster, leader, rounds, scoring, screens.
 // Plain TS: no Phaser, no networking (M6 wires it to the host client). Frozen at F0: additive only.
-import type { EmojiIndex, HostMsg, LeaderAction, PlayerColorId } from '../../shared/messages';
+import type {
+  EmojiIndex,
+  HostMsg,
+  LeaderAction,
+  PlayerColorId,
+  RoundBreakdown,
+} from '../../shared/messages';
 import type { Sim, SimEvent } from '../sim/types';
 
 export type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
@@ -59,6 +65,11 @@ export interface MatchView {
   survivorId: string | null;
   /** Phase `matchEnd`. */
   winnerId: string | null;
+  /**
+   * Phases `results` / `matchEnd`: points breakdown of the round just played (M3-fix-1). null in
+   * other phases and after a host-refresh restore (in-round state isn't persisted).
+   */
+  breakdown?: RoundBreakdown | null;
 }
 
 export type MatchEvent =

@@ -142,6 +142,7 @@ _All numbers are starting values for tuning._
   - **1 s cooldown** per spectator; cap of ~12 on screen at once (oldest drops first).
 
 **Screens:** lobby (QR + room code + joined players), round results, match winner.
+Round results and the match winner screen show a **per-round points breakdown** of the round just played (`MatchView.breakdown`, §7.3): for each player who had an egg, the points earned and why (+1 per knockout, naming the victim; +3 survivor) plus who knocked them out (or "fell off"). Not available right after a host refresh.
 
 ### 6.7 Phone UI states
 
@@ -152,7 +153,7 @@ _All numbers are starting values for tuning._
 - **Eliminated:** "Respawn as a ghost in" with a very large countdown 5 → 1 beneath it; the number pulses slightly on each change.
 - **Ghost:** same joystick; the DASH/SLAM pair is replaced by a single grey **PULSE** button (not the player color, not dampened). It sends the dash bit/counter, which the host treats as a ghost pulse.
 - **Spectating** (mid-match joiners, late rejoiners): no controller. Scores + round number + an **emoji hotbar of 5** reactions (shown on the TV per §6.6).
-- **Round results / match end:** standings; leader sees Next round.
+- **Round results / match end:** standings; leader sees Next round. Both screens also carry the per-round points breakdown of the round just played (§7.3; the final round on match end).
 - **Self-paused:** overlay covering the controller with **Resume** and **Leave game**.
 - **Game paused** (host tab hidden, §8): overlay with a note to make sure the host screen is open and connected, plus **Leave game**.
 - **Reconnecting:** overlay while the socket recovers.
@@ -268,6 +269,7 @@ Phone → host (JSON objects; inputs are arrays, so `Array.isArray` distinguishe
 
 Host → phone: the host drives each phone's UI state (§6.7), e.g. `{ t: "screen", screen, ...data }`, sent per phone or broadcast.
 Every screen also carries `leaderName` (the session leader's name, or null) so non-leader phones can show "Waiting for {leader}…" (§6.5); it is re-sent when leadership changes.
+The `results` and `matchEnd` screens (and the TV's `MatchView`) carry `breakdown?: RoundBreakdown | null` for the round just played: `{ round, players: [{ playerId, name, color, points, total, left, items, out }] }`, players who had an egg only, in standings order; `items` = `{ kind: "ko", victimId, victimName, points }` per knockout credit and `{ kind: "survivor", points }`; `out` = `{ by, byName }` (both null = fell off / no credit) or null if never knocked out. It is null/absent after a host-refresh restore. Exact types: `src/shared/messages.ts`.
 _Shape is indicative; exact fields finalized at implementation._
 
 ## 8. Game loop

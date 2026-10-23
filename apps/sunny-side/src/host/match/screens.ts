@@ -1,5 +1,11 @@
 // Per-phone screen (SPEC §6.7): what each phone should show, derived from match state.
-import type { Screen, ScreenBase, Standing, PlayerColorId } from '../../shared/messages';
+import type {
+  PlayerColorId,
+  RoundBreakdown,
+  Screen,
+  ScreenBase,
+  Standing,
+} from '../../shared/messages';
 import type { MatchPhase } from './types';
 import type { PlayerRecord } from './roster';
 
@@ -12,6 +18,8 @@ export interface ScreenContext {
   countdownMs: number;
   survivorId: string | null;
   winnerId: string | null;
+  /** Last finished round (results / matchEnd); null after restore. */
+  breakdown: RoundBreakdown | null;
   standings: Standing[];
   canStart: boolean;
   takenColors(p: PlayerRecord): PlayerColorId[];
@@ -49,8 +57,8 @@ export function screenFor(ctx: ScreenContext, p: PlayerRecord): Screen {
         return { ...base, kind: 'eliminated', respawnMs: ceilSecondsMs(p.respawnMs) };
       return { ...base, kind: 'spectating' };
     case 'results':
-      return { ...base, kind: 'results', survivorId: ctx.survivorId };
+      return { ...base, kind: 'results', survivorId: ctx.survivorId, breakdown: ctx.breakdown };
     case 'matchEnd':
-      return { ...base, kind: 'matchEnd', winnerId: ctx.winnerId ?? '' };
+      return { ...base, kind: 'matchEnd', winnerId: ctx.winnerId ?? '', breakdown: ctx.breakdown };
   }
 }

@@ -1,6 +1,12 @@
 // Match state machine (SPEC §6.3, §6.5, §6.7): lobby → countdown → playing → results/matchEnd.
 // Clock-free: `tick(dtMs)` is the only source of time.
-import { isInput, isPlayerColorId, type LeaderAction } from '../../shared/messages';
+import {
+  isInput,
+  isPlayerColorId,
+  type LeaderAction,
+  type RoundBreakdown,
+} from '../../shared/messages';
+import { RoundTally } from './breakdown';
 import type { SimEvent } from '../sim/types';
 import {
   COUNTDOWN_MS,
@@ -41,6 +47,9 @@ export function createMatch(deps: MatchDeps): Match {
   let countdownMs = 0;
   let survivorId: string | null = null;
   let winnerId: string | null = null;
+  /** Breakdown of the last finished round (results / matchEnd); null after restore. */
+  let breakdown: RoundBreakdown | null = null;
+  const tally = new RoundTally();
   let clockMs = 0;
   /** Sim ids of eggs still on the pan this round (old ids of late rejoiners included). */
   const eggs = new Set<string>();
@@ -111,6 +120,7 @@ export function createMatch(deps: MatchDeps): Match {
       countdownMs,
       survivorId,
       winnerId,
+      breakdown,
       standings: standings(roster.players),
       canStart: canStart(),
       takenColors: (p) => roster.takenColors(p),
@@ -160,6 +170,7 @@ export function createMatch(deps: MatchDeps): Match {
     round += 1;
     eggs.clear();
     survivorId = null;
+    breakdown = null;
     const spawns: { id: string; frozen: boolean }[] = [];
     for (const p of roster.players) {
       p.eliminated = false;
@@ -172,6 +183,7 @@ export function createMatch(deps: MatchDeps): Match {
         spawns.push({ id: p.id, frozen: true });
       }
     }
+    tally.start(roster.players.filter((p) => eggs.has(p.id)));
     sim.startRound(spawns);
     countdownMs = COUNTDOWN_MS;
     setPhase('countdown');
@@ -197,7 +209,9 @@ export function createMatch(deps: MatchDeps): Match {
     if (outcome.survivor) {
       addScore(outcome.survivor, SURVIVOR_POINTS, 'survivor');
       survivorId = outcome.survivor.id;
+      tally.survived(outcome.survivor);
     }
+    breakdown = tally.build(round);
     eggs.clear();
     for (const p of roster.players) p.respawnMs = 0;
     const winner = findWinner(roster.players, matchTarget);
@@ -236,6 +250,7 @@ export function createMatch(deps: MatchDeps): Match {
           round = 0;
           winnerId = null;
           survivorId = null;
+          breakdown = null;
           setPhase('lobby');
         }
         break;
@@ -384,6 +399,7 @@ export function createMatch(deps: MatchDeps): Match {
       countdownMs = 0;
       survivorId = null;
       winnerId = null;
+      breakdown = null;
       leaderId = null;
       round = 0;
       const saved = loadPersisted(deps.storage);
@@ -443,6 +459,7 @@ export function createMatch(deps: MatchDeps): Match {
           }
           const killer = knockoutCredit(roster, e.id, e.by);
           if (killer) addScore(killer, KNOCKOUT_POINTS, 'knockout');
+          tally.knockout(roster.get(e.id), killer);
         } else if (e.type === 'ghostSpawned') {
           const owner = roster.current(e.id);
           if (owner && owner.eliminated) {
@@ -507,6 +524,7 @@ export function createMatch(deps: MatchDeps): Match {
         players,
         survivorId: phase === 'results' || phase === 'matchEnd' ? survivorId : null,
         winnerId: phase === 'matchEnd' ? winnerId : null,
+        breakdown: phase === 'results' || phase === 'matchEnd' ? breakdown : null,
       };
     },
 

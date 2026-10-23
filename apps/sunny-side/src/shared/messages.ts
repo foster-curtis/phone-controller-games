@@ -99,6 +99,41 @@ export interface ScreenBase {
   leaderName?: string | null;
 }
 
+/** One reason a player earned points this round (SPEC §6.1 scoring). */
+export type RoundPointItem =
+  /** Knockout credit for eliminating `victimId` (+`points`, currently +1). */
+  | { kind: 'ko'; victimId: string; victimName: string; points: number }
+  /** Sole-survivor bonus (+`points`, currently +3). */
+  | { kind: 'survivor'; points: number };
+
+/** One player who had an egg in the round: what they earned and how they went out. */
+export interface RoundBreakdownEntry {
+  playerId: string;
+  name: string;
+  color: PlayerColorId;
+  /** Points earned this round (= sum of `items[].points`). */
+  points: number;
+  /** Match score after this round. */
+  total: number;
+  /** Left the match (greyed out, like `Standing.left`). */
+  left: boolean;
+  /** In the order earned: knockouts first, the survivor bonus last. Empty = scored nothing. */
+  items: RoundPointItem[];
+  /**
+   * How they went out: `by`/`byName` = who got the knockout credit, both null = fell off with no
+   * credit. `null` = never knocked out this round (survived, or their egg was still on the pan).
+   */
+  out: { by: string | null; byName: string | null } | null;
+}
+
+/** Points breakdown of the round just played (results / match-end, SPEC §6.6, §6.7). */
+export interface RoundBreakdown {
+  /** The round this breakdown is for (1-based). */
+  round: number;
+  /** Only players who had an egg this round, in standings order (total desc, then join order). */
+  players: RoundBreakdownEntry[];
+}
+
 /** One variant per host-driven SPEC §6.7 state. Joining, charging, self-paused and reconnecting are phone-local. */
 export type Screen =
   | (ScreenBase & { kind: 'lobby'; takenColors: PlayerColorId[]; canStart: boolean })
@@ -107,8 +142,18 @@ export type Screen =
   | (ScreenBase & { kind: 'eliminated'; respawnMs: number })
   | (ScreenBase & { kind: 'ghost' })
   | (ScreenBase & { kind: 'spectating' })
-  | (ScreenBase & { kind: 'results'; survivorId: string | null })
-  | (ScreenBase & { kind: 'matchEnd'; winnerId: string })
+  | (ScreenBase & {
+      kind: 'results';
+      survivorId: string | null;
+      /** The round just played; null/absent after a host-refresh restore (in-round state discarded). */
+      breakdown?: RoundBreakdown | null;
+    })
+  | (ScreenBase & {
+      kind: 'matchEnd';
+      winnerId: string;
+      /** The final round's breakdown; null/absent after a host-refresh restore. */
+      breakdown?: RoundBreakdown | null;
+    })
   | (ScreenBase & { kind: 'gamePaused' })
   | (ScreenBase & { kind: 'left' });
 
