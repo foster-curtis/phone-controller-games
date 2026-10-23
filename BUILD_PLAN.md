@@ -363,7 +363,7 @@ Rules:
   - [x] Round flow, scoring, target, match end/rematch/lobby
   - [x] Disconnect, pause, leave, late rejoin, host-refresh restore
   - [x] Screens for every §6.7 state + emoji rate limit
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
 - **M4**
   - [ ] World, steering, dash, slam, mass boost
   - [ ] Arena shrink, ring-out, last touch
