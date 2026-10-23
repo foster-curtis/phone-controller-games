@@ -266,6 +266,7 @@ Phone → host (JSON objects; inputs are arrays, so `Array.isArray` distinguishe
 ```
 
 Host → phone: the host drives each phone's UI state (§6.7), e.g. `{ t: "screen", screen, ...data }`, sent per phone or broadcast.
+Every screen also carries `leaderName` (the session leader's name, or null) so non-leader phones can show "Waiting for {leader}…" (§6.5); it is re-sent when leadership changes.
 _Shape is indicative; exact fields finalized at implementation._
 
 ## 8. Game loop

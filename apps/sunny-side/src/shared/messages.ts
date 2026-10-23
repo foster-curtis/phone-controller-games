@@ -92,6 +92,11 @@ export interface ScreenBase {
   color: PlayerColorId | null;
   /** Sorted by score, highest first. */
   standings: Standing[];
+  /**
+   * The session leader's name, for "Waiting for {leader}…" on other phones (SPEC §6.5). Added by the
+   * host's net layer (M6) on every screen it sends; absent/null when there is no leader.
+   */
+  leaderName?: string | null;
 }
 
 /** One variant per host-driven SPEC §6.7 state. Joining, charging, self-paused and reconnecting are phone-local. */

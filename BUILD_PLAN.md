@@ -377,10 +377,10 @@ Rules:
   - [x] Merged to `main`
   - [x] **User approved C1 (controller on real phones)**
 - **M6**
-  - [ ] Host boot, room + lobby QR, net ↔ match ↔ sim wiring, fixed-step loop + interpolation
-  - [ ] Basic scenes + host controls, visibility pause, Wake Lock
-  - [ ] Controller wired to real client
-  - [ ] Playwright smoke / reconnect / pause specs
+  - [x] Host boot, room + lobby QR, net ↔ match ↔ sim wiring, fixed-step loop + interpolation
+  - [x] Basic scenes + host controls, visibility pause, Wake Lock
+  - [x] Controller wired to real client
+  - [x] Playwright smoke / reconnect / pause specs
   - [ ] Merged to `main`
   - [ ] **User approved C2 (LAN play-test)**
 - **M7**
@@ -482,6 +482,17 @@ Format: `- [M#] decision: one line, with the reason.`
 - [M4] decision: the shrink "warning flag" is `arena.shrinking`: false for 10 s, true for the 45 s linear shrink (`shrinkStart` fires on its first step), false while holding at the minimum. No separate pre-shrink warning phase (the spec gives no duration for one).
 - [M4] decision: slam = charge from a `slamCount` increment, release when the SLAM bit is seen up (a tap between samples = zero-charge slam); a re-boost refreshes the 0.3 s but never stacks. Dash and slam are independent (dash allowed while charging). Frozen eggs drop a charge without firing it.
 - [M4] decision: ghosts are sensors (no egg collision response, ignored for last touch), spawn at the center, and are clamped to the current radius by repositioning; a pulse pushes every egg whose center is within 170 px, with no falloff.
+- [M6] contract+: `ScreenBase.leaderName?: string | null` (messages.ts, SPEC §7.3). The phones had no way to name the leader for "Waiting for {leader}…" (SPEC §6.5); the host net layer (`net.ts`) stamps it on every screen it sends and re-sends lobby/results/matchEnd screens when leadership or names change, so M3's match code is untouched.
+- [M6] decision: the "Waiting for {leader}…" line is added by controller `main.ts` (the wiring M6 owns) into the current screen's `.actions` after each screen message, using the existing `.body` class; M7/M5-fix may move it into the lobby/results views.
+- [M6] decision: controller `main.ts` sets `#app[data-player-id]` to the relay playerId once open (debug + the reconnect e2e's "same playerId" check).
+- [M6] decision: one fixed step = `sim.step()` (only while `match.simRunning`) → `match.handleSimEvents` → `match.tick(STEP_MS)`, so match timers advance in whole fixed steps; driven from Phaser's `STEP` event with raw RAF time deltas (clamped to 250 ms, accumulator reset on visible). Snapshots reset on every `countdown` phase so nothing lerps across rounds.
+- [M6] decision: scenes follow the match phase (lobby → Lobby, countdown/playing → Round, results → Results, matchEnd → Winner); host buttons call `match.hostAction` (enabled at ≥2 connected players, like the match's own rule); scenes re-render text when the runtime's event counter moves or every 250 ms.
+- [M6] decision: `__pcg.debug.eliminate(id)` wraps the sim (`createDebugSim`, debug builds only) and steers that egg straight out with a dash until it really rings out, so the match gets a genuine `eliminated` and the sim's own 5 s ghost spawn follows. Extra hooks: `code()`, `joinUrl()`, `qr()` (modules actually drawn), `texts()`, `view()`.
+- [M6] decision: smoke.spec joins a third phone ("Cy") as a bystander: with exactly 2 eggs, ringing out p2 ends the round at once (M3 rule: ≤1 egg left), so p2 could never reach `ghost`. Cy's egg is rung out after p2's ghost check to end the round.
+- [M6] decision: LAN URL: a dev-only Vite plugin (`vite.config.ts`, helpers in `src/host/lan.ts` + unit test) prints `TV host (open this on the TV/laptop): http://<LAN IP>:<port>/` under Vite's URLs, preferring physical adapters/192.168 over WSL/Hyper-V/Docker ones, and exposes the IP as `import.meta.env.VITE_LAN_HOST` for the host's localhost banner. `tsconfig` gains `allowImportingTsExtensions` so the config can import `lan.ts` with its extension (Vite's native config loader warns otherwise).
+- [M6] decision: the room never locks (mid-match joiners spectate per SPEC §6.3); `maxPlayers` = 8. A reclaimed room calls `match.restore(roster)`; if the relay hands a *new* room after we had one (old room expired while away), the host clears the saved match and reloads into it.
+- [M6] decision: the host Wake Lock is requested at boot, on the first pointer/key gesture and on every return to visible; feature-detected (absent on LAN http).
+- [M6] decision: Playwright runs 1 worker (each spec drives a host + phones on one relay), phones use a 844×390 landscape viewport in their own contexts (own player keys); the host reads `window.__pcg` (Vite dev ⇒ debug on).
 
 ## 9. Final handoff
 
