@@ -369,7 +369,7 @@ Rules:
   - [x] Arena shrink, ring-out, last touch
   - [x] Ghosts (sensor, wind-up, pulse, cooldown)
   - [x] Freeze rule, tunneling + determinism tests, fixedStep + interpolate
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
 - **M5**
   - [x] Joystick, buttons, hold-to-pause, input sender
   - [x] All screens + overlays, name prefill, emoji hotbar
