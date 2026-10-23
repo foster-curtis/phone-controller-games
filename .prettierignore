@@ -1,0 +1,14 @@
+node_modules
+dist
+pnpm-lock.yaml
+.claude/worktrees/
+playwright-report
+test-results
+apps/sunny-side/e2e/__screens__
+apps/sunny-side/src/styles/brand.css
+apps/sunny-side/public/
+apps/sunny-side/brand/
+apps/sunny-side/index.html
+apps/sunny-side/play.html
+SPEC.md
+BUILD_PLAN.md

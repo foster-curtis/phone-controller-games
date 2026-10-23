@@ -1,0 +1,34 @@
+{
+  "name": "phone-controller-games",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.34.5",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test && pnpm build && pnpm check:bundle && pnpm check:routes",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "pnpm -r test",
+    "build": "pnpm --filter @pcg/sunny-side build",
+    "check:bundle": "node scripts/check-bundle.mjs",
+    "check:routes": "node scripts/check-routes.mjs",
+    "dev": "concurrently -n relay,web -c yellow,cyan \"pnpm --filter @pcg/relay dev\" \"pnpm --filter @pcg/sunny-side dev\"",
+    "dev:lan": "concurrently -n relay,web -c yellow,cyan \"pnpm --filter @pcg/relay dev\" \"pnpm --filter @pcg/sunny-side dev --host\"",
+    "e2e": "pnpm --filter @pcg/sunny-side e2e"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.19.2",
+    "concurrently": "10.0.6",
+    "eslint": "10.13.0",
+    "globals": "17.13.0",
+    "prettier": "3.9.10",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.0",
+    "vite": "8.3.5"
+  }
+}

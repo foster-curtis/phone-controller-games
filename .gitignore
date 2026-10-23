@@ -1,0 +1,6 @@
+node_modules
+dist
+.claude/worktrees/
+playwright-report
+test-results
+apps/sunny-side/e2e/__screens__
