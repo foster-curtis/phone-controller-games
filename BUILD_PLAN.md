@@ -381,7 +381,7 @@ Rules:
   - [x] Basic scenes + host controls, visibility pause, Wake Lock
   - [x] Controller wired to real client
   - [x] Playwright smoke / reconnect / pause specs
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
   - [ ] **User approved C2 (LAN play-test)**
 - **M7**
   - [ ] Egg / arena / ghost render, slam ring + anticipation + flash, jiggle
