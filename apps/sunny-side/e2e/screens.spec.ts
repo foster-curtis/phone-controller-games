@@ -7,6 +7,7 @@ import { expect, test, type Browser, type Page } from '@playwright/test';
 import {
   eliminate,
   joinPhone,
+  type Phone,
   leaderTap,
   phase,
   playerByName,
@@ -42,10 +43,12 @@ test('TV screens: lobby, round, slam, results, winner', async ({ browser }) => {
   mkdirSync(OUT, { recursive: true });
 
   const host = await openTv(browser);
+  const phones: Phone[] = [];
   const ann = await joinPhone(browser, host.code, 'Ann');
-  await joinPhone(browser, host.code, 'Bartholome');
-  await joinPhone(browser, host.code, 'Cy');
-  await joinPhone(browser, host.code, 'Dee');
+  phones.push(ann);
+  phones.push(await joinPhone(browser, host.code, 'Bartholome'));
+  phones.push(await joinPhone(browser, host.code, 'Cy'));
+  phones.push(await joinPhone(browser, host.code, 'Dee'));
   const a = await playerByName(host, 'Ann');
   const b = await playerByName(host, 'Bartholome');
   const c = await playerByName(host, 'Cy');
@@ -95,4 +98,8 @@ test('TV screens: lobby, round, slam, results, winner', async ({ browser }) => {
   expect(await phase(host)).toBe('matchEnd');
   await host.page.waitForTimeout(500);
   await shot(host.page, 'winner');
+
+  // Leave nothing running for the next spec.
+  for (const p of phones) await p.context.close();
+  await host.context.close();
 });
