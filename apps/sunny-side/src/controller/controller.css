@@ -570,6 +570,12 @@ input {
   gap: 0;
   padding: 0;
   touch-action: none;
+  /* M5-fix-5: stick moves up/right, SLAM/PULSE up/left of their M5-fix-4 spots (100 px at 932x430,
+     scaled down on smaller viewports; SLAM's x shift is also capped so its arc keeps >= 16 px from DASH). */
+  --stick-dx: min(100px, 10.7vw);
+  --stick-dy: min(100px, 23.2dvh);
+  --slam-dx: clamp(0px, calc(37.5vw - 240px), 100px);
+  --slam-dy: min(100px, 23.2dvh);
 }
 
 /* The whole left half is the stick's touch area; the stick rests at the bottom-left when idle. */
@@ -595,8 +601,8 @@ input {
 
 /* Idle: parked near the bottom-left (inline left/top are cleared on release). */
 .stick-base.resting {
-  left: calc(var(--stick-r) + var(--space-6) + var(--nudge));
-  top: calc(100% - var(--stick-r) - var(--space-4) - var(--nudge));
+  left: calc(var(--stick-r) + var(--space-6) + var(--nudge) + var(--stick-dx));
+  top: calc(100% - var(--stick-r) - var(--space-4) - var(--nudge) - var(--stick-dy));
 }
 
 .stick-knob {
@@ -696,10 +702,18 @@ input {
   padding-bottom: calc(var(--space-3) + var(--space-6) + var(--space-1));
 }
 
-/* Ghost PULSE: low and centered in the right half, same reach as SLAM. */
+/* SLAM / PULSE button: shifted up/left of its zone corner (hit zones are split by JS: nearest button). */
+.pad-zone.slam .pad-btn,
+.pad-zone.pulse .pad-btn {
+  left: calc(-1 * var(--slam-dx));
+  top: calc(-1 * var(--slam-dy));
+}
+
+/* Ghost PULSE: exactly where SLAM is. */
 .pad-zone.pulse {
   align-items: flex-end;
-  justify-content: center;
+  justify-content: flex-end;
+  padding-right: calc(var(--space-3) + var(--space-6) + var(--space-1));
   padding-bottom: calc(var(--space-3) + var(--space-6) + var(--space-1));
 }
 
@@ -896,4 +910,15 @@ input {
   border-radius: var(--radius);
   font: 600 12px/1 var(--font-mono);
   touch-action: manipulation;
+}
+
+@media (max-height: 480px) {
+  .bd-pts {
+    font-size: 24px;
+  }
+
+  .bd-mine {
+    padding: var(--space-1) var(--space-3);
+    gap: 0;
+  }
 }

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { mount, sampleScreen } from './helpers';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { mount, pointer, sampleScreen } from './helpers';
 import { sampleBreakdown } from '../dev';
 import type { RoundBreakdown, Screen } from '../../shared/messages';
 
@@ -95,5 +98,55 @@ describe.each(['results', 'matchEnd'] as const)('%s breakdown', (kind) => {
     expect(b.players.length).toBe(8);
     const root = show(b);
     expect(root.querySelectorAll('[data-bd=row]').length).toBe(7);
+  });
+});
+
+describe('pads: nearest-button split and moved positions', () => {
+  const rectAt = (cx: number, cy: number) => () =>
+    ({
+      left: cx - 60,
+      top: cy - 60,
+      width: 120,
+      height: 120,
+      right: cx + 60,
+      bottom: cy + 60,
+    }) as DOMRect;
+
+  it('a press in DASH zone but nearer SLAM goes to SLAM; with no layout the zone hit wins', () => {
+    const h = mount();
+    h.show(sampleScreen('playing'));
+    const q = (sel: string) => h.root.querySelector(sel) as HTMLElement;
+    const dashZone = q('[data-pad=dash]');
+    const slamZone = q('[data-pad=slam]');
+    // No layout (all rects zero): the zone that was hit wins.
+    pointer(dashZone, 'pointerdown', 1, 5, 5);
+    expect(dashZone.classList.contains('pressed')).toBe(true);
+    pointer(dashZone, 'pointerup', 1, 5, 5);
+    q('[data-pad=dash] .pad-btn').getBoundingClientRect = rectAt(575, 232);
+    q('[data-pad=slam] .pad-btn').getBoundingClientRect = rectAt(732, 230);
+    pointer(dashZone, 'pointerdown', 2, 670, 230);
+    expect(slamZone.classList.contains('pressed')).toBe(true);
+    expect(dashZone.classList.contains('pressed')).toBe(false);
+    pointer(slamZone, 'pointerup', 2, 670, 230);
+    expect(slamZone.classList.contains('pressed')).toBe(false);
+    pointer(slamZone, 'pointerdown', 3, 650, 232);
+    expect(dashZone.classList.contains('pressed')).toBe(true);
+    pointer(dashZone, 'pointerup', 3, 650, 232);
+  });
+
+  it('css shifts the stick right/up and SLAM/PULSE left/up; DASH rule untouched', () => {
+    const css = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), '../controller.css'),
+      'utf8',
+    );
+    expect(css).toContain('--stick-dx: min(100px');
+    expect(css).toContain('--slam-dx: clamp(0px');
+    expect(css).toMatch(
+      /\.stick-base\.resting\s*\{[^}]*\+ var\(--stick-dx\)[^}]*- var\(--stick-dy\)/,
+    );
+    expect(css).toMatch(
+      /\.pad-zone\.pulse \.pad-btn[^{]*\{[^}]*left:\s*calc\(-1 \* var\(--slam-dx\)\)/,
+    );
+    expect(css).toMatch(/\.pad-zone\.dash\s*\{[^}]*padding-bottom:\s*calc\(46dvh/);
   });
 });

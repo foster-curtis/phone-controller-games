@@ -3,7 +3,7 @@
 // SLAM (down/right) zones, or one PULSE zone for ghosts. The pause button lives in the top banner.
 import { el } from '../dom';
 import { BUTTON_DASH, BUTTON_SLAM, type Screen } from '../../shared/messages';
-import { createChargeArc, createHoldButton } from '../input/buttons';
+import { createChargeArc, createHoldButton, createNearestRouter } from '../input/buttons';
 import { createHoldToPause } from '../input/holdToPause';
 import { createJoystick } from '../input/joystick';
 import { colorVar, type ScreenCtx, type ScreenView } from './common';
@@ -20,11 +20,12 @@ export function createController(ctx: ScreenCtx, first: PlaySurface): ScreenView
     el('span', { class: 'pause-icon', 'aria-hidden': 'true' }),
   );
   ctx.pauseSlot.append(pause);
-  const dashPad = el(
+  const dashBtn = el(
     'div',
-    { class: 'pad-zone dash', 'data-pad': 'dash' },
-    el('div', { class: 'pad-btn pad' }, el('span', { class: 'pad-label', text: 'DASH' })),
+    { class: 'pad-btn pad' },
+    el('span', { class: 'pad-label', text: 'DASH' }),
   );
+  const dashPad = el('div', { class: 'pad-zone dash', 'data-pad': 'dash' }, dashBtn);
   const slamBtn = el(
     'div',
     { class: 'pad-btn pad' },
@@ -51,6 +52,10 @@ export function createController(ctx: ScreenCtx, first: PlaySurface): ScreenView
     else arc.release();
   });
   const pulse = createHoldButton(pulsePad, (down) => ctx.sender.setButton(BUTTON_DASH, down));
+  const unroute = createNearestRouter(pads, [
+    { zone: dashPad, btn: dashBtn, hold: dash },
+    { zone: slamPad, btn: slamBtn, hold: slam },
+  ]);
   const hold = createHoldToPause(pause, () => ctx.onPause());
 
   const apply = (s: PlaySurface) => {
@@ -76,6 +81,7 @@ export function createController(ctx: ScreenCtx, first: PlaySurface): ScreenView
     destroy() {
       ctx.sender.neutral();
       ctx.sender.stop();
+      unroute();
       stick.destroy();
       arc.destroy();
       arc.svg.remove();
