@@ -1,14 +1,14 @@
-// Shared scene helpers: brand text styles, host buttons, the text scoreboard and scene lookup.
-// Colors/fonts/sizes come only from theme.ts. (M7 restyles these; M6 keeps them minimal.)
+// Shared scene helpers: brand text styles, sticker host buttons, standings order and scene lookup.
+// Colors/fonts/sizes come only from theme.ts.
 import type * as Phaser from 'phaser';
 import type { PlayerColorId } from '../../shared/messages';
 import { theme, type ColorToken, type TypeStyleName } from '../../shared/theme';
 import type { GameRuntime } from '../game';
 import type { MatchPhase, MatchView, PlayerView } from '../match';
+import { HEIGHT, SAFE, WIDTH } from '../render/layout';
+import { drawSticker } from '../render/sticker';
 
-export const WIDTH = 1920;
-export const HEIGHT = 1080;
-export const SAFE = theme.space.tvSafe;
+export { HEIGHT, SAFE, WIDTH };
 
 export const SCENE = {
   boot: 'boot',
@@ -82,16 +82,27 @@ export function playerColor(color: PlayerColorId | null): ColorToken {
   return color ? theme.players[color].fill : theme.color.muted;
 }
 
+export function playerOn(color: PlayerColorId | null): ColorToken {
+  return color ? theme.players[color].on : theme.color.foreground;
+}
+
 export interface HostButton {
   readonly container: Phaser.GameObjects.Container;
+  readonly width: number;
+  readonly height: number;
   setEnabled(enabled: boolean): void;
 }
 
-/** A host control (Start / Next / Rematch / Lobby): accent pill with a sticker outline. */
+export const BUTTON_HEIGHT = 84;
+
+/**
+ * A host control (Start / Next / Rematch / Lobby): accent sticker pill. `right`/`top` anchor its
+ * top-right corner (so rows of buttons can be laid out right to left inside the TV-safe rect).
+ */
 export function addButton(
   scene: Phaser.Scene,
-  x: number,
-  y: number,
+  right: number,
+  top: number,
   label: string,
   onClick: () => void,
   variant: 'accent' | 'plain' = 'accent',
@@ -105,13 +116,17 @@ export function addButton(
     variant === 'accent' ? theme.color.accentOn : theme.color.foreground,
   ).setOrigin(0.5);
   const w = Math.max(240, text.width + theme.space[12] * 2);
-  const h = text.height + theme.space[6] * 2;
+  const h = BUTTON_HEIGHT - theme.shadow.sticker.y;
   const bg = scene.add.graphics();
-  bg.fillStyle(variant === 'accent' ? theme.color.accent.num : theme.color.surfaceStrong.num, 1);
-  bg.fillRoundedRect(-w / 2, -h / 2, w, h, theme.radius.sticker);
-  bg.lineStyle(theme.stroke.sticker, theme.color.stickerOutline.num, 1);
-  bg.strokeRoundedRect(-w / 2, -h / 2, w, h, theme.radius.sticker);
-  const container = scene.add.container(x, y, [bg, text]).setSize(w, h);
+  drawSticker(
+    bg,
+    { x: -w / 2, y: -h / 2, w, h },
+    (variant === 'accent' ? theme.color.accent : theme.color.surfaceStrong).num,
+    { radius: theme.radius.pill },
+  );
+  const container = scene.add
+    .container(right - theme.shadow.sticker.x - w / 2, top + h / 2, [bg, text])
+    .setSize(w, h);
   container.setInteractive({ useHandCursor: true });
   let enabled = true;
   container.on('pointerup', () => {
@@ -119,6 +134,8 @@ export function addButton(
   });
   return {
     container,
+    width: w + theme.shadow.sticker.x,
+    height: BUTTON_HEIGHT,
     setEnabled(on) {
       enabled = on;
       container.setAlpha(on ? 1 : 0.4);
@@ -126,40 +143,8 @@ export function addButton(
   };
 }
 
-/** Text scoreboard rows: color dot, name, score; left players greyed. Returns the objects made. */
-export function drawStandings(
-  scene: Phaser.Scene,
-  x: number,
-  y: number,
-  players: readonly PlayerView[],
-  opts: { rowHeight?: number; style?: TypeStyleName; scoreX?: number } = {},
-): Phaser.GameObjects.GameObject[] {
-  const style = opts.style ?? 'h2';
-  const rowHeight = opts.rowHeight ?? theme.type[style].lineHeight + theme.space[3];
-  const scoreX = opts.scoreX ?? 520;
-  const made: Phaser.GameObjects.GameObject[] = [];
-  sortedStandings(players).forEach((p, i) => {
-    const cy = y + i * rowHeight;
-    const dim = p.left || !p.connected;
-    const dot = scene.add
-      .circle(x + 12, cy + rowHeight / 2 - theme.space[2], 12, playerColor(p.color).num)
-      .setStrokeStyle(theme.stroke.sticker, theme.color.eggOutline.num);
-    const nameColor = dim ? theme.color.presenceOff : theme.color.foreground;
-    const name = addText(scene, x + 40, cy, displayName(p), style, nameColor);
-    const score = addText(scene, x + scoreX, cy, String(p.score), style, theme.color.accentText);
-    score.setOrigin(1, 0);
-    if (dim) dot.setAlpha(0.5);
-    made.push(dot, name, score);
-  });
-  return made;
-}
-
 export function displayName(p: PlayerView): string {
-  const name = p.name || 'Joining…';
-  const tags = [p.isLeader ? 'leader' : '', p.left ? 'left' : !p.connected ? 'away' : '']
-    .filter(Boolean)
-    .join(', ');
-  return tags ? `${name} (${tags})` : name;
+  return p.name || 'Joining…';
 }
 
 /** Score desc, then join order (SPEC §6.7 standings). */

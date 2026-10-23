@@ -50,6 +50,13 @@ export const font = {
   mono: '"JetBrains Mono", ui-monospace, monospace',
 } as const;
 
+/**
+ * contract+ (M7): system emoji font stack for Phaser text (spectator emoji). Not a brand.css token
+ * (emoji glyphs come from the OS), so it lives outside `font`, which mirrors the `--font-*` vars.
+ */
+export const emojiFont =
+  '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif';
+
 export const theme = {
   /** Every opaque `--<name>` color, camelCased. */
   color: {
@@ -102,6 +109,7 @@ export const theme = {
     forest: { fill: { hex: '#2f7d4f', num: 0x2f7d4f }, on: { hex: '#ffffff', num: 0xffffff } },
   } satisfies Record<PlayerColorId, PlayerColorToken>,
   font,
+  emojiFont,
   /** The `.title` … `.code` classes. */
   type: {
     title: { size: 120, lineHeight: 108, family: font.display, weight: 400, letterSpacing: 0 },

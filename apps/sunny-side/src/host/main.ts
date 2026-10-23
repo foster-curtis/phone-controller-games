@@ -122,6 +122,8 @@ if (debug) {
         .filter((t) => t !== ''),
     debug: {
       eliminate: (id) => runtime.debugSim?.forceOut(id) ?? false,
+      knockOut: (victim, attacker) => runtime.debugSim?.knockOut(victim, attacker) ?? false,
+      holdSlam: (id, on) => runtime.debugSim?.holdSlam(id, on) ?? false,
     },
   });
 }

@@ -1,8 +1,11 @@
-// Match winner (SPEC §6.6 Screens): winner line, final standings, host Rematch / Back to lobby.
+// Match winner (SPEC §6.6 Screens): "Winner!" banner, the winner's sticker, the final round's
+// points breakdown and host Rematch / Back to lobby.
 import * as Phaser from 'phaser';
 import { theme } from '../../shared/theme';
+import { drawBreakdown } from '../render/breakdown';
+import { screenLayout } from '../render/layout';
+import { drawPill } from '../render/sticker';
 import {
-  HEIGHT,
   SAFE,
   SCENE,
   WIDTH,
@@ -10,8 +13,9 @@ import {
   addText,
   canStart,
   createRefresher,
-  drawStandings,
   hostContext,
+  playerColor,
+  playerOn,
   type HostButton,
 } from './ui';
 
@@ -30,16 +34,16 @@ export class WinnerScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(theme.color.background.hex);
     this.refresh = createRefresher();
     this.dynamic = [];
+    this.rematch = addButton(this, WIDTH - SAFE, SAFE, 'Rematch', () =>
+      runtime.match.hostAction('rematch'),
+    );
     this.lobby = addButton(
       this,
-      WIDTH - SAFE - 620,
-      HEIGHT - SAFE - 30,
+      WIDTH - SAFE - this.rematch.width - theme.space[6],
+      SAFE,
       'Back to lobby',
       () => runtime.match.hostAction('lobby'),
       'plain',
-    );
-    this.rematch = addButton(this, WIDTH - SAFE - 180, HEIGHT - SAFE - 30, 'Rematch', () =>
-      runtime.match.hostAction('rematch'),
     );
   }
 
@@ -49,18 +53,33 @@ export class WinnerScene extends Phaser.Scene {
     for (const o of this.dynamic) o.destroy();
     const view = runtime.view();
     const winner = view.players.find((p) => p.id === view.winnerId);
-    this.dynamic = [
+    const { header, content } = screenLayout();
+    const lineY = header.y + header.h + theme.space[3];
+
+    const banner = addText(this, header.x, header.y, 'Winner!', 'banner', theme.color.accentText);
+    this.dynamic = [banner];
+    if (winner) {
+      const label = addText(this, 0, 0, winner.name, 'score', playerOn(winner.color)).setOrigin(
+        0.5,
+      );
+      const w = label.width + theme.space[8] * 2;
+      const rect = { x: banner.x + banner.width + theme.space[6], y: header.y + 6, w, h: 68 };
+      const g = this.add.graphics();
+      drawPill(g, rect, playerColor(winner.color).num);
+      label.setPosition(rect.x + rect.w / 2, rect.y + rect.h / 2).setDepth(1);
+      this.dynamic.push(g, label);
+    }
+    this.dynamic.push(
       addText(
         this,
-        SAFE,
-        SAFE,
-        winner ? `${winner.name} wins!` : 'Match over',
-        'title',
-        theme.color.accentText,
+        header.x,
+        lineY,
+        `After ${view.round} rounds  ·  final round`,
+        'h2',
+        theme.color.muted,
       ),
-      addText(this, SAFE, SAFE + 140, `After ${view.round} rounds`, 'body', theme.color.muted),
-      ...drawStandings(this, SAFE, SAFE + 200, view.players, { scoreX: 760 }),
-    ];
+      ...drawBreakdown(this, content, view.breakdown, view.players),
+    );
     this.rematch.setEnabled(canStart(view) && !view.paused);
     this.lobby.setEnabled(!view.paused);
   }

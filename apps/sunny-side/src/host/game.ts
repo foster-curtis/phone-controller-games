@@ -12,7 +12,7 @@ import { createDebugSim, type DebugSim } from './debug';
 import { createFixedStep, type FixedStep } from './loop/fixedStep';
 import { interpolateSnapshot } from './loop/interpolate';
 import { createMatch, STEP_MS, type Match, type MatchView, type StorageLike } from './match';
-import { createSim, type Sim, type SimSnapshot } from './sim';
+import { createSim, type Sim, type SimEvent, type SimSnapshot } from './sim';
 import { createHostNet } from './net';
 
 /** Players per room (SPEC §6.1: 2–8; spectators count toward the relay's cap). */
@@ -46,6 +46,8 @@ export interface GameRuntime {
   /** The interpolated snapshot to draw this frame. */
   snapshot(): SimSnapshot;
   view(): MatchView;
+  /** Subscribe to the sim events of each fixed step (render effects: jiggle, puffs). Returns an unsubscribe. */
+  onSimEvents(cb: (events: readonly SimEvent[]) => void): () => void;
   /** Bumps on every match event / room / status change (scenes re-render when it moves). */
   readonly version: number;
   setHostVisible(visible: boolean): void;
@@ -67,6 +69,7 @@ export function createGameRuntime(opts: GameRuntimeOptions = {}): GameRuntime {
   });
   const loop: FixedStep = createFixedStep({ stepMs: STEP_MS });
 
+  const simListeners = new Set<(events: readonly SimEvent[]) => void>();
   let version = 0;
   const bump = () => {
     version++;
@@ -99,7 +102,10 @@ export function createGameRuntime(opts: GameRuntimeOptions = {}): GameRuntime {
       prev = curr;
       const events = sim.step();
       curr = sim.snapshot();
-      if (events.length > 0) match.handleSimEvents(events);
+      if (events.length > 0) {
+        match.handleSimEvents(events);
+        for (const cb of simListeners) cb(events);
+      }
     }
     match.tick(STEP_MS);
   };
@@ -122,6 +128,10 @@ export function createGameRuntime(opts: GameRuntimeOptions = {}): GameRuntime {
     },
     snapshot: () => interpolateSnapshot(prev, curr, alpha),
     view: () => match.view(),
+    onSimEvents(cb) {
+      simListeners.add(cb);
+      return () => simListeners.delete(cb);
+    },
     get version() {
       return version;
     },

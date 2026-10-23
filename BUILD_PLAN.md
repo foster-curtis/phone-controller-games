@@ -384,9 +384,9 @@ Rules:
   - [x] Merged to `main`
   - [x] **User approved C2 (LAN play-test)**
 - **M7**
-  - [ ] Egg / arena / ghost render, slam ring + anticipation + flash, jiggle
-  - [ ] HUD, names, shrink pulse, emoji layer
-  - [ ] Styled lobby / results / winner + screenshot spec
+  - [x] Egg / arena / ghost render, slam ring + anticipation + flash, jiggle
+  - [x] HUD, names, shrink pulse, emoji layer
+  - [x] Styled lobby / results / winner + screenshot spec
   - [ ] Merged to `main`
   - [ ] **User approved C3 (TV presentation)**
 - [ ] Final test-runner pass on `main` (Standard + E2E checks)
@@ -540,3 +540,8 @@ it exactly.
 - [M5-fix-5] decision: results/matchEnd show a "Round N" breakdown section (`screens/breakdown.ts`) at the top of the `.scroll-y` area, above a "Standings" label and the standings: this phone's entry (matched by name) as a player-color sticker card ("+P this round", items from `items[].points`, out text "Knocked out by X" / "Fell off" / "Survived", "Total N"), then a 2-column compact list of the others (name chip, points, short reasons); `left` entries at 0.4 opacity; section omitted when `breakdown` is null/absent. Dev samples carry an 8-player breakdown (`sampleBreakdown`).
 - [M5-fix-5] decision: user layout note: DASH untouched; the SLAM (and ghost PULSE, which stays where SLAM is) button is shifted by `left/top` calc(-1 * --slam-dx/--slam-dy): up 100 px (min with 23.2dvh) and left clamp(0, 37.5vw - 240px, 100px), i.e. 100 px at 932x430 (SLAM center 832,330 -> 732,230) and less on narrow phones so the full-charge arc keeps >= 16 px from DASH (at 640x360 SLAM only moves up). The resting stick moves right min(100px, 10.7vw) and up min(100px, 23.2dvh) (119,325 -> 219,225 at 932x430). Hit zones stay two columns, but `createNearestRouter` (capture on `.pads`) sends every touch to the button whose center is nearer (zone hit wins on a tie / without layout).
 - [M5-fix-6] decision: user note: SLAM (and ghost PULSE) and the resting joystick both move 45 px further down at 932x430 (SLAM center 732,230 -> 732,275; stick 219,226 -> 219,271); the vertical shift is now `--slam-dy`/`--stick-dy` = min(55px, 12.8dvh) up from the corner spots (about 38 px lower than M5-fix-5 at 640x360). DASH and the nearest-button routing are untouched.
+- [M7] contract+: `theme.emojiFont` (theme.ts, SPEC §6.6): system emoji font stack for Phaser text; outside `theme.font` because that mirrors brand.css `--font-*`.
+- [M7] contract+: `GameRuntime.onSimEvents(cb)` (game.ts): per-step sim events for render effects (hit jiggle, pulse puffs); add-only, match logic untouched.
+- [M7] decision: debug hooks `__pcg.debug.knockOut(victim, attacker)` (real credited KO: attacker dashes at the frozen victim until they collide, then the victim is forced out) and `holdSlam(id, on)`, add-only in `debug.ts`; used by `e2e/screens.spec.ts` for the populated breakdown and slam shots (also writes an extra `ghost.png`).
+- [M7] decision: breakdown renders on Results and Winner (final round) in a `surface` panel of per-player sticker rows (name pill, "+N", item labels from `items[].points`, how they went out, new total; `left` greyed); null breakdown falls back to a compact standings panel. Host buttons anchor top-right of the screen header (inside the TV-safe rect). Ghosts: steam ghost with ink eyes, player ring doubling as pulse-ready arc, wind-up ring growing to the real 170 px pulse radius with a dashed target circle, puff on `pulse`.
+- [M7] decision: the lobby mark is `public/icon-512.png` (the mark rasterized), loaded in the Lobby preload.

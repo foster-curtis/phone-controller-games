@@ -1,8 +1,10 @@
-// Round results (SPEC §6.6 Screens): survivor line, text standings, and the host's Next round button.
+// Round results (SPEC §6.6 Screens): banner, survivor line, the per-player points breakdown
+// (C2 note) and the host's Next round button. Without a breakdown it falls back to standings.
 import * as Phaser from 'phaser';
 import { theme } from '../../shared/theme';
+import { drawBreakdown } from '../render/breakdown';
+import { screenLayout } from '../render/layout';
 import {
-  HEIGHT,
   SAFE,
   SCENE,
   WIDTH,
@@ -10,7 +12,6 @@ import {
   addText,
   canStart,
   createRefresher,
-  drawStandings,
   hostContext,
   type HostButton,
 } from './ui';
@@ -29,7 +30,7 @@ export class ResultsScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(theme.color.background.hex);
     this.refresh = createRefresher();
     this.dynamic = [];
-    this.next = addButton(this, WIDTH - SAFE - 200, HEIGHT - SAFE - 30, 'Next round', () =>
+    this.next = addButton(this, WIDTH - SAFE, SAFE, 'Next round', () =>
       runtime.match.hostAction('next'),
     );
   }
@@ -39,26 +40,27 @@ export class ResultsScene extends Phaser.Scene {
     if (!this.refresh(runtime, time)) return;
     for (const o of this.dynamic) o.destroy();
     const view = runtime.view();
+    const { header, content } = screenLayout();
     const survivor = view.players.find((p) => p.id === view.survivorId);
+    const bonus = view.breakdown?.players
+      .find((e) => e.playerId === view.survivorId)
+      ?.items.find((i) => i.kind === 'survivor');
+    const survivorLine = survivor
+      ? `${survivor.name} survived${bonus ? `: +${bonus.points}` : ''}`
+      : 'No survivor this round';
+    const lineY = header.y + header.h + theme.space[3];
     this.dynamic = [
-      addText(this, SAFE, SAFE, `Round ${view.round} results`, 'banner'),
+      addText(this, header.x, header.y, `Round ${view.round}`, 'banner'),
+      addText(this, header.x, lineY, survivorLine, 'h2', theme.color.accentText),
       addText(
         this,
-        SAFE,
-        SAFE + 96,
-        survivor ? `${survivor.name} survived: +3` : 'No survivor this round',
-        'h2',
-        theme.color.accentText,
-      ),
-      addText(
-        this,
-        SAFE,
-        SAFE + 152,
+        header.x + header.w,
+        lineY + theme.space[2],
         `First to ${view.targetScore} wins`,
         'body',
         theme.color.muted,
-      ),
-      ...drawStandings(this, SAFE, SAFE + 220, view.players, { scoreX: 760 }),
+      ).setOrigin(1, 0),
+      ...drawBreakdown(this, content, view.breakdown, view.players),
     ];
     this.next.setEnabled(canStart(view) && !view.paused);
   }

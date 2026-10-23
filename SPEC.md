@@ -140,6 +140,7 @@ _All numbers are starting values for tuning._
 - **Spectator emoji:** pop in on the side of the screen, float to the top, fade out.
   - Set: 🔥 😂 😱 👏 🍳 (swappable).
   - **1 s cooldown** per spectator; cap of ~12 on screen at once (oldest drops first).
+  - Glyphs draw with the system emoji stack `theme.emojiFont` (OS-provided; not a brand.css token).
 
 **Screens:** lobby (QR + room code + joined players), round results, match winner.
 Round results and the match winner screen show a **per-round points breakdown** of the round just played (`MatchView.breakdown`, §7.3): for each player who had an egg, the points earned and why (+1 per knockout, naming the victim; +3 survivor) plus who knocked them out (or "fell off"). Not available right after a host refresh.
