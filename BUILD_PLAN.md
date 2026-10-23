@@ -342,11 +342,11 @@ Rules:
 
 - [x] Pre-flight passed (S1)
 - **M0**
-  - [ ] Scaffold, tooling, pinned deps, CI workflow
-  - [ ] Contract files (F0) + ESLint boundaries
-  - [ ] Brand kit wired: head snippet in both pages, `brand.css` imported, `theme.ts` + parity test, `fonts.ts`
-  - [ ] check:bundle / check:routes scripts + negative probes verified
-  - [ ] SPEC.md §5 + decision log updated
+  - [x] Scaffold, tooling, pinned deps, CI workflow
+  - [x] Contract files (F0) + ESLint boundaries
+  - [x] Brand kit wired: head snippet in both pages, `brand.css` imported, `theme.ts` + parity test, `fonts.ts`
+  - [x] check:bundle / check:routes scripts + negative probes verified
+  - [x] SPEC.md §5 + decision log updated
   - [ ] Merged to `main`
 - **M1**
   - [ ] Rooms, codes, admission, lock/kick
