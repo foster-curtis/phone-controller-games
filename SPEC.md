@@ -53,7 +53,7 @@ tsconfig.base.json  pnpm-workspace.yaml
 ## 5. Engine & physics
 
 - **Phaser 4** (current 4.x line) for rendering, scenes, input, tweens, audio, asset loading.
-- **Matter.js** (Phaser's built-in integration) for physics: impulse-based collisions with mass, restitution, air friction.
+- **Matter.js** as standalone `matter-js` in plain TS (`src/host/sim`, no Phaser imports) for physics: impulse-based collisions with mass, restitution, air friction. Phaser only renders the sim's snapshots.
 - Mitigate tunneling/jitter on fast bodies (dash/slam) with physics substeps if needed.
 - **Boundary rule:** game state (scores, rounds, player↔input mapping, match flow) lives in plain TS modules outside Phaser scenes. Physics stays swappable (e.g. Rapier) as a contained change.
 - Note: most community examples target Phaser 3; expect to translate.
@@ -168,10 +168,12 @@ _All numbers are starting values for tuning._
 - Their slot frees up; their name greys out in the standings for the rest of the match.
 - Returning via their player key restores their score (late-rejoin rule, §6.3).
 
-### 6.8 Branding & audio (deferred)
+### 6.8 Branding & audio
 
-- Brand identity (logo, palette, type, tone) and all audio are **post-MVP**.
-- To keep rebranding a cheap swap later: all colors, fonts, and radii live in one shared theme module (`src/shared/theme.ts`) used by both the host (Phaser) and the controller (exported as CSS custom properties). MVP uses placeholder tokens, a system font, and code-drawn eggs.
+- Branding is **in v1**, from the brand kit (`apps/sunny-side/src/styles/brand.css`, `public/`, `brand/`). Every visual token (colors incl. the 8 player colors, type scale, spacing, radii, sticker stroke/shadow/tilt) lives in `brand.css` as CSS custom properties, used directly by the controller DOM; `src/shared/theme.ts` mirrors them for Phaser, and `theme.test.ts` fails on drift.
+- Brand fonts (Lilita One, Geist, JetBrains Mono) load from Google Fonts per `brand/head.html`, with fallback stacks. Eggs are code-drawn in the mark's style.
+- Rebrand = replace the kit files and update `theme.ts` until the parity test passes.
+- All audio stays **post-MVP**.
 
 ## 7. Protocols
 
@@ -268,7 +270,7 @@ _Shape is indicative; exact fields finalized at implementation._
 
 **Model:** fixed 60 Hz simulation + render interpolation.
 
-- Disable Phaser's automatic Matter stepping; call `world.step(1000/60)` from our own accumulator in the frame callback.
+- The standalone Matter engine never auto-steps; the sim advances it by `1000/60` from our own accumulator in the frame callback.
 - **Accumulator:** each frame adds elapsed time, runs as many fixed steps as are owed, carries the remainder.
 - **Catch-up cap:** max ~5 steps per frame; drop excess time (prevents the spiral of death after a hitch).
 - **Interpolation:** store each moving body's previous position/angle (eggs, ghosts, arena radius). Render at `lerp(prev, curr, alpha)` where `alpha = accumulator / step`. Costs ~1 step (~16 ms) of visual delay.
@@ -311,7 +313,7 @@ _None. Spec complete and ready for implementation._
 | 9   | 2026-10-22 | Disconnect behavior | Egg stops dead, input zeroed, stays hittable during reconnect window                                                                             | Foster's call: fair to others (no runaway egg), and the disconnected player is still at risk.                                                                                                                                                    |
 | 10  | 2026-10-22 | Expired reconnect   | Egg stays as a hittable obstacle until knocked off                                                                                               | Knocking off stranded eggs is funny; normal KO rules apply.                                                                                                                                                                                      |
 | 11  | 2026-10-22 | Relay protocol      | Hub-and-spoke, JSON, 4-letter codes, token reconnect, heartbeat, auto-admit + `lock`/`kick`                                                      | Instant joins and no pending-join state; lock/kick are room mechanics, so the relay stays game-agnostic. Rejected: host-approved joins (pending state, stalls when host is away).                                                                |
-| 12  | 2026-10-22 | Late rejoin         | Host restores score by matching name/color                                                                                                       | One bad Wi-Fi moment shouldn't wipe a match.                                                                                                                                                                                                     |
+| 12  | 2026-10-22 | Late rejoin         | Host restores score by matching player key                                                                                                       | One bad Wi-Fi moment shouldn't wipe a match.                                                                                                                                                                                                     |
 | 13  | 2026-10-22 | Controller input    | Two buttons (DASH/SLAM), `[x, y, buttons, dashCount, slamCount]`, press counters, floating joystick, landscape                                   | Single-button tap/hold either delays dash or adds an unwanted dash to slams. Counters make taps unmissable.                                                                                                                                      |
 | 14  | 2026-10-22 | Game loop           | Fixed 60 Hz + accumulator + render interpolation; 5-step catch-up cap; inputs via latest-state records; pause on hidden host tab; host Wake Lock | Consistent physics across 60/120 Hz displays; interpolation is cheap with few moving entities. Rejected: Matter default variable step, fixed-step without interpolation (judder on 120 Hz).                                                      |
 | 15  | 2026-10-22 | Player identity     | `localStorage` player key (room-scoped) for late-rejoin matching; player names in lobby, shown on leaderboard                                    | `sessionStorage` tokens die when iOS kills a tab; names make TV standings readable.                                                                                                                                                              |
@@ -325,3 +327,6 @@ _None. Spec complete and ready for implementation._
 | 23  | 2026-10-22 | Leader handoff      | Next-earliest joined connected player; no snap-back                                                                                              | Avoids confusing control flip-flops; host controls are the fallback.                                                                                                                                                                             |
 | 24  | 2026-10-22 | Match end           | Leader: Rematch or Back to lobby                                                                                                                 | Covers "again!" and roster changes without touching the TV.                                                                                                                                                                                      |
 | 25  | 2026-10-22 | Leave game          | Egg stays as obstacle, slot freed, name greyed; player key restores score on return                                                              | Consistent with disconnect rules.                                                                                                                                                                                                                |
+| 26  | 2026-10-22 | Physics integration | Standalone `matter-js` in `src/host/sim` (no Phaser imports); Phaser renders only                                                                | Headless Vitest coverage of the sim and a parallel sim/render build. Refines #1 (was Phaser's built-in Matter).                                                                                                                          |
+| 27  | 2026-10-22 | Relay host status   | Relay → phones `{ t: "host", status: "away" \| "back" }`; error codes `room-closed`, `bad-request`; `GET /healthz`                                 | Phones need to show the host-away overlay and learn when the room dies; additive to §7.1.                                                                                                                                                       |
+| 28  | 2026-10-22 | Branding in v1      | Brand kit (`brand.css` tokens mirrored by `theme.ts`, brand fonts, code-drawn eggs in the mark's style); audio stays post-MVP                     | The kit arrived before the build, so the controller and TV are built on-brand instead of restyled later. Supersedes #16.                                                                                                                        |
