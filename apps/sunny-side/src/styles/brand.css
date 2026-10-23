@@ -1,0 +1,102 @@
+/* Sunny Side Shove — generated from the design system tokens.json. Dark only. */
+:root {
+  color-scheme: dark;
+  --brand-ink: #14161a;
+  --brand-paper: #ffffff;
+  --brand-amber: #e8a33d;
+  --brand-gray: #6b7280;
+  --background: #14161a;
+  --foreground: #ffffff;
+  --surface: #1a1d23;
+  --surface-strong: #22262e;
+  --border: #2e333c;
+  --border-control: #6b7280;
+  --muted: #9aa1ad;
+  --pan: #26211d;
+  --pan-rim: #3d3530;
+  --heat: #ef5a2a;
+  --heat-on: #14161a;
+  --egg-white: var(--brand-paper);
+  --egg-outline: var(--brand-ink);
+  --yolk: var(--brand-amber);
+  --yolk-shine: var(--brand-paper);
+  --steam: rgba(255, 255, 255, 0.55);
+  --cream: #fff6e6;
+  --cream-on: #14161a;
+  --sticker-outline: #14161a;
+  --sticker-edge: #ffffff;
+  --accent: var(--brand-amber);
+  --accent-on: #14161a;
+  --accent-text: #e8a33d;
+  --select: #ffffff;
+  --danger: #e05252;
+  --danger-on: #14161a;
+  --success: #3fb98a;
+  --presence-off: #5a6270;
+  --scrim: rgba(10, 11, 13, 0.72);
+  --player-crimson: #c23b3b;
+  --player-crimson-on: #ffffff;
+  --player-cobalt: #2f63c4;
+  --player-cobalt-on: #ffffff;
+  --player-jade: #3fb98a;
+  --player-jade-on: #14161a;
+  --player-berry: #a8327f;
+  --player-berry-on: #ffffff;
+  --player-bone: #e3e5e9;
+  --player-bone-on: #14161a;
+  --player-sky: #7cc4f2;
+  --player-sky-on: #14161a;
+  --player-rose: #f2a0b8;
+  --player-rose-on: #14161a;
+  --player-forest: #2f7d4f;
+  --player-forest-on: #ffffff;
+
+  /* spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-tv-safe: 96px;
+
+  /* radius */
+  --radius: 6px;
+  --radius-sticker: 14px;
+  --radius-pill: 999px;
+  --radius-mark: 7px;
+  --radius-round: 50%;
+
+  /* shadow */
+  --shadow-sticker: 4px 4px 0 #000000;
+  --shadow-sticker-sm: 2px 2px 0 #000000;
+  --shadow-pressed: 0 0 0 #000000;
+
+  /* stroke */
+  --stroke-sticker: 3px;
+  --stroke-select: 3px;
+
+  /* tilt */
+  --tilt-title: -3deg;
+  --tilt-sticker: -2deg;
+
+  /* type */
+  --font-display: "Lilita One", "Arial Rounded MT Bold", ui-rounded, system-ui, sans-serif;
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.title { font: 400 120px/0.9 var(--font-display); }
+.banner { font: 400 72px/1 var(--font-display); }
+.h2 { font: 400 40px/1.1 var(--font-display); }
+.score { font: 400 48px/1 var(--font-display); }
+.tag { font: 400 22px/1 var(--font-display); }
+.pad { font: 400 28px/1 var(--font-display); }
+.body { font: 400 18px/26px var(--font-sans); }
+.label { font: 600 16px/20px var(--font-sans); }
+.caption { font: 400 14px/20px var(--font-sans); }
+.code-tv { font: 600 64px/1 var(--font-mono); letter-spacing: 8px; }
+.code { font: 600 24px/1 var(--font-mono); letter-spacing: 4px; }
+
+body { margin: 0; background: var(--background); color: var(--foreground); font: 400 18px/26px var(--font-sans); }
