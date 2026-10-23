@@ -387,7 +387,7 @@ Rules:
   - [x] Egg / arena / ghost render, slam ring + anticipation + flash, jiggle
   - [x] HUD, names, shrink pulse, emoji layer
   - [x] Styled lobby / results / winner + screenshot spec
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
   - [ ] **User approved C3 (TV presentation)**
 - [ ] Final test-runner pass on `main` (Standard + E2E checks)
 - [ ] Final handoff printed
