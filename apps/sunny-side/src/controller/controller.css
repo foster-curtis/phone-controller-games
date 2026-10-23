@@ -6,7 +6,8 @@ body {
   margin: 0;
   overflow: hidden;
   overscroll-behavior: none;
-  touch-action: none;
+  /* Non-gameplay screens may scroll vertically; the play surface and overlays set none below. */
+  touch-action: pan-y;
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
@@ -26,7 +27,7 @@ body[data-entry='controller'] {
 .dev-stage {
   position: absolute;
   inset: 0;
-  touch-action: none;
+  touch-action: pan-y;
 }
 
 button,
@@ -256,6 +257,86 @@ input {
   margin: 0;
 }
 
+/* Results, match end and spectating: header and actions/hotbar stay put; the standings scroll. */
+
+.screen.results,
+.screen.matchEnd,
+.screen.spectating {
+  justify-content: flex-start;
+  gap: var(--space-2);
+}
+
+.scroll-y {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scroll-y .standings {
+  max-width: 560px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-1) var(--space-2);
+}
+
+.scroll-y .standing {
+  min-width: 0;
+}
+
+.scroll-y .score-num {
+  font-size: 20px;
+}
+
+.res-head,
+.actions,
+.hotbar {
+  flex: none;
+}
+
+.screen.results .actions,
+.screen.matchEnd .actions {
+  gap: var(--space-3);
+}
+
+@media (max-height: 480px) {
+  .screen.results,
+  .screen.matchEnd,
+  .screen.spectating {
+    padding-top: var(--space-2);
+    padding-bottom: var(--space-2);
+  }
+
+  .screen.results .btn,
+  .screen.matchEnd .btn,
+  .emoji-btn {
+    min-height: 40px;
+    padding-top: var(--space-1);
+    padding-bottom: var(--space-1);
+  }
+
+  .res-head .banner {
+    font-size: 40px;
+  }
+
+  .res-head .h2 {
+    font-size: 28px;
+  }
+
+  .res-head {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-4);
+  }
+}
+
 /* ---- eliminated ---- */
 
 .screen.eliminated {
@@ -302,8 +383,15 @@ input {
   align-items: center;
   gap: var(--space-2);
   width: 100%;
+  flex: 1 1 0;
   min-height: 0;
-  overflow: hidden;
+}
+
+.spec-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .hotbar {
@@ -328,6 +416,7 @@ input {
   justify-content: stretch;
   gap: 0;
   padding: 0;
+  touch-action: none;
 }
 
 .stick-zone {
@@ -473,23 +562,10 @@ input {
   display: none;
 }
 
-/* Ghost: controls are dampened until the round ends. */
-.play.dampened .pad-zone,
-.play.dampened .stick-knob {
-  position: relative;
-  border-color: var(--steam);
-}
-
-.play.dampened .pad-zone::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--scrim);
-  pointer-events: none;
-}
-
-.play.dampened .stick-knob {
-  opacity: 0.5;
+/* Ghost: one grey PULSE button (not the player color, no dampening). */
+.pad-zone.pulse {
+  background: var(--brand-gray);
+  color: var(--foreground);
 }
 
 /* ---- overlays ---- */

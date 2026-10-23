@@ -9,7 +9,7 @@ export const EMOJI_COOLDOWN_MS = 1000;
 
 export function createSpectating(ctx: ScreenCtx, first: Spectating): ScreenView<Spectating> {
   const root = el('section', { class: 'screen spectating', 'data-screen': 'spectating' });
-  const info = el('div', { class: 'spec-info' });
+  const info = el('div', { class: 'spec-info scroll-y' });
   const bar = el('div', { class: 'hotbar' });
   root.append(el('div', { class: 'spec-main' }, heading('Watching'), info), bar);
 

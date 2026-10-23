@@ -16,7 +16,7 @@ type MatchEnd = Extract<Screen, { kind: 'matchEnd' }>;
 export function createResults(ctx: ScreenCtx, first: Results): ScreenView<Results> {
   const root = el('section', { class: 'screen results', 'data-screen': 'results' });
   const head = el('div', { class: 'res-head' });
-  const body = el('div', { class: 'res-body' });
+  const body = el('div', { class: 'res-body scroll-y' });
   const actions = el('div', { class: 'actions' });
   root.append(head, body, actions);
   const apply = (s: Results) => {
@@ -38,7 +38,7 @@ export function createResults(ctx: ScreenCtx, first: Results): ScreenView<Result
 export function createMatchEnd(ctx: ScreenCtx, first: MatchEnd): ScreenView<MatchEnd> {
   const root = el('section', { class: 'screen matchEnd', 'data-screen': 'matchEnd' });
   const head = el('div', { class: 'res-head' });
-  const body = el('div', { class: 'res-body' });
+  const body = el('div', { class: 'res-body scroll-y' });
   const actions = el('div', { class: 'actions' });
   root.append(head, body, actions);
   const apply = (s: MatchEnd) => {

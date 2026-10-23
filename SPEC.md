@@ -150,7 +150,7 @@ _All numbers are starting values for tuning._
 - **Playing:** floating joystick, DASH, SLAM, **pause button** in the top-right corner above DASH/SLAM.
 - **Charging:** SLAM zone fills bottom-to-top like a liquid gauge.
 - **Eliminated:** "Respawn as a ghost in" with a very large countdown 5 → 1 beneath it; the number pulses slightly on each change.
-- **Ghost:** same controller; controller colors **dampened** until the round ends.
+- **Ghost:** same joystick; the DASH/SLAM pair is replaced by a single grey **PULSE** button (not the player color, not dampened). It sends the dash bit/counter, which the host treats as a ghost pulse.
 - **Spectating** (mid-match joiners, late rejoiners): no controller. Scores + round number + an **emoji hotbar of 5** reactions (shown on the TV per §6.6).
 - **Round results / match end:** standings; leader sees Next round.
 - **Self-paused:** overlay covering the controller with **Resume** and **Leave game**.
@@ -230,7 +230,7 @@ _Shape is indicative; exact fields finalized at implementation._
 
 ### 7.2 Controller input format
 
-**Buttons:** two, **DASH** and **SLAM**. Dash fires on press (no tap/hold ambiguity). Ghosts pulse with either button.
+**Buttons:** two, **DASH** and **SLAM**. Dash fires on press (no tap/hold ambiguity). Ghosts pulse with either button; on the ghost screen the pair is replaced by one grey PULSE button that sends the dash input. On the ghost screen the pair is replaced by one grey PULSE button that sends the dash input.
 
 **Message** (phone → host, inside relay `send.data`):
 

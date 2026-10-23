@@ -3,6 +3,7 @@ import type { ControllerClient, StorageLike } from '@pcg/net-client';
 import type { ControllerMsg, Screen } from '../shared/messages';
 import { el } from './dom';
 import { createInputSender, type InputSender } from './input/sender';
+import { fullscreenOnTap } from './fullscreen';
 import { watchOrientation } from './orientation';
 import { GROUP_OF, SCREEN_KINDS, createView, type ViewGroup } from './screens';
 import type { ScreenCtx, ScreenView } from './screens/common';
@@ -172,7 +173,7 @@ export function createApp(opts: AppOptions): App {
     setOverlay('selfPaused', true);
   }
 
-  const offs: Array<() => void> = [];
+  const offs: Array<() => void> = [fullscreenOnTap(root)];
   offs.push(
     client.onMessage((data) => {
       const m = data as { t?: unknown; screen?: Screen } | null;

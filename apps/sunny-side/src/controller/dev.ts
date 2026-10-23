@@ -66,10 +66,22 @@ export function createLocalClient(): LocalClient {
 
 const NAMES = ['Benedict', 'Yolko', 'Scramble', 'Poach', 'Omelette', 'Sunny', 'Shelly', 'Humpty'];
 
-export function sampleStandings(n = 5): Standing[] {
+/** 10-char names for the long-list screens (spectating, results, matchEnd). */
+const LONG_NAMES = [
+  'Benedict_1',
+  'Yolkodile2',
+  'Scramble_3',
+  'Poacher_04',
+  'Omelette_5',
+  'Sunnyside6',
+  'Shellshock',
+  'Humpty_Dmp',
+];
+
+export function sampleStandings(n = 5, long = false): Standing[] {
   return PLAYER_COLOR_IDS.slice(0, n).map((color, i) => ({
     playerId: `p${i}`,
-    name: NAMES[i] ?? `Egg ${i + 1}`,
+    name: (long ? LONG_NAMES : NAMES)[i] ?? `Egg ${i + 1}`,
     color,
     score: Math.max(0, 9 - i * 2),
     connected: i !== 3,
@@ -78,13 +90,14 @@ export function sampleStandings(n = 5): Standing[] {
 }
 
 export function sampleScreen(kind: ScreenKind, color: PlayerColorId = 'crimson'): Screen {
+  const longList = kind === 'spectating' || kind === 'results' || kind === 'matchEnd';
   const base = {
     isLeader: true,
     round: 2,
     targetScore: 11,
-    name: 'Benedict',
+    name: longList ? 'Benedict_1' : 'Benedict',
     color,
-    standings: sampleStandings(),
+    standings: longList ? sampleStandings(8, true) : sampleStandings(),
   };
   switch (kind) {
     case 'lobby':

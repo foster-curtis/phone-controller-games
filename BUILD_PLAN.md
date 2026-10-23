@@ -231,7 +231,7 @@ Brand kit files (`src/styles/brand.css`, `public/**`, `brand/**`) are owned by n
 - **Risks / fallbacks:**
   - iOS Safari has no orientation lock → show a "rotate your phone" overlay in portrait.
   - Use Pointer Events + `setPointerCapture`; `100dvh`; `-webkit-user-select: none; -webkit-touch-callout: none`.
-  - Wake Lock and fullscreen are skipped on insecure (LAN http) origins.
+  - Wake Lock is skipped on insecure (LAN http) origins (fullscreen is not; see the M5-fix-1 decision).
   - Google Fonts may load late or not at all: the layout must hold with the fallback stacks (no fixed-width text boxes sized to Lilita One).
 - **Leave out:** vibration and gyro (SPEC §3), audio (SPEC §6.8), host code, edits to brand kit files.
 - **User checkpoint C1:** user runs `pnpm dev:lan`, opens `http://<PC-LAN-IP>:5173/play?dev=1` on an iPhone and an Android phone if available, and approves: landscape/rotate overlay, no scroll/zoom/selection, the floating joystick tracks the thumb, DASH/SLAM zones are large enough, the SLAM liquid fill, the hold-to-pause ring, and every screen and overlay in the switcher looks right **and on-brand** (fonts load, sticker style, player-color pads readable, ghost dampening). Notes become M5-fix-k.
@@ -445,6 +445,9 @@ Format: `- [M#] decision: one line, with the reason.`
 - [M5] decision: joystick radius 64 px, deadzone 15% of the radius; the SLAM gauge fills in 1 s (visual only; the host times the real charge).
 - [M5] decision: `countdown`, `playing` and `ghost` share one play-surface view so a held thumb survives transitions; the sender runs only while it is mounted (neutral tuple on leave and on self-pause).
 - [M5] decision: `play.html` without `?code=` shows a code-entry form; `?dev=1` uses an in-memory fake client (`dev.ts`, also used by tests) with a collapsible panel for every screen and overlay.
+- [M5-fix-1] decision: ghost screen = one PULSE button filled with `--brand-gray` (label `--foreground`), no dampening; it sends the DASH bit/counter (the sim pulses on dash or slam), wire format unchanged.
+- [M5-fix-1] decision: the M5 risk note "fullscreen skipped on insecure origins" was wrong: the Fullscreen API needs no secure context (only Wake Lock does). The app calls `documentElement.requestFullscreen?.({ navigationUI: 'hide' })` (or the webkit variant) on any tap/click in the controller when not already fullscreen (covers Join/Ready and re-entry after exit); rejections are swallowed; iPhone is a silent no-op.
+- [M5-fix-1] decision: results/matchEnd/spectating keep the header and leader buttons/emoji hotbar pinned; standings sit in a `.scroll-y` container (2-column grid, `touch-action: pan-y`). html/body/#app use `pan-y`; `.screen.play` and overlays keep `touch-action: none`. Dev samples for these three screens use 8 players with 10-char names.
 - [M1] decision: Docker uses an esbuild single-file bundle (`apps/relay/build.mjs`, script `bundle`; `esbuild@0.28.2` added as a relay devDep, the version tsx already pulls in) → runtime stage is plain `node main.mjs`, no node_modules. Built first try.
 - [M1] decision: playerIds are `p1`, `p2`, … per room (never `host`); join codes are uppercased before lookup; non-integer `maxPlayers` is floored, then clamped 1–16.
 - [M1] decision: host `send` to an unknown/disconnected `to` is dropped silently; `kick` of an unknown id is ignored; kick sends the host no `peer` event (it initiated it); `lock`/`unlock` have no ack.

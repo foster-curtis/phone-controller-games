@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { PLAYER_COLOR_IDS, type Screen, type ScreenKind } from '../../shared/messages';
+import { BUTTON_DASH, PLAYER_COLOR_IDS, type Screen, type ScreenKind } from '../../shared/messages';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const css = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), '../controller.css'),
+  'utf8',
+);
 import { SCREEN_KINDS } from '../screens';
 import { createWakeLock } from '../wakeLock';
 import { mount, pointer, sampleScreen } from './helpers';
@@ -36,12 +44,27 @@ describe('screens', () => {
     expect(q(h.root, '[data-screen=playing]')).toBe(surface);
   });
 
-  it('the ghost screen adds the dampened class', () => {
+  it('the ghost screen has one grey pulse button, no dampening, and tapping it pulses', () => {
     const h = mount();
     h.show(sampleScreen('playing'));
-    expect(q(h.root, '.play')?.classList.contains('dampened')).toBe(false);
-    h.show(sampleScreen('ghost'));
-    expect(q(h.root, '[data-screen=ghost]')?.classList.contains('dampened')).toBe(true);
+    expect(h.root.querySelectorAll('.pad-zone').length).toBe(2);
+    h.show(sampleScreen('ghost', 'cobalt'));
+    const play = q(h.root, '[data-screen=ghost]') as HTMLElement;
+    expect(play.classList.contains('dampened')).toBe(false);
+    const pads = play.querySelectorAll('.pad-zone');
+    expect(pads.length).toBe(1);
+    const pulse = pads[0] as HTMLElement;
+    expect(pulse.classList.contains('pulse')).toBe(true);
+    expect(css).toMatch(/\.pad-zone\.pulse\s*\{[^}]*background:\s*var\(--brand-gray\)/);
+    expect(css).not.toMatch(/dampened/);
+    const before = h.tuples().length;
+    pointer(pulse, 'pointerdown', 1);
+    pointer(pulse, 'pointerup', 1);
+    const sent = h.tuples().slice(before);
+    expect(sent.some((t) => (t[2] ?? 0) & BUTTON_DASH && t[3] === 1)).toBe(true);
+    // Back to a live round: DASH + SLAM return.
+    h.show(sampleScreen('playing'));
+    expect(h.root.querySelectorAll('.pad-zone').length).toBe(2);
   });
 
   it('tints the pads with the player color', () => {

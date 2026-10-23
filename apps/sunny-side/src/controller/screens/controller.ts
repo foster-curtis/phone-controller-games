@@ -30,6 +30,12 @@ export function createController(ctx: ScreenCtx, first: PlaySurface): ScreenView
     slamFill,
     el('span', { class: 'pad-label', text: 'SLAM' }),
   );
+  // Ghosts get ONE grey pulse button; it sends the DASH bit (the host sim pulses on dash or slam).
+  const pulsePad = el(
+    'div',
+    { class: 'pad-zone pulse pad', 'data-pad': 'pulse' },
+    el('span', { text: 'PULSE' }),
+  );
   const pads = el('div', { class: 'pads' }, dashPad, slamPad);
   const right = el('div', { class: 'play-right' }, el('div', { class: 'pause-row' }, pause), pads);
   const countdown = el('div', { class: 'play-countdown title', 'aria-live': 'polite' });
@@ -43,11 +49,15 @@ export function createController(ctx: ScreenCtx, first: PlaySurface): ScreenView
     if (down) fill.press();
     else fill.release();
   });
+  const pulse = createHoldButton(pulsePad, (down) => ctx.sender.setButton(BUTTON_DASH, down));
   const hold = createHoldToPause(pause, () => ctx.onPause());
 
   const apply = (s: PlaySurface) => {
     root.dataset.screen = s.kind;
-    root.classList.toggle('dampened', s.kind === 'ghost');
+    const want = s.kind === 'ghost' ? [pulsePad] : [dashPad, slamPad];
+    if (pads.children.length !== want.length || pads.firstElementChild !== want[0]) {
+      pads.replaceChildren(...want);
+    }
     root.style.setProperty('--pad-bg', colorVar(s.color));
     root.style.setProperty('--pad-on', colorOnVar(s.color));
     countdown.hidden = s.kind !== 'countdown';
@@ -66,6 +76,7 @@ export function createController(ctx: ScreenCtx, first: PlaySurface): ScreenView
       stick.destroy();
       fill.destroy();
       dash.destroy();
+      pulse.destroy();
       slam.destroy();
       hold.destroy();
     },
