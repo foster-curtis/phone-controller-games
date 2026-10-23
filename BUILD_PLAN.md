@@ -382,7 +382,7 @@ Rules:
   - [x] Controller wired to real client
   - [x] Playwright smoke / reconnect / pause specs
   - [x] Merged to `main`
-  - [ ] **User approved C2 (LAN play-test)**
+  - [x] **User approved C2 (LAN play-test)**
 - **M7**
   - [ ] Egg / arena / ghost render, slam ring + anticipation + flash, jiggle
   - [ ] HUD, names, shrink pulse, emoji layer
