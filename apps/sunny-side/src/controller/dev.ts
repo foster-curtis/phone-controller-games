@@ -7,6 +7,8 @@ import {
   type PlayerColorId,
   type Screen,
   type ScreenKind,
+  type RoundBreakdown,
+  type RoundPointItem,
   type Standing,
 } from '../shared/messages';
 import { createApp, OVERLAY_NAMES, type App, type ClientLike } from './app';
@@ -78,6 +80,43 @@ const LONG_NAMES = [
   'Humpty_Dmp',
 ];
 
+/** Realistic 8-player round: KOs, a survivor, falls, a leaver (matches sampleStandings(8, true)). */
+export function sampleBreakdown(): RoundBreakdown {
+  const st = sampleStandings(8, true);
+  const ko = (i: number, points = 1): RoundPointItem => ({
+    kind: 'ko',
+    victimId: st[i]!.playerId,
+    victimName: st[i]!.name,
+    points,
+  });
+  const by = (i: number) => ({ by: st[i]!.playerId, byName: st[i]!.name });
+  const fell = { by: null, byName: null };
+  const items: RoundPointItem[][] = [
+    [ko(5), ko(6), { kind: 'survivor', points: 3 }],
+    [ko(2), ko(3), ko(7)],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+  ];
+  const outs = [null, fell, by(1), by(1), fell, by(0), by(0), by(1)];
+  return {
+    round: 2,
+    players: st.map((s, i) => ({
+      playerId: s.playerId,
+      name: s.name,
+      color: s.color,
+      points: items[i]!.reduce((a, x) => a + x.points, 0),
+      total: s.score,
+      left: s.left,
+      items: items[i]!,
+      out: outs[i]!,
+    })),
+  };
+}
+
 export function sampleStandings(n = 5, long = false): Standing[] {
   return PLAYER_COLOR_IDS.slice(0, n).map((color, i) => ({
     playerId: `p${i}`,
@@ -107,9 +146,9 @@ export function sampleScreen(kind: ScreenKind, color: PlayerColorId = 'crimson')
     case 'eliminated':
       return { ...base, kind, respawnMs: 5000 };
     case 'results':
-      return { ...base, kind, survivorId: 'p0' };
+      return { ...base, kind, survivorId: 'p0', breakdown: sampleBreakdown() };
     case 'matchEnd':
-      return { ...base, kind, winnerId: 'p0' };
+      return { ...base, kind, winnerId: 'p0', breakdown: sampleBreakdown() };
     case 'playing':
     case 'ghost':
     case 'spectating':

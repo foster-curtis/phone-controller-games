@@ -1,6 +1,7 @@
 // Round results and match end: standings; the leader gets Next round / Rematch / Back to lobby.
 import { el } from '../dom';
 import type { Screen } from '../../shared/messages';
+import { breakdownSection } from './breakdown';
 import {
   heading,
   leaderButton,
@@ -12,6 +13,12 @@ import {
 
 type Results = Extract<Screen, { kind: 'results' }>;
 type MatchEnd = Extract<Screen, { kind: 'matchEnd' }>;
+
+const bd = (s: Results | MatchEnd): HTMLElement[] => {
+  const sec = breakdownSection(s.breakdown, s.name);
+  return sec ? [sec] : [];
+};
+const stTitle = (): HTMLElement => el('h2', { class: 'label bd-title', text: 'Standings' });
 
 export function createResults(ctx: ScreenCtx, first: Results): ScreenView<Results> {
   const root = el('section', { class: 'screen results', 'data-screen': 'results' });
@@ -28,7 +35,7 @@ export function createResults(ctx: ScreenCtx, first: Results): ScreenView<Result
         text: survivor ? `${survivor.name} survived!` : 'Nobody survived',
       }),
     );
-    body.replaceChildren(roundLine(s), standingsList(s));
+    body.replaceChildren(roundLine(s), ...bd(s), stTitle(), standingsList(s));
     actions.replaceChildren(...(s.isLeader ? [leaderButton(ctx, 'Next round', 'next')] : []));
   };
   apply(first);
@@ -47,7 +54,7 @@ export function createMatchEnd(ctx: ScreenCtx, first: MatchEnd): ScreenView<Matc
       el('h1', { class: 'banner sticker-heading', text: 'Match over' }),
       el('p', { class: 'h2', text: winner ? `${winner.name} wins!` : 'We have a winner!' }),
     );
-    body.replaceChildren(standingsList(s));
+    body.replaceChildren(...bd(s), stTitle(), standingsList(s));
     actions.replaceChildren(
       ...(s.isLeader
         ? [leaderButton(ctx, 'Rematch', 'rematch'), leaderButton(ctx, 'Back to lobby', 'lobby', '')]
