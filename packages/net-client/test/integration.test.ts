@@ -27,26 +27,6 @@ const RELAY_OPTS = {
   maxMissedPings: 4,
 };
 
-/**
- * Until M1 lands, `createRelay` is a stub that throws "not implemented": skip (logged) rather
- * than fail. Any other failure is a real error.
- */
-async function relayImplemented(): Promise<boolean> {
-  try {
-    const relay = await createRelay({ ...RELAY_OPTS });
-    await relay.close();
-    return true;
-  } catch (err) {
-    if (err instanceof Error && /not implemented/.test(err.message)) {
-      console.warn('integration.test.ts skipped: createRelay is still the M0 stub (pending M1)');
-      return false;
-    }
-    throw err;
-  }
-}
-
-const ready = await relayImplemented();
-
 /** WebSocket ctor that records every socket it makes, so a test can force-close one. */
 function trackedWebSocket(): { sockets: WebSocket[]; WebSocket: WebSocketCtor } {
   const sockets: WebSocket[] = [];
@@ -79,7 +59,7 @@ function next<T>(
   });
 }
 
-describe.skipIf(!ready)('net-client ↔ real relay', () => {
+describe('net-client ↔ real relay', () => {
   let relay: Relay;
   let url: string;
   let host: HostClient;

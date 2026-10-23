@@ -356,7 +356,7 @@ Rules:
 - **M2**
   - [x] Codec + HostClient
   - [x] ControllerClient + reconnect/backoff + player key
-  - [ ] Integration test vs real relay
+  - [x] Integration test vs real relay
   - [ ] Merged to `main`
 - **M3**
   - [ ] Roster, profiles, leader + handoff
@@ -459,7 +459,7 @@ Format: `- [M#] decision: one line, with the reason.`
 - [M2] decision: storage keys `pcg:hostToken:<game>`, `pcg:token:<game>:<code>`, `pcg:playerKey:<game>:<code>`; storage failures are swallowed (player key falls back to an in-memory key for the page).
 - [M2] decision: host `reclaim` answered by `no-room`/`room-closed` → clear the stored token and `create` a new room (onRoom fires with `reclaimed: false`); `close()` keeps the host token so a reload can still reclaim.
 - [M2] decision: controller `room-full`/`room-locked` are fatal like `no-room`/`room-closed` (no reconnect); any error before the handshake completes rejects `start()`/`connect()` and closes. Undecodable frames are ignored. A socket that never opens keeps retrying with backoff.
-- [M2] decision: `integration.test.ts` imports `@pcg/relay` with an inline `eslint-disable-next-line no-restricted-imports` (test-only; boundary rules untouched). While `createRelay` is the M0 stub ("not implemented") the suite is skipped with a logged warning; any other failure fails.
+- [M2] decision: `integration.test.ts` imports `@pcg/relay` with an inline `eslint-disable-next-line no-restricted-imports` (test-only; boundary rules untouched). It runs in the default `pnpm test` (the pre-M1 stub-skip guard was removed once M1 merged).
 
 ## 9. Final handoff
 
