@@ -347,7 +347,7 @@ Rules:
   - [x] Brand kit wired: head snippet in both pages, `brand.css` imported, `theme.ts` + parity test, `fonts.ts`
   - [x] check:bundle / check:routes scripts + negative probes verified
   - [x] SPEC.md §5 + decision log updated
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
 - **M1**
   - [ ] Rooms, codes, admission, lock/kick
   - [ ] Reconnect, host reclaim, heartbeat, robustness tests
