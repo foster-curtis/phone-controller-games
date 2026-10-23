@@ -1,9 +1,15 @@
 // Host and controller clients. Frozen at F0 (signatures); M2 implements the bodies.
+import { createControllerClientImpl } from './controller-client';
+import { createHostClientImpl } from './host-client';
+import { getPlayerKeyImpl } from './player-key';
 import type { PeerEvent, PlayerId, RelayErrorCode, RoomCode, RosterEntry } from './protocol';
 
 export type ConnectionStatus = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'closed';
 
 export type Unsubscribe = () => void;
+
+/** Why a client reached `closed`: a fatal relay error, `kicked`, or `closed` (local `close()`). */
+export type CloseReason = RelayErrorCode | 'kicked' | 'closed';
 
 /** WebSocket constructor: the browser global, Node 22+ global, or a test fake. */
 export type WebSocketCtor = new (url: string) => WebSocket;
@@ -16,6 +22,9 @@ export type DocumentLike = Pick<
   'visibilityState' | 'addEventListener' | 'removeEventListener'
 >;
 
+/** Receives the `online` event (normally `window`). */
+export type EventTargetLike = Pick<Window, 'addEventListener' | 'removeEventListener'>;
+
 /** Injectable environment; every field defaults to the browser global. */
 export interface ClientEnv {
   WebSocket?: WebSocketCtor;
@@ -25,6 +34,8 @@ export interface ClientEnv {
   localStorage?: StorageLike;
   /** Default `document` when present; absent = no visibility handling. */
   document?: DocumentLike;
+  /** Default `window` when present; its `online` event triggers an immediate reconnect attempt. */
+  window?: EventTargetLike;
 }
 
 export class RelayError extends Error {
@@ -62,6 +73,8 @@ export interface PeerChange {
 export interface HostClient {
   readonly status: ConnectionStatus;
   readonly code: RoomCode | null;
+  /** Set once status is `closed`. */
+  readonly closeReason: CloseReason | null;
   /** Reclaims the room whose host token is in sessionStorage, else creates one. Rejects with RelayError. */
   start(): Promise<HostRoom>;
   /** `to` omitted = broadcast to every phone. */
@@ -79,8 +92,8 @@ export interface HostClient {
   onError(cb: (error: RelayError) => void): Unsubscribe;
 }
 
-export function createHostClient(_opts: HostClientOptions): HostClient {
-  throw new Error('createHostClient: not implemented (M2)');
+export function createHostClient(opts: HostClientOptions): HostClient {
+  return createHostClientImpl(opts);
 }
 
 // ---- controller ----
@@ -89,7 +102,7 @@ export interface ControllerClientOptions extends ClientEnv {
   url: string;
   game: string;
   code: RoomCode;
-  /** Default `getPlayerKey(code, localStorage)`. */
+  /** Default `getPlayerKey(code, localStorage, game)`. */
   playerKey?: string;
 }
 
@@ -97,6 +110,8 @@ export interface ControllerClient {
   readonly status: ConnectionStatus;
   readonly playerId: PlayerId | null;
   readonly hostStatus: 'present' | 'away';
+  /** Set once status is `closed` (`kicked`, `no-room`, `room-closed`, ...). */
+  readonly closeReason: CloseReason | null;
   /** Joins (or rejoins with the stored token). Rejects with RelayError (`no-room`, `room-full`, ...). */
   connect(): Promise<{ playerId: PlayerId }>;
   /** To the host. Dropped while not open. */
@@ -110,11 +125,14 @@ export interface ControllerClient {
   onError(cb: (error: RelayError) => void): Unsubscribe;
 }
 
-export function createControllerClient(_opts: ControllerClientOptions): ControllerClient {
-  throw new Error('createControllerClient: not implemented (M2)');
+export function createControllerClient(opts: ControllerClientOptions): ControllerClient {
+  return createControllerClientImpl(opts);
 }
 
-/** The phone's player key for this room code: read from, or generated into, localStorage. */
-export function getPlayerKey(_code: RoomCode, _storage?: StorageLike): string {
-  throw new Error('getPlayerKey: not implemented (M2)');
+/**
+ * The phone's player key for this room code (and game, when given): read from, or generated
+ * into, localStorage. Stable per (game, code); a new key per code.
+ */
+export function getPlayerKey(code: RoomCode, storage?: StorageLike, game?: string): string {
+  return getPlayerKeyImpl(code, storage, game);
 }

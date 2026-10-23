@@ -106,6 +106,9 @@ importers:
 
   packages/net-client:
     devDependencies:
+      '@pcg/relay':
+        specifier: workspace:*
+        version: link:../../apps/relay
       typescript:
         specifier: 5.9.3
         version: 5.9.3

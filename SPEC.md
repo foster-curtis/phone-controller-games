@@ -197,9 +197,10 @@ _All numbers are starting values for tuning._
 **Identity & reconnect:**
 
 - Phone join → relay issues `playerId` + reconnect token (phone stores it in `sessionStorage`). Rejoin within ~30 s reclaims the same slot.
-- **Player key:** a random ID the phone generates and keeps in `localStorage`, scoped to the room code. Sent with every join and passed through to the host. Survives iOS killing the tab (which wipes `sessionStorage`), so the host can recognize a late rejoin. Opaque to the relay.
+- **Player key:** a random ID the phone generates and keeps in `localStorage`, scoped to the game ID + room code (`getPlayerKey(code, storage?, game?)`). Sent with every join and passed through to the host. Survives iOS killing the tab (which wipes `sessionStorage`), so the host can recognize a late rejoin. Opaque to the relay.
 - Host gets a host token. If the host tab drops/refreshes, the room survives ~60 s; host reclaims it and receives the current roster.
 - Relay emits `peer` events (`joined` / `left` / `rejoined`); the host decides game behavior (§6.3).
+- **Client reconnect (net-client):** after an unexpected close, status `reconnecting` with exponential backoff (250 ms doubling to a 4 s cap, jitter 75–100%); `visibilitychange`→visible or the window's `online` event retries at once (the window is injectable via `ClientEnv.window`). `kicked` / `no-room` / `room-closed` (and `room-full` / `room-locked`) stop for good: status `closed`, reason in `closeReason`.
 
 **Liveness:** relay-driven heartbeat, ping every ~5 s, drop after ~2 missed (catches sleeping iOS phones that never close the socket).
 

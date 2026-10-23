@@ -354,8 +354,8 @@ Rules:
   - [x] Dockerfile + fly.toml + healthz verified in Docker
   - [x] Merged to `main`
 - **M2**
-  - [ ] Codec + HostClient
-  - [ ] ControllerClient + reconnect/backoff + player key
+  - [x] Codec + HostClient
+  - [x] ControllerClient + reconnect/backoff + player key
   - [ ] Integration test vs real relay
   - [ ] Merged to `main`
 - **M3**
@@ -453,6 +453,13 @@ Format: `- [M#] decision: one line, with the reason.`
 - [M1] decision: a phone that joins while the host is away gets `joined` then `host away`; its `peer joined` reaches the host only via the `reclaim` roster.
 - [M1] decision: heartbeat pings every socket each interval and terminates one that still has `maxMissedPings` unanswered at the next tick; termination runs the normal close path (`peer left` / `host away`).
 - [M1] decision: relay tests live in `apps/relay/test/` (+ `helpers.ts`); vitest `include` and tsconfig `include` extended to cover it.
+- [M2] contract+: `getPlayerKey(code, storage?, game?)` gains an optional `game` (key stable per (game, code), as the M2 Acceptance requires); controllers pass their `game`. SPEC §7.1 updated.
+- [M2] contract+: `ClientEnv.window?: EventTargetLike` (for the `online` event, which fires on `window`, not `document`), plus `CloseReason` and a `closeReason` getter on both clients (the "closed with a reason" state). SPEC §7.1 updated.
+- [M2] decision: backoff jitter = uniform 75–100% of the doubling ceiling (250 ms → 4 s), so delays never exceed the cap; tests pin `Math.random` + fake timers instead of adding an injectable clock.
+- [M2] decision: storage keys `pcg:hostToken:<game>`, `pcg:token:<game>:<code>`, `pcg:playerKey:<game>:<code>`; storage failures are swallowed (player key falls back to an in-memory key for the page).
+- [M2] decision: host `reclaim` answered by `no-room`/`room-closed` → clear the stored token and `create` a new room (onRoom fires with `reclaimed: false`); `close()` keeps the host token so a reload can still reclaim.
+- [M2] decision: controller `room-full`/`room-locked` are fatal like `no-room`/`room-closed` (no reconnect); any error before the handshake completes rejects `start()`/`connect()` and closes. Undecodable frames are ignored. A socket that never opens keeps retrying with backoff.
+- [M2] decision: `integration.test.ts` imports `@pcg/relay` with an inline `eslint-disable-next-line no-restricted-imports` (test-only; boundary rules untouched). While `createRelay` is the M0 stub ("not implemented") the suite is skipped with a logged warning; any other failure fails.
 
 ## 9. Final handoff
 
