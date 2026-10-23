@@ -1,7 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { createFixedStep } from '../fixedStep';
+import { catchUpSteps, createFixedStep } from '../fixedStep';
 
 const STEP = 1000 / 60;
+
+describe('catchUpSteps', () => {
+  it('keeps sim time equal to wall time at low frame rates (nothing dropped up to the clamp)', () => {
+    const loop = createFixedStep({ stepMs: STEP, maxSteps: catchUpSteps(250, STEP) });
+    for (const frameMs of [125, 250]) {
+      let steps = 0;
+      let dropped = 0;
+      for (let t = 0; t < 10_000; t += frameMs) {
+        const r = loop.advance(frameMs, () => {});
+        steps += r.steps;
+        dropped += r.droppedSteps;
+      }
+      expect(dropped).toBe(0);
+      expect(steps).toBeGreaterThanOrEqual(Math.floor(10_000 / STEP) - 1);
+    }
+  });
+});
 
 describe('fixedStep', () => {
   it('runs floor(acc / step) steps and carries the remainder', () => {

@@ -9,7 +9,7 @@ import {
 import { GAME_ID } from '../shared/messages';
 import { relayUrl } from '../shared/relayUrl';
 import { createDebugSim, type DebugSim } from './debug';
-import { createFixedStep, type FixedStep } from './loop/fixedStep';
+import { catchUpSteps, createFixedStep, type FixedStep } from './loop/fixedStep';
 import { interpolateSnapshot } from './loop/interpolate';
 import { createMatch, STEP_MS, type Match, type MatchView, type StorageLike } from './match';
 import { createSim, type Sim, type SimEvent, type SimSnapshot } from './sim';
@@ -67,7 +67,10 @@ export function createGameRuntime(opts: GameRuntimeOptions = {}): GameRuntime {
     kick: net.deps.kick,
     storage: opts.storage ?? sessionStorage,
   });
-  const loop: FixedStep = createFixedStep({ stepMs: STEP_MS });
+  const loop: FixedStep = createFixedStep({
+    stepMs: STEP_MS,
+    maxSteps: catchUpSteps(MAX_FRAME_MS, STEP_MS),
+  });
 
   const simListeners = new Set<(events: readonly SimEvent[]) => void>();
   let version = 0;
