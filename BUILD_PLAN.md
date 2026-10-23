@@ -359,10 +359,10 @@ Rules:
   - [x] Integration test vs real relay
   - [x] Merged to `main`
 - **M3**
-  - [ ] Roster, profiles, leader + handoff
-  - [ ] Round flow, scoring, target, match end/rematch/lobby
-  - [ ] Disconnect, pause, leave, late rejoin, host-refresh restore
-  - [ ] Screens for every §6.7 state + emoji rate limit
+  - [x] Roster, profiles, leader + handoff
+  - [x] Round flow, scoring, target, match end/rematch/lobby
+  - [x] Disconnect, pause, leave, late rejoin, host-refresh restore
+  - [x] Screens for every §6.7 state + emoji rate limit
   - [ ] Merged to `main`
 - **M4**
   - [ ] World, steering, dash, slam, mass boost
@@ -460,6 +460,16 @@ Format: `- [M#] decision: one line, with the reason.`
 - [M2] decision: host `reclaim` answered by `no-room`/`room-closed` → clear the stored token and `create` a new room (onRoom fires with `reclaimed: false`); `close()` keeps the host token so a reload can still reclaim.
 - [M2] decision: controller `room-full`/`room-locked` are fatal like `no-room`/`room-closed` (no reconnect); any error before the handshake completes rejects `start()`/`connect()` and closes. Undecodable frames are ignored. A socket that never opens keeps retrying with backoff.
 - [M2] decision: `integration.test.ts` imports `@pcg/relay` with an inline `eslint-disable-next-line no-restricted-imports` (test-only; boundary rules untouched). It runs in the default `pnpm test` (the pre-M1 stub-skip guard was removed once M1 merged).
+- [M3] decision: the real `createMatch` is exported from `src/host/match/index.ts` (M6 imports from there); the stub in frozen `types.ts` is left untouched.
+- [M3] decision: the Acceptance's `sim.setControl(id,'frozen'|'active')` maps to the F0 API `sim.setFrozen(id, true|false)`; freezing also zeroes input via `setInput(id, null)`. "step() does nothing" = `simRunning` false and `tick()` a no-op while the host is hidden.
+- [M3] decision: the host isn't told when a phone's reconnect window expires, so a disconnected player's egg counts as "reconnecting" (keeps the round alive, can win +3) until they leave or late-rejoin under a new id; the old egg then stays as a stale obstacle whose KO credit still goes to its owner.
+- [M3] decision: knockout credit to a player who has left is dropped (mirrors the +3 rule), and left players can't win the match.
+- [M3] decision: the target score is fixed at Start/Rematch from the number of players who got eggs; the lobby shows the live value. Next/Rematch need ≥2 connected players like Start.
+- [M3] decision: leaving in the lobby removes the player (frees the color); mid-match leavers keep their color reserved (so a key rejoin can restore it) until Rematch / Back to lobby, which drop leavers. Rematch goes straight to the round-1 countdown.
+- [M3] decision: `profile` is accepted in any phase (mid-match joiners need names); a taken color is rejected but the name still applies, and the phone gets a fresh screen so the color snaps back. `takenColors` lists colors held by *other* players.
+- [M3] decision: screens are sent per phone, only when they change; `countdown.ms` / `eliminated.respawnMs` are rounded up to whole seconds (3-2-1, 5…1 updates). The ghost screen follows the sim's `ghostSpawned`. `spectating` = got no egg this round (mid-match joiners, key rejoiners, players disconnected at round start).
+- [M3] decision: while the host is hidden, inputs, leader/host actions and emoji are ignored. A relay rejoin (same id) clears self-pause; the phone re-sends `pause` if its overlay is still up. Emoji cooldown is keyed by player key.
+- [M3] decision: restore lands on results; a persisted round 0 restores to the lobby and a finished match to matchEnd. Peers the save doesn't know join as spectators; saved players missing from the roster are disconnected.
 
 ## 9. Final handoff
 
