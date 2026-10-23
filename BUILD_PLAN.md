@@ -352,7 +352,7 @@ Rules:
   - [x] Rooms, codes, admission, lock/kick
   - [x] Reconnect, host reclaim, heartbeat, robustness tests
   - [x] Dockerfile + fly.toml + healthz verified in Docker
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
 - **M2**
   - [ ] Codec + HostClient
   - [ ] ControllerClient + reconnect/backoff + player key
