@@ -517,3 +517,4 @@ it exactly.
 
 {Optional: "Checkpoint approved: C1" / "C2 notes: …"}
 ```
+- [M5-fix-2] decision: DASH/SLAM/PULSE keep full-size invisible `.pad-zone` hit targets; the visible `.pad-btn` is a circle (`--radius-round`) centered in the zone, sized `min(100cqw, 100cqh, 5 * --space-6)` via container query; SLAM fill is clipped to the circle (overflow hidden); `.pressed` stays on the zone.

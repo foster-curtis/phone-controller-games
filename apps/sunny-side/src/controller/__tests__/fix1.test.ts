@@ -8,7 +8,7 @@ const css = readFileSync(
   'utf8',
 );
 import { sampleStandings } from '../dev';
-import { mount, sampleScreen } from './helpers';
+import { mount, pointer, sampleScreen } from './helpers';
 import type { Screen } from '../../shared/messages';
 
 beforeEach(() => {
@@ -122,5 +122,34 @@ describe('fullscreen', () => {
     process.off('unhandledRejection', unhandled);
     expect(fn).toHaveBeenCalled();
     expect(unhandled).not.toHaveBeenCalled();
+  });
+});
+
+describe('round DASH / SLAM buttons (C1)', () => {
+  it('visible buttons are separate round elements centered in full-size zones', () => {
+    const h = mount();
+    h.show(sampleScreen('playing', 'cobalt'));
+    for (const id of ['dash', 'slam']) {
+      const zone = h.root.querySelector(`[data-pad=${id}]`) as HTMLElement;
+      const btn = zone.querySelector('.pad-btn') as HTMLElement;
+      expect(btn).toBeTruthy();
+      expect(btn).not.toBe(zone);
+      expect(btn.parentElement).toBe(zone);
+    }
+    expect(rule('.pad-btn')).toMatch(/border-radius:\s*var\(--radius-round\)/);
+    expect(rule('.pad-btn')).toMatch(/aspect-ratio:\s*1/);
+    expect(rule('.pad-zone')).toMatch(/align-items:\s*center/);
+    expect(rule('.pad-zone')).toMatch(/justify-content:\s*center/);
+    expect(rule('.pad-zone')).not.toMatch(/background|border/);
+  });
+
+  it('a pointerdown on the zone (not the circle) still registers the press', () => {
+    const h = mount();
+    h.show(sampleScreen('playing', 'cobalt'));
+    const zone = h.root.querySelector('[data-pad=slam]') as HTMLElement;
+    pointer(zone, 'pointerdown', 7);
+    expect(zone.classList.contains('pressed')).toBe(true);
+    pointer(zone, 'pointerup', 7);
+    expect(zone.classList.contains('pressed')).toBe(false);
   });
 });

@@ -20,21 +20,20 @@ export function createController(ctx: ScreenCtx, first: PlaySurface): ScreenView
   );
   const dashPad = el(
     'div',
-    { class: 'pad-zone dash pad', 'data-pad': 'dash' },
-    el('span', { text: 'DASH' }),
+    { class: 'pad-zone dash', 'data-pad': 'dash' },
+    el('div', { class: 'pad-btn pad' }, el('span', { class: 'pad-label', text: 'DASH' })),
   );
   const slamFill = el('div', { class: 'pad-fill' });
   const slamPad = el(
     'div',
-    { class: 'pad-zone slam pad', 'data-pad': 'slam' },
-    slamFill,
-    el('span', { class: 'pad-label', text: 'SLAM' }),
+    { class: 'pad-zone slam', 'data-pad': 'slam' },
+    el('div', { class: 'pad-btn pad' }, slamFill, el('span', { class: 'pad-label', text: 'SLAM' })),
   );
   // Ghosts get ONE grey pulse button; it sends the DASH bit (the host sim pulses on dash or slam).
   const pulsePad = el(
     'div',
-    { class: 'pad-zone pulse pad', 'data-pad': 'pulse' },
-    el('span', { text: 'PULSE' }),
+    { class: 'pad-zone pulse', 'data-pad': 'pulse' },
+    el('div', { class: 'pad-btn pad' }, el('span', { class: 'pad-label', text: 'PULSE' })),
   );
   const pads = el('div', { class: 'pads' }, dashPad, slamPad);
   const right = el('div', { class: 'play-right' }, el('div', { class: 'pause-row' }, pause), pads);

@@ -55,7 +55,7 @@ describe('screens', () => {
     expect(pads.length).toBe(1);
     const pulse = pads[0] as HTMLElement;
     expect(pulse.classList.contains('pulse')).toBe(true);
-    expect(css).toMatch(/\.pad-zone\.pulse\s*\{[^}]*background:\s*var\(--brand-gray\)/);
+    expect(css).toMatch(/\.pad-zone\.pulse \.pad-btn\s*\{[^}]*background:\s*var\(--brand-gray\)/);
     expect(css).not.toMatch(/dampened/);
     const before = h.tuples().length;
     pointer(pulse, 'pointerdown', 1);

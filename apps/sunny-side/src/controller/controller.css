@@ -503,22 +503,36 @@ input {
   box-sizing: border-box;
 }
 
+/* The zone is the (invisible) hit target; the round sticker button sits centered inside it. */
 .pad-zone {
   position: relative;
   flex: 1 1 0;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  container-type: size;
+  touch-action: none;
+}
+
+.pad-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: min(100cqw, 100cqh, calc(var(--space-6) * 5));
+  aspect-ratio: 1;
   overflow: hidden;
   background: var(--pad-bg, var(--surface-strong));
   color: var(--pad-on, var(--foreground));
   border: var(--stroke-sticker) solid var(--sticker-outline);
-  border-radius: var(--radius-sticker);
+  border-radius: var(--radius-round);
   box-shadow: var(--shadow-sticker);
-  touch-action: none;
+  pointer-events: none;
 }
 
-.pad-zone.pressed {
+.pad-zone.pressed .pad-btn {
   box-shadow: var(--shadow-pressed);
   transform: translate(4px, 4px);
 }
@@ -541,8 +555,7 @@ input {
   pointer-events: none;
 }
 
-.pad-label,
-.pad-zone > span {
+.pad-label {
   position: relative;
   pointer-events: none;
 }
@@ -563,7 +576,7 @@ input {
 }
 
 /* Ghost: one grey PULSE button (not the player color, no dampening). */
-.pad-zone.pulse {
+.pad-zone.pulse .pad-btn {
   background: var(--brand-gray);
   color: var(--foreground);
 }
