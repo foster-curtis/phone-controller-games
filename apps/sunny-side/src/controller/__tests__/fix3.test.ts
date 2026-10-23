@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  ARC_INNER,
   ARC_MAX_THICKNESS,
   arcEndAngle,
   arcPath,
@@ -106,7 +107,7 @@ describe('DASH / SLAM look and zones (note 3)', () => {
     expect(rule('.pad-zone.slam .pad-btn')).toMatch(/background:\s*var\(--yolk\)/);
     expect(rule('.pad-btn')).toMatch(/var\(--shadow-sticker\)/);
     expect(css).toMatch(/\.pad-zone\.pressed \.pad-btn\s*\{[^}]*var\(--shadow-pressed\)/);
-    expect(rule('.pad-zone.dash')).toMatch(/flex-start/);
+    expect(rule('.pad-zone.dash')).toMatch(/justify-content:\s*center/);
     expect(rule('.pad-zone.slam')).toMatch(/flex-end/);
     expect(rule('.pad-zone')).toMatch(/flex:\s*1 1 0/);
     expect(rule('.pads')).toMatch(/flex-direction:\s*row/);
@@ -186,5 +187,26 @@ describe('SLAM charge arc (note 4)', () => {
     expect(svg.hasAttribute('hidden')).toBe(false);
     h.show(sampleScreen('ghost'));
     expect(svg.hasAttribute('hidden')).toBe(true);
+  });
+});
+
+describe('M5-fix-4 arc hugs the button', () => {
+  it('inner radius = button radius + a small fixed gap (<= 8 px at the largest button)', () => {
+    // viewBox unit ~ the button radius (svg = 130% of the button, viewBox 2.6 units); gap = ARC_INNER - 1 units.
+    expect(rule('.charge-arc')).toMatch(/width:\s*130%/);
+    expect(ARC_INNER).toBeGreaterThan(1);
+    const gapPx = (ARC_INNER - 1) * 60; // largest button radius = 5 * --space-6 / 2
+    expect(gapPx).toBeLessThanOrEqual(8);
+    expect(arcPath(1)).not.toBe('');
+  });
+});
+
+describe('M5-fix-4 positions', () => {
+  it('stick rests up/right, DASH sits low, SLAM and PULSE are nudged in', () => {
+    expect(rule('.stick-zone')).toMatch(/--nudge:/);
+    expect(rule('.stick-base.resting')).toMatch(/left:[^;]*--nudge[^;]*;[\s\S]*top:[^;]*--nudge/);
+    expect(rule('.pad-zone.dash')).toMatch(/padding-bottom:\s*calc\(46dvh/);
+    expect(rule('.pad-zone.slam')).toMatch(/padding-right:[\s\S]*padding-bottom:/);
+    expect(rule('.pad-zone.pulse')).toMatch(/align-items:\s*flex-end/);
   });
 });

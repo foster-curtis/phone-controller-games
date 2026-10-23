@@ -479,6 +479,8 @@ input {
 /* The whole left half is the stick's touch area; the stick rests at the bottom-left when idle. */
 .stick-zone {
   --stick-r: calc(var(--space-12) * 1.33);
+  /* M5-fix-4: nudge (~28 px): stick up/right, SLAM up/left of the old corner positions. */
+  --nudge: calc(var(--space-6) + var(--space-1));
   position: relative;
   flex: 1 1 50%;
   touch-action: none;
@@ -497,8 +499,8 @@ input {
 
 /* Idle: parked near the bottom-left (inline left/top are cleared on release). */
 .stick-base.resting {
-  left: calc(var(--stick-r) + var(--space-6));
-  top: calc(100% - var(--stick-r) - var(--space-4));
+  left: calc(var(--stick-r) + var(--space-6) + var(--nudge));
+  top: calc(100% - var(--stick-r) - var(--space-4) - var(--nudge));
 }
 
 .stick-knob {
@@ -583,14 +585,26 @@ input {
   touch-action: none;
 }
 
+/* DASH: centered in its column, button center at 46% of the viewport height from the bottom. */
 .pad-zone.dash {
-  align-items: flex-start;
-  justify-content: flex-start;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: calc(46dvh - var(--space-6) * 2.5);
 }
 
+/* SLAM: bottom-right, nudged up/left of the corner (~28 px). */
 .pad-zone.slam {
   align-items: flex-end;
   justify-content: flex-end;
+  padding-right: calc(var(--space-3) + var(--space-6) + var(--space-1));
+  padding-bottom: calc(var(--space-3) + var(--space-6) + var(--space-1));
+}
+
+/* Ghost PULSE: low and centered in the right half, same reach as SLAM. */
+.pad-zone.pulse {
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: calc(var(--space-3) + var(--space-6) + var(--space-1));
 }
 
 .pad-btn {
@@ -629,8 +643,8 @@ input {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 260%;
-  height: 260%;
+  width: 130%;
+  height: 130%;
   transform: translate(-50%, -50%);
   overflow: visible;
   pointer-events: none;

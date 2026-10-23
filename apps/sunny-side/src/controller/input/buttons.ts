@@ -48,7 +48,7 @@ export const SLAM_FULL_MS = 1000;
 export const ARC_START_DEG = -90;
 export const ARC_SWEEP_DEG = 150;
 /** Radii in button-radius units (the button's outer edge = 1). */
-export const ARC_INNER = 1.08;
+export const ARC_INNER = 1.1;
 export const ARC_HAIRLINE = 0.01;
 export const ARC_MAX_THICKNESS = 0.2;
 
