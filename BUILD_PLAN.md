@@ -371,9 +371,9 @@ Rules:
   - [ ] Freeze rule, tunneling + determinism tests, fixedStep + interpolate
   - [ ] Merged to `main`
 - **M5**
-  - [ ] Joystick, buttons, hold-to-pause, input sender
-  - [ ] All screens + overlays, name prefill, emoji hotbar
-  - [ ] Wake Lock / orientation handling + `?dev=1` mode
+  - [x] Joystick, buttons, hold-to-pause, input sender
+  - [x] All screens + overlays, name prefill, emoji hotbar
+  - [x] Wake Lock / orientation handling + `?dev=1` mode
   - [ ] Merged to `main`
   - [ ] **User approved C1 (controller on real phones)**
 - **M6**
@@ -441,6 +441,10 @@ Format: `- [M#] decision: one line, with the reason.`
 - [M0] contract: sim world origin = arena center, units = logical px of the 1920×1080 canvas. The sim owns the 5 s ghost spawn delay: `eliminated` carries `respawnMs`, then `ghostSpawned` fires.
 - [M0] contract: match is clock-free (`tick(dtMs)` drives countdowns and rate limits); `MatchDeps` stays `{ sim, send, kick, storage }`; match declares its own `RelayPeer` because it may not import net-client.
 - [M0] contract: `theme.ts` line heights are px (unitless CSS values multiplied out); `steam`/`scrim` live in `theme.translucent`; `--radius-round` (50%) isn't mirrored (draw circles). `loadBrandFonts` resolves `true` only if every face loaded; faces derive from `theme.type`.
+- [M5] decision: stick `y` is screen-down positive (+100 = thumb pulled toward the bottom of the phone); M6 must map it to the world y axis.
+- [M5] decision: joystick radius 64 px, deadzone 15% of the radius; the SLAM gauge fills in 1 s (visual only; the host times the real charge).
+- [M5] decision: `countdown`, `playing` and `ghost` share one play-surface view so a held thumb survives transitions; the sender runs only while it is mounted (neutral tuple on leave and on self-pause).
+- [M5] decision: `play.html` without `?code=` shows a code-entry form; `?dev=1` uses an in-memory fake client (`dev.ts`, also used by tests) with a collapsible panel for every screen and overlay.
 
 ## 9. Final handoff
 

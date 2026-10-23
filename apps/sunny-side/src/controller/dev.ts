@@ -1,0 +1,152 @@
+// Offline dev mode (`play.html?dev=1`): no relay. A local fake client drives the real app, with a live
+// input-tuple readout and a switcher for every Screen variant and overlay.
+import type { ConnectionStatus, ControllerClient } from '@pcg/net-client';
+import {
+  PLAYER_COLOR_IDS,
+  isInput,
+  type PlayerColorId,
+  type Screen,
+  type ScreenKind,
+  type Standing,
+} from '../shared/messages';
+import { createApp, OVERLAY_NAMES, type App, type ClientLike } from './app';
+import { el } from './dom';
+import { SCREEN_KINDS } from './screens';
+
+export interface LocalClient extends ClientLike {
+  /** Delivers a host message to the app. */
+  emit(data: unknown): void;
+  setStatus(s: ConnectionStatus): void;
+  setHostStatus(s: 'present' | 'away'): void;
+  /** Every message the app sent. */
+  sent: unknown[];
+}
+
+/** An in-memory ControllerClient. Used by dev mode and by the tests. */
+export function createLocalClient(): LocalClient {
+  const msg = new Set<(d: unknown) => void>();
+  const status = new Set<(s: ConnectionStatus) => void>();
+  const host = new Set<(s: 'present' | 'away') => void>();
+  const kicked = new Set<() => void>();
+  const errors = new Set<(e: never) => void>();
+  const sub = <T>(set: Set<T>, cb: T) => {
+    set.add(cb);
+    return () => void set.delete(cb);
+  };
+  const client = {
+    status: 'open' as ConnectionStatus,
+    playerId: 'dev',
+    hostStatus: 'present' as 'present' | 'away',
+    sent: [] as unknown[],
+    connect: () => Promise.resolve({ playerId: 'dev' }),
+    send(d: unknown) {
+      client.sent.push(d);
+    },
+    close() {},
+    onMessage: (cb: (d: unknown) => void) => sub(msg, cb),
+    onStatus: (cb: (s: ConnectionStatus) => void) => sub(status, cb),
+    onHostStatus: (cb: (s: 'present' | 'away') => void) => sub(host, cb),
+    onKicked: (cb: () => void) => sub(kicked, cb),
+    onError: (cb: Parameters<ControllerClient['onError']>[0]) =>
+      sub(errors, cb as (e: never) => void),
+    emit(d: unknown) {
+      for (const cb of [...msg]) cb(d);
+    },
+    setStatus(s: ConnectionStatus) {
+      client.status = s;
+      for (const cb of [...status]) cb(s);
+    },
+    setHostStatus(s: 'present' | 'away') {
+      client.hostStatus = s;
+      for (const cb of [...host]) cb(s);
+    },
+  };
+  return client;
+}
+
+const NAMES = ['Benedict', 'Yolko', 'Scramble', 'Poach', 'Omelette', 'Sunny', 'Shelly', 'Humpty'];
+
+export function sampleStandings(n = 5): Standing[] {
+  return PLAYER_COLOR_IDS.slice(0, n).map((color, i) => ({
+    playerId: `p${i}`,
+    name: NAMES[i] ?? `Egg ${i + 1}`,
+    color,
+    score: Math.max(0, 9 - i * 2),
+    connected: i !== 3,
+    left: i === 4,
+  }));
+}
+
+export function sampleScreen(kind: ScreenKind, color: PlayerColorId = 'crimson'): Screen {
+  const base = {
+    isLeader: true,
+    round: 2,
+    targetScore: 11,
+    name: 'Benedict',
+    color,
+    standings: sampleStandings(),
+  };
+  switch (kind) {
+    case 'lobby':
+      return { ...base, kind, takenColors: ['cobalt', 'jade'], canStart: true };
+    case 'countdown':
+      return { ...base, kind, ms: 3000 };
+    case 'eliminated':
+      return { ...base, kind, respawnMs: 5000 };
+    case 'results':
+      return { ...base, kind, survivorId: 'p0' };
+    case 'matchEnd':
+      return { ...base, kind, winnerId: 'p0' };
+    case 'playing':
+    case 'ghost':
+    case 'spectating':
+    case 'gamePaused':
+    case 'left':
+      return { ...base, kind };
+  }
+}
+
+export function startDev(root: HTMLElement): App {
+  const client = createLocalClient();
+  const readout = el('div', { class: 'dev-readout', 'aria-live': 'off' });
+  const stage = el('div', { class: 'dev-stage' });
+  root.append(stage, readout);
+
+  const app = createApp({
+    root: stage,
+    client,
+    code: 'DEV1',
+    onSent: (m) => {
+      if (isInput(m)) readout.textContent = `[${m.join(', ')}]`;
+    },
+  });
+  readout.textContent = `[${app.sender.tuple().join(', ')}]`;
+
+  const toggle = el('button', { type: 'button', class: 'dev-toggle', text: 'dev' });
+  const panel = el('div', { class: 'dev-panel' });
+  panel.hidden = true;
+  toggle.addEventListener('click', () => (panel.hidden = !panel.hidden));
+
+  const screens = el('div', { class: 'dev-row' });
+  for (const kind of SCREEN_KINDS) {
+    const b = el('button', { type: 'button', 'data-dev-screen': kind, text: kind });
+    b.addEventListener('click', () => client.emit({ t: 'screen', screen: sampleScreen(kind) }));
+    screens.append(b);
+  }
+  const overlays = el('div', { class: 'dev-row' });
+  for (const name of OVERLAY_NAMES) {
+    const b = el('button', { type: 'button', 'data-dev-overlay': name, text: name });
+    b.addEventListener('click', () => {
+      const on = !app.overlays().includes(name);
+      if (name === 'reconnecting') client.setStatus(on ? 'reconnecting' : 'open');
+      else if (name === 'hostAway') client.setHostStatus(on ? 'away' : 'present');
+      else app.setOverlay(name, on);
+    });
+    overlays.append(b);
+  }
+  panel.append(screens, overlays);
+  root.append(toggle, panel);
+
+  client.emit({ t: 'screen', screen: sampleScreen('playing') });
+  return app;
+}
