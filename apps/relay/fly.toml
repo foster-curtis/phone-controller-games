@@ -1,0 +1,35 @@
+# Fly.io config for the relay. Deploy from the repo root:
+#   fly deploy --config apps/relay/fly.toml --dockerfile apps/relay/Dockerfile .
+# Rooms live in memory, so exactly one machine: after the first deploy run `fly scale count 1`.
+
+app = "pcg-relay"
+primary_region = "den"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 500
+    hard_limit = 1000
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/healthz"
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

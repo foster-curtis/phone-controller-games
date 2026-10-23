@@ -1,0 +1,11 @@
+**/node_modules
+**/dist
+.git
+.github
+.claude
+playwright-report
+test-results
+apps/sunny-side/*
+!apps/sunny-side/package.json
+apps/relay/fly.toml
+*.md

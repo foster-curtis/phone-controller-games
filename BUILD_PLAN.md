@@ -349,9 +349,9 @@ Rules:
   - [x] SPEC.md §5 + decision log updated
   - [x] Merged to `main`
 - **M1**
-  - [ ] Rooms, codes, admission, lock/kick
-  - [ ] Reconnect, host reclaim, heartbeat, robustness tests
-  - [ ] Dockerfile + fly.toml + healthz verified in Docker
+  - [x] Rooms, codes, admission, lock/kick
+  - [x] Reconnect, host reclaim, heartbeat, robustness tests
+  - [x] Dockerfile + fly.toml + healthz verified in Docker
   - [ ] Merged to `main`
 - **M2**
   - [ ] Codec + HostClient
@@ -445,6 +445,14 @@ Format: `- [M#] decision: one line, with the reason.`
 - [M5] decision: joystick radius 64 px, deadzone 15% of the radius; the SLAM gauge fills in 1 s (visual only; the host times the real charge).
 - [M5] decision: `countdown`, `playing` and `ghost` share one play-surface view so a held thumb survives transitions; the sender runs only while it is mounted (neutral tuple on leave and on self-pause).
 - [M5] decision: `play.html` without `?code=` shows a code-entry form; `?dev=1` uses an in-memory fake client (`dev.ts`, also used by tests) with a collapsible panel for every screen and overlay.
+- [M1] decision: Docker uses an esbuild single-file bundle (`apps/relay/build.mjs`, script `bundle`; `esbuild@0.28.2` added as a relay devDep, the version tsx already pulls in) → runtime stage is plain `node main.mjs`, no node_modules. Built first try.
+- [M1] decision: playerIds are `p1`, `p2`, … per room (never `host`); join codes are uppercased before lookup; non-integer `maxPlayers` is floored, then clamped 1–16.
+- [M1] decision: host `send` to an unknown/disconnected `to` is dropped silently; `kick` of an unknown id is ignored; kick sends the host no `peer` event (it initiated it); `lock`/`unlock` have no ack.
+- [M1] decision: a failed `create`/`join`/`reclaim` replies `error` and leaves the socket open and unbound (the client may retry on it).
+- [M1] decision: a token rejoin or host `reclaim` while the old socket is still open takes over the slot (old socket closed 1000, no `left`/`away`); `host back` goes out only if the host was away.
+- [M1] decision: a phone that joins while the host is away gets `joined` then `host away`; its `peer joined` reaches the host only via the `reclaim` roster.
+- [M1] decision: heartbeat pings every socket each interval and terminates one that still has `maxMissedPings` unanswered at the next tick; termination runs the normal close path (`peer left` / `host away`).
+- [M1] decision: relay tests live in `apps/relay/test/` (+ `helpers.ts`); vitest `include` and tsconfig `include` extended to cover it.
 
 ## 9. Final handoff
 
