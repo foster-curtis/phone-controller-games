@@ -1,4 +1,5 @@
-// Floating joystick (SPEC §7.2): the origin is wherever the first touch lands.
+// Floating joystick (SPEC §7.2): drawn at a resting spot (bottom-left) when idle; a touch anywhere in the
+// zone (the left half of the play surface) becomes the stick's origin until release.
 import { STICK_MAX } from '../../shared/messages';
 
 export const STICK_RADIUS_PX = 64;
@@ -36,7 +37,7 @@ export function createJoystick(zone: HTMLElement, opts: JoystickOptions): Joysti
   const radius = opts.radius ?? STICK_RADIUS_PX;
   const deadzone = opts.deadzone ?? STICK_DEADZONE;
   const base = document.createElement('div');
-  base.className = 'stick-base';
+  base.className = 'stick-base resting';
   const knob = document.createElement('div');
   knob.className = 'stick-knob';
   base.append(knob);
@@ -67,6 +68,7 @@ export function createJoystick(zone: HTMLElement, opts: JoystickOptions): Joysti
     base.style.left = `${ox - r.left}px`;
     base.style.top = `${oy - r.top}px`;
     knob.style.transform = 'translate(-50%, -50%)';
+    base.classList.remove('resting');
     zone.classList.add('active');
     e.preventDefault();
   };
@@ -85,6 +87,11 @@ export function createJoystick(zone: HTMLElement, opts: JoystickOptions): Joysti
     if (e.pointerId !== pointerId) return;
     pointerId = null;
     zone.classList.remove('active');
+    // Back to the resting spot (CSS position) with the knob centered.
+    base.style.left = '';
+    base.style.top = '';
+    knob.style.transform = 'translate(-50%, -50%)';
+    base.classList.add('resting');
     set([0, 0]);
   };
 

@@ -87,7 +87,7 @@ export interface ScreenBase {
   /** Current round, 1-based; 0 before the first round. */
   round: number;
   targetScore: number;
-  /** This phone's profile; `color` tints the pads. null until assigned. */
+  /** This phone's profile; `color` fills the top banner and joystick knob. null until assigned. */
   name: string;
   color: PlayerColorId | null;
   /** Sorted by score, highest first. */

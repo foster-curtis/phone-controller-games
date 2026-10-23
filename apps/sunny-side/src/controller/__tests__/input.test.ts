@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BUTTON_DASH, BUTTON_SLAM, type InputTuple } from '../../shared/messages';
-import { createChargeFill, createHoldButton } from '../input/buttons';
+import { createChargeArc, createHoldButton } from '../input/buttons';
 import { createHoldToPause } from '../input/holdToPause';
 import { computeStick, createJoystick, STICK_RADIUS_PX } from '../input/joystick';
 import { createInputSender } from '../input/sender';
@@ -169,19 +169,21 @@ describe('hold to pause', () => {
   });
 });
 
-describe('SLAM charge fill', () => {
-  it('fill height tracks hold time and resets on release', () => {
-    const fill = document.createElement('div');
-    const charge = createChargeFill(fill, 1000);
-    expect(fill.style.height).toBe('0%');
+describe('SLAM charge arc', () => {
+  it('arc sweep/thickness tracks hold time and resets on release', () => {
+    const host = document.createElement('div');
+    const charge = createChargeArc(host, 1000);
+    const svg = charge.svg;
+    expect(svg.hasAttribute('hidden')).toBe(true);
     charge.press();
     vi.advanceTimersByTime(500);
-    const mid = parseFloat(fill.style.height);
-    expect(mid).toBeGreaterThan(40);
-    expect(mid).toBeLessThanOrEqual(50);
+    const midThick = Number(svg.dataset.thickness);
+    expect(Number(svg.dataset.endAngle)).toBeCloseTo(-15, -1);
     vi.advanceTimersByTime(2000);
-    expect(fill.style.height).toBe('100%');
+    expect(Number(svg.dataset.endAngle)).toBeCloseTo(60, 5);
+    expect(Number(svg.dataset.thickness)).toBeGreaterThan(midThick);
     charge.release();
-    expect(fill.style.height).toBe('0%');
+    expect(svg.hasAttribute('hidden')).toBe(true);
+    expect(svg.dataset.charge).toBe('0');
   });
 });

@@ -148,7 +148,7 @@ _All numbers are starting values for tuning._
 - **Joining:** room code (prefilled from QR), connecting.
 - **Lobby:** name + color; leader also sees Start.
 - **Playing:** floating joystick, DASH, SLAM, **pause button** in the top-right corner above DASH/SLAM.
-- **Charging:** SLAM zone fills bottom-to-top like a liquid gauge.
+- **Charging:** while SLAM is held, a tapered arc grows clockwise outside the SLAM button (9:00 to 2:00 over the 1 s gauge time), thickening toward its leading end, in `heat` darkening along its length; it flashes once in `yolk-shine` at full charge and is hidden when SLAM is not held.
 - **Eliminated:** "Respawn as a ghost in" with a very large countdown 5 → 1 beneath it; the number pulses slightly on each change.
 - **Ghost:** same joystick; the DASH/SLAM pair is replaced by a single grey **PULSE** button (not the player color, not dampened). It sends the dash bit/counter, which the host treats as a ghost pulse.
 - **Spectating** (mid-match joiners, late rejoiners): no controller. Scores + round number + an **emoji hotbar of 5** reactions (shown on the TV per §6.6).
@@ -249,9 +249,10 @@ _Shape is indicative; exact fields finalized at implementation._
 **Phone layout:**
 
 - Locked to landscape.
-- Left half: **floating joystick** (spawns wherever the thumb lands).
-- Right half: two large zones, DASH on top, SLAM below, tinted the player's egg color.
-- Pause button: top-right corner, above DASH/SLAM; hold ~0.6 s to pause.
+- Top banner: filled with the player's color (name in its `-on` color, green connectivity dot to the left of the name); neutral before a color is assigned. The hold-to-pause button sits at its right end.
+- Left half: **floating joystick**, always drawn at a resting spot near the bottom-left when idle; a touch anywhere in the left half becomes the stick's center while held, and it returns to the resting spot on release.
+- Right half: two full-size touch zones (DASH left column, SLAM right column, no dead area) with round sticker buttons staggered inside them: DASH up and to the left (cream), SLAM down and to the right (yolk). The pads deliberately do **not** use the player color.
+- Pause: hold ~0.6 s (ring fills) to pause; the button lives in the banner.
 
 ### 7.3 Other game messages
 

@@ -140,11 +140,27 @@ export function startDev(root: HTMLElement): App {
   panel.hidden = true;
   toggle.addEventListener('click', () => (panel.hidden = !panel.hidden));
 
+  // Current sample (kind + player color), so the banner/pad colors can be checked per player color.
+  let curKind: ScreenKind = 'playing';
+  let curColor: PlayerColorId = 'crimson';
+  const emit = () => client.emit({ t: 'screen', screen: sampleScreen(curKind, curColor) });
   const screens = el('div', { class: 'dev-row' });
   for (const kind of SCREEN_KINDS) {
     const b = el('button', { type: 'button', 'data-dev-screen': kind, text: kind });
-    b.addEventListener('click', () => client.emit({ t: 'screen', screen: sampleScreen(kind) }));
+    b.addEventListener('click', () => {
+      curKind = kind;
+      emit();
+    });
     screens.append(b);
+  }
+  const colors = el('div', { class: 'dev-row' });
+  for (const color of PLAYER_COLOR_IDS) {
+    const b = el('button', { type: 'button', 'data-dev-color': color, text: color });
+    b.addEventListener('click', () => {
+      curColor = color;
+      emit();
+    });
+    colors.append(b);
   }
   const overlays = el('div', { class: 'dev-row' });
   for (const name of OVERLAY_NAMES) {
@@ -157,7 +173,7 @@ export function startDev(root: HTMLElement): App {
     });
     overlays.append(b);
   }
-  panel.append(screens, overlays);
+  panel.append(screens, colors, overlays);
   root.append(toggle, panel);
 
   client.emit({ t: 'screen', screen: sampleScreen('playing') });

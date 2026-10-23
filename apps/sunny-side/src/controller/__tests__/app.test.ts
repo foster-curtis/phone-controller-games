@@ -67,11 +67,11 @@ describe('screens', () => {
     expect(h.root.querySelectorAll('.pad-zone').length).toBe(2);
   });
 
-  it('tints the pads with the player color', () => {
+  it('does not tint the pads with the player color (M5-fix-3)', () => {
     const h = mount();
     h.show(sampleScreen('playing', 'cobalt'));
-    expect(q(h.root, '.play')?.style.getPropertyValue('--pad-bg')).toBe('var(--player-cobalt)');
-    expect(q(h.root, '.play')?.style.getPropertyValue('--pad-on')).toBe('var(--player-cobalt-on)');
+    expect(q(h.root, '.pads')?.outerHTML).not.toContain('--player-');
+    expect(q(h.root, '.play')?.style.getPropertyValue('--pad-bg')).toBe('');
   });
 
   it('eliminated shows a big countdown from respawnMs', () => {
@@ -235,15 +235,17 @@ describe('input over the app', () => {
     expect(h.tuples().at(-1)).toEqual([0, 0, 0, 1, 0]);
   });
 
-  it('SLAM fill follows the hold', () => {
+  it('SLAM arc sweep/thickness tracks hold time', () => {
     const h = mount();
     h.show(sampleScreen('playing'));
     const slam = q(h.root, '[data-pad=slam]') as HTMLElement;
+    const arc = q(slam, '.charge-arc') as unknown as SVGElement;
+    expect(arc.hasAttribute('hidden')).toBe(true);
     pointer(slam, 'pointerdown', 4);
     vi.advanceTimersByTime(500);
-    expect(parseFloat((q(slam, '.pad-fill') as HTMLElement).style.height)).toBeGreaterThan(40);
+    expect(Number(arc.dataset.endAngle)).toBeCloseTo(-15, -1);
     pointer(slam, 'pointerup', 4);
-    expect((q(slam, '.pad-fill') as HTMLElement).style.height).toBe('0%');
+    expect(arc.hasAttribute('hidden')).toBe(true);
   });
 });
 

@@ -17,6 +17,8 @@ export interface ScreenCtx {
   sender: InputSender;
   /** Hold-to-pause completed on the controller screen. */
   onPause(): void;
+  /** Right-hand slot of the top banner; the play surface mounts its pause button here. */
+  pauseSlot: HTMLElement;
 }
 
 export interface ScreenView<S extends Screen = Screen> {

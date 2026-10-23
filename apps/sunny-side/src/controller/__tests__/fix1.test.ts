@@ -140,7 +140,7 @@ describe('round DASH / SLAM buttons (C1)', () => {
     expect(rule('.pad-btn')).toMatch(/aspect-ratio:\s*1/);
     expect(rule('.pad-zone')).toMatch(/align-items:\s*center/);
     expect(rule('.pad-zone')).toMatch(/justify-content:\s*center/);
-    expect(rule('.pad-zone')).not.toMatch(/background|border/);
+    expect(rule('.pad-zone')).not.toMatch(/background|(?<!-)border(-\w+)?:/);
   });
 
   it('a pointerdown on the zone (not the circle) still registers the press', () => {

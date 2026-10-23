@@ -1,6 +1,7 @@
 // Controller app: owns the current screen view, the phone-local overlays, and the client wiring.
 import type { ControllerClient, StorageLike } from '@pcg/net-client';
 import type { ControllerMsg, Screen } from '../shared/messages';
+import { createBanner } from './banner';
 import { el } from './dom';
 import { createInputSender, type InputSender } from './input/sender';
 import { fullscreenOnTap } from './fullscreen';
@@ -78,7 +79,9 @@ export function createApp(opts: AppOptions): App {
 
   const screenHost = el('div', { class: 'screen-host' });
   const overlayHost = el('div', { class: 'overlay-host' });
-  root.replaceChildren(screenHost, overlayHost);
+  const banner = createBanner();
+  banner.setConnected(client.status === 'open');
+  root.replaceChildren(banner.el, screenHost, overlayHost);
 
   let joinError: string | null = null;
   const joining = createJoining((c) => opts.onCode?.(c));
@@ -93,6 +96,7 @@ export function createApp(opts: AppOptions): App {
     storage,
     sender,
     onPause: () => selfPause(),
+    pauseSlot: banner.slot,
   };
 
   const showJoining = () => {
@@ -100,11 +104,13 @@ export function createApp(opts: AppOptions): App {
     view = null;
     group = 'joining';
     kind = 'joining';
+    banner.setProfile(null, null);
     joining.set({ code: opts.code ?? null, error: joinError });
     screenHost.replaceChildren(joining.el);
   };
 
   const setScreen = (screen: Screen) => {
+    banner.setProfile(screen.name, screen.color);
     const g = GROUP_OF[screen.kind];
     kind = screen.kind;
     if (g === group && view) {
@@ -182,6 +188,7 @@ export function createApp(opts: AppOptions): App {
       }
     }),
     client.onStatus((s) => {
+      banner.setConnected(s === 'open');
       setOverlay('reconnecting', s === 'reconnecting');
       if (s === 'closed' && group === 'joining') showJoining();
     }),
