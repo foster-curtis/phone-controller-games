@@ -340,7 +340,7 @@ Rules:
 
 ## 6. Progress checklist
 
-- [ ] Pre-flight passed (S1)
+- [x] Pre-flight passed (S1)
 - **M0**
   - [ ] Scaffold, tooling, pinned deps, CI workflow
   - [ ] Contract files (F0) + ESLint boundaries
