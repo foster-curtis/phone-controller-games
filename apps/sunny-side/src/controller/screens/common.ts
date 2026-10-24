@@ -152,3 +152,18 @@ export function roundLine(screen: Screen): HTMLElement {
       : `First to ${screen.targetScore}`;
   return el('p', { class: 'caption muted', text });
 }
+
+/**
+ * "Waiting for {leader}…" for non-leader phones (SPEC §6.5): small, quiet, and meant to be the last
+ * element of the screen's scrollable content, so it only shows after scrolling to the bottom.
+ */
+export function waitingLine(screen: Screen): HTMLElement[] {
+  if (screen.isLeader || !screen.leaderName) return [];
+  return [
+    el('p', {
+      class: 'caption muted waiting-line',
+      'data-waiting': '',
+      text: `Waiting for ${screen.leaderName}…`,
+    }),
+  ];
+}

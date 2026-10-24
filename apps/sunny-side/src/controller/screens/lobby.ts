@@ -11,6 +11,7 @@ import {
   standingsList,
   type ScreenCtx,
   type ScreenView,
+  waitingLine,
 } from './common';
 
 type LobbyScreen = Extract<Screen, { kind: 'lobby' }>;
@@ -31,7 +32,7 @@ export function createLobby(ctx: ScreenCtx, first: LobbyScreen): ScreenView<Lobb
   const swatches = el('div', { class: 'swatches', role: 'radiogroup', 'aria-label': 'Color' });
   const join = el('button', { type: 'submit', class: 'btn btn-accent label', text: 'Ready' });
   const form = el('form', { class: 'lobby-form' }, input, swatches, join);
-  const standings = el('div', { class: 'lobby-standings' });
+  const standings = el('div', { class: 'lobby-standings scroll-y' });
   const actions = el('div', { class: 'actions' });
   const side = el('div', { class: 'lobby-side' });
   const main = el('div', { class: 'lobby-main' });
@@ -83,7 +84,11 @@ export function createLobby(ctx: ScreenCtx, first: LobbyScreen): ScreenView<Lobb
         current.color ?? PLAYER_COLOR_IDS.find((c) => !current.takenColors.includes(c)) ?? null;
     }
     paintSwatches();
-    standings.replaceChildren(roundLine(current), standingsList(current, ctx));
+    standings.replaceChildren(
+      roundLine(current),
+      standingsList(current, ctx),
+      ...waitingLine(current),
+    );
     actions.replaceChildren();
     if (current.isLeader) {
       const start = leaderButton(ctx, 'Start', 'start');

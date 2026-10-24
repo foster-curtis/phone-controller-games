@@ -9,6 +9,7 @@ import {
   standingsList,
   type ScreenCtx,
   type ScreenView,
+  waitingLine,
 } from './common';
 
 type Results = Extract<Screen, { kind: 'results' }>;
@@ -35,7 +36,13 @@ export function createResults(ctx: ScreenCtx, first: Results): ScreenView<Result
         text: survivor ? `${survivor.name} survived!` : 'Nobody survived',
       }),
     );
-    body.replaceChildren(roundLine(s), ...bd(s), stTitle(), standingsList(s, ctx));
+    body.replaceChildren(
+      roundLine(s),
+      ...bd(s),
+      stTitle(),
+      standingsList(s, ctx),
+      ...waitingLine(s),
+    );
     actions.replaceChildren(...(s.isLeader ? [leaderButton(ctx, 'Next round', 'next')] : []));
   };
   apply(first);
@@ -54,7 +61,7 @@ export function createMatchEnd(ctx: ScreenCtx, first: MatchEnd): ScreenView<Matc
       el('h1', { class: 'banner sticker-heading', text: 'Match over' }),
       el('p', { class: 'h2', text: winner ? `${winner.name} wins!` : 'We have a winner!' }),
     );
-    body.replaceChildren(...bd(s), stTitle(), standingsList(s, ctx));
+    body.replaceChildren(...bd(s), stTitle(), standingsList(s, ctx), ...waitingLine(s));
     actions.replaceChildren(
       ...(s.isLeader
         ? [leaderButton(ctx, 'Rematch', 'rematch'), leaderButton(ctx, 'Back to lobby', 'lobby', '')]
