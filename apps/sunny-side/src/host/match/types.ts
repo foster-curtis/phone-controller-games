@@ -59,7 +59,10 @@ export interface MatchView {
   leaderId: string | null;
   /** ms left in the round-start countdown (phase `countdown`), else 0. */
   countdownMs: number;
-  /** All players ever in this match, in join order (left players included, greyed). */
+  /**
+   * Players in this match, in join order, disconnected ("away", `connected: false`) included. Since
+   * M3-fix-2 a Leave or a removal drops the player entirely, so `left` is always false.
+   */
   players: PlayerView[];
   /** Round result (phase `results`): sole survivor who got +3, if any. */
   survivorId: string | null;
@@ -79,6 +82,15 @@ export type MatchEvent =
   | { type: 'leader'; playerId: string | null }
   | { type: 'roster' };
 
+/** Remove a player from the room (M3-fix-2, C3 note): dropped like a Leave, then kicked. */
+export interface RemovePlayerAction {
+  kind: 'remove';
+  playerId: string;
+}
+
+/** What `Match.hostAction` takes: a leader action, or a removal (M3-fix-2). */
+export type HostAction = LeaderAction | RemovePlayerAction;
+
 export interface Match {
   // relay → match
   playerJoined(playerId: string, playerKey: string): void;
@@ -89,8 +101,11 @@ export interface Match {
   /** After a host refresh + reclaim: restore from storage, reconcile with the roster, go to results. */
   restore(roster: readonly RelayPeer[]): void;
   // host → match
-  /** Host-side controls (same actions as the leader's phone). */
-  hostAction(action: LeaderAction): void;
+  /**
+   * Host-side controls (same actions as the leader's phone). `{ kind: 'remove', playerId }`
+   * (M3-fix-2) removes that player like a Leave, plus a relay kick; the host may remove anyone.
+   */
+  hostAction(action: HostAction): void;
   setHostVisible(visible: boolean): void;
   // loop → match
   handleSimEvents(events: readonly SimEvent[]): void;

@@ -68,39 +68,34 @@ describe('self-pause', () => {
   });
 });
 
-describe('leave', () => {
-  it('{t:"leave"} → left screen, kick, egg stays frozen, name greyed in standings', () => {
+describe('disconnect keeps the spot (C3 note: only Leave removes)', () => {
+  it('a dropped player keeps score, color and roster spot; a key rejoin restores them', () => {
     const h = setup();
     h.startGame(['a', 'b', 'c']);
-    h.msg('b', { t: 'leave' });
-    expect(h.last('b').kind).toBe('left');
-    expect(h.kicks).toEqual(['b']);
-    expect(h.sim.frozen.get('b')).toBe(true);
-    expect(h.match.view().players.find((p) => p.id === 'b')).toMatchObject({
-      left: true,
-      alive: true,
-    });
-    expect(h.last('a').standings.find((s) => s.playerId === 'b')?.left).toBe(true);
-    // the relay's follow-up `peer left` and any further messages are ignored
-    const sentBefore = h.sent.length;
+    h.msg('b', { t: 'profile', name: 'Bee', color: 'rose' });
+    h.eliminate('c', 'b');
     h.match.playerLeft('b');
-    h.msg('b', { t: 'pause' });
-    expect(h.sent.length).toBe(sentBefore);
-    // still a hittable obstacle
-    h.eliminate('b', 'c');
-    expect(h.score('c')).toBe(1);
-  });
-
-  it('leaving in the lobby removes the player and frees the color', () => {
-    const h = setup();
-    h.join('a');
-    h.join('b');
-    h.msg('a', { t: 'leave' });
-    expect(h.last('a').kind).toBe('left');
-    expect(h.kicks).toEqual(['a']);
-    expect(h.match.view().players.map((p) => p.id)).toEqual(['b']);
-    h.join('c');
-    expect(h.match.view().players.find((p) => p.id === 'c')?.color).toBe('crimson');
+    expect(h.kicks).toEqual([]);
+    expect(h.sim.removedEggs).toEqual([]);
+    expect(h.match.view().players.find((p) => p.id === 'b')).toMatchObject({
+      connected: false,
+      score: 1,
+      color: 'rose',
+    });
+    expect(h.last('a').standings.find((s) => s.playerId === 'b')).toMatchObject({
+      connected: false,
+      score: 1,
+    });
+    // the color stays reserved while they're away
+    h.join('s');
+    h.msg('s', { t: 'profile', name: 'S', color: 'rose' });
+    expect(h.match.view().players.find((p) => p.id === 's')?.color).not.toBe('rose');
+    h.join('b2', 'key-b');
+    expect(h.match.view().players.find((p) => p.id === 'b2')).toMatchObject({
+      name: 'Bee',
+      color: 'rose',
+      score: 1,
+    });
   });
 });
 
@@ -114,7 +109,7 @@ describe('host visibility', () => {
     expect(h.match.simRunning).toBe(false);
     expect(h.match.view().paused).toBe(true);
     const steps = h.sim.steps;
-    h.sim.queue({ type: 'eliminated', id: 'b', by: 'a', respawnMs: 5000 });
+    h.sim.queue({ type: 'eliminated', id: 'b', by: 'a', respawnMs: 5000, byGhost: false });
     h.step(120);
     expect(h.sim.steps).toBe(steps);
     expect(h.match.view().phase).toBe('playing');

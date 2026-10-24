@@ -44,21 +44,23 @@ describe('host-refresh restore', () => {
     expect(h2.sim.lastRound.map((e) => e.id)).toEqual(['b', 'c']);
   });
 
-  it('restores left players greyed, and adds unknown peers as spectators', () => {
+  it('a player who left is not restored, and unknown peers join as spectators', () => {
     const storage = new MemStorage();
     const h1 = setup(storage);
-    h1.startGame(['a', 'b', 'c']);
+    h1.startGame(['a', 'b', 'c', 'd']);
+    h1.eliminate('d', 'c'); // c +1
     h1.msg('c', { t: 'leave' });
     const h2 = setup(storage);
     h2.match.restore([
       { playerId: 'a', playerKey: 'key-a', connected: true },
       { playerId: 'b', playerKey: 'key-b', connected: true },
+      { playerId: 'd', playerKey: 'key-d', connected: true },
       { playerId: 'n', playerKey: 'key-n', connected: true },
     ]);
     const players = h2.match.view().players;
-    expect(players.find((p) => p.id === 'c')).toMatchObject({ left: true, connected: false });
-    expect(players.find((p) => p.id === 'n')).toMatchObject({ spectating: true, joinIndex: 3 });
-    expect(h2.last('n').standings.find((s) => s.playerId === 'c')?.left).toBe(true);
+    expect(players.map((p) => p.id)).toEqual(['a', 'b', 'd', 'n']);
+    expect(players.find((p) => p.id === 'n')).toMatchObject({ spectating: true, joinIndex: 4 });
+    expect(h2.last('n').standings.map((s) => s.playerId)).not.toContain('c');
   });
 
   it('matches peers by player key when ids changed', () => {

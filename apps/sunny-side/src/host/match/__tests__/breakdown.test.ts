@@ -99,20 +99,35 @@ describe('round breakdown (C2 note)', () => {
     }
   });
 
-  it('credit to a player who left is omitted and does not count', () => {
+  it('a player who left is dropped from the breakdown; stale credit to them does not count', () => {
     const h = setup();
-    h.startGame(['a', 'b', 'c']);
-    h.msg('a', { t: 'leave' }); // a's egg stays as an obstacle
-    h.eliminate('c', 'a'); // sim credits a, but a left
-    h.eliminate('a', null);
+    h.startGame(['a', 'b', 'c', 'd']);
+    h.eliminate('d', 'a'); // a +1
+    h.msg('a', { t: 'leave' }); // a and their points are gone
+    h.eliminate('c', 'a'); // a stale sim credit to a removed player
     const bd = h.match.view().breakdown!;
-    const a = bd.players.find((p) => p.playerId === 'a');
-    const b = bd.players.find((p) => p.playerId === 'b');
-    const c = bd.players.find((p) => p.playerId === 'c');
-    expect(a).toMatchObject({ left: true, points: 0, total: 0, items: [] });
-    expect(c).toMatchObject({ out: { by: null, byName: null } });
+    expect(bd.players.map((p) => p.playerId)).toEqual(['b', 'c', 'd']);
+    const [b, c, d] = bd.players;
+    expect(c).toMatchObject({ points: 0, out: { by: null, byName: null, ghost: false } });
+    expect(d).toMatchObject({ out: { by: 'a', byName: 'Egg 1', ghost: false } });
     expect(b).toMatchObject({ points: 3, items: [{ kind: 'survivor', points: 3 }], out: null });
-    expect(h.score('a')).toBe(0);
+  });
+
+  it('out.ghost: knocked out by a ghost (C3 note)', () => {
+    const h = setup();
+    h.startGame(['a', 'b', 'c', 'd']);
+    h.eliminate('d', null, 5000, true); // a ghost pulse, no living credit
+    h.eliminate('c', 'a', 5000, true); // a ghost finished a's push: a keeps the credit
+    h.eliminate('b', null); // fell off
+    const bd = h.match.view().breakdown!;
+    const out = (id: string) => bd.players.find((p) => p.playerId === id)?.out;
+    expect(out('d')).toEqual({ by: null, byName: null, ghost: true });
+    expect(out('c')).toEqual({ by: 'a', byName: 'Egg 1', ghost: true });
+    expect(out('b')).toEqual({ by: null, byName: null, ghost: false });
+    expect(out('a')).toBeNull();
+    expect(h.score('a')).toBe(1 + 3);
+    const s = h.last('d');
+    expect(breakdownOf(s)?.players.find((p) => p.playerId === 'd')?.out?.ghost).toBe(true);
   });
 
   it('a late rejoiner is listed under their new id', () => {
@@ -130,7 +145,7 @@ describe('round breakdown (C2 note)', () => {
       victimName: 'Egg 3',
       points: 1,
     });
-    expect(bd.players[2]!.out).toEqual({ by: 'b', byName: 'Egg 2' });
+    expect(bd.players[2]!.out).toEqual({ by: 'b', byName: 'Egg 2', ghost: false });
   });
 
   it('is null after a host-refresh restore', () => {

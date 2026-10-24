@@ -37,30 +37,17 @@ describe('late rejoin by player key', () => {
     expect(h.match.view().survivorId).toBe('a');
   });
 
-  it('a stale egg alone with a left egg ends the round with no +3', () => {
+  it('a stale egg alone ends the round with no +3', () => {
     const h = setup();
     h.startGame(['a', 'b', 'c']);
     h.match.playerLeft('a');
     h.join('a2', 'key-a');
-    h.msg('c', { t: 'leave' });
-    // remaining eggs: a (stale), b (live), c (left)
+    h.msg('c', { t: 'leave' }); // c's egg is taken off the pan
+    // remaining eggs: a (stale), b (live)
+    expect(h.match.view().phase).toBe('playing');
     h.eliminate('b', null);
     expect(h.match.view().phase).toBe('results');
     expect(h.match.view().survivorId).toBeNull();
-  });
-
-  it('a player who left can return via their key and gets their score back', () => {
-    const h = setup();
-    h.startGame(['a', 'b', 'c']);
-    h.eliminate('c', 'b');
-    h.msg('b', { t: 'leave' });
-    h.join('b2', 'key-b');
-    expect(h.match.view().players.find((p) => p.id === 'b2')).toMatchObject({
-      left: false,
-      score: 1,
-      color: 'cobalt',
-      spectating: true,
-    });
   });
 
   it('rejoin by key in the lobby is a plain lobby join', () => {

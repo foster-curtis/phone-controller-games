@@ -131,6 +131,7 @@ _All numbers are starting values for tuning._
 - Other phones show "Waiting for {leader name}…".
 - **Match end:** on the winner screen the leader gets **Rematch** (same players, scores reset) and **Back to lobby** (join/leave, change name/color).
 - **Handoff:** if the leader disconnects or leaves, leadership passes to the **next-earliest joined connected player**. It does **not** snap back if the original leader returns.
+- **Remove a player** (C3): the leader's phone and the host (TV/laptop) can remove any other player, connected or away (disconnected), in any phase, so their spot and color free up for someone else. The effect is the same as that player tapping **Leave game** (§6.7), plus a relay kick that frees the slot and invalidates their token. The leader can't remove themselves (they can Leave); removal from non-leader phones is ignored. Every list of players a phone or the TV shows carries `playerId` and `connected` so remove controls and the away state can be drawn.
 
 ### 6.6 TV presentation
 
@@ -142,11 +143,11 @@ _All numbers are starting values for tuning._
 - **Slam charge:** ring around the charging egg that fills with charge, in the same color as the phone's fill. Egg squashes flatter and the yolk glows hotter as charge builds (anticipation). Brief flash at max charge. The ring is a deliberate tell for opponents.
 - **Spectator emoji:** pop in on the side of the screen, float to the top, fade out.
   - Set: 🔥 😂 😱 👏 🍳 (swappable).
-  - **1 s cooldown** per spectator; cap of ~12 on screen at once (oldest drops first).
+  - **0.5 s cooldown** per spectator (was 1 s; changed at C3); cap of ~12 on screen at once (oldest drops first).
   - Glyphs draw with the system emoji stack `theme.emojiFont` (OS-provided; not a brand.css token).
 
 **Screens:** lobby (QR + room code + joined players), round results, match winner.
-Round results and the match winner screen show a **per-round points breakdown** of the round just played (`MatchView.breakdown`, §7.3): for each player who had an egg, the points earned and why (+1 per knockout, naming the victim; +3 survivor) plus who knocked them out (or "fell off"). Not available right after a host refresh.
+Round results and the match winner screen show a **per-round points breakdown** of the round just played (`MatchView.breakdown`, §7.3): for each player who had an egg, the points earned and why (+1 per knockout, naming the victim; +3 survivor) plus who knocked them out (or "fell off", or "Knocked out by ghost" with no name when a ghost pulse pushed them out and no living player got the credit: `out.by` null + `out.ghost` true). Not available right after a host refresh. A player who leaves or is removed drops out of the breakdown shown.
 
 ### 6.7 Phone UI states
 
@@ -168,11 +169,12 @@ Round results and the match winner screen show a **per-round points breakdown** 
 - **Hold-to-pause** (~0.6 s, with a small ring that fills while holding) to prevent accidental pauses mid-fight.
 - Mid-round, a self-paused egg follows the **disconnect rules** (§6.3): stops dead, input zeroed, stays hittable.
 
-**Leave game:**
+**Leave game** (full removal, C3; supersedes the original "egg stays, name greyed" rule):
 
-- The egg stays on the pan as a hittable obstacle (same as an expired disconnect).
-- Their slot frees up; their name greys out in the standings for the rest of the match.
-- Returning via their player key restores their score (late-rejoin rule, §6.3).
+- Tapping **Leave game** removes the player from the room in any phase: their slot frees up, and their score, color and spot are **not** kept (dropped from the roster, standings, the shown breakdown and the host-refresh save). Their color is free for others at once.
+- Their egg (or ghost) is taken off the pan with **no points to anyone**; if that leaves ≤1 egg, the round ends under the usual rules (§6.1, +3 to a sole survivor).
+- A later join with the same player key is a **brand-new player** (score 0, auto color; spectates if a match is on).
+- Only an explicit Leave (or a removal by the leader/host, §6.5) does this. Closing the tab or losing the connection keeps the player's spot, score and color (disconnect and late-rejoin rules, §6.3).
 
 ### 6.8 Branding & audio
 
@@ -268,12 +270,15 @@ Phone → host (JSON objects; inputs are arrays, so `Array.isArray` distinguishe
 { t: "pause" } | { t: "resume" }
 { t: "emoji", i }                      // index into the 5-emoji set
 { t: "leader", action: "start" | "next" | "rematch" | "lobby" }
-{ t: "leave" }
+{ t: "leader", action: "remove", playerId } // leader only: remove another player (§6.5)
+{ t: "leave" }                         // full removal (§6.7)
 ```
+
+The host's own controls (`Match.hostAction`) take the same leader actions plus `{ kind: "remove", playerId }` (TV-side removal, `GameRuntime.removePlayer(id)`).
 
 Host → phone: the host drives each phone's UI state (§6.7), e.g. `{ t: "screen", screen, ...data }`, sent per phone or broadcast.
 Every screen also carries `leaderName` (the session leader's name, or null) so non-leader phones can show "Waiting for {leader}…" (§6.5); it is re-sent when leadership changes.
-The `results` and `matchEnd` screens (and the TV's `MatchView`) carry `breakdown?: RoundBreakdown | null` for the round just played: `{ round, players: [{ playerId, name, color, points, total, left, items, out }] }`, players who had an egg only, in standings order; `items` = `{ kind: "ko", victimId, victimName, points }` per knockout credit and `{ kind: "survivor", points }`; `out` = `{ by, byName }` (both null = fell off / no credit) or null if never knocked out. It is null/absent after a host-refresh restore. Exact types: `src/shared/messages.ts`.
+The `results` and `matchEnd` screens (and the TV's `MatchView`) carry `breakdown?: RoundBreakdown | null` for the round just played: `{ round, players: [{ playerId, name, color, points, total, left, items, out }] }`, players who had an egg only, in standings order; `items` = `{ kind: "ko", victimId, victimName, points }` per knockout credit and `{ kind: "survivor", points }`; `out` = `{ by, byName, ghost }` (`by`/`byName` both null = fell off / no credit; `ghost` true = a ghost pulse pushed them out, so `by` null + `ghost` true reads "Knocked out by ghost"; `ghost` is optional in the type, absent = false) or null if never knocked out. Standings entries (and `MatchView.players`) carry `playerId` and `connected` (false = away). It is null/absent after a host-refresh restore. Exact types: `src/shared/messages.ts`.
 _Shape is indicative; exact fields finalized at implementation._
 
 ## 8. Game loop
@@ -340,3 +345,4 @@ _None. Spec complete and ready for implementation._
 | 26  | 2026-10-22 | Physics integration | Standalone `matter-js` in `src/host/sim` (no Phaser imports); Phaser renders only                                                                | Headless Vitest coverage of the sim and a parallel sim/render build. Refines #1 (was Phaser's built-in Matter).                                                                                                                          |
 | 27  | 2026-10-22 | Relay host status   | Relay → phones `{ t: "host", status: "away" \| "back" }`; error codes `room-closed`, `bad-request`; `GET /healthz`                                 | Phones need to show the host-away overlay and learn when the room dies; additive to §7.1.                                                                                                                                                       |
 | 28  | 2026-10-22 | Branding in v1      | Brand kit (`brand.css` tokens mirrored by `theme.ts`, brand fonts, code-drawn eggs in the mark's style); audio stays post-MVP                     | The kit arrived before the build, so the controller and TV are built on-brand instead of restyled later. Supersedes #16.                                                                                                                        |
+| 29  | 2026-10-24 | Leave / removal (C3) | Leave game = full removal (egg off the pan, no points; score/color/spot dropped; same key later = new player); leader phone + host can remove any other player (connected or away); emoji cooldown 0.5 s | Foster at C3: away players held spots and colors with no way to clear them; Leave should mean gone. Disconnects still keep the spot. Supersedes #25 and the 1 s in #22. |

@@ -119,6 +119,8 @@ export function createDebugSim(inner: Sim): DebugSim {
       return events;
     },
     snapshot: () => inner.snapshot(),
+    // Forced / chased / held entries for a removed egg clear themselves on the next step.
+    removeEgg: (id) => inner.removeEgg?.(id),
     destroy: () => inner.destroy(),
     forceOut(id) {
       if (!inner.snapshot().eggs.some((e) => e.id === id)) return false;
@@ -166,6 +168,8 @@ export interface PcgDebugApi {
     knockOut(victim: string, attacker: string): boolean;
     /** Hold or release SLAM for this player's egg. */
     holdSlam(id: string, on: boolean): boolean;
+    /** Remove this player from the room, as the TV's remove control does (M3-fix-2). */
+    remove(id: string): void;
   };
 }
 

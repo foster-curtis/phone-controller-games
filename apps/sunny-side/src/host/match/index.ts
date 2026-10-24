@@ -2,6 +2,8 @@
 export { createMatch } from './flow';
 export { STEP_MS } from './config';
 export type {
+  HostAction,
+  RemovePlayerAction,
   Match,
   MatchDeps,
   MatchEvent,

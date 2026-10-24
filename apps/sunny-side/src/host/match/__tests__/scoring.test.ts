@@ -64,8 +64,8 @@ describe('knockouts and survivor', () => {
     const h = setup();
     h.startGame(['a', 'b']);
     h.sim.queue(
-      { type: 'eliminated', id: 'a', by: 'b', respawnMs: 5000 },
-      { type: 'eliminated', id: 'b', by: 'a', respawnMs: 5000 },
+      { type: 'eliminated', id: 'a', by: 'b', respawnMs: 5000, byGhost: false },
+      { type: 'eliminated', id: 'b', by: 'a', respawnMs: 5000, byGhost: false },
     );
     h.step();
     expect(h.match.view().phase).toBe('results');
@@ -81,19 +81,32 @@ describe('knockouts and survivor', () => {
     expect(h.score('a')).toBe(0);
   });
 
-  it('round ends when no remaining egg belongs to a connected/reconnecting player', () => {
+  it('a Leave takes the egg off the pan; ≤1 egg left ends the round (+3 rule)', () => {
     const h = setup();
     h.startGame(['a', 'b', 'c']);
     h.msg('b', { t: 'leave' });
     expect(h.match.view().phase).toBe('playing');
     h.msg('c', { t: 'leave' });
-    // a's egg is still live with two left obstacles: keep playing
-    expect(h.match.view().phase).toBe('playing');
-    h.eliminate('a', 'b');
+    // only a's egg is left on the pan: round over, a is the sole survivor
     expect(h.match.view().phase).toBe('results');
-    // left players don't get credit; obstacle eggs never get +3
-    expect(h.score('b')).toBe(0);
+    expect(h.match.view().survivorId).toBe('a');
+    expect(h.score('a')).toBe(3);
+  });
+
+  it('round ends when no remaining egg belongs to a connected/reconnecting player', () => {
+    const h = setup();
+    h.startGame(['a', 'b', 'c']);
+    // a and b drop and late-rejoin under new ids: their old eggs are stale obstacles
+    h.match.playerLeft('a');
+    h.join('a2', 'key-a');
+    h.match.playerLeft('b');
+    h.join('b2', 'key-b');
+    expect(h.match.view().phase).toBe('playing');
+    h.eliminate('c', 'a');
+    expect(h.match.view().phase).toBe('results');
+    // stale eggs never get +3; KO credit still goes to the returning owner
     expect(h.match.view().survivorId).toBeNull();
+    expect(h.score('a2')).toBe(1);
   });
 
   it('a disconnected (reconnecting) player keeps the round going and can still win +3', () => {
@@ -166,8 +179,8 @@ describe('match end', () => {
     // Simultaneous double KOs: +1 each per round, so both hit 15 together.
     for (let i = 0; i < 15; i++) {
       h.sim.queue(
-        { type: 'eliminated', id: 'a', by: 'b', respawnMs: 5000 },
-        { type: 'eliminated', id: 'b', by: 'a', respawnMs: 5000 },
+        { type: 'eliminated', id: 'a', by: 'b', respawnMs: 5000, byGhost: false },
+        { type: 'eliminated', id: 'b', by: 'a', respawnMs: 5000, byGhost: false },
       );
       h.step();
       expect(h.match.view().phase).toBe('results');

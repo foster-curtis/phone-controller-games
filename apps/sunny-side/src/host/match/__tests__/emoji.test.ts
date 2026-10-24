@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { EMOJI_COOLDOWN_MS } from '../config';
 import { EmojiLimiter, isEmojiIndex } from '../emoji';
 import { setup } from './fakeSim';
 
@@ -7,7 +8,8 @@ function emojiEvents(h: ReturnType<typeof setup>) {
 }
 
 describe('spectator emoji', () => {
-  it('rate-limited to 1/s per spectator', () => {
+  it('rate-limited to one per 0.5 s per spectator (C3 note)', () => {
+    expect(EMOJI_COOLDOWN_MS).toBe(500);
     const h = setup();
     h.startGame(['a', 'b']);
     h.join('s');
@@ -15,10 +17,10 @@ describe('spectator emoji', () => {
     h.msg('s', { t: 'emoji', i: 0 });
     h.msg('s', { t: 'emoji', i: 1 }); // too soon
     h.msg('t', { t: 'emoji', i: 4 }); // separate cooldown
-    h.runMs(500);
+    h.runMs(250);
     h.msg('s', { t: 'emoji', i: 2 }); // still too soon
-    h.runMs(500);
-    h.msg('s', { t: 'emoji', i: 3 }); // 1 s later: ok
+    h.runMs(250);
+    h.msg('s', { t: 'emoji', i: 3 }); // 0.5 s later: ok
     expect(emojiEvents(h)).toEqual([
       { type: 'emoji', playerId: 's', i: 0 },
       { type: 'emoji', playerId: 't', i: 4 },

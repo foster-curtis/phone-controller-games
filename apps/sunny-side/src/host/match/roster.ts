@@ -84,13 +84,18 @@ export class Roster {
     this.byId.set(newId, p);
   }
 
+  /** Every id (current and former) that resolves to `p`: the sim ids of eggs they may own. */
+  idsOf(p: PlayerRecord): string[] {
+    return [...this.byId].filter(([, rec]) => rec === p).map(([id]) => id);
+  }
+
   remove(p: PlayerRecord): void {
     const i = this.players.indexOf(p);
     if (i >= 0) this.players.splice(i, 1);
     for (const [id, rec] of this.byId) if (rec === p) this.byId.delete(id);
   }
 
-  /** Colors held by players other than `except` (left players keep theirs for the match). */
+  /** Colors held by players other than `except` (disconnected players keep theirs). */
   takenColors(except?: PlayerRecord): PlayerColorId[] {
     const taken = new Set<PlayerColorId>();
     for (const p of this.players) if (p !== except && p.color) taken.add(p.color);

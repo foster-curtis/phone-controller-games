@@ -32,9 +32,9 @@ describe('screens', () => {
     h.step(); // ghost
     h.match.setHostVisible(false); // gamePaused
     h.match.setHostVisible(true);
-    h.msg('b', { t: 'leave' }); // left
-    h.msg('c', { t: 'leave' }); // a alone among live eggs with b's obstacle egg
-    h.eliminate('b', 'a'); // results
+    h.msg('b', { t: 'leave' }); // left; b's egg is removed → a alone on the pan → results
+    expect(h.match.view().phase).toBe('results');
+    h.msg('c', { t: 'leave' });
     for (let r = 0; r < 3 && h.match.view().phase !== 'matchEnd'; r++) {
       h.match.hostAction('next');
       h.runMs(3000);

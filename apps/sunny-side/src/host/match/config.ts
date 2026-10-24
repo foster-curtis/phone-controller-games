@@ -9,8 +9,8 @@ export const MIN_PLAYERS = 2;
 /** Round-start countdown; eggs are frozen throughout (Build decisions). */
 export const COUNTDOWN_MS = 3000;
 
-/** Spectator emoji cooldown per phone (SPEC §6.6). */
-export const EMOJI_COOLDOWN_MS = 1000;
+/** Spectator emoji cooldown per phone (SPEC §6.6; 1 s → 0.5 s at C3). */
+export const EMOJI_COOLDOWN_MS = 500;
 
 /** Max name length after trimming (SPEC §6.3). */
 export const NAME_MAX = 10;

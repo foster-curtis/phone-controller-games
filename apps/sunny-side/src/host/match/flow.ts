@@ -1,11 +1,6 @@
 // Match state machine (SPEC §6.3, §6.5, §6.7): lobby → countdown → playing → results/matchEnd.
 // Clock-free: `tick(dtMs)` is the only source of time.
-import {
-  isInput,
-  isPlayerColorId,
-  type LeaderAction,
-  type RoundBreakdown,
-} from '../../shared/messages';
+import { isInput, isPlayerColorId, type RoundBreakdown } from '../../shared/messages';
 import { RoundTally } from './breakdown';
 import type { SimEvent } from '../sim/types';
 import {
@@ -23,6 +18,7 @@ import { Roster, sanitizeName, standings, type PlayerRecord } from './roster';
 import { findWinner, knockoutCredit, roundOutcome, targetScoreFor } from './scoring';
 import { screenFor, type ScreenContext } from './screens';
 import type {
+  HostAction,
   Match,
   MatchDeps,
   MatchEvent,
@@ -223,8 +219,13 @@ export function createMatch(deps: MatchDeps): Match {
     }
   }
 
-  function doAction(action: LeaderAction): void {
+  function doAction(action: HostAction): void {
     if (paused) return;
+    if (typeof action === 'object') {
+      const target = roster.current(action.playerId);
+      if (action.kind === 'remove' && target) removePlayer(target, false);
+      return;
+    }
     switch (action) {
       case 'start':
         if (phase === 'lobby' && canStart()) beginMatch();
@@ -259,19 +260,32 @@ export function createMatch(deps: MatchDeps): Match {
     sync();
   }
 
-  function handleLeave(p: PlayerRecord): void {
-    p.selfPaused = false;
-    if (phase === 'lobby') {
-      // No match yet: drop them entirely (frees the color).
+  /**
+   * Leave game / host or leader removal (C3 notes): drop the player entirely in any phase. Their
+   * score, color and spot are not kept; their egg (and ghost) leave the pan with no points to
+   * anyone; a later join with the same key is a brand-new player. `leftScreen`: they chose to
+   * leave (their phone shows `left`); a removed phone learns it from the relay kick instead.
+   */
+  function removePlayer(p: PlayerRecord, leftScreen: boolean): void {
+    if (leftScreen && p.connected) {
       const screen = screenFor(screenContext(), { ...p, left: true });
       deps.send({ t: 'screen', screen }, p.id);
-      roster.remove(p);
-    } else {
-      freezeControl(p);
-      p.left = true;
-      p.connected = false;
-      deps.send({ t: 'screen', screen: screenFor(screenContext(), p) }, p.id);
     }
+    if (inRound()) {
+      // Every sim id they own: their egg / ghost, plus a stale egg from before a late rejoin.
+      for (const id of roster.idsOf(p)) {
+        eggs.delete(id);
+        sim.setInput(id, null);
+        sim.removeEgg?.(id);
+      }
+    }
+    tally.remove(p);
+    if (breakdown) {
+      breakdown = { ...breakdown, players: breakdown.players.filter((e) => e.playerId !== p.id) };
+    }
+    if (survivorId === p.id) survivorId = null;
+    if (winnerId === p.id) winnerId = null;
+    roster.remove(p);
     lastSent.delete(p.id);
     deps.kick(p.id);
     emit({ type: 'roster' });
@@ -309,14 +323,21 @@ export function createMatch(deps: MatchDeps): Match {
         emit({ type: 'emoji', playerId: p.id, i: msg.i });
         return;
       case 'leader': {
-        const a = msg.action;
-        if (a !== 'start' && a !== 'next' && a !== 'rematch' && a !== 'lobby') return;
         if (p.id !== leaderId) return;
+        const a = msg.action;
+        if (a === 'remove') {
+          // The leader can't remove themselves (they can Leave instead).
+          if (typeof msg.playerId === 'string' && msg.playerId !== p.id) {
+            doAction({ kind: 'remove', playerId: msg.playerId });
+          }
+          return;
+        }
+        if (a !== 'start' && a !== 'next' && a !== 'rematch' && a !== 'lobby') return;
         doAction(a);
         return;
       }
       case 'leave':
-        handleLeave(p);
+        removePlayer(p, true);
         return;
     }
   }
@@ -459,7 +480,7 @@ export function createMatch(deps: MatchDeps): Match {
           }
           const killer = knockoutCredit(roster, e.id, e.by);
           if (killer) addScore(killer, KNOCKOUT_POINTS, 'knockout');
-          tally.knockout(roster.get(e.id), killer);
+          tally.knockout(roster.get(e.id), killer, e.byGhost ?? false);
         } else if (e.type === 'ghostSpawned') {
           const owner = roster.current(e.id);
           if (owner && owner.eliminated) {

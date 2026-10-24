@@ -12,6 +12,8 @@ export class FakeSim implements Sim {
   frozen = new Map<string, boolean>();
   inputs = new Map<string, InputTuple | null>();
   frozenCalls: [string, boolean][] = [];
+  /** Ids passed to `removeEgg` (Leave / removal), in order. */
+  removedEggs: string[] = [];
   inputCalls: [string, InputTuple | null][] = [];
   steps = 0;
   private pending: SimEvent[] = [];
@@ -28,6 +30,11 @@ export class FakeSim implements Sim {
   setInput(id: string, input: InputTuple | null): void {
     this.inputCalls.push([id, input]);
     this.inputs.set(id, input);
+  }
+  /** Takes the egg (and any ghost) off the pan: no event, no credit (M4-fix-2 API). */
+  removeEgg(id: string): void {
+    this.removedEggs.push(id);
+    this.frozen.delete(id);
   }
   /** Events returned by the next `step()`. */
   queue(...events: SimEvent[]): void {
@@ -129,9 +136,9 @@ export function setup(storage: StorageLike = new MemStorage()) {
       match.hostAction('start');
       h.runMs(3000);
     },
-    /** Queue an elimination and run one step. */
-    eliminate(id: string, by: string | null = null, respawnMs = 5000) {
-      sim.queue({ type: 'eliminated', id, by, respawnMs });
+    /** Queue an elimination and run one step (`byGhost`: a ghost pulse pushed it out). */
+    eliminate(id: string, by: string | null = null, respawnMs = 5000, byGhost = false) {
+      sim.queue({ type: 'eliminated', id, by, respawnMs, byGhost });
       h.step();
     },
     score(id: string): number {

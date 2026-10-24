@@ -99,7 +99,9 @@ describe('after the round', () => {
     const h = setup();
     h.startGame(['a', 'b']);
     h.eliminate('b', 'a');
-    h.match.handleSimEvents([{ type: 'eliminated', id: 'a', by: 'b', respawnMs: 5000 }]);
+    h.match.handleSimEvents([
+      { type: 'eliminated', id: 'a', by: 'b', respawnMs: 5000, byGhost: false },
+    ]);
     expect(h.score('b')).toBe(0);
   });
 

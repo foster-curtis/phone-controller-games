@@ -66,6 +66,12 @@ export type ControllerMsg =
   | { t: 'resume' }
   | { t: 'emoji'; i: EmojiIndex }
   | { t: 'leader'; action: LeaderAction }
+  /**
+   * Leader only (C3 note, M3-fix-2): remove `playerId` from the room (connected or away, any phase).
+   * Same effect as that player tapping Leave game, plus a relay kick. Self-remove is ignored.
+   */
+  | { t: 'leader'; action: 'remove'; playerId: string }
+  /** Leave game: full removal (score, color and spot are not kept; SPEC §6.7). */
   | { t: 'leave' };
 
 // ---- host → phone ----
@@ -122,8 +128,11 @@ export interface RoundBreakdownEntry {
   /**
    * How they went out: `by`/`byName` = who got the knockout credit, both null = fell off with no
    * credit. `null` = never knocked out this round (survived, or their egg was still on the pan).
+   * `ghost` (M3-fix-2, always set by the match; absent = false): a ghost pulse pushed them out (the
+   * sim's `byGhost`). `by` null + `ghost` true → "Knocked out by ghost" (no name); with a `by`, the
+   * living attacker kept the credit and is named as usual.
    */
-  out: { by: string | null; byName: string | null } | null;
+  out: { by: string | null; byName: string | null; ghost?: boolean } | null;
 }
 
 /** Points breakdown of the round just played (results / match-end, SPEC §6.6, §6.7). */

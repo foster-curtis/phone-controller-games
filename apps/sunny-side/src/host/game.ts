@@ -51,6 +51,11 @@ export interface GameRuntime {
   /** Bumps on every match event / room / status change (scenes re-render when it moves). */
   readonly version: number;
   setHostVisible(visible: boolean): void;
+  /**
+   * TV-side removal (M3-fix-2): drop this player from the room (score/color/spot freed, egg removed,
+   * relay slot kicked). Works on connected and away players, in any phase.
+   */
+  removePlayer(playerId: string): void;
   destroy(): void;
 }
 
@@ -141,6 +146,9 @@ export function createGameRuntime(opts: GameRuntimeOptions = {}): GameRuntime {
     setHostVisible(visible) {
       if (visible) loop.reset();
       match.setHostVisible(visible);
+    },
+    removePlayer(playerId) {
+      match.hostAction({ kind: 'remove', playerId });
     },
     destroy() {
       for (const off of offs) off();
