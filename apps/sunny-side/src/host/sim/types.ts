@@ -69,8 +69,20 @@ export interface SimSnapshot {
 }
 
 export type SimEvent =
-  /** An egg's center crossed the rim. `by` = last toucher within the credit window, else null. */
-  | { type: 'eliminated'; id: SimPlayerId; by: SimPlayerId | null; respawnMs: number }
+  /**
+   * An egg's center crossed the rim. `by` = last toucher within the credit window, else null.
+   * `byGhost` (M4-fix-2) = no egg credit (`by` null) and a ghost pulse pushed this egg within the
+   * same 3 s credit window ("Knocked out by ghost"); egg credit always wins, so it is false whenever
+   * `by` is set. Scoring ignores it. Optional only so hand-built events still type-check; the sim
+   * always sets it.
+   */
+  | {
+      type: 'eliminated';
+      id: SimPlayerId;
+      by: SimPlayerId | null;
+      byGhost?: boolean;
+      respawnMs: number;
+    }
   | { type: 'ghostSpawned'; id: SimPlayerId }
   | { type: 'dash'; id: SimPlayerId }
   /** SLAM released; `charge` 0..1, `max` = fully charged (flash). */
@@ -85,8 +97,20 @@ export interface Sim {
   startRound(eggs: readonly EggSpawn[]): void;
   /** Freeze or unfreeze one egg; freezing stops it dead. No-op for unknown ids. */
   setFrozen(id: SimPlayerId, frozen: boolean): void;
-  /** Latest input record for an egg or ghost; `null` zeroes it. Read at the start of each step. */
+  /**
+   * Latest input record for an egg or ghost; `null` zeroes it. Read at the start of each step.
+   * `startRound` forgets every record: the first sample of a round only baselines the press
+   * counters (presses made while the host wasn't forwarding input never fire).
+   */
   setInput(id: SimPlayerId, input: InputTuple | null): void;
+  /**
+   * M4-fix-2: remove this player's egg and ghost from the world at once (Leave / host removal): no
+   * `eliminated` event, no credit, no ghost spawn (a pending one is cancelled), gone from the next
+   * snapshot, input record dropped. Idempotent; no-op for unknown ids; a call during `step()` takes
+   * effect at the end of that step. Optional only so existing wrappers/fakes still type-check; the
+   * real sim (`createSim`) always implements it.
+   */
+  removeEgg?(id: SimPlayerId): void;
   /** Advance one fixed 1/60 s step; returns the events that step produced. */
   step(): SimEvent[];
   /** A fresh copy of the current state (safe to keep as `prev` for interpolation). */

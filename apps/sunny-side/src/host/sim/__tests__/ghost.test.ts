@@ -17,7 +17,9 @@ describe('ghosts', () => {
     expect(GHOST_SPAWN_STEPS).toBe(300);
     const { sim } = setup(['a', 'b', 'g'], place);
     const out = ofType(pushOut(sim, 'g'), 'eliminated');
-    expect(out).toEqual([{ type: 'eliminated', id: 'g', by: null, respawnMs: 5000 }]);
+    expect(out).toEqual([
+      { type: 'eliminated', id: 'g', by: null, byGhost: false, respawnMs: 5000 },
+    ]);
     const tOut = sim.snapshot().tick;
     let spawnedAt = -1;
     for (let i = 0; i < 400 && spawnedAt < 0; i++) {

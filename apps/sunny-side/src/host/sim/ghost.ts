@@ -43,9 +43,13 @@ export class Ghost {
     if (pressed && this.windStart < 0 && tick >= this.readyAt) this.windStart = tick;
   }
 
-  /** §8 step 2: finish a wind-up → push every egg in range away from the ghost. */
-  updateTimers(tick: number, eggs: Iterable<Egg>, events: SimEvent[]): void {
-    if (this.windStart < 0 || tick < this.windStart + PULSE_WINDUP_STEPS) return;
+  /**
+   * §8 step 2: finish a wind-up → push every egg in range away from the ghost. Returns the ids of
+   * the eggs it pushed (for `byGhost` labelling only).
+   */
+  updateTimers(tick: number, eggs: Iterable<Egg>, events: SimEvent[]): SimPlayerId[] {
+    const pushed: SimPlayerId[] = [];
+    if (this.windStart < 0 || tick < this.windStart + PULSE_WINDUP_STEPS) return pushed;
     this.windStart = -1;
     this.readyAt = tick + PULSE_COOLDOWN_STEPS;
     const { x: gx, y: gy } = this.body.position;
@@ -59,8 +63,10 @@ export class Ghost {
       // Pure impulse: never touches last-touch (SPEC §6.2).
       egg.dv.x += nx * G.pulseDv;
       egg.dv.y += ny * G.pulseDv;
+      pushed.push(egg.id);
     }
     events.push({ type: 'pulse', id: this.id });
+    return pushed;
   }
 
   clearForces(): void {

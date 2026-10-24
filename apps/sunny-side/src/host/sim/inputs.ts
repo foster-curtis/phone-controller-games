@@ -48,6 +48,20 @@ export class InputTable {
     else this.records.set(id, { latest, seenDash: null, seenSlam: null });
   }
 
+  /** Forget one player's record (removal); a later sample starts a fresh baseline. */
+  delete(id: SimPlayerId): void {
+    this.records.delete(id);
+  }
+
+  /**
+   * Forget every record (round start): no stick and no counter baseline carries over, so the first
+   * sample of a round only baselines. The phone keeps counting presses while the host drops its
+   * samples (countdown, results), so an old baseline would turn those into a phantom press.
+   */
+  clear(): void {
+    this.records.clear();
+  }
+
   /** Read every record once (call exactly once per step) and advance the counter baselines. */
   consume(): Map<SimPlayerId, StepInput> {
     const out = new Map<SimPlayerId, StepInput>();

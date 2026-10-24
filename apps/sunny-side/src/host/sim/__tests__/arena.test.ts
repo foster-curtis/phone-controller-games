@@ -70,7 +70,9 @@ describe('arena', () => {
     expect(egg(sim, 'a').x).toBeCloseTo(r - 1);
     sim.place('a', r + 0.5, 0);
     const out = ofType(sim.step(), 'eliminated');
-    expect(out).toEqual([{ type: 'eliminated', id: 'a', by: null, respawnMs: 5000 }]);
+    expect(out).toEqual([
+      { type: 'eliminated', id: 'a', by: null, byGhost: false, respawnMs: 5000 },
+    ]);
     expect(maybeEgg(sim, 'a')).toBeUndefined();
   });
 

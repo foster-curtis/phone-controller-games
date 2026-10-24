@@ -118,6 +118,9 @@ _All numbers are starting values for tuning._
   - Release: large impulse scaled by charge time + brief mass boost (~0.3 s) so the slammer wins the collision.
   - The sim snapshot carries `slamCharge` (0..1) and `slamMax` (still holding at full charge → the max-charge flash).
 - **Ring-out:** eliminated when the body's **center** crosses the arena edge.
+  - **Ghost knockout:** the sim's `eliminated` event carries `byGhost`: true when no egg gets the credit and a ghost pulse pushed the egg within the same ~3 s credit window (TV text "Knocked out by ghost" instead of "Fell off"). Egg credit always wins. Scoring and last-touch rules are unchanged.
+- **Removal:** `Sim.removeEgg(id)` takes a player's egg (and ghost) out of the world at once when they Leave or are removed: no `eliminated` event, no credit, no ghost (a pending ghost spawn is cancelled).
+- **Round start:** no input state carries over between rounds; the first input sample of a round only sets the press-counter baseline, so presses made during the countdown never fire.
 - **Shrink:** full size for ~10 s → edge pulses as a warning → linear shrink over ~45 s to a minimum radius, then holds until the round ends.
 
 ### 6.5 Session leader

@@ -51,6 +51,9 @@ export class SimWorld implements Sim {
   /** Matter body id → egg owner (ghost bodies are absent, so sensor overlaps are ignored). */
   private readonly eggByBody = new Map<number, SimPlayerId>();
   private contacts: Contact[] = [];
+  /** True inside `step()`; removals requested then wait for the end of the step. */
+  private stepping = false;
+  private readonly pendingRemovals: SimPlayerId[] = [];
 
   constructor(opts: SimOptions = {}) {
     this.rng = createRng(opts.seed ?? 1);
@@ -90,7 +93,10 @@ export class SimWorld implements Sim {
     this.pendingGhosts.clear();
     this.eggByBody.clear();
     this.lastTouch.clear();
+    // No stick or press-counter baseline survives into a new round (C3 phantom flinch).
+    this.inputs.clear();
     this.contacts = [];
+    this.pendingRemovals.length = 0;
     this.startRadius = startRadiusFor(spawns.length);
     this.radius = this.startRadius;
     this.shrinking = false;
@@ -113,7 +119,40 @@ export class SimWorld implements Sim {
     this.inputs.set(id, input);
   }
 
+  removeEgg(id: SimPlayerId): void {
+    if (this.stepping) this.pendingRemovals.push(id);
+    else this.removeNow(id);
+  }
+
+  /** Egg and/or ghost leave the world silently; a scheduled ghost spawn is cancelled. */
+  private removeNow(id: SimPlayerId): void {
+    const egg = this.eggs.get(id);
+    if (egg) {
+      Composite.remove(this.engine.world, egg.body);
+      this.eggs.delete(id);
+      this.eggByBody.delete(egg.body.id);
+    }
+    const ghost = this.ghosts.get(id);
+    if (ghost) {
+      Composite.remove(this.engine.world, ghost.body);
+      this.ghosts.delete(id);
+    }
+    this.pendingGhosts.delete(id);
+    this.lastTouch.forget(id);
+    this.inputs.delete(id);
+  }
+
   step(): SimEvent[] {
+    this.stepping = true;
+    try {
+      return this.runStep();
+    } finally {
+      this.stepping = false;
+      for (const id of this.pendingRemovals.splice(0)) this.removeNow(id);
+    }
+  }
+
+  private runStep(): SimEvent[] {
     const events: SimEvent[] = [];
     const tick = ++this.tick;
 
@@ -128,7 +167,11 @@ export class SimWorld implements Sim {
 
     // 2. Timers: slam charge, mass boosts, ghost wind-ups (→ pulses), ghost spawns.
     for (const egg of this.eggs.values()) egg.updateTimers(tick);
-    for (const ghost of this.ghosts.values()) ghost.updateTimers(tick, this.eggs.values(), events);
+    for (const ghost of this.ghosts.values()) {
+      for (const id of ghost.updateTimers(tick, this.eggs.values(), events)) {
+        this.lastTouch.pulsed(id, tick);
+      }
+    }
     for (const [id, at] of this.pendingGhosts) {
       if (tick < at) continue;
       this.pendingGhosts.delete(id);
@@ -159,6 +202,7 @@ export class SimWorld implements Sim {
         type: 'eliminated',
         id: egg.id,
         by: this.lastTouch.creditFor(egg.id, tick),
+        byGhost: this.lastTouch.byGhost(egg.id, tick),
         respawnMs: SIM_CONFIG.ghost.spawnDelayMs,
       });
     }
@@ -218,6 +262,8 @@ export class SimWorld implements Sim {
     this.ghosts.clear();
     this.pendingGhosts.clear();
     this.eggByBody.clear();
+    this.inputs.clear();
+    this.pendingRemovals.length = 0;
   }
 
   // ---- test/debug helpers (not part of the Sim contract) ----
