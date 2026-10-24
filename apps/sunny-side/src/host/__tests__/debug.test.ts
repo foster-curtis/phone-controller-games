@@ -53,3 +53,15 @@ describe('createDebugSim.forceOut', () => {
     expect(sim.forceOut('nobody')).toBe(false);
   });
 });
+
+describe('createDebugSim.removeEgg', () => {
+  it('forwards to the real sim (Leave / removal works in debug builds)', () => {
+    const sim = createDebugSim(createSim({ seed: 1 }));
+    sim.startRound([
+      { id: 'p1', frozen: false },
+      { id: 'p2', frozen: false },
+    ]);
+    sim.removeEgg?.('p2');
+    expect(sim.snapshot().eggs.map((e) => e.id)).toEqual(['p1']);
+  });
+});

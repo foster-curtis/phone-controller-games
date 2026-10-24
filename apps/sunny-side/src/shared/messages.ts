@@ -129,8 +129,8 @@ export interface RoundBreakdownEntry {
    * How they went out: `by`/`byName` = who got the knockout credit, both null = fell off with no
    * credit. `null` = never knocked out this round (survived, or their egg was still on the pan).
    * `ghost` (M3-fix-2, always set by the match; absent = false): a ghost pulse pushed them out (the
-   * sim's `byGhost`). `by` null + `ghost` true → "Knocked out by ghost" (no name); with a `by`, the
-   * living attacker kept the credit and is named as usual.
+   * sim's `byGhost`, which is only true when no egg has the credit). `by` null + `ghost` true →
+   * "Knocked out by ghost" (no name).
    */
   out: { by: string | null; byName: string | null; ghost?: boolean } | null;
 }

@@ -117,12 +117,12 @@ describe('round breakdown (C2 note)', () => {
     const h = setup();
     h.startGame(['a', 'b', 'c', 'd']);
     h.eliminate('d', null, 5000, true); // a ghost pulse, no living credit
-    h.eliminate('c', 'a', 5000, true); // a ghost finished a's push: a keeps the credit
+    h.eliminate('c', 'a'); // egg credit always wins (the sim sends byGhost false)
     h.eliminate('b', null); // fell off
     const bd = h.match.view().breakdown!;
     const out = (id: string) => bd.players.find((p) => p.playerId === id)?.out;
     expect(out('d')).toEqual({ by: null, byName: null, ghost: true });
-    expect(out('c')).toEqual({ by: 'a', byName: 'Egg 1', ghost: true });
+    expect(out('c')).toEqual({ by: 'a', byName: 'Egg 1', ghost: false });
     expect(out('b')).toEqual({ by: null, byName: null, ghost: false });
     expect(out('a')).toBeNull();
     expect(h.score('a')).toBe(1 + 3);
