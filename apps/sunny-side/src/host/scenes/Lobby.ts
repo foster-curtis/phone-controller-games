@@ -5,6 +5,7 @@ import { create as createQr } from 'qrcode';
 import { theme } from '../../shared/theme';
 import { joinUrl } from '../lan';
 import { lobbyLayout, type Rect } from '../render/layout';
+import { addRemoveButton } from '../render/remove';
 import { drawPanel, drawPill, drawSticker } from '../render/sticker';
 import {
   SAFE,
@@ -15,6 +16,8 @@ import {
   canStart,
   createRefresher,
   hostContext,
+  installRemoveClicks,
+  sceneRemoveControls,
   sortedStandings,
   type HostButton,
 } from './ui';
@@ -47,6 +50,10 @@ export class LobbyScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(theme.color.background.hex);
     this.refresh = createRefresher();
     this.dynamic = [];
+    ctx.removeButtons = [];
+    installRemoveClicks(this, () => {
+      this.refresh = createRefresher();
+    });
     this.qrObjects = [];
     this.qrFor = null;
 
@@ -102,6 +109,10 @@ export class LobbyScene extends Phaser.Scene {
     const view = runtime.view();
     const players = sortedStandings(view.players).sort((a, b) => a.joinIndex - b.joinIndex);
     const L = lobbyLayout(players.length);
+    ctx.removeButtons = [];
+    const removeCtl = sceneRemoveControls(this, () => {
+      this.refresh = createRefresher();
+    });
     const code = runtime.code;
 
     if (code) {
@@ -189,6 +200,7 @@ export class LobbyScene extends Phaser.Scene {
             ).setOrigin(0.5),
           );
         }
+        this.dynamic.push(...addRemoveButton(this, L.removes[i]!, p.id, removeCtl));
       });
     }
     this.dynamic.push(

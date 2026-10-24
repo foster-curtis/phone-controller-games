@@ -12,6 +12,7 @@ import { theme } from '../../shared/theme';
 import type { PlayerView } from '../match';
 import { addText } from '../scenes/ui';
 import { BD_POINTS_SIZE, BD_TEXT_FALLBACK, breakdownLayout, type Rect } from './layout';
+import { addRemoveButton, type RemoveControls } from './remove';
 import { drawPanel, drawPill, drawSticker } from './sticker';
 
 export function pointsLabel(points: number): string {
@@ -28,7 +29,9 @@ export function outLabel(entry: RoundBreakdownEntry): string {
   if (entry.out === null) {
     return entry.items.some((i) => i.kind === 'survivor') ? 'survived' : 'still on the pan';
   }
-  return entry.out.byName ? `knocked out by ${entry.out.byName}` : 'fell off';
+  if (entry.out.byName) return `knocked out by ${entry.out.byName}`;
+  // M3-fix-2: a ghost pulse with no egg credit is named only as "ghost".
+  return entry.out.ghost ? 'knocked out by ghost' : 'fell off';
 }
 
 export interface BreakdownRowModel {
@@ -40,9 +43,15 @@ export interface BreakdownRowModel {
   out: string;
   total: string;
   left: boolean;
+  /** In the room but disconnected ("away"): dimmed and labelled so the TV can remove them. */
+  away: boolean;
 }
 
-export function breakdownRowModels(b: RoundBreakdown): BreakdownRowModel[] {
+export function breakdownRowModels(
+  b: RoundBreakdown,
+  players: readonly PlayerView[] = [],
+): BreakdownRowModel[] {
+  const away = new Set(players.filter((p) => !p.connected && !p.left).map((p) => p.id));
   return b.players.map((e) => ({
     playerId: e.playerId,
     name: e.name,
@@ -52,6 +61,7 @@ export function breakdownRowModels(b: RoundBreakdown): BreakdownRowModel[] {
     out: outLabel(e),
     total: String(e.total),
     left: e.left,
+    away: away.has(e.playerId),
   }));
 }
 
@@ -69,6 +79,7 @@ function standingsModels(players: readonly PlayerView[]): BreakdownRowModel[] {
       out: '',
       total: String(p.score),
       left: p.left,
+      away: !p.connected && !p.left,
     }));
 }
 
@@ -94,9 +105,10 @@ export function drawBreakdown(
   area: Rect,
   breakdown: RoundBreakdown | null | undefined,
   players: readonly PlayerView[],
+  remove?: RemoveControls,
 ): Phaser.GameObjects.GameObject[] {
   const hasData = !!breakdown && breakdown.players.length > 0;
-  const models = hasData ? breakdownRowModels(breakdown) : standingsModels(players);
+  const models = hasData ? breakdownRowModels(breakdown, players) : standingsModels(players);
   if (models.length === 0) return [];
   const layout = breakdownLayout(models.length, area, !hasData);
   const g = scene.add.graphics();
@@ -106,8 +118,9 @@ export function drawBreakdown(
   models.forEach((m, i) => {
     const cells = layout.rows[i]!;
     const token = theme.players[m.color];
-    const fill = m.left ? theme.color.presenceOff.num : token.fill.num;
-    const alpha = m.left ? 0.5 : 1;
+    const dim = m.left || m.away;
+    const fill = dim ? theme.color.presenceOff.num : token.fill.num;
+    const alpha = dim ? 0.5 : 1;
     const row = cells.row;
     drawSticker(g, row, theme.color.surfaceStrong.num, {
       shadow: 'stickerSm',
@@ -116,18 +129,19 @@ export function drawBreakdown(
     });
     const pillRect: Rect = { x: row.x + 6, y: row.y + 6, w: cells.pill.w - 6, h: row.h - 12 };
     drawPill(g, pillRect, fill, { shadow: 'none', alpha });
-    made.push(
-      centered(
-        scene,
-        pillRect,
-        m.left ? `${m.name} (left)` : m.name,
-        'tag',
-        m.left ? theme.color.foreground : token.on,
-        'center',
-      ).setAlpha(alpha),
-    );
+    const nameText = centered(
+      scene,
+      pillRect,
+      m.left ? `${m.name} (left)` : m.away ? `${m.name} (away)` : m.name,
+      'tag',
+      dim ? theme.color.foreground : token.on,
+      'center',
+    ).setAlpha(alpha);
+    if (nameText.width > pillRect.w - 16) nameText.setScale((pillRect.w - 16) / nameText.width);
+    made.push(nameText);
     const totalColor = theme.color.foreground;
     made.push(centered(scene, cells.total, m.total, 'score', totalColor, 'center').setAlpha(alpha));
+    if (remove) made.push(...addRemoveButton(scene, cells.remove, m.playerId, remove));
     if (layout.compact) return;
 
     made.push(

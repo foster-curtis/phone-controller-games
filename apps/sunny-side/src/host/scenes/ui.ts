@@ -5,7 +5,8 @@ import type { PlayerColorId } from '../../shared/messages';
 import { theme, type ColorToken, type TypeStyleName } from '../../shared/theme';
 import type { GameRuntime } from '../game';
 import type { MatchPhase, MatchView, PlayerView } from '../match';
-import { HEIGHT, SAFE, WIDTH } from '../render/layout';
+import { HEIGHT, SAFE, WIDTH, type Rect } from '../render/layout';
+import { pressRemove, type RemoveArm, type RemoveControls } from '../render/remove';
 import { drawSticker } from '../render/sticker';
 
 export { HEIGHT, SAFE, WIDTH };
@@ -39,6 +40,30 @@ export interface HostContext {
   lanUrl: string | null;
   /** The QR the lobby drew (for `__pcg.qr()`). */
   qr: { url: string; size: number; modules: number[] } | null;
+  /** Remove-control arm state (survives scene redraws). */
+  removeArm: RemoveArm;
+  /** Remove controls currently on screen, in canvas coordinates (for `__pcg.removeButtons()`). */
+  removeButtons: { playerId: string; rect: Rect; hit: Rect }[];
+}
+
+/** Routes pointer presses to the remove controls; call once from a scene's `create()`. */
+export function installRemoveClicks(scene: Phaser.Scene, redraw: () => void): void {
+  const ctl = sceneRemoveControls(scene, redraw);
+  scene.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+    pressRemove(ctl, hostContext(scene).removeButtons, p.x, p.y);
+  });
+}
+
+/** Controls for one scene: `redraw` makes the scene re-render on its next update. */
+export function sceneRemoveControls(scene: Phaser.Scene, redraw: () => void): RemoveControls {
+  const ctx = hostContext(scene);
+  return {
+    arm: ctx.removeArm,
+    remove: (id) => ctx.runtime.removePlayer(id),
+    changed: redraw,
+    report: (playerId, rect, hit) => ctx.removeButtons.push({ playerId, rect, hit }),
+    now: () => performance.now(),
+  };
 }
 
 const CONTEXT_KEY = 'pcg';

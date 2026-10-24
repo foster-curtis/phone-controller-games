@@ -18,6 +18,7 @@ import {
   screenLayout,
   type Rect,
 } from '../layout';
+import { ARM_MS, RemoveArm, pressRemove } from '../remove';
 import { MaxFlashTracker, slamRingFill } from '../slamRing';
 
 describe('emoji layer', () => {
@@ -245,6 +246,99 @@ describe('breakdown text size on the TV', () => {
       expect(r.row.h).toBeGreaterThanOrEqual(BD_TEXT_SIZE * BD_TEXT_LINES + 8);
       expect(r.row.h).toBeGreaterThanOrEqual(BD_POINTS_SIZE + 8);
       expect(r.items.w).toBeGreaterThan(600);
+    }
+  });
+});
+
+describe('ghost knockout label', () => {
+  const entry = (out: RoundBreakdown['players'][number]['out']) => ({
+    playerId: 'a',
+    name: 'Ann',
+    color: 'crimson' as const,
+    points: 0,
+    total: 0,
+    left: false,
+    items: [],
+    out,
+  });
+  it('says "knocked out by ghost" (no name) for an uncredited ghost KO, else "fell off"', () => {
+    expect(outLabel(entry({ by: null, byName: null, ghost: true }))).toBe('knocked out by ghost');
+    expect(outLabel(entry({ by: null, byName: null, ghost: false }))).toBe('fell off');
+    expect(outLabel(entry({ by: null, byName: null }))).toBe('fell off');
+    expect(outLabel(entry({ by: 'b', byName: 'Bo', ghost: true }))).toBe('knocked out by Bo');
+  });
+});
+
+describe('remove arm', () => {
+  it('first click arms, a second click inside the window confirms', () => {
+    const a = new RemoveArm();
+    expect(a.press('p1', 1000)).toBe(false);
+    expect(a.isArmed('p1', 1000 + ARM_MS - 1)).toBe(true);
+    expect(a.press('p1', 1000 + ARM_MS - 1)).toBe(true);
+    expect(a.isArmed('p1', 1000 + ARM_MS - 1)).toBe(false);
+  });
+  it('disarms after the window or when another row is pressed', () => {
+    const a = new RemoveArm();
+    a.press('p1', 0);
+    expect(a.isArmed('p1', ARM_MS)).toBe(false);
+    expect(a.press('p1', ARM_MS)).toBe(false);
+    a.press('p2', ARM_MS + 1);
+    expect(a.isArmed('p1', ARM_MS + 2)).toBe(false);
+  });
+});
+
+describe('pressRemove', () => {
+  it('arms on the first press, removes on the second, ignores presses elsewhere', () => {
+    const removed: string[] = [];
+    let redraws = 0;
+    let now = 0;
+    const ctl = {
+      arm: new RemoveArm(),
+      remove: (id: string) => void removed.push(id),
+      changed: () => void redraws++,
+      now: () => now,
+    };
+    const buttons = [{ playerId: 'p1', hit: { x: 100, y: 100, w: 48, h: 48 } }];
+    expect(pressRemove(ctl, buttons, 10, 10)).toBe(false);
+    expect(pressRemove(ctl, buttons, 120, 120)).toBe(true);
+    expect(removed).toEqual([]);
+    now = 500;
+    expect(pressRemove(ctl, buttons, 120, 120)).toBe(true);
+    expect(removed).toEqual(['p1']);
+    expect(redraws).toBe(2);
+  });
+});
+
+describe('remove controls layout', () => {
+  const inside = (r: Rect, o: Rect) =>
+    r.x >= o.x && r.y >= o.y && r.x + r.w <= o.x + o.w && r.y + r.h <= o.y + o.h;
+
+  it.each([2, 8])('lobby remove rects for %i players are safe and do not overlap', (n) => {
+    const l = lobbyLayout(n);
+    for (let i = 0; i < n; i++) {
+      const r = l.removes[i]!;
+      expect(insideSafe(r.idle) && insideSafe(r.armed)).toBe(true);
+      expect(inside(r.armed, l.rows[i]!)).toBe(true);
+      for (let j = i + 1; j < n; j++) {
+        expect(overlaps(r.idle, l.removes[j]!.idle)).toBe(false);
+        expect(overlaps(r.armed, l.removes[j]!.armed)).toBe(false);
+      }
+    }
+  });
+
+  it.each([2, 8])('breakdown remove rects for %i players are safe and clear of the cells', (n) => {
+    for (const compact of [false, true]) {
+      const l = breakdownLayout(n, screenLayout().content, compact);
+      l.rows.forEach((row, i) => {
+        expect(insideSafe(row.remove.idle) && insideSafe(row.remove.armed)).toBe(true);
+        expect(inside(row.remove.armed, row.row)).toBe(true);
+        const cells = compact
+          ? [row.pill, row.total]
+          : [row.pill, row.points, row.items, row.out, row.total];
+        for (const c of cells) expect(overlaps(row.remove.idle, c)).toBe(false);
+        for (let j = i + 1; j < l.rows.length; j++)
+          expect(overlaps(row.remove.armed, l.rows[j]!.remove.armed)).toBe(false);
+      });
     }
   });
 });

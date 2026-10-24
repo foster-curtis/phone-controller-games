@@ -14,8 +14,10 @@ import {
   canStart,
   createRefresher,
   hostContext,
+  installRemoveClicks,
   playerColor,
   playerOn,
+  sceneRemoveControls,
   type HostButton,
 } from './ui';
 
@@ -34,6 +36,10 @@ export class WinnerScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(theme.color.background.hex);
     this.refresh = createRefresher();
     this.dynamic = [];
+    hostContext(this).removeButtons = [];
+    installRemoveClicks(this, () => {
+      this.refresh = createRefresher();
+    });
     this.rematch = addButton(this, WIDTH - SAFE, SAFE, 'Rematch', () =>
       runtime.match.hostAction('rematch'),
     );
@@ -47,10 +53,18 @@ export class WinnerScene extends Phaser.Scene {
     );
   }
 
+  private removeControls() {
+    return sceneRemoveControls(this, () => {
+      this.refresh = createRefresher();
+    });
+  }
+
   override update(time: number): void {
-    const { runtime } = hostContext(this);
+    const ctx = hostContext(this);
+    const { runtime } = ctx;
     if (!this.refresh(runtime, time)) return;
     for (const o of this.dynamic) o.destroy();
+    ctx.removeButtons = [];
     const view = runtime.view();
     const winner = view.players.find((p) => p.id === view.winnerId);
     const { header, content } = screenLayout();
@@ -78,7 +92,7 @@ export class WinnerScene extends Phaser.Scene {
         'h2',
         theme.color.muted,
       ),
-      ...drawBreakdown(this, content, view.breakdown, view.players),
+      ...drawBreakdown(this, content, view.breakdown, view.players, this.removeControls()),
     );
     this.rematch.setEnabled(canStart(view) && !view.paused);
     this.lobby.setEnabled(!view.paused);

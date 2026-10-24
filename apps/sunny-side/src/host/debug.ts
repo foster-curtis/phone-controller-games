@@ -161,6 +161,8 @@ export interface PcgDebugApi {
   qr(): { size: number; modules: number[] } | null;
   /** Text currently shown by the active Phaser scenes. */
   texts(): string[];
+  /** The TV's remove (×) controls now on screen, in page (CSS px) coordinates (M7-fix-2). */
+  removeButtons(): { playerId: string; x: number; y: number; w: number; h: number }[];
   debug: {
     /** Ring-out this player's egg for real (sim-driven). false if they have no egg on the pan. */
     eliminate(id: string): boolean;

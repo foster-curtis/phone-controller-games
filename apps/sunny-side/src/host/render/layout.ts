@@ -40,6 +40,24 @@ export function clampToSafe(r: Rect): Rect {
 
 const PAD = theme.space[3];
 
+/** TV-side remove (×) control: idle square, and the wider "Remove?" rect it grows to when armed. */
+export const REMOVE_SIZE = 48;
+export const REMOVE_ARMED_W = 206;
+
+export interface RemoveRects {
+  idle: Rect;
+  /** Right-aligned with `idle`, grown leftwards (may overlay the cell beside it while armed). */
+  armed: Rect;
+}
+
+/** The remove control for a row: vertically centered at the row's right edge. */
+export function removeRects(row: Rect): RemoveRects {
+  const s = Math.min(REMOVE_SIZE, row.h - 12);
+  const idle: Rect = { x: row.x + row.w - s, y: row.y + (row.h - s) / 2, w: s, h: s };
+  const w = Math.max(s, Math.min(REMOVE_ARMED_W, row.w));
+  return { idle, armed: { x: idle.x + idle.w - w, y: idle.y, w, h: s } };
+}
+
 export interface ScoreRow {
   row: Rect;
   pill: Rect;
@@ -103,6 +121,7 @@ export interface BreakdownRowLayout {
   items: Rect;
   out: Rect;
   total: Rect;
+  remove: RemoveRects;
 }
 
 export interface BreakdownLayout {
@@ -153,17 +172,18 @@ export function breakdownLayout(n: number, area: Rect, compact = false): Breakdo
       h: rowH,
     };
     const pill: Rect = { x: row.x, y: row.y, w: pillW, h: rowH };
-    const total: Rect = { x: row.x + row.w - totalW, y: row.y, w: totalW, h: rowH };
+    const remove = removeRects(row);
+    const total: Rect = { x: remove.idle.x - BD_GAP - totalW, y: row.y, w: totalW, h: rowH };
     if (compact) {
       const none: Rect = { x: row.x + pillW, y: row.y, w: 0, h: rowH };
-      rows.push({ row, pill, points: none, items: none, out: none, total });
+      rows.push({ row, pill, points: none, items: none, out: none, total, remove });
       continue;
     }
     const points: Rect = { x: pill.x + pillW + BD_GAP, y: row.y, w: pointsW, h: rowH };
     const out: Rect = { x: total.x - BD_GAP - outW, y: row.y, w: outW, h: rowH };
     const itemsX = points.x + pointsW + BD_GAP;
     const items: Rect = { x: itemsX, y: row.y, w: out.x - BD_GAP - itemsX, h: rowH };
-    rows.push({ row, pill, points, items, out, total });
+    rows.push({ row, pill, points, items, out, total, remove });
   }
   return { panel, rows, compact };
 }
@@ -184,6 +204,7 @@ export interface LobbyLayout {
   codePanel: Rect;
   playersPanel: Rect;
   rows: Rect[];
+  removes: RemoveRects[];
   startButton: Rect;
   footer: Rect;
 }
@@ -204,7 +225,8 @@ export function lobbyLayout(n: number): LobbyLayout {
       h: rowH,
     });
   }
+  const removes = rows.map(removeRects);
   const startButton: Rect = { x: SAFE_RECT.x + SAFE_RECT.w - 280, y: 900, w: 280, h: 84 };
   const footer: Rect = { x: 760, y: 900, w: 700, h: 84 };
-  return { title, qrPanel, codePanel, playersPanel, rows, startButton, footer };
+  return { title, qrPanel, codePanel, playersPanel, rows, removes, startButton, footer };
 }

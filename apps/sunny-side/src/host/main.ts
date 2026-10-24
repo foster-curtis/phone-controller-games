@@ -7,6 +7,7 @@ import { debugEnabled, installDebug } from './debug';
 import { createGameRuntime } from './game';
 import { hostUrl, isLoopbackHost, joinUrl } from './lan';
 import { STORAGE_KEY } from './match/config';
+import { RemoveArm } from './render/remove';
 import { BootScene } from './scenes/Boot';
 import { LobbyScene } from './scenes/Lobby';
 import { ResultsScene } from './scenes/Results';
@@ -68,6 +69,8 @@ const ctx: HostContext = {
     ? hostUrl(lanHost, Number(location.port) || 80, location.protocol.slice(0, -1))
     : null,
   qr: null,
+  removeArm: new RemoveArm(),
+  removeButtons: [],
 };
 setHostContext(game, ctx);
 
@@ -120,6 +123,17 @@ if (debug) {
         .filter((o): o is Phaser.GameObjects.Text => o instanceof Phaser.GameObjects.Text)
         .map((t) => t.text)
         .filter((t) => t !== ''),
+    removeButtons: () => {
+      const b = game.canvas.getBoundingClientRect();
+      const k = b.width / WIDTH;
+      return ctx.removeButtons.map(({ playerId, rect }) => ({
+        playerId,
+        x: b.left + rect.x * k,
+        y: b.top + rect.y * k,
+        w: rect.w * k,
+        h: rect.h * k,
+      }));
+    },
     debug: {
       eliminate: (id) => runtime.debugSim?.forceOut(id) ?? false,
       knockOut: (victim, attacker) => runtime.debugSim?.knockOut(victim, attacker) ?? false,

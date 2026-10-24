@@ -13,6 +13,8 @@ import {
   canStart,
   createRefresher,
   hostContext,
+  installRemoveClicks,
+  sceneRemoveControls,
   type HostButton,
 } from './ui';
 
@@ -30,15 +32,27 @@ export class ResultsScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(theme.color.background.hex);
     this.refresh = createRefresher();
     this.dynamic = [];
+    hostContext(this).removeButtons = [];
+    installRemoveClicks(this, () => {
+      this.refresh = createRefresher();
+    });
     this.next = addButton(this, WIDTH - SAFE, SAFE, 'Next round', () =>
       runtime.match.hostAction('next'),
     );
   }
 
+  private removeControls() {
+    return sceneRemoveControls(this, () => {
+      this.refresh = createRefresher();
+    });
+  }
+
   override update(time: number): void {
-    const { runtime } = hostContext(this);
+    const ctx = hostContext(this);
+    const { runtime } = ctx;
     if (!this.refresh(runtime, time)) return;
     for (const o of this.dynamic) o.destroy();
+    ctx.removeButtons = [];
     const view = runtime.view();
     const { header, content } = screenLayout();
     const survivor = view.players.find((p) => p.id === view.survivorId);
@@ -60,7 +74,7 @@ export class ResultsScene extends Phaser.Scene {
         'body',
         theme.color.muted,
       ).setOrigin(1, 0),
-      ...drawBreakdown(this, content, view.breakdown, view.players),
+      ...drawBreakdown(this, content, view.breakdown, view.players, this.removeControls()),
     ];
     this.next.setEnabled(canStart(view) && !view.paused);
   }
