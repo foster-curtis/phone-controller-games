@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { RoundBreakdown } from '../../../shared/messages';
-import { arenaGeometry, handleSegment } from '../arena';
+import { theme } from '../../../shared/theme';
+import { arenaGeometry, drawArena, handleSegment } from '../arena';
 import { breakdownRowModels, itemLabel, outLabel, pointsLabel } from '../breakdown';
 import { JIGGLE_MS, JiggleTracker, SQUASH_MAX, eggSquash, yolkGlow } from '../egg';
 import { EMOJI_CAP, EMOJI_LIFE_MS, EmojiLayer } from '../emojiLayer';
@@ -234,6 +235,40 @@ describe('pan heat geometry', () => {
   it('handle starts at the original pan edge', () => {
     const h = handleSegment(500);
     expect(Math.hypot(h.x0, h.y0)).toBeCloseTo(507);
+  });
+});
+
+describe('pan heat ring after the shrink ends', () => {
+  const calls = (radius: number, shrinking: boolean) => {
+    const out: { width: number; alpha: number; r: number; color: number }[] = [];
+    let cur = { width: 0, alpha: 0, color: 0 };
+    const g = {
+      fillStyle: () => g,
+      fillRect: () => g,
+      fillCircle: () => g,
+      lineBetween: () => g,
+      lineStyle: (width: number, color: number, alpha: number) => {
+        cur = { width, alpha, color };
+        return g;
+      },
+      strokeCircle: (_x: number, _y: number, r: number) => {
+        out.push({ ...cur, r });
+        return g;
+      },
+    };
+    drawArena(g as never, 0, 0, { radius, startRadius: 500, shrinking } as never, 1234);
+    return out;
+  };
+  it('draws the ring (inner = current radius) when not shrinking at the minimum', () => {
+    const c = calls(200, false);
+    const ring = c.find((x) => x.color === theme.color.heat.num && x.width === 300);
+    expect(ring).toBeDefined();
+    expect(ring!.alpha).toBeGreaterThan(0);
+    expect(ring!.r - ring!.width / 2).toBeCloseTo(200);
+    expect(c.some((x) => x.r === 200)).toBe(true);
+  });
+  it('draws no heat at the start radius', () => {
+    expect(calls(500, false).some((x) => x.color === theme.color.heat.num)).toBe(false);
   });
 });
 

@@ -30,7 +30,8 @@ export interface ArenaGeometry {
 
 export function arenaGeometry(arena: SimSnapshot['arena']): ArenaGeometry {
   const outer = Math.max(arena.startRadius, arena.radius);
-  const heating = arena.shrinking && arena.radius < outer;
+  // Presence depends on radius only: the heat stays while holding at the minimum.
+  const heating = arena.radius < outer;
   return {
     panRadius: outer,
     heat: heating ? { inner: arena.radius, outer } : null,
@@ -104,7 +105,8 @@ export function drawArena(
 
   if (geo.heat) {
     const { inner, outer } = geo.heat;
-    const p = heatPulse(now);
+    // Pulse only while shrinking; steady mid-level glow while holding at the minimum.
+    const p = arena.shrinking ? heatPulse(now) : 0.5;
     // Heated ring across its whole area, glowing brighter with the pulse.
     g.lineStyle(outer - inner, theme.color.heat.num, 0.7 + 0.3 * p);
     g.strokeCircle(cx, cy, (outer + inner) / 2);
