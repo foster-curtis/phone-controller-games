@@ -35,7 +35,7 @@ export function createResults(ctx: ScreenCtx, first: Results): ScreenView<Result
         text: survivor ? `${survivor.name} survived!` : 'Nobody survived',
       }),
     );
-    body.replaceChildren(roundLine(s), ...bd(s), stTitle(), standingsList(s));
+    body.replaceChildren(roundLine(s), ...bd(s), stTitle(), standingsList(s, ctx));
     actions.replaceChildren(...(s.isLeader ? [leaderButton(ctx, 'Next round', 'next')] : []));
   };
   apply(first);
@@ -54,7 +54,7 @@ export function createMatchEnd(ctx: ScreenCtx, first: MatchEnd): ScreenView<Matc
       el('h1', { class: 'banner sticker-heading', text: 'Match over' }),
       el('p', { class: 'h2', text: winner ? `${winner.name} wins!` : 'We have a winner!' }),
     );
-    body.replaceChildren(...bd(s), stTitle(), standingsList(s));
+    body.replaceChildren(...bd(s), stTitle(), standingsList(s, ctx));
     actions.replaceChildren(
       ...(s.isLeader
         ? [leaderButton(ctx, 'Rematch', 'rematch'), leaderButton(ctx, 'Back to lobby', 'lobby', '')]

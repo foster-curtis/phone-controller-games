@@ -277,8 +277,39 @@ input {
   text-decoration: line-through;
 }
 
+.standing.offline {
+  opacity: 0.6;
+}
+
 .standing.offline .name {
   color: var(--muted);
+}
+
+.standing .away {
+  flex: none;
+  color: var(--muted);
+}
+
+/* Leader-only remove control: a small sticker x; the first tap arms it ("Remove?"), the second sends. */
+.remove-btn {
+  flex: none;
+  min-width: var(--space-6);
+  height: var(--space-6);
+  padding: 0 var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cream);
+  color: var(--cream-on);
+  border: 2px solid var(--sticker-outline);
+  border-radius: var(--radius-sticker);
+  box-shadow: var(--shadow-sticker-sm);
+  line-height: 1;
+}
+
+.remove-btn.armed {
+  background: var(--heat);
+  color: var(--foreground);
 }
 
 .standing .dot {
@@ -576,6 +607,9 @@ input {
   --stick-dy: min(55px, 12.8dvh);
   --slam-dx: clamp(0px, calc(37.5vw - 240px), 100px);
   --slam-dy: min(55px, 12.8dvh);
+  --pad-d: calc(var(--space-6) * 5);
+  --pad-edge: calc(var(--space-3) + var(--space-6) + var(--space-1));
+  --dash-gap: calc(var(--space-6) + var(--space-1));
 }
 
 /* The whole left half is the stick's touch area; the stick rests at the bottom-left when idle. */
@@ -687,11 +721,21 @@ input {
   touch-action: none;
 }
 
-/* DASH: centered in its column, button center at 46% of the viewport height from the bottom. */
+/*
+ * M5-fix-7: DASH is derived from SLAM (never from the viewport height): its center sits one button
+ * diameter + a gap left of SLAM's center and 0.6 diameters higher, so on any screen size every control
+ * center stays within a fixed thumb band of the bottom edge (<= 280 px). The button starts at its
+ * column center / SLAM's bottom padding and is shifted with left/top.
+ */
 .pad-zone.dash {
   align-items: flex-end;
   justify-content: center;
-  padding-bottom: calc(46dvh - var(--space-6) * 2.5);
+  padding-bottom: var(--pad-edge);
+}
+
+.pad-zone.dash .pad-btn {
+  left: calc(37.5vw - var(--pad-edge) - var(--pad-d) * 1.5 - var(--dash-gap) - var(--slam-dx));
+  top: calc(-1 * (var(--slam-dy) + var(--pad-d) * 0.6));
 }
 
 /* SLAM: bottom-right, nudged up/left of the corner (~28 px). */

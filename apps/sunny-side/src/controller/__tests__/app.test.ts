@@ -250,7 +250,7 @@ describe('input over the app', () => {
 });
 
 describe('spectating emoji hotbar', () => {
-  it('has 5 reactions with a 1 s local cooldown', () => {
+  it('has 5 reactions with a 0.5 s local cooldown', () => {
     const h = mount();
     h.show(sampleScreen('spectating'));
     const btns = [...h.root.querySelectorAll<HTMLButtonElement>('.emoji-btn')];
@@ -259,7 +259,7 @@ describe('spectating emoji hotbar', () => {
     btns[2]?.click();
     btns[0]?.click();
     expect(h.msgs().filter((m) => m.t === 'emoji')).toEqual([{ t: 'emoji', i: 2 }]);
-    vi.advanceTimersByTime(999);
+    vi.advanceTimersByTime(499);
     btns[1]?.click();
     expect(h.msgs().filter((m) => m.t === 'emoji').length).toBe(1);
     vi.advanceTimersByTime(1);

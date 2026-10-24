@@ -20,6 +20,8 @@ export interface LocalClient extends ClientLike {
   emit(data: unknown): void;
   setStatus(s: ConnectionStatus): void;
   setHostStatus(s: 'present' | 'away'): void;
+  /** Simulates the relay closing this client with reason `kicked`. */
+  kick(): void;
   /** Every message the app sent. */
   sent: unknown[];
 }
@@ -53,6 +55,10 @@ export function createLocalClient(): LocalClient {
       sub(errors, cb as (e: never) => void),
     emit(d: unknown) {
       for (const cb of [...msg]) cb(d);
+    },
+    kick() {
+      client.status = 'closed';
+      for (const cb of [...kicked]) cb();
     },
     setStatus(s: ConnectionStatus) {
       client.status = s;
@@ -90,7 +96,8 @@ export function sampleBreakdown(): RoundBreakdown {
     points,
   });
   const by = (i: number) => ({ by: st[i]!.playerId, byName: st[i]!.name });
-  const fell = { by: null, byName: null };
+  const fell = { by: null, byName: null, ghost: false };
+  const ghostKo = { by: null, byName: null, ghost: true };
   const items: RoundPointItem[][] = [
     [ko(5), ko(6), { kind: 'survivor', points: 3 }],
     [ko(2), ko(3), ko(7)],
@@ -101,7 +108,7 @@ export function sampleBreakdown(): RoundBreakdown {
     [],
     [],
   ];
-  const outs = [null, fell, by(1), by(1), fell, by(0), by(0), by(1)];
+  const outs = [null, fell, by(1), by(1), fell, by(0), ghostKo, by(1)];
   return {
     round: 2,
     players: st.map((s, i) => ({
@@ -192,6 +199,9 @@ export function startDev(root: HTMLElement): App {
     });
     screens.append(b);
   }
+  const removed = el('button', { type: 'button', 'data-dev-screen': 'removed', text: 'removed' });
+  removed.addEventListener('click', () => app.showRemoved());
+  screens.append(removed);
   const colors = el('div', { class: 'dev-row' });
   for (const color of PLAYER_COLOR_IDS) {
     const b = el('button', { type: 'button', 'data-dev-color': color, text: color });

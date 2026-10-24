@@ -23,6 +23,7 @@ export interface Harness {
   client: LocalClient;
   app: App;
   storage: Storage;
+  reloads: string[];
   show(screen: Screen): void;
   tuples(): number[][];
   msgs(): Array<Record<string, unknown>>;
@@ -34,11 +35,19 @@ export function mount(opts: { name?: string } = {}): Harness {
   const client = createLocalClient();
   localStorage.clear();
   if (opts.name) localStorage.setItem('sunny-side:name', opts.name);
-  const app = createApp({ root, client, code: 'ABCD', storage: localStorage });
+  const reloads: string[] = [];
+  const app = createApp({
+    root,
+    client,
+    code: 'ABCD',
+    storage: localStorage,
+    reload: (c) => reloads.push(c),
+  });
   return {
     root,
     client,
     app,
+    reloads,
     storage: localStorage,
     show: (screen) => client.emit({ t: 'screen', screen }),
     tuples: () => client.sent.filter(Array.isArray) as number[][],

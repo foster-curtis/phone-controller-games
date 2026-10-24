@@ -205,7 +205,7 @@ describe('M5-fix-4 positions', () => {
   it('stick rests up/right, DASH sits low, SLAM and PULSE are nudged in', () => {
     expect(rule('.stick-zone')).toMatch(/--nudge:/);
     expect(rule('.stick-base.resting')).toMatch(/left:[^;]*--nudge[^;]*;[\s\S]*top:[^;]*--nudge/);
-    expect(rule('.pad-zone.dash')).toMatch(/padding-bottom:\s*calc\(46dvh/);
+    expect(rule('.pad-zone.dash')).toMatch(/padding-bottom:\s*var\(--pad-edge\)/); // M5-fix-7: no dvh
     expect(rule('.pad-zone.slam')).toMatch(/padding-right:[\s\S]*padding-bottom:/);
     expect(rule('.pad-zone.pulse')).toMatch(/align-items:\s*flex-end/);
   });

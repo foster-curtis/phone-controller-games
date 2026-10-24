@@ -83,7 +83,7 @@ export function createLobby(ctx: ScreenCtx, first: LobbyScreen): ScreenView<Lobb
         current.color ?? PLAYER_COLOR_IDS.find((c) => !current.takenColors.includes(c)) ?? null;
     }
     paintSwatches();
-    standings.replaceChildren(roundLine(current), standingsList(current));
+    standings.replaceChildren(roundLine(current), standingsList(current, ctx));
     actions.replaceChildren();
     if (current.isLeader) {
       const start = leaderButton(ctx, 'Start', 'start');

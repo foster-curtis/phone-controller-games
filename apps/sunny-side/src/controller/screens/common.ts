@@ -65,9 +65,70 @@ export function leaderButton(
   return b;
 }
 
-export function standingsList(screen: Screen): HTMLElement {
+/** How long an armed "Remove?" stays armed before disarming. */
+export const REMOVE_ARM_MS = 3000;
+
+interface Armed {
+  id: string;
+  btn: HTMLButtonElement | null;
+  timer: ReturnType<typeof setTimeout>;
+}
+/** One armed remove control per phone; survives the list being re-rendered by a screen update. */
+const armedByCtx = new WeakMap<ScreenCtx, Armed>();
+
+function paintRemove(b: HTMLButtonElement, armed: boolean, name: string): void {
+  b.classList.toggle('armed', armed);
+  b.textContent = armed ? 'Remove?' : '\u00d7';
+  b.setAttribute('aria-label', armed ? `Confirm remove ${name}` : `Remove ${name}`);
+}
+
+/** Leader-only sticker "x" with a confirm step: the first tap arms it, a second tap within 3 s sends. */
+function removeButton(ctx: ScreenCtx, s: Standing): HTMLButtonElement {
+  const b = el('button', { type: 'button', class: 'remove-btn label', 'data-remove': s.playerId });
+  const cur = armedByCtx.get(ctx);
+  const isArmed = cur?.id === s.playerId;
+  paintRemove(b, isArmed, s.name);
+  if (cur && isArmed) cur.btn = b;
+  b.addEventListener('click', () => {
+    const now = armedByCtx.get(ctx);
+    if (now && now.id === s.playerId) {
+      clearTimeout(now.timer);
+      armedByCtx.delete(ctx);
+      ctx.send({ t: 'leader', action: 'remove', playerId: s.playerId });
+      return;
+    }
+    if (now) {
+      clearTimeout(now.timer);
+      if (now.btn) paintRemove(now.btn, false, now.btn.dataset.name ?? '');
+    }
+    const armed: Armed = {
+      id: s.playerId,
+      btn: b,
+      timer: setTimeout(() => {
+        if (armedByCtx.get(ctx) === armed) armedByCtx.delete(ctx);
+        if (armed.btn) paintRemove(armed.btn, false, s.name);
+      }, REMOVE_ARM_MS),
+    };
+    armedByCtx.set(ctx, armed);
+    paintRemove(b, true, s.name);
+  });
+  b.dataset.name = s.name;
+  return b;
+}
+
+/**
+ * Standings list. With `ctx` and `screen.isLeader`, every other player's entry gets a remove control
+ * (never the leader's own entry); away players are dimmed with an "away" label.
+ */
+export function standingsList(screen: Screen, ctx?: ScreenCtx): HTMLElement {
   const list = el('ol', { class: 'standings' });
-  for (const s of screen.standings) list.append(standingRow(s, s.name === screen.name));
+  const canRemove = !!ctx && screen.isLeader;
+  for (const s of screen.standings) {
+    const me = s.name === screen.name;
+    const row = standingRow(s, me);
+    if (canRemove && !me) row.append(removeButton(ctx, s));
+    list.append(row);
+  }
   return list;
 }
 
@@ -79,6 +140,7 @@ function standingRow(s: Standing, me: boolean): HTMLElement {
   const dot = el('span', { class: 'dot' });
   dot.style.background = colorVar(s.color);
   row.append(dot, el('span', { class: 'label name', text: s.name }));
+  if (!s.connected && !s.left) row.append(el('span', { class: 'caption away', text: 'away' }));
   row.append(el('span', { class: 'score-num', text: String(s.score) }));
   return row;
 }

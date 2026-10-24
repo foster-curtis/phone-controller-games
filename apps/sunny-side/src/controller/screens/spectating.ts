@@ -1,11 +1,11 @@
-// Spectating: scores, round number, and the 5-emoji hotbar with a 1 s local cooldown (SPEC §6.7).
+// Spectating: scores, round number, and the 5-emoji hotbar with a 0.5 s local cooldown (SPEC §6.7).
 import { el } from '../dom';
 import { EMOJI, type EmojiIndex, type Screen } from '../../shared/messages';
 import { heading, roundLine, standingsList, type ScreenCtx, type ScreenView } from './common';
 
 type Spectating = Extract<Screen, { kind: 'spectating' }>;
 
-export const EMOJI_COOLDOWN_MS = 1000;
+export const EMOJI_COOLDOWN_MS = 500;
 
 export function createSpectating(ctx: ScreenCtx, first: Spectating): ScreenView<Spectating> {
   const root = el('section', { class: 'screen spectating', 'data-screen': 'spectating' });
@@ -36,7 +36,7 @@ export function createSpectating(ctx: ScreenCtx, first: Spectating): ScreenView<
   });
   bar.append(...buttons);
 
-  const apply = (s: Spectating) => info.replaceChildren(roundLine(s), standingsList(s));
+  const apply = (s: Spectating) => info.replaceChildren(roundLine(s), standingsList(s, ctx));
   apply(first);
   return {
     el: root,

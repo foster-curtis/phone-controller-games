@@ -65,3 +65,14 @@ export function createLeft(): ScreenView<Left> {
   );
   return { el: root, update() {}, destroy() {} };
 }
+
+/** Phone-local: this phone was removed (by the leader/host), not a self-Leave. */
+export function createRemoved(onJoinAgain: () => void): ScreenView {
+  const root = el(
+    'section',
+    { class: 'screen removed', 'data-screen': 'removed' },
+    heading('You were removed from the game'),
+    stickerButton('Join again', onJoinAgain, 'btn-accent'),
+  );
+  return { el: root, update() {}, destroy() {} };
+}

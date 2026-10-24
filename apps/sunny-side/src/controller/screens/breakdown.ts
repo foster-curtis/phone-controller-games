@@ -13,7 +13,8 @@ export function itemLabel(it: RoundPointItem, short = false): string {
 
 export function outText(e: RoundBreakdownEntry): string {
   if (!e.out) return 'Survived';
-  return e.out.byName ? `Knocked out by ${e.out.byName}` : 'Fell off';
+  if (e.out.byName) return `Knocked out by ${e.out.byName}`;
+  return e.out.by === null && e.out.ghost ? 'Knocked out by ghost' : 'Fell off';
 }
 
 function mineCard(e: RoundBreakdownEntry): HTMLElement {

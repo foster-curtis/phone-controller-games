@@ -51,7 +51,8 @@ describe('long-list screens with 8 players', () => {
         expect(root.querySelectorAll('.emoji-btn').length).toBe(5);
       }
       // Buttons live outside the scroll container so they stay pinned.
-      for (const b of root.querySelectorAll('button')) expect(b.closest('.scroll-y')).toBeNull();
+      for (const b of root.querySelectorAll('button:not(.remove-btn)'))
+        expect(b.closest('.scroll-y')).toBeNull();
     },
   );
 

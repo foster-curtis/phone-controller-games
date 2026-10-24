@@ -134,7 +134,7 @@ describe('pads: nearest-button split and moved positions', () => {
     pointer(dashZone, 'pointerup', 3, 650, 232);
   });
 
-  it('css shifts the stick right/up and SLAM/PULSE left/up; DASH rule untouched', () => {
+  it('css shifts the stick right/up and SLAM/PULSE left/up; DASH rule has no dvh', () => {
     const css = readFileSync(
       join(dirname(fileURLToPath(import.meta.url)), '../controller.css'),
       'utf8',
@@ -147,6 +147,6 @@ describe('pads: nearest-button split and moved positions', () => {
     expect(css).toMatch(
       /\.pad-zone\.pulse \.pad-btn[^{]*\{[^}]*left:\s*calc\(-1 \* var\(--slam-dx\)\)/,
     );
-    expect(css).toMatch(/\.pad-zone\.dash\s*\{[^}]*padding-bottom:\s*calc\(46dvh/);
+    expect(css).not.toMatch(/\.pad-zone\.dash[^{]*\{[^}]*dvh/); // M5-fix-7: derived from SLAM, no dvh
   });
 });

@@ -1,12 +1,15 @@
 // Real-browser layout check for the phone play surface at small and large landscape viewports.
-// Thumb-reach region (documented): joystick resting center in the left quarter and lower half of the
-// viewport; DASH center in the right half and the lower half (y >= 50% of height); SLAM center in the right
-// quarter; the SLAM charge arc is at most 2*(gap + max thickness) + stroke larger than the button.
+// Thumb band (M5-fix-7): every control center (resting stick, DASH, SLAM, ghost PULSE) is at most
+// THUMB_BAND px above the bottom edge on any viewport; DASH sits above SLAM and left of it.
 import { expect, test } from '@playwright/test';
+
+const THUMB_BAND = 280;
 
 for (const [w, h] of [
   [640, 360],
   [932, 430],
+  [1180, 820],
+  [1366, 1024],
 ] as const) {
   test(`controller layout ${w}x${h}`, async ({ page }) => {
     await page.setViewportSize({ width: w, height: h });
@@ -30,26 +33,32 @@ for (const [w, h] of [
     const d = await box(dash);
     const s = await box(slam);
     const j = await box(stick);
-    // DASH center in the lower half; SLAM right of it; no overlap.
-    expect(d.cy).toBeGreaterThanOrEqual(h * 0.5);
-    expect(s.x).toBeGreaterThanOrEqual(d.x + d.w - 1);
-    // Thumb reach.
-    expect(j.cx).toBeLessThanOrEqual(w * 0.35);
-    expect(j.cy).toBeGreaterThanOrEqual(h * 0.4);
-    expect(d.cx).toBeGreaterThanOrEqual(w * 0.5);
-    expect(s.cx).toBeGreaterThanOrEqual(w * 0.75);
+    // Thumb band: every control center within THUMB_BAND of the bottom edge.
+    for (const c of [d, s, j]) expect(h - c.cy).toBeLessThanOrEqual(THUMB_BAND);
+    // DASH is slightly higher than SLAM and left of it; no overlaps.
+    expect(d.cy).toBeLessThan(s.cy);
+    expect(d.cy).toBeGreaterThan(s.cy - s.h);
+    expect(d.cx).toBeLessThan(s.cx);
+    expect(s.x - (d.x + d.w)).toBeGreaterThanOrEqual(16);
+    expect(d.x).toBeGreaterThanOrEqual(w / 2); // not over the stick half
+    expect(j.cx + j.w / 2).toBeLessThan(d.x);
     expect(s.y + s.h).toBeLessThanOrEqual(h);
+    expect(d.y).toBeGreaterThanOrEqual(0);
+    expect(j.cx).toBeLessThanOrEqual(w * 0.35);
     expect(j.cx).toBeGreaterThan(110);
     expect(h - j.cy).toBeGreaterThan(100);
+    expect(s.cx).toBeGreaterThanOrEqual(w * 0.75);
+    console.log(`${w}x${h} centers`, {
+      dash: [d.cx, d.cy],
+      slam: [s.cx, s.cy],
+      stick: [j.cx, j.cy],
+    });
     if (w === 932) {
-      // M5-fix-6: DASH 575.5,232.2 unchanged; SLAM ~(732,275); stick ~(219,271).
-      expect(Math.abs(d.cx - 575.5)).toBeLessThanOrEqual(2);
-      expect(Math.abs(d.cy - 232.2)).toBeLessThanOrEqual(2);
+      // M5-fix-6: SLAM ~(732,275); stick ~(219,271) (unchanged by M5-fix-7).
       expect(Math.abs(s.cx - 732)).toBeLessThanOrEqual(10);
       expect(Math.abs(s.cy - 275)).toBeLessThanOrEqual(10);
       expect(Math.abs(j.cx - 219)).toBeLessThanOrEqual(10);
       expect(Math.abs(j.cy - 271)).toBeLessThanOrEqual(10);
-      console.log('932x430 centers', { slam: [s.cx, s.cy], stick: [j.cx, j.cy] });
       // Nearest-center split: a touch in DASH's column but nearer SLAM presses SLAM.
       const mx = (d.cx + s.cx) / 2 + 20;
       await page.mouse.move(mx, s.cy);
@@ -58,6 +67,13 @@ for (const [w, h] of [
       await expect(page.locator('[data-pad=dash]')).not.toHaveClass(/pressed/);
       await page.mouse.up();
     }
+
+    // A touch on DASH's center presses DASH only.
+    await page.mouse.move(d.cx, d.cy);
+    await page.mouse.down();
+    await expect(page.locator('[data-pad=dash]')).toHaveClass(/pressed/);
+    await expect(page.locator('[data-pad=slam]')).not.toHaveClass(/pressed/);
+    await page.mouse.up();
 
     // Hold SLAM to full charge; the arc hugs the button.
     await page.mouse.move(s.cx, s.cy);
@@ -74,5 +90,14 @@ for (const [w, h] of [
     const gapY2 = arc.y - (d.y + d.h);
     expect(Math.max(gapX, gapY, gapY2)).toBeGreaterThanOrEqual(16);
     await page.mouse.up();
+
+    // Ghost PULSE sits where SLAM is (also within the band).
+    await page.mouse.move(0, 0);
+    await page.evaluate(() => (document.querySelector('.dev-toggle') as HTMLElement).click());
+    await page.locator('[data-dev-screen=ghost]').click();
+    const pulse = await box(page.locator('[data-pad=pulse] .pad-btn'));
+    expect(h - pulse.cy).toBeLessThanOrEqual(THUMB_BAND);
+    expect(Math.abs(pulse.cx - s.cx)).toBeLessThanOrEqual(2);
+    expect(Math.abs(pulse.cy - s.cy)).toBeLessThanOrEqual(2);
   });
 }

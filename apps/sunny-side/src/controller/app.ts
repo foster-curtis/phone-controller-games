@@ -8,8 +8,9 @@ import { fullscreenOnTap } from './fullscreen';
 import { watchOrientation } from './orientation';
 import { GROUP_OF, SCREEN_KINDS, createView, type ViewGroup } from './screens';
 import type { ScreenCtx, ScreenView } from './screens/common';
-import { createJoining } from './screens/simple';
+import { createJoining, createRemoved } from './screens/simple';
 import { defaultStorage } from './storage';
+import { GAME_ID } from '../shared/messages';
 
 export type OverlayName = 'selfPaused' | 'reconnecting' | 'hostAway' | 'rotate';
 export const OVERLAY_NAMES: OverlayName[] = ['selfPaused', 'reconnecting', 'hostAway', 'rotate'];
@@ -33,6 +34,8 @@ export interface AppOptions {
   /** Room code from `?code=`, shown on the joining screen. */
   code?: string | null;
   storage?: StorageLike;
+  /** Reloads the page at `?code=CODE` (default: location.assign). Tests may stub it. */
+  reload?: (code: string) => void;
   /** Called when the player types a code into the joining screen. */
   onCode?: (code: string) => void;
   /** Watches viewport orientation (default on). Tests/dev may disable. */
@@ -47,7 +50,9 @@ export interface App {
   setScreen(screen: Screen): void;
   setOverlay(name: OverlayName, on: boolean): void;
   overlays(): OverlayName[];
-  currentKind(): Screen['kind'] | 'joining';
+  currentKind(): Screen['kind'] | 'joining' | 'removed';
+  /** Shows the phone-local removed screen (what a non-Leave `kicked` close does). */
+  showRemoved(): void;
   /** Connects; resolves when joined. Errors are shown on the joining screen. */
   start(): Promise<void>;
   destroy(): void;
@@ -85,9 +90,9 @@ export function createApp(opts: AppOptions): App {
 
   let joinError: string | null = null;
   const joining = createJoining((c) => opts.onCode?.(c));
-  let group: ViewGroup | 'joining' = 'joining';
+  let group: ViewGroup | 'joining' | 'removed' = 'joining';
   let view: ScreenView | null = null;
-  let kind: Screen['kind'] | 'joining' = 'joining';
+  let kind: Screen['kind'] | 'joining' | 'removed' = 'joining';
   const active = new Set<OverlayName>();
   const overlayEls = new Map<OverlayName, HTMLElement>();
 
@@ -107,6 +112,28 @@ export function createApp(opts: AppOptions): App {
     banner.setProfile(null, null);
     joining.set({ code: opts.code ?? null, error: joinError });
     screenHost.replaceChildren(joining.el);
+  };
+
+  const joinAgain = () => {
+    const code = opts.code ?? '';
+    try {
+      storage?.removeItem(`pcg:token:${GAME_ID}:${code}`);
+    } catch {
+      /* private mode */
+    }
+    if (opts.reload) opts.reload(code);
+    else location.assign(`/play?code=${encodeURIComponent(code)}`);
+  };
+
+  const showRemoved = () => {
+    sender.neutral();
+    sender.stop();
+    view?.destroy();
+    view = createRemoved(joinAgain);
+    group = 'removed';
+    kind = 'removed';
+    banner.setProfile(null, null);
+    screenHost.replaceChildren(view.el);
   };
 
   const setScreen = (screen: Screen) => {
@@ -197,10 +224,7 @@ export function createApp(opts: AppOptions): App {
       active.delete('selfPaused');
       renderOverlays();
       // The host sends a `left` screen first when the player chose to leave; otherwise this is a removal.
-      if (kind !== 'left') {
-        joinError = 'You were removed from the room.';
-        showJoining();
-      }
+      if (kind !== 'left') showRemoved();
     }),
     client.onError((e) => {
       joinError = ERROR_TEXT[e.code] ?? e.message;
@@ -220,6 +244,7 @@ export function createApp(opts: AppOptions): App {
     setOverlay,
     overlays: () => OVERLAY_NAMES.filter((n) => active.has(n)),
     currentKind: () => kind,
+    showRemoved,
     async start() {
       try {
         await client.connect();
