@@ -388,7 +388,7 @@ Rules:
   - [x] HUD, names, shrink pulse, emoji layer
   - [x] Styled lobby / results / winner + screenshot spec
   - [x] Merged to `main`
-  - [ ] **User approved C3 (TV presentation)**
+  - [x] **User approved C3 (TV presentation)** (with notes → M3-fix-2, M4-fix-2, M5-fix-7, M7-fix-1, M7-fix-2)
 - [ ] Final test-runner pass on `main` (Standard + E2E checks)
 - [ ] Final handoff printed
 
