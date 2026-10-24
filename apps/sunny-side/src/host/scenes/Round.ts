@@ -37,7 +37,7 @@ export class RoundScene extends Phaser.Scene {
 
   create(): void {
     const { runtime } = hostContext(this);
-    this.cameras.main.setBackgroundColor(theme.color.background.hex);
+    this.cameras.main.setBackgroundColor(theme.color.cream.hex);
     this.refresh = createRefresher();
     this.g = this.add.graphics().setDepth(1);
     this.hud = [];

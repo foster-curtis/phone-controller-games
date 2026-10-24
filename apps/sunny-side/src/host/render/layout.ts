@@ -115,6 +115,13 @@ export interface BreakdownLayout {
 const BD_PAD = theme.space[4];
 const BD_GAP = theme.space[2];
 const BD_MAX_ROW = 84;
+/** TV text sizes for the breakdown (couch-readable): items/out use `type.pad` (28), points 56. */
+export const BD_TEXT_SIZE = theme.type.pad.size;
+export const BD_POINTS_SIZE = 56;
+/** Used when a wrapped item/out text would not fit its row. */
+export const BD_TEXT_FALLBACK = 24;
+/** Lines the items/out cells must hold at `BD_TEXT_SIZE`. */
+export const BD_TEXT_LINES = 2;
 
 /**
  * Per-player breakdown rows inside `area` (a sub-rect of the safe rect): name pill, "+N" points,
@@ -134,7 +141,7 @@ export function breakdownLayout(n: number, area: Rect, compact = false): Breakdo
   };
   const inner = panel.w - BD_PAD * 2;
   const pillW = 300;
-  const pointsW = 120;
+  const pointsW = 140;
   const outW = 330;
   const totalW = compact ? 140 : 150;
   const rows: BreakdownRowLayout[] = [];

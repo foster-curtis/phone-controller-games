@@ -11,7 +11,7 @@ import type {
 import { theme } from '../../shared/theme';
 import type { PlayerView } from '../match';
 import { addText } from '../scenes/ui';
-import { breakdownLayout, type Rect } from './layout';
+import { BD_POINTS_SIZE, BD_TEXT_FALLBACK, breakdownLayout, type Rect } from './layout';
 import { drawPanel, drawPill, drawSticker } from './sticker';
 
 export function pointsLabel(points: number): string {
@@ -138,23 +138,26 @@ export function drawBreakdown(
         'score',
         m.points === '+0' ? theme.color.muted : theme.color.accentText,
         'center',
-      ).setAlpha(alpha),
+      )
+        .setFontSize(BD_POINTS_SIZE)
+        .setAlpha(alpha),
     );
     const items = m.items.length > 0 ? m.items.join('   ') : 'no points';
     const itemsText = centered(
       scene,
       cells.items,
       items,
-      'body',
+      'pad',
       m.items.length > 0 ? theme.color.foreground : theme.color.muted,
       'left',
     )
       .setWordWrapWidth(cells.items.w)
       .setAlpha(alpha);
-    if (itemsText.height > row.h - 8) itemsText.setFontSize(theme.type.caption.size);
-    const outText = centered(scene, cells.out, m.out, 'body', theme.color.muted, 'left')
+    if (itemsText.height > row.h - 8) itemsText.setFontSize(BD_TEXT_FALLBACK);
+    const outText = centered(scene, cells.out, m.out, 'pad', theme.color.muted, 'left')
       .setWordWrapWidth(cells.out.w)
       .setAlpha(alpha);
+    if (outText.height > row.h - 8) outText.setFontSize(BD_TEXT_FALLBACK);
     made.push(itemsText, outText);
   });
   return made;

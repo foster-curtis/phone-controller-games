@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { RoundBreakdown } from '../../../shared/messages';
+import { arenaGeometry, handleSegment } from '../arena';
 import { breakdownRowModels, itemLabel, outLabel, pointsLabel } from '../breakdown';
 import { JIGGLE_MS, JiggleTracker, SQUASH_MAX, eggSquash, yolkGlow } from '../egg';
 import { EMOJI_CAP, EMOJI_LIFE_MS, EmojiLayer } from '../emojiLayer';
 import { PULSE_RADIUS, readyFill, windupRadius } from '../ghost';
 import {
+  BD_POINTS_SIZE,
+  BD_TEXT_LINES,
+  BD_TEXT_SIZE,
   SAFE_RECT,
   breakdownLayout,
   hudLayout,
@@ -212,5 +216,35 @@ describe('breakdown labels', () => {
     const rows = breakdownRowModels(b);
     expect(rows.map((r) => r.total)).toEqual(['14', '3', '1']);
     expect(rows[1]!.left).toBe(true);
+  });
+});
+
+describe('pan heat geometry', () => {
+  const arena = (radius: number, shrinking: boolean) => ({ radius, startRadius: 500, shrinking });
+  it('keeps the pan at its start radius while the heat ring grows inward', () => {
+    for (const r of [500, 400, 300, 200]) {
+      const g = arenaGeometry(arena(r, r < 500) as never);
+      expect(g.panRadius).toBe(500);
+      expect(g.safeRadius).toBe(r);
+      if (r < 500) expect(g.heat).toEqual({ inner: r, outer: 500 });
+      else expect(g.heat).toBeNull();
+    }
+  });
+  it('handle starts at the original pan edge', () => {
+    const h = handleSegment(500);
+    expect(Math.hypot(h.x0, h.y0)).toBeCloseTo(507);
+  });
+});
+
+describe('breakdown text size on the TV', () => {
+  it('is enlarged and 8 players fit two lines per row inside the safe rect', () => {
+    expect(BD_TEXT_SIZE).toBeGreaterThanOrEqual(28);
+    const l = breakdownLayout(8, screenLayout().content);
+    expect(insideSafe(l.panel)).toBe(true);
+    for (const r of l.rows) {
+      expect(r.row.h).toBeGreaterThanOrEqual(BD_TEXT_SIZE * BD_TEXT_LINES + 8);
+      expect(r.row.h).toBeGreaterThanOrEqual(BD_POINTS_SIZE + 8);
+      expect(r.items.w).toBeGreaterThan(600);
+    }
   });
 });
