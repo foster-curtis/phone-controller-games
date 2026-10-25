@@ -28,7 +28,7 @@ First of a planned series (Hold the Line, Dungeon Crew). Build with clean bounda
 
 ## 4. Hosting & repo (settled)
 
-- **Relay:** Fly.io, one shared-cpu-1x machine, Denver region or nearest.
+- **Relay:** Fly.io, one shared-cpu-1x machine, Dallas (`dfw`): Fly deprecated Denver (`den`), and Dallas is the nearest open region.
 - **Frontends:** static Vite builds on Vercel, one subdomain of fostercurtis.dev per game.
 - **Game domain:** `sunny-side.fostercurtis.dev`. Game ID (relay namespace): `sunny-side`.
 - **Relay domain:** `relay.fostercurtis.dev` (custom domain on Fly), shared by all games.

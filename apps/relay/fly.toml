@@ -3,7 +3,7 @@
 # Rooms live in memory, so exactly one machine: after the first deploy run `fly scale count 1`.
 
 app = "pcg-relay"
-primary_region = "den"
+primary_region = "dfw"
 
 [build]
   dockerfile = "Dockerfile"
