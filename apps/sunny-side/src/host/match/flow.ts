@@ -322,8 +322,8 @@ export function createMatch(deps: MatchDeps): Match {
     switch (msg.t) {
       case 'profile': {
         if (typeof msg.name !== 'string' || !isPlayerColorId(msg.color)) return;
-        // A ready player's color is locked until they un-ready (renames still apply).
-        roster.setProfile(p, msg.name, p.ready && p.color ? p.color : msg.color);
+        // A ready player's name and color are locked until they un-ready.
+        if (!p.ready) roster.setProfile(p, msg.name, msg.color);
         emit({ type: 'roster' });
         // Always resync this phone so a rejected color snaps back.
         lastSent.delete(p.id);

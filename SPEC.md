@@ -94,7 +94,7 @@ tsconfig.base.json  pnpm-workspace.yaml
 
 ### 6.3 Match flow
 
-- **Lobby:** players join and first see a quick **name** step (~10 chars, prefilled from last time via `localStorage`), then the lobby: pick a color and tap **Ready** (tap again to un-ready; color is locked while ready; a pencil button opens a rename popup). The leader picks a **difficulty** (Easy / Medium / Hard: the starting pan size, bigger = easier; Hard = the original 180·√n size, Medium ×1.15, Easy ×1.3; default Medium) and taps Start once every other connected player is ready. Names show on the TV leaderboard/standings.
+- **Lobby:** players join and first see a quick **name** step (~10 chars, prefilled from last time via `localStorage`), then the lobby: pick a color and tap **Ready** (tap again to un-ready; name and color are locked while ready; a pencil button opens a rename popup). The leader picks a **difficulty** (Easy / Medium / Hard: the starting pan size, bigger = easier; Hard = the original 180·√n size, Medium ×1.15, Easy ×1.3; default Medium) and taps Start once every other connected player is ready. Names show on the TV leaderboard/standings.
 - **Mid-match joiners** spectate until the next round starts.
 - **Eliminated players'** phones switch to ghost controls (§6.2) and show live standings.
 - **Disconnected players (mid-round):**

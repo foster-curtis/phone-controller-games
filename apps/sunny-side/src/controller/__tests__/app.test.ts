@@ -158,7 +158,7 @@ describe('lobby', () => {
     expect(q(h.root, '[data-popup=rename]')).toBeNull();
   });
 
-  it('Ready toggles: ready shows "Waiting for {leader}…" and locks the color', () => {
+  it('Ready toggles: ready shows "Waiting for {leader}…" and locks the color and name', () => {
     const h = mount();
     const s = { ...sampleScreen('lobby'), isLeader: false, leaderName: 'Ana' } as Extract<
       Screen,
@@ -170,8 +170,12 @@ describe('lobby', () => {
     expect(q(h.root, '[data-waiting]')).toBeNull();
     btn().click();
     expect(h.msgs().at(-1)).toEqual({ t: 'ready', ready: true });
+    (q(h.root, '[data-rename]') as HTMLButtonElement).click();
+    expect(q(h.root, '[data-popup=rename]')).not.toBeNull();
     h.show({ ...s, ready: true });
     expect(btn().textContent).toBe('Waiting for Ana…');
+    expect(q(h.root, '[data-popup=rename]')).toBeNull();
+    expect((q(h.root, '[data-rename]') as HTMLButtonElement).disabled).toBe(true);
     expect(
       [...h.root.querySelectorAll<HTMLButtonElement>('.swatch')].every((b) => b.disabled),
     ).toBe(true);
@@ -180,6 +184,7 @@ describe('lobby', () => {
     h.show({ ...s, ready: false });
     expect(btn().textContent).toBe('Ready');
     expect(q(h.root, '.swatch[data-color=sky]')?.hasAttribute('disabled')).toBe(false);
+    expect((q(h.root, '[data-rename]') as HTMLButtonElement).disabled).toBe(false);
   });
 
   it('the leader has no Ready button, picks the difficulty, and Start follows canStart', () => {

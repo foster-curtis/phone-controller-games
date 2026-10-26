@@ -2,6 +2,7 @@
 // difficulty picker and Start (enabled once every other player is ready). A pencil button opens a
 // rename popup.
 import { el } from '../dom';
+import { fitAboveKeyboard } from '../keyboard';
 import {
   DIFFICULTIES,
   PLAYER_COLOR_IDS,
@@ -52,6 +53,8 @@ export function createLobby(ctx: ScreenCtx, first: LobbyScreen): ScreenView<Lobb
   let current = first;
   let name = loadName(ctx.storage) || first.name;
   let renaming: HTMLElement | null = null;
+  let stopRenameFit = () => {};
+  let stopNameStepFit = () => {};
 
   const sendProfile = () => {
     if (chosen) ctx.send({ t: 'profile', name, color: chosen });
@@ -80,11 +83,14 @@ export function createLobby(ctx: ScreenCtx, first: LobbyScreen): ScreenView<Lobb
     root.replaceChildren(
       el('div', { class: 'name-step-card' }, markImg(), heading("What's your name?"), form),
     );
+    stopNameStepFit = fitAboveKeyboard(root);
   };
 
   // ---- rename popup ----
 
   const closeRename = () => {
+    stopRenameFit();
+    stopRenameFit = () => {};
     renaming?.remove();
     renaming = null;
   };
@@ -117,6 +123,7 @@ export function createLobby(ctx: ScreenCtx, first: LobbyScreen): ScreenView<Lobb
       ),
     );
     root.append(renaming);
+    stopRenameFit = fitAboveKeyboard(renaming);
   };
 
   // ---- main lobby ----
@@ -146,7 +153,7 @@ export function createLobby(ctx: ScreenCtx, first: LobbyScreen): ScreenView<Lobb
         'data-color': id,
       });
       b.style.background = colorVar(id);
-      // A ready player's color is locked until they tap again to un-ready.
+      // A ready player's color (and name) is locked until they tap again to un-ready.
       if (taken || ready()) b.disabled = true;
       b.addEventListener('click', () => {
         chosen = id;
@@ -202,9 +209,12 @@ export function createLobby(ctx: ScreenCtx, first: LobbyScreen): ScreenView<Lobb
         current.color ?? PLAYER_COLOR_IDS.find((c) => !current.takenColors.includes(c)) ?? null;
     }
     if (ready() && current.color) chosen = current.color;
+    // Ready locks the name (and color) until the player un-readies.
+    if (ready()) closeRename();
     const edit = stickerButton('✎', openRename, 'icon-btn');
     edit.setAttribute('aria-label', 'Change name');
     edit.dataset.rename = '';
+    edit.disabled = ready();
     nameRow.replaceChildren(el('span', { class: 'label name', text: current.name }), edit);
     paintSwatches();
     standings.replaceChildren(roundLine(current), standingsList(current, ctx));
@@ -232,6 +242,8 @@ export function createLobby(ctx: ScreenCtx, first: LobbyScreen): ScreenView<Lobb
   };
 
   const showMain = () => {
+    stopNameStepFit();
+    stopNameStepFit = () => {};
     root.classList.remove('name-step');
     root.replaceChildren(side, main);
     if (renaming) root.append(renaming);
@@ -248,6 +260,7 @@ export function createLobby(ctx: ScreenCtx, first: LobbyScreen): ScreenView<Lobb
       if (!root.classList.contains('name-step')) renderMain();
     },
     destroy() {
+      stopNameStepFit();
       closeRename();
     },
   };

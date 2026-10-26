@@ -117,17 +117,24 @@ describe('session leader', () => {
     expect(h.match.view().phase).toBe('countdown');
   });
 
-  it('a ready player keeps their color (renames still apply); ready clears when the match starts', () => {
+  it('a ready player keeps their name and color; ready clears when the match starts', () => {
     const h = setup();
     h.join('a');
     h.join('b');
     h.msg('b', { t: 'ready', ready: true });
-    const before = h.match.view().players.find((p) => p.id === 'b')!.color;
+    const before = h.match.view().players.find((p) => p.id === 'b')!;
+    h.msg('b', { t: 'profile', name: 'Bee', color: 'sky' });
+    expect(h.match.view().players.find((p) => p.id === 'b')).toMatchObject({
+      name: before.name,
+      color: before.color,
+    });
+    h.msg('b', { t: 'ready', ready: false });
     h.msg('b', { t: 'profile', name: 'Bee', color: 'sky' });
     expect(h.match.view().players.find((p) => p.id === 'b')).toMatchObject({
       name: 'Bee',
-      color: before,
+      color: 'sky',
     });
+    h.msg('b', { t: 'ready', ready: true });
     h.msg('a', { t: 'leader', action: 'start' });
     expect(h.match.view().players.every((p) => !p.ready)).toBe(true);
     h.msg('b', { t: 'ready', ready: true }); // ignored outside the lobby
