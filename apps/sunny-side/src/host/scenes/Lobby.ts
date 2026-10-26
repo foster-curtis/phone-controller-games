@@ -74,7 +74,7 @@ export class LobbyScene extends Phaser.Scene {
         .setDisplaySize(MARK_SIZE, MARK_SIZE)
         .setAngle(theme.tilt.title);
     }
-    addText(this, L.title.x + MARK_SIZE + theme.space[4], titleY, 'Sunny Side Shove', 'title')
+    addText(this, L.title.x + MARK_SIZE + theme.space[4], titleY, 'Sunny Side Slam', 'title')
       .setOrigin(0, 0.5)
       .setAngle(theme.tilt.title)
       .setStroke(theme.color.stickerOutline.hex, 10)

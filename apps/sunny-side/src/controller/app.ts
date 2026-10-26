@@ -62,7 +62,7 @@ const OVERLAY_TEXT: Record<OverlayName, { title: string; body: string }> = {
   selfPaused: { title: 'Paused', body: 'Your egg is standing still.' },
   reconnecting: { title: 'Reconnecting…', body: 'Hang tight, getting you back in.' },
   hostAway: { title: 'Host away', body: 'Waiting for the host screen to come back.' },
-  rotate: { title: 'Rotate your phone', body: 'Sunny Side Shove plays in landscape.' },
+  rotate: { title: 'Rotate your phone', body: 'Sunny Side Slam plays in landscape.' },
 };
 
 const ERROR_TEXT: Record<string, string> = {

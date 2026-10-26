@@ -28,7 +28,7 @@ export function createJoining(onCode: (code: string) => void): JoiningView {
     const v = input.value.trim().toUpperCase();
     if (v) onCode(v);
   });
-  root.append(markImg(), heading('Sunny Side Shove'), code, status, form);
+  root.append(markImg(), heading('Sunny Side Slam'), code, status, form);
   return {
     el: root,
     set({ code: c, error }) {

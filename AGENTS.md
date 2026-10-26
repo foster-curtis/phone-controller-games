@@ -8,12 +8,12 @@ A pnpm monorepo of same-room party games. A TV or laptop browser runs the game (
 players' phones load a web page that acts as the **controller**. Host and phones never talk directly:
 every message goes through a shared, game-agnostic WebSocket **relay**.
 
-| Path                  | Package           | Status                                                                 |
-| --------------------- | ----------------- | ---------------------------------------------------------------------- |
-| `apps/relay`          | `@pcg/relay`      | Done. Node WebSocket server, deployed to Fly.io. No game rules.        |
-| `apps/sunny-side`     | `@pcg/sunny-side` | Done. Sunny Side Shove, the first game. Vite multi-page app on Vercel. |
-| `apps/fort-frenzy`    | (none yet)        | Planning. Only a design spec exists, with no code or `package.json`.   |
-| `packages/net-client` | `@pcg/net-client` | Done. Relay protocol types plus host and controller clients (TS).      |
+| Path                  | Package           | Status                                                                |
+| --------------------- | ----------------- | --------------------------------------------------------------------- |
+| `apps/relay`          | `@pcg/relay`      | Done. Node WebSocket server, deployed to Fly.io. No game rules.       |
+| `apps/sunny-side`     | `@pcg/sunny-side` | Done. Sunny Side Slam, the first game. Vite multi-page app on Vercel. |
+| `apps/fort-frenzy`    | (none yet)        | Planning. Only a design spec exists, with no code or `package.json`.  |
+| `packages/net-client` | `@pcg/net-client` | Done. Relay protocol types plus host and controller clients (TS).     |
 
 `apps/` holds deployables (games and the relay). `packages/` holds code shared by more than one app.
 

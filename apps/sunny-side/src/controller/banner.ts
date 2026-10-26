@@ -4,7 +4,7 @@ import type { PlayerColorId } from '../shared/messages';
 import { el } from './dom';
 import { colorOnVar, colorVar } from './screens/common';
 
-export const DEFAULT_BANNER_TEXT = 'Sunny Side Shove';
+export const DEFAULT_BANNER_TEXT = 'Sunny Side Slam';
 
 export interface Banner {
   el: HTMLElement;

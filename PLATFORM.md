@@ -10,7 +10,7 @@ A series of same-room party games. A shared screen (TV/laptop browser) runs the 
 
 | Game | App | Status |
 | --- | --- | --- |
-| Sunny Side Shove | `apps/sunny-side` | Shipped (v1) |
+| Sunny Side Slam | `apps/sunny-side` | Shipped (v1) |
 | Fort Frenzy | `apps/fort-frenzy` | Planning |
 
 ## 2. Architecture (settled)

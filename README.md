@@ -10,7 +10,7 @@ Same-room party games: the TV runs the game in a browser, phones are the control
 | Path                  | Package           | What                                                       |
 | --------------------- | ----------------- | ---------------------------------------------------------- |
 | `apps/relay`          | `@pcg/relay`      | Game-agnostic WebSocket relay (Fly.io)                     |
-| `apps/sunny-side`     | `@pcg/sunny-side` | Sunny Side Shove: host (`/`) + phone controller (`/play`)  |
+| `apps/sunny-side`     | `@pcg/sunny-side` | Sunny Side Slam: host (`/`) + phone controller (`/play`)   |
 | `apps/fort-frenzy`    | (none yet)        | Fort Frenzy: in planning (spec only)                       |
 | `packages/net-client` | `@pcg/net-client` | Relay protocol types + host/controller clients (TS source) |
 
