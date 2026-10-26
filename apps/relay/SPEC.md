@@ -23,7 +23,7 @@
 | --- | --- | --- |
 | `port` | `PORT` | 8787 (Fly: 8080) |
 | `playerReconnectMs` | `PLAYER_RECONNECT_MS` | 30 000 |
-| `hostReclaimMs` | `HOST_RECLAIM_MS` | 60 000 |
+| `hostReclaimMs` | `HOST_RECLAIM_MS` | 120 000 |
 | `pingIntervalMs` | `PING_INTERVAL_MS` | 5 000 |
 | `maxMissedPings` | `MAX_MISSED_PINGS` | 2 |
 | `maxPayloadBytes` | — | 16 KB |
@@ -55,7 +55,7 @@ Host `send` to an unknown or disconnected `to` is dropped silently.
 
 - Phone join → relay issues `playerId` + reconnect token (phone stores it in `sessionStorage`). Rejoin within the player window (~30 s) reclaims the same slot.
 - **Player key:** a random ID the phone generates and keeps in `localStorage`, scoped to the game ID + room code (`getPlayerKey(code, storage?, game?)`). Sent with every join and passed through to the host. Survives iOS killing the tab (which wipes `sessionStorage`), so the host can recognize a late rejoin. Opaque to the relay.
-- Host gets a host token. If the host tab drops/refreshes, the room survives the host window (~60 s); the host reclaims it and receives the current roster (`{ playerId, playerKey, connected }[]`). While the host is away, phones get `{ t: "host", status: "away" }`, then `"back"` on reclaim. A phone that joins while the host is away gets `joined` then `host away`; the host learns of it only from the `reclaim` roster. If the window expires, phones get `error room-closed`.
+- Host gets a host token. If the host tab drops/refreshes, the room survives the host window (~120 s); the host reclaims it and receives the current roster (`{ playerId, playerKey, connected }[]`). While the host is away, phones get `{ t: "host", status: "away" }`, then `"back"` on reclaim. A phone that joins while the host is away gets `joined` then `host away`; the host learns of it only from the `reclaim` roster. If the window expires, phones get `error room-closed`.
 - A token rejoin or host `reclaim` while the old socket is still open takes over the slot (old socket closed 1000, no `left` / `away`).
 - Relay emits `peer` events (`joined` / `left` / `rejoined`); **the game decides** what they mean (disconnect rules, late-rejoin matching, …).
 
@@ -97,3 +97,4 @@ Host `send` to an unknown or disconnected `to` is dropped silently.
 | 1 | 2026-10-22 | Relay protocol | Hub-and-spoke, JSON, 4-letter codes, token reconnect, heartbeat, auto-admit + `lock`/`kick` | Instant joins and no pending-join state; lock/kick are room mechanics, so the relay stays game-agnostic. Rejected: host-approved joins (pending state, stalls when host is away). (Was Sunny Side #11.) |
 | 2 | 2026-10-22 | Host status | Relay → phones `{ t: "host", status: "away" \| "back" }`; error codes `room-closed`, `bad-request`; `GET /healthz` | Phones need to show the host-away overlay and learn when the room dies. (Was Sunny Side #27.) |
 | 3 | 2026-10-26 | Own spec | Relay spec moved out of Sunny Side's `SPEC.md` into `apps/relay/SPEC.md` | Every game depends on it; the second game shouldn't have to read the first game's spec for it. |
+| 4 | 2026-10-26 | Host reclaim window | 120 s for every game (was 60 s); one relay default, no per-room option | Covers a laptop waking and rejoining Wi-Fi or a TV coming back from standby with margin. Longer buys little: the host token is in `sessionStorage`, so a closed tab or a browser crash can't reclaim at any length (moving it to `localStorage` is a separate decision), and past ~2 min players have given up on the "host away" overlay. Fort Frenzy's spec asked for ~2 min. |

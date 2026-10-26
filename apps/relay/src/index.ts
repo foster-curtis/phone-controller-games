@@ -12,7 +12,7 @@ export interface RelayOptions {
   host?: string;
   /** Phone reconnect window. Default 30 000. */
   playerReconnectMs?: number;
-  /** Host reclaim window. Default 60 000. */
+  /** Host reclaim window. Default 120 000. */
   hostReclaimMs?: number;
   /** Heartbeat interval. Default 5 000. */
   pingIntervalMs?: number;
@@ -31,7 +31,7 @@ export interface Relay {
 export const RELAY_DEFAULTS = {
   port: 8787,
   playerReconnectMs: 30_000,
-  hostReclaimMs: 60_000,
+  hostReclaimMs: 120_000,
   pingIntervalMs: 5_000,
   maxMissedPings: 2,
   maxPayloadBytes: 16 * 1024,
