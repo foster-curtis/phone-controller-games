@@ -8,6 +8,14 @@ import type { ScreenKind } from '../src/shared/messages';
 /** Phone viewport: landscape, so the rotate overlay stays away. */
 export const PHONE_VIEWPORT = { width: 844, height: 390 };
 
+/**
+ * Closes every context a test opened on the shared browser (they aren't closed automatically), so
+ * hosts left running by one spec don't load the next. Use as `test.afterEach(closeContexts)`.
+ */
+export async function closeContexts({ browser }: { browser: Browser }): Promise<void> {
+  for (const context of browser.contexts()) await context.close();
+}
+
 export async function blockFonts(context: BrowserContext): Promise<void> {
   await context.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, (route) => route.abort());
 }

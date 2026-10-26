@@ -11,7 +11,10 @@ import {
   playerByName,
   screen,
   startMatch,
+  closeContexts,
 } from './helpers';
+
+test.afterEach(closeContexts);
 
 test('host lobby → round → ghost → results → next round', async ({ browser, baseURL }) => {
   const host = await openHost(browser);

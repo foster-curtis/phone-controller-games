@@ -1,7 +1,9 @@
 // On-screen keyboard: the name step and the lobby rename popup stay visible above it. A keyboard
 // is simulated by shrinking the viewport height at the same width (what the visual viewport does).
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { blockFonts, joinPhone, openHost, screen } from './helpers';
+import { closeContexts, blockFonts, joinPhone, openHost, screen } from './helpers';
+
+test.afterEach(closeContexts);
 
 const W = 568;
 const H = 320;

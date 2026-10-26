@@ -1,6 +1,8 @@
 // Host visibility pause (SPEC §8): host tab hidden → phones show gamePaused; visible → they leave it.
 import { expect, test, type Page } from '@playwright/test';
-import { joinPhone, openHost, playerByName, screen, startMatch } from './helpers';
+import { closeContexts, joinPhone, openHost, playerByName, screen, startMatch } from './helpers';
+
+test.afterEach(closeContexts);
 
 async function setHostVisibility(page: Page, state: 'hidden' | 'visible'): Promise<void> {
   await page.evaluate((s) => {
