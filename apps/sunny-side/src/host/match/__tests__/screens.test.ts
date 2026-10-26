@@ -23,6 +23,7 @@ describe('screens', () => {
     h.join('a');
     h.join('b');
     h.join('c');
+    h.readyAll();
     h.match.hostAction('start'); // countdown
     h.runMs(3000); // playing
     h.join('s'); // spectating
@@ -79,6 +80,7 @@ describe('screens', () => {
     const h = setup();
     for (const id of ['a', 'b', 'c']) h.join(id);
     h.match.playerLeft('c');
+    h.readyAll();
     h.match.hostAction('start');
     h.match.playerRejoined('c', 'key-c');
     expect(h.last('c').kind).toBe('spectating');

@@ -177,8 +177,9 @@ export function sortedStandings(players: readonly PlayerView[]): PlayerView[] {
   return [...players].sort((a, b) => b.score - a.score || a.joinIndex - b.joinIndex);
 }
 
+/** Start / Next round / Rematch enabled (the match decides; lobby Start also waits for Ready). */
 export function canStart(view: MatchView): boolean {
-  return view.players.filter((p) => p.connected && !p.left).length >= 2;
+  return view.canStart;
 }
 
 /**

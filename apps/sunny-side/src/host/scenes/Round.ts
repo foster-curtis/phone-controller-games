@@ -5,7 +5,7 @@ import * as Phaser from 'phaser';
 import { EMOJI } from '../../shared/messages';
 import { theme } from '../../shared/theme';
 import type { PlayerView } from '../match';
-import { drawArena } from '../render/arena';
+import { arenaGeometry, drawArena, drawCounter, panFitScale } from '../render/arena';
 import { drawEgg, JiggleTracker, RING_WIDTH } from '../render/egg';
 import { EmojiLayer, EmojiRenderer } from '../render/emojiLayer';
 import { drawGhost, drawPuff, GHOST_RADIUS, PuffTracker } from '../render/ghost';
@@ -18,6 +18,9 @@ const CX = WIDTH / 2;
 const CY = HEIGHT / 2;
 
 export class RoundScene extends Phaser.Scene {
+  /** Counter background (never scaled). */
+  private bg!: Phaser.GameObjects.Graphics;
+  /** Pan and everything on it, scaled about the screen center so a big (easy) pan fits. */
   private g!: Phaser.GameObjects.Graphics;
   private countdown!: Phaser.GameObjects.Text;
   private hud: Phaser.GameObjects.GameObject[] = [];
@@ -39,6 +42,7 @@ export class RoundScene extends Phaser.Scene {
     const { runtime } = hostContext(this);
     this.cameras.main.setBackgroundColor(theme.color.cream.hex);
     this.refresh = createRefresher();
+    this.bg = this.add.graphics().setDepth(0);
     this.g = this.add.graphics().setDepth(1);
     this.hud = [];
     this.emoji.clear();
@@ -91,8 +95,14 @@ export class RoundScene extends Phaser.Scene {
     );
 
     const snap = runtime.snapshot();
+    const s = panFitScale(arenaGeometry(snap.arena).panRadius);
+    drawCounter(this.bg.clear(), CX, CY, arenaGeometry(snap.arena).panRadius * s);
     const g = this.g.clear();
-    drawArena(g, CX, CY, snap.arena, now);
+    g.setScale(s).setPosition(CX * (1 - s), CY * (1 - s));
+    drawArena(g, CX, CY, snap.arena, now, false);
+    /** World (unscaled) → screen, for the name tags. */
+    const sx = (x: number) => CX + s * (x - CX);
+    const sy = (y: number) => CY + s * (y - CY);
     this.warning.setVisible(snap.arena.shrinking && view.phase === 'playing');
 
     const specs: NameTagSpec[] = [];
@@ -112,8 +122,8 @@ export class RoundScene extends Phaser.Scene {
         id: `ghost:${ghost.id}`,
         name: p?.name ?? '',
         color: p?.color ?? null,
-        x: CX + ghost.x,
-        y: CY + ghost.y - GHOST_RADIUS - 40,
+        x: sx(CX + ghost.x),
+        y: sy(CY + ghost.y - GHOST_RADIUS) - 40,
         alpha: 0.8,
       });
     }
@@ -149,8 +159,8 @@ export class RoundScene extends Phaser.Scene {
         id: egg.id,
         name: p?.name ?? '',
         color: p?.color ?? null,
-        x,
-        y: y - egg.radius - RING_WIDTH * 2 - 30,
+        x: sx(x),
+        y: sy(y - egg.radius - RING_WIDTH * 2) - 30,
       });
     }
     this.tags.sync(specs);

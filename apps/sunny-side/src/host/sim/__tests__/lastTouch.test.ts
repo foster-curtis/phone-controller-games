@@ -53,7 +53,7 @@ describe('knockout credit (sim)', () => {
       stepsUntil(s.sim, t0 + delay - 1);
       const out = ofType(pushOut(s.sim, 'b'), 'eliminated'); // eliminated at t0 + delay
       expect(out).toEqual([
-        { type: 'eliminated', id: 'b', by: expected, byGhost: false, respawnMs: 5000 },
+        { type: 'eliminated', id: 'b', by: expected, byGhost: false, respawnMs: 4000 },
       ]);
     }
   });

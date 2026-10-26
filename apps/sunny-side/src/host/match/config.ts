@@ -1,4 +1,5 @@
 // Match tuning constants (never frozen; tuned at checkpoints).
+import type { Difficulty } from '../../shared/messages';
 
 /** One fixed sim step (SPEC §8). Match time only advances through `tick(dtMs)`. */
 export const STEP_MS = 1000 / 60;
@@ -11,6 +12,9 @@ export const COUNTDOWN_MS = 3000;
 
 /** Spectator emoji cooldown per phone (SPEC §6.6; 1 s → 0.5 s at C3). */
 export const EMOJI_COOLDOWN_MS = 500;
+
+/** Pan size until the leader picks one. */
+export const DEFAULT_DIFFICULTY: Difficulty = 'medium';
 
 /** Max name length after trimming (SPEC §6.3). */
 export const NAME_MAX = 10;

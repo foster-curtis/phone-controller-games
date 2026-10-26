@@ -244,6 +244,103 @@ input {
   box-shadow: none;
 }
 
+/* Name step: a compact card shown before the lobby so the input fits small phones. */
+.screen.lobby.name-step {
+  flex-direction: column;
+  align-items: center;
+}
+
+.name-step-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 360px;
+}
+
+.name-step-card .mark {
+  width: var(--space-8);
+  height: var(--space-8);
+}
+
+.lobby-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  max-width: 100%;
+}
+
+.lobby-name .name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.icon-btn {
+  min-height: 0;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  flex: none;
+}
+
+.ready-btn {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.difficulty {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: center;
+  width: 100%;
+}
+
+.chip {
+  min-height: 40px;
+  padding: var(--space-1) var(--space-3);
+  background: var(--surface);
+  border: var(--stroke-sticker) solid var(--border-control);
+  border-radius: var(--radius-sticker);
+  touch-action: manipulation;
+}
+
+.chip.selected {
+  background: var(--accent);
+  color: var(--accent-on);
+  border-color: var(--sticker-outline);
+}
+
+.screen.lobby .overlay {
+  z-index: 5;
+}
+
+@media (max-height: 480px) {
+  .screen.lobby .swatch {
+    width: 40px;
+    height: 40px;
+  }
+
+  .screen.lobby .lobby-main {
+    gap: var(--space-2);
+  }
+
+  .screen.lobby .actions {
+    gap: var(--space-2);
+  }
+
+  .screen.lobby .btn {
+    min-height: 44px;
+    padding-top: var(--space-2);
+    padding-bottom: var(--space-2);
+  }
+}
+
 /* ---- standings ---- */
 
 .standings {
@@ -288,6 +385,11 @@ input {
 .standing .away {
   flex: none;
   color: var(--muted);
+}
+
+.standing .ready {
+  flex: none;
+  color: var(--accent-text);
 }
 
 /* Leader-only remove control: a small sticker x; the first tap arms it ("Remove?"), the second sends. */

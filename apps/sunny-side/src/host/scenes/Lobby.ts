@@ -22,6 +22,7 @@ import {
   type HostButton,
 } from './ui';
 
+const DIFFICULTY_LABEL = { easy: 'Easy', medium: 'Medium', hard: 'Hard' } as const;
 const QR_BOX = 480;
 const QR_QUIET = 4;
 const MARK_KEY = 'brand-mark';
@@ -180,7 +181,10 @@ export class LobbyScene extends Phaser.Scene {
             .setOrigin(0, 0.5)
             .setAlpha(alpha),
         );
-        const tags = [p.isLeader ? 'Leader' : '', p.left ? 'Left' : !p.connected ? 'Away' : '']
+        const tags = [
+          p.isLeader ? 'Leader' : p.ready && p.connected ? 'Ready' : '',
+          p.left ? 'Left' : !p.connected ? 'Away' : '',
+        ]
           .filter(Boolean)
           .join('  ·  ');
         if (tags) {
@@ -208,7 +212,7 @@ export class LobbyScene extends Phaser.Scene {
         this,
         L.footer.x,
         L.footer.y + 24,
-        `First to ${view.targetScore} points wins`,
+        `First to ${view.targetScore} points wins · ${DIFFICULTY_LABEL[view.difficulty]} pan`,
         'h2',
         theme.color.muted,
       ),

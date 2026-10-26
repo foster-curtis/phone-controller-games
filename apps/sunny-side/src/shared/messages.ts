@@ -59,6 +59,14 @@ export function isInput(v: unknown): v is InputTuple {
 
 export type LeaderAction = 'start' | 'next' | 'rematch' | 'lobby';
 
+/** Pan size setting (bigger pan = easier); picked by the leader in the lobby. */
+export const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
+export type Difficulty = (typeof DIFFICULTIES)[number];
+
+export function isDifficulty(v: unknown): v is Difficulty {
+  return typeof v === 'string' && (DIFFICULTIES as readonly string[]).includes(v);
+}
+
 export type ControllerMsg =
   | InputTuple
   | { t: 'profile'; name: string; color: PlayerColorId }
@@ -71,6 +79,13 @@ export type ControllerMsg =
    * Same effect as that player tapping Leave game, plus a relay kick. Self-remove is ignored.
    */
   | { t: 'leader'; action: 'remove'; playerId: string }
+  /** Leader only, lobby only: sets the pan size for the next match. */
+  | { t: 'leader'; action: 'difficulty'; difficulty: Difficulty }
+  /**
+   * Lobby only: toggles this phone's ready flag. The leader can't Start until every other connected
+   * player is ready; a ready player's color is locked until they un-ready.
+   */
+  | { t: 'ready'; ready: boolean }
   /** Leave game: full removal (score, color and spot are not kept; SPEC §6.7). */
   | { t: 'leave' };
 
@@ -84,6 +99,8 @@ export interface Standing {
   connected: boolean;
   /** Left the match: shown greyed out (SPEC §6.7). */
   left: boolean;
+  /** Lobby: tapped Ready (absent = false). */
+  ready?: boolean;
 }
 
 /** Fields every screen carries. */
@@ -145,7 +162,16 @@ export interface RoundBreakdown {
 
 /** One variant per host-driven SPEC §6.7 state. Joining, charging, self-paused and reconnecting are phone-local. */
 export type Screen =
-  | (ScreenBase & { kind: 'lobby'; takenColors: PlayerColorId[]; canStart: boolean })
+  | (ScreenBase & {
+      kind: 'lobby';
+      takenColors: PlayerColorId[];
+      /** Enough players and every non-leader is ready. */
+      canStart: boolean;
+      /** This phone tapped Ready (absent = false). */
+      ready?: boolean;
+      /** Current pan size setting (absent = 'medium'). */
+      difficulty?: Difficulty;
+    })
   | (ScreenBase & { kind: 'countdown'; ms: number })
   | (ScreenBase & { kind: 'playing' })
   | (ScreenBase & { kind: 'eliminated'; respawnMs: number })

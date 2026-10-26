@@ -50,14 +50,23 @@ export async function newPhoneContext(
   return context;
 }
 
-/** Opens `/play?code=CODE` in a fresh context, enters `name` and taps Ready. */
+/**
+ * Opens `/play?code=CODE` in a fresh context, enters `name` on the name step, taps Next, then taps
+ * Ready (non-leaders only; the leader has Start instead).
+ */
 export async function joinPhone(browser: Browser, code: string, name: string): Promise<Phone> {
   const context = await newPhoneContext(browser);
   const page = await context.newPage();
   await page.goto(`/play?code=${code}`);
   await expect(screen(page, 'lobby')).toBeVisible();
   await page.locator('input[name=name]').fill(name);
-  await page.getByRole('button', { name: 'Ready' }).click();
+  await page.getByRole('button', { name: 'Next' }).click();
+  const lobby = screen(page, 'lobby');
+  await expect(lobby.locator('.lobby-name .name')).toHaveText(name);
+  if (!(await lobby.locator('[data-leader=start]').count())) {
+    await lobby.locator('.ready-btn').click();
+    await expect(lobby.locator('.ready-btn')).toHaveAttribute('data-ready', 'true');
+  }
   return { context, page, name };
 }
 

@@ -71,7 +71,7 @@ describe('arena', () => {
     sim.place('a', r + 0.5, 0);
     const out = ofType(sim.step(), 'eliminated');
     expect(out).toEqual([
-      { type: 'eliminated', id: 'a', by: null, byGhost: false, respawnMs: 5000 },
+      { type: 'eliminated', id: 'a', by: null, byGhost: false, respawnMs: 4000 },
     ]);
     expect(maybeEgg(sim, 'a')).toBeUndefined();
   });
@@ -89,5 +89,29 @@ describe('arena', () => {
     for (const e of a.snapshot().eggs) {
       expect(Math.hypot(e.x, e.y)).toBeLessThan(a.snapshot().arena.radius - e.radius);
     }
+  });
+});
+
+describe('difficulty', () => {
+  it('easy > medium > hard start radius; hard is the original 180·√n', () => {
+    for (const n of [2, 4, 8]) {
+      expect(startRadiusFor(n, 'hard')).toBe(180 * Math.sqrt(n));
+      expect(startRadiusFor(n)).toBe(startRadiusFor(n, 'hard'));
+      expect(startRadiusFor(n, 'medium')).toBeGreaterThan(startRadiusFor(n, 'hard'));
+      expect(startRadiusFor(n, 'easy')).toBeGreaterThan(startRadiusFor(n, 'medium'));
+    }
+  });
+
+  it('startRound sizes the pan by difficulty', () => {
+    const sim = new SimWorld({ seed: 3 });
+    const spawns = [
+      { id: 'a', frozen: true },
+      { id: 'b', frozen: true },
+    ];
+    sim.startRound(spawns, { difficulty: 'easy' });
+    expect(sim.snapshot().arena.startRadius).toBe(startRadiusFor(2, 'easy'));
+    sim.startRound(spawns);
+    expect(sim.snapshot().arena.startRadius).toBe(startRadiusFor(2, 'hard'));
+    sim.destroy();
   });
 });

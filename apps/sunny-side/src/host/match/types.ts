@@ -1,6 +1,7 @@
 // Match flow contract (SPEC §6.3, §6.5, §6.7): roster, leader, rounds, scoring, screens.
 // Plain TS: no Phaser, no networking (M6 wires it to the host client). Frozen at F0: additive only.
 import type {
+  Difficulty,
   EmojiIndex,
   HostMsg,
   LeaderAction,
@@ -47,6 +48,8 @@ export interface PlayerView {
   ghost: boolean;
   /** Join order (leader handoff, standings tie-break). */
   joinIndex: number;
+  /** Lobby: tapped Ready (the leader doesn't need to). */
+  ready: boolean;
 }
 
 /** Everything the TV renders that isn't physics. */
@@ -57,6 +60,13 @@ export interface MatchView {
   round: number;
   targetScore: number;
   leaderId: string | null;
+  /** Pan size for the next / current match. */
+  difficulty: Difficulty;
+  /**
+   * Lobby: enough connected players and every one but the leader is ready. Other phases: enough
+   * connected players (Next round / Rematch).
+   */
+  canStart: boolean;
   /** ms left in the round-start countdown (phase `countdown`), else 0. */
   countdownMs: number;
   /**
@@ -88,8 +98,14 @@ export interface RemovePlayerAction {
   playerId: string;
 }
 
-/** What `Match.hostAction` takes: a leader action, or a removal (M3-fix-2). */
-export type HostAction = LeaderAction | RemovePlayerAction;
+/** Set the pan size (lobby only). */
+export interface SetDifficultyAction {
+  kind: 'difficulty';
+  difficulty: Difficulty;
+}
+
+/** What `Match.hostAction` takes: a leader action, a removal (M3-fix-2), or a difficulty change. */
+export type HostAction = LeaderAction | RemovePlayerAction | SetDifficultyAction;
 
 export interface Match {
   // relay → match

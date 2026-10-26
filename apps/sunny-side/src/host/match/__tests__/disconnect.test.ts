@@ -27,6 +27,7 @@ describe('disconnect mid-round', () => {
   it('disconnect during countdown keeps the egg frozen after the countdown', () => {
     const h = setup();
     for (const id of ['a', 'b']) h.join(id);
+    h.readyAll();
     h.match.hostAction('start');
     h.match.playerLeft('b');
     h.runMs(3000);
@@ -127,6 +128,7 @@ describe('host visibility', () => {
     const h = setup();
     h.join('a');
     h.join('b');
+    h.readyAll();
     h.match.hostAction('start');
     h.match.setHostVisible(false);
     h.runMs(5000);

@@ -66,7 +66,8 @@ function boot(): void {
   });
 }
 
-const WAITING_KINDS: ReadonlySet<Screen['kind']> = new Set(['lobby', 'results', 'matchEnd']);
+/** The lobby shows "Waiting for {leader}…" on its own Ready button once the player is ready. */
+const WAITING_KINDS: ReadonlySet<Screen['kind']> = new Set(['results', 'matchEnd']);
 
 /**
  * "Waiting for {leader}…" under the (empty) leader actions on non-leader phones (SPEC §6.5). The

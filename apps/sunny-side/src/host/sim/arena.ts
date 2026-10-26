@@ -1,13 +1,14 @@
 // Circular, shrinking pan (SPEC §6.1 Arena, §6.4 Ring-out / Shrink). Pure functions of the tick.
+import type { Difficulty } from '../../shared/messages';
 import { SIM_CONFIG, msToSteps } from './config';
 
 const A = SIM_CONFIG.arena;
 export const HOLD_STEPS = msToSteps(A.holdMs);
 export const SHRINK_STEPS = msToSteps(A.shrinkMs);
 
-/** Start radius ∝ √n (constant area per egg); strictly increasing in n. */
-export function startRadiusFor(playerCount: number): number {
-  return A.radiusPerSqrtN * Math.sqrt(Math.max(1, playerCount));
+/** Start radius ∝ √n (constant area per egg); strictly increasing in n. Default difficulty: hard. */
+export function startRadiusFor(playerCount: number, difficulty: Difficulty = 'hard'): number {
+  return A.radiusPerSqrtN * A.difficultyScale[difficulty] * Math.sqrt(Math.max(1, playerCount));
 }
 
 export function minRadiusFor(startRadius: number): number {

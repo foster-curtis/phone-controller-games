@@ -81,12 +81,12 @@ tsconfig.base.json  pnpm-workspace.yaml
 ### 6.2 Ghosts
 
 - **Body:** Matter **sensor** (detects overlaps, no collision response). Passes through living players.
-- **Spawn:** **5 s** after elimination.
+- **Spawn:** **4 s** after elimination (was 5 s; changed 2026-10-26).
 - **Movement:** free-roaming over the arena via joystick.
 - **Ability (press either button):** radial pulse/shove.
   - Weak: ~⅓ of a dash hit. Can tip someone off an edge, can't launch them.
   - Telegraphed: ~0.4 s visible wind-up ring before it fires.
-  - Cooldown: ~4 s.
+  - Cooldown: ~3 s (was ~4 s; changed 2026-10-26).
 - **No charge as a ghost:** holding does nothing extra; each press is one pulse attempt.
 - **Scoring:** ghosts never score. Ghost pulses never count as last touch and **don't reset** the last-touch timer, so the living attacker keeps KO credit.
 - **Final 1v1:** ghosts **remain active**.
@@ -94,7 +94,7 @@ tsconfig.base.json  pnpm-workspace.yaml
 
 ### 6.3 Match flow
 
-- **Lobby:** players join, enter a **name** (~10 chars, prefilled from last time via `localStorage`), pick a color; host taps Start. Names show on the TV leaderboard/standings.
+- **Lobby:** players join and first see a quick **name** step (~10 chars, prefilled from last time via `localStorage`), then the lobby: pick a color and tap **Ready** (tap again to un-ready; color is locked while ready; a pencil button opens a rename popup). The leader picks a **difficulty** (Easy / Medium / Hard: the starting pan size, bigger = easier; Hard = the original 180·√n size, Medium ×1.15, Easy ×1.3; default Medium) and taps Start once every other connected player is ready. Names show on the TV leaderboard/standings.
 - **Mid-match joiners** spectate until the next round starts.
 - **Eliminated players'** phones switch to ghost controls (§6.2) and show live standings.
 - **Disconnected players (mid-round):**
@@ -126,7 +126,7 @@ _All numbers are starting values for tuning._
 ### 6.5 Session leader
 
 - The **first player to join** is the leader. Assigned by the host from join order (a game concept; the relay is unaware).
-- Leader's phone shows **Start** in the lobby (enabled at ≥2 players) and **Next round** on the round-results screen.
+- Leader's phone shows **Start** in the lobby (enabled at ≥2 players once every other connected player is Ready) and **Next round** on the round-results screen.
 - The same controls are always available on the host (TV/laptop).
 - Other phones show "Waiting for {leader name}…".
 - **Match end:** on the winner screen the leader gets **Rematch** (same players, scores reset) and **Back to lobby** (join/leave, change name/color).
@@ -152,7 +152,7 @@ Round results and the match winner screen show a **per-round points breakdown** 
 ### 6.7 Phone UI states
 
 - **Joining:** room code (prefilled from QR), connecting.
-- **Lobby:** name + color; leader also sees Start.
+- **Lobby:** name step, then color + Ready (non-leaders; the button reads "Waiting for {leader}…" once ready); leader sees difficulty + Start.
 - **Playing:** floating joystick, DASH, SLAM, **pause button** in the top-right corner above DASH/SLAM.
 - **Charging:** while SLAM is held, a tapered arc grows clockwise outside the SLAM button (9:00 to 2:00 over the 1 s gauge time), thickening toward its leading end, in `heat` darkening along its length; it flashes once in `yolk-shine` at full charge and is hidden when SLAM is not held.
 - **Eliminated:** "Respawn as a ghost in" with a very large countdown 5 → 1 beneath it; the number pulses slightly on each change.
@@ -270,6 +270,8 @@ Phone → host (JSON objects; inputs are arrays, so `Array.isArray` distinguishe
 { t: "pause" } | { t: "resume" }
 { t: "emoji", i }                      // index into the 5-emoji set
 { t: "leader", action: "start" | "next" | "rematch" | "lobby" }
+{ t: "leader", action: "difficulty", difficulty: "easy" | "medium" | "hard" }   // lobby, leader only
+{ t: "ready", ready: boolean }         // lobby
 { t: "leader", action: "remove", playerId } // leader only: remove another player (§6.5)
 { t: "leave" }                         // full removal (§6.7)
 ```

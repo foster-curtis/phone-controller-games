@@ -47,7 +47,23 @@ export function handleSegment(r: number): { x0: number; y0: number; x1: number; 
   return { x0: c * a, y0: s * a, x1: c * (a + HANDLE_LENGTH), y1: s * (a + HANDLE_LENGTH) };
 }
 
-function drawCounter(g: Phaser.GameObjects.Graphics, cx: number, cy: number, r: number): void {
+/**
+ * The biggest pan drawn at 1:1: hard difficulty with 8 eggs (180·√8 ≈ 509 px). Bigger (easy /
+ * medium) pans are drawn scaled down to this radius so they still fit the 1080 px tall canvas.
+ */
+export const FIT_PAN_RADIUS = 510;
+
+/** Render scale for a pan of radius `r` (1 unless it's bigger than `FIT_PAN_RADIUS`). */
+export function panFitScale(r: number): number {
+  return Math.min(1, FIT_PAN_RADIUS / r);
+}
+
+export function drawCounter(
+  g: Phaser.GameObjects.Graphics,
+  cx: number,
+  cy: number,
+  r: number,
+): void {
   // Counter tiles and a burner ring under the pan; `cream` is the lighter surface.
   g.fillStyle(theme.color.cream.num, 1);
   g.fillRect(0, 0, WIDTH, HEIGHT);
@@ -83,11 +99,13 @@ export function drawArena(
   cy: number,
   arena: SimSnapshot['arena'],
   now: number,
+  /** false: the caller draws the counter itself (e.g. on an unscaled layer). */
+  counter = true,
 ): void {
   const geo = arenaGeometry(arena);
   const R = geo.panRadius;
   const edge = theme.stroke.sticker;
-  drawCounter(g, cx, cy, R);
+  if (counter) drawCounter(g, cx, cy, R);
   drawHandle(g, cx, cy, R);
 
   // Hard sticker shadow, then the pan body and rim.

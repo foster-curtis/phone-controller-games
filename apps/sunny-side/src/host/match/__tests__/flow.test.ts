@@ -8,6 +8,7 @@ describe('round start', () => {
     for (const id of ['a', 'b', 'c', 'd', 'e']) h.join(id);
     h.match.playerLeft('c'); // disconnected → no egg
     h.msg('d', { t: 'pause' }); // self-paused → egg, frozen
+    h.readyAll();
     h.match.hostAction('start');
     h.join('f'); // joined during countdown → spectates
     expect(h.sim.lastRound).toEqual([
@@ -23,6 +24,7 @@ describe('round start', () => {
     const h = setup();
     for (const id of ['a', 'b', 'c']) h.join(id);
     h.msg('c', { t: 'pause' });
+    h.readyAll();
     h.match.hostAction('start');
     expect(h.match.simRunning).toBe(false);
     const first = h.last('a');
@@ -48,6 +50,7 @@ describe('round start', () => {
     const input: InputTuple = [50, -20, 0, 1, 0];
     h.join('a');
     h.join('b');
+    h.readyAll();
     h.match.hostAction('start');
     h.msg('a', input);
     expect(h.sim.inputCalls).toHaveLength(0);

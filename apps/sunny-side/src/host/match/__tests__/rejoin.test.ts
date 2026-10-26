@@ -7,6 +7,7 @@ describe('late rejoin by player key', () => {
     h.join('a');
     h.join('b');
     h.msg('b', { t: 'profile', name: 'Yolko', color: 'rose' });
+    h.readyAll();
     h.match.hostAction('start');
     h.runMs(3000);
     h.eliminate('a', 'b'); // b +1 +3

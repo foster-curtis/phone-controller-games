@@ -78,9 +78,9 @@ describe('screens', () => {
     const h = mount();
     const s = sampleScreen('eliminated') as Extract<Screen, { kind: 'eliminated' }>;
     h.show(s);
-    expect(q(h.root, '.title')?.textContent).toBe('5');
-    h.show({ ...s, respawnMs: 3200 });
     expect(q(h.root, '.title')?.textContent).toBe('4');
+    h.show({ ...s, respawnMs: 2200 });
+    expect(q(h.root, '.title')?.textContent).toBe('3');
   });
 
   it('ignores unknown or malformed messages', () => {
@@ -122,15 +122,81 @@ describe('leader controls', () => {
 });
 
 describe('lobby', () => {
-  it('prefills the name from localStorage and saves it on submit', () => {
-    const h = mount({ name: 'Yolko' });
+  it('name step first: prefills from localStorage, Next saves it and shows the lobby', () => {
+    const h = mount({ name: 'Yolko', nameStep: true });
     h.show(sampleScreen('lobby'));
+    expect(q(h.root, '.swatch')).toBeNull();
     const input = q(h.root, 'input[name=name]') as HTMLInputElement;
     expect(input.value).toBe('Yolko');
     input.value = '  Benedict Eggs Extra ';
     q(h.root, 'form')?.dispatchEvent(new Event('submit', { cancelable: true }));
     expect(localStorage.getItem('sunny-side:name')).toBe('Benedict E');
     expect(h.msgs().at(-1)).toMatchObject({ t: 'profile', name: 'Benedict E', color: 'crimson' });
+    expect(q(h.root, '.name-step')).toBeNull();
+    expect(h.root.querySelectorAll('.swatch').length).toBe(8);
+    expect(q(h.root, 'input[name=name]')).toBeNull();
+  });
+
+  it('the name step shows once per page load', () => {
+    const h = mount({ nameStep: true });
+    h.show(sampleScreen('lobby'));
+    q(h.root, 'form')?.dispatchEvent(new Event('submit', { cancelable: true }));
+    h.show(sampleScreen('results'));
+    h.show(sampleScreen('lobby'));
+    expect(q(h.root, '.name-step')).toBeNull();
+  });
+
+  it('pencil opens a rename popup that sends the new name', () => {
+    const h = mount();
+    h.show(sampleScreen('lobby'));
+    (q(h.root, '[data-rename]') as HTMLButtonElement).click();
+    const popup = q(h.root, '[data-popup=rename]')!;
+    const input = popup.querySelector('input[name=name]') as HTMLInputElement;
+    input.value = 'Shelly';
+    popup.querySelector('form')?.dispatchEvent(new Event('submit', { cancelable: true }));
+    expect(h.msgs().at(-1)).toMatchObject({ t: 'profile', name: 'Shelly' });
+    expect(q(h.root, '[data-popup=rename]')).toBeNull();
+  });
+
+  it('Ready toggles: ready shows "Waiting for {leader}…" and locks the color', () => {
+    const h = mount();
+    const s = { ...sampleScreen('lobby'), isLeader: false, leaderName: 'Ana' } as Extract<
+      Screen,
+      { kind: 'lobby' }
+    >;
+    h.show(s);
+    const btn = () => q(h.root, '.ready-btn') as HTMLButtonElement;
+    expect(btn().textContent).toBe('Ready');
+    expect(q(h.root, '[data-waiting]')).toBeNull();
+    btn().click();
+    expect(h.msgs().at(-1)).toEqual({ t: 'ready', ready: true });
+    h.show({ ...s, ready: true });
+    expect(btn().textContent).toBe('Waiting for Ana…');
+    expect(
+      [...h.root.querySelectorAll<HTMLButtonElement>('.swatch')].every((b) => b.disabled),
+    ).toBe(true);
+    btn().click();
+    expect(h.msgs().at(-1)).toEqual({ t: 'ready', ready: false });
+    h.show({ ...s, ready: false });
+    expect(btn().textContent).toBe('Ready');
+    expect(q(h.root, '.swatch[data-color=sky]')?.hasAttribute('disabled')).toBe(false);
+  });
+
+  it('the leader has no Ready button, picks the difficulty, and Start follows canStart', () => {
+    const h = mount();
+    const s = { ...sampleScreen('lobby'), isLeader: true, canStart: false } as Extract<
+      Screen,
+      { kind: 'lobby' }
+    >;
+    h.show(s);
+    expect(q(h.root, '.ready-btn')).toBeNull();
+    expect((q(h.root, '[data-leader=start]') as HTMLButtonElement).disabled).toBe(true);
+    expect(q(h.root, '[data-difficulty].selected')?.dataset.difficulty).toBe('medium');
+    (q(h.root, '[data-difficulty=easy]') as HTMLButtonElement).click();
+    expect(h.msgs().at(-1)).toEqual({ t: 'leader', action: 'difficulty', difficulty: 'easy' });
+    h.show({ ...s, canStart: true, difficulty: 'easy' });
+    expect((q(h.root, '[data-leader=start]') as HTMLButtonElement).disabled).toBe(false);
+    expect(q(h.root, '[data-difficulty].selected')?.dataset.difficulty).toBe('easy');
   });
 
   it('shows 8 swatches, ring on the chosen one, taken ones disabled', () => {
