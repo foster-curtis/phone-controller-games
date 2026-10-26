@@ -29,7 +29,11 @@ export interface Harness {
   msgs(): Array<Record<string, unknown>>;
 }
 
-export function mount(opts: { name?: string } = {}): Harness {
+/**
+ * `nameStep`: keep the lobby's name step up (by default `show` taps Next on it, so lobby tests start
+ * on the main lobby).
+ */
+export function mount(opts: { name?: string; nameStep?: boolean } = {}): Harness {
   document.body.innerHTML = '<div id="app"></div>';
   const root = document.getElementById('app') as HTMLElement;
   const client = createLocalClient();
@@ -49,7 +53,11 @@ export function mount(opts: { name?: string } = {}): Harness {
     app,
     reloads,
     storage: localStorage,
-    show: (screen) => client.emit({ t: 'screen', screen }),
+    show: (screen) => {
+      client.emit({ t: 'screen', screen });
+      const step = root.querySelector('.lobby.name-step form');
+      if (step && !opts.nameStep) step.dispatchEvent(new Event('submit', { cancelable: true }));
+    },
     tuples: () => client.sent.filter(Array.isArray) as number[][],
     msgs: () => client.sent.filter((m) => !Array.isArray(m)) as Array<Record<string, unknown>>,
   };

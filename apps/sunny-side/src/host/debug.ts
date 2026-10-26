@@ -45,11 +45,11 @@ export function createDebugSim(inner: Sim): DebugSim {
   };
 
   return {
-    startRound(eggs) {
+    startRound(eggs, opts) {
       forced.clear();
       chases.clear();
       holds.clear();
-      inner.startRound(eggs);
+      inner.startRound(eggs, opts);
     },
     setFrozen: (id, frozen) => inner.setFrozen(id, frozen),
     setInput(id, input) {

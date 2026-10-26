@@ -78,7 +78,7 @@ describe('fullscreen', () => {
   it('requests fullscreen (hidden navigation UI) on the join tap', () => {
     const fn = vi.fn(() => Promise.resolve());
     (document.documentElement as unknown as Record<string, unknown>).requestFullscreen = fn;
-    const h = mount();
+    const h = mount({ nameStep: true });
     h.show(sampleScreen('lobby'));
     tap(h.root.querySelector('button[type=submit]') as HTMLElement);
     expect(fn).toHaveBeenCalledWith({ navigationUI: 'hide' });

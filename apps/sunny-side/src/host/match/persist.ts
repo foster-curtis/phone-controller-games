@@ -1,5 +1,10 @@
 // Host-refresh restore (Build decisions): roster / scores / leader / round in sessionStorage.
-import { isPlayerColorId, type PlayerColorId } from '../../shared/messages';
+import {
+  isDifficulty,
+  isPlayerColorId,
+  type Difficulty,
+  type PlayerColorId,
+} from '../../shared/messages';
 import { STORAGE_KEY } from './config';
 import type { StorageLike } from './types';
 
@@ -22,6 +27,8 @@ export interface PersistedMatch {
   winnerKey: string | null;
   nextJoinIndex: number;
   players: PersistedPlayer[];
+  /** Pan size; absent in older saves (→ default). */
+  difficulty?: Difficulty;
 }
 
 /** Writes if changed since the last write; returns the serialized form. Storage errors are swallowed. */
@@ -87,7 +94,8 @@ export function loadPersisted(storage: StorageLike): PersistedMatch | null {
     !isStrOrNull(m.winnerKey) ||
     !isNum(m.nextJoinIndex) ||
     !Array.isArray(m.players) ||
-    !m.players.every(isPlayer)
+    !m.players.every(isPlayer) ||
+    (m.difficulty !== undefined && !isDifficulty(m.difficulty))
   ) {
     return null;
   }

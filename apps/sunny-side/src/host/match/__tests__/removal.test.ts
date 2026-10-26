@@ -86,6 +86,7 @@ describe('Leave = full removal (C3 note 1)', () => {
   it('during the countdown: egg removed; ≤1 egg left ends the round once play starts', () => {
     const h = setup();
     for (const id of ['a', 'b']) h.join(id);
+    h.readyAll();
     h.match.hostAction('start');
     h.msg('b', { t: 'leave' });
     expect(h.sim.removedEggs).toEqual(['b']);

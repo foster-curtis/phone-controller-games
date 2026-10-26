@@ -19,6 +19,8 @@ export interface PlayerRecord {
   /** ms until the ghost spawns while eliminated (display only; the sim owns the delay). */
   respawnMs: number;
   joinIndex: number;
+  /** Lobby: tapped Ready. Cleared whenever the match goes (back) to the lobby. */
+  ready: boolean;
 }
 
 export function defaultName(joinIndex: number): string {
@@ -68,6 +70,7 @@ export class Roster {
       eliminated: false,
       ghost: false,
       respawnMs: 0,
+      ready: false,
       ...opts,
       joinIndex,
     };
@@ -133,5 +136,6 @@ export function standings(players: readonly PlayerRecord[]): Standing[] {
       score: p.score,
       connected: p.connected,
       left: p.left,
+      ready: p.ready,
     }));
 }

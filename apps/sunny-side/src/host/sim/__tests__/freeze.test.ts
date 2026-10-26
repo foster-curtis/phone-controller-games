@@ -58,7 +58,7 @@ describe('frozen control', () => {
     expect(hit).toBe(true);
     expect(movedAfterHit).toBeGreaterThan(0);
     expect(ofType(events, 'eliminated')).toEqual([
-      { type: 'eliminated', id: 'b', by: 'a', byGhost: false, respawnMs: 5000 },
+      { type: 'eliminated', id: 'b', by: 'a', byGhost: false, respawnMs: 4000 },
     ]);
   });
 

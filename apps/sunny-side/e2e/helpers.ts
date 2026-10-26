@@ -8,6 +8,14 @@ import type { ScreenKind } from '../src/shared/messages';
 /** Phone viewport: landscape, so the rotate overlay stays away. */
 export const PHONE_VIEWPORT = { width: 844, height: 390 };
 
+/**
+ * Closes every context a test opened on the shared browser (they aren't closed automatically), so
+ * hosts left running by one spec don't load the next. Use as `test.afterEach(closeContexts)`.
+ */
+export async function closeContexts({ browser }: { browser: Browser }): Promise<void> {
+  for (const context of browser.contexts()) await context.close();
+}
+
 export async function blockFonts(context: BrowserContext): Promise<void> {
   await context.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, (route) => route.abort());
 }
@@ -50,14 +58,23 @@ export async function newPhoneContext(
   return context;
 }
 
-/** Opens `/play?code=CODE` in a fresh context, enters `name` and taps Ready. */
+/**
+ * Opens `/play?code=CODE` in a fresh context, enters `name` on the name step, taps Next, then taps
+ * Ready (non-leaders only; the leader has Start instead).
+ */
 export async function joinPhone(browser: Browser, code: string, name: string): Promise<Phone> {
   const context = await newPhoneContext(browser);
   const page = await context.newPage();
   await page.goto(`/play?code=${code}`);
   await expect(screen(page, 'lobby')).toBeVisible();
   await page.locator('input[name=name]').fill(name);
-  await page.getByRole('button', { name: 'Ready' }).click();
+  await page.getByRole('button', { name: 'Next' }).click();
+  const lobby = screen(page, 'lobby');
+  await expect(lobby.locator('.lobby-name .name')).toHaveText(name);
+  if (!(await lobby.locator('[data-leader=start]').count())) {
+    await lobby.locator('.ready-btn').click();
+    await expect(lobby.locator('.ready-btn')).toHaveAttribute('data-ready', 'true');
+  }
   return { context, page, name };
 }
 

@@ -13,12 +13,12 @@ function withGhost() {
 }
 
 describe('ghosts', () => {
-  it('ghostSpawned comes exactly 5 s after elimination, at the arena center', () => {
-    expect(GHOST_SPAWN_STEPS).toBe(300);
+  it('ghostSpawned comes exactly 4 s after elimination, at the arena center', () => {
+    expect(GHOST_SPAWN_STEPS).toBe(240);
     const { sim } = setup(['a', 'b', 'g'], place);
     const out = ofType(pushOut(sim, 'g'), 'eliminated');
     expect(out).toEqual([
-      { type: 'eliminated', id: 'g', by: null, byGhost: false, respawnMs: 5000 },
+      { type: 'eliminated', id: 'g', by: null, byGhost: false, respawnMs: 4000 },
     ]);
     const tOut = sim.snapshot().tick;
     let spawnedAt = -1;
@@ -27,8 +27,8 @@ describe('ghosts', () => {
       expect(sim.snapshot().ghosts.length).toBe(ofType(ev, 'ghostSpawned').length ? 1 : 0);
       if (ofType(ev, 'ghostSpawned').length) spawnedAt = sim.snapshot().tick;
     }
-    expect(spawnedAt - tOut).toBe(300);
-    expect(spawnedAt - tOut).toBe(SIM_CONFIG.ghost.spawnDelayMs / (1000 / 60));
+    expect(spawnedAt - tOut).toBe(240);
+    expect(spawnedAt - tOut).toBeCloseTo(SIM_CONFIG.ghost.spawnDelayMs / (1000 / 60));
     const g = ghost(sim, 'g');
     expect(Math.hypot(g.x, g.y)).toBeLessThan(1);
   });
@@ -97,19 +97,19 @@ describe('ghosts', () => {
     expect(egg(s.sim, 'b').vx).toBe(0); // out of range
   });
 
-  it('has a 4 s cooldown after firing (presses during it are ignored)', () => {
-    expect(PULSE_COOLDOWN_STEPS).toBe(240);
+  it('has a 3 s cooldown after firing (presses during it are ignored)', () => {
+    expect(PULSE_COOLDOWN_STEPS).toBe(180);
     const s = withGhost();
     const g = s.pads.g!;
     g.dash();
     run(s.sim, PULSE_WINDUP_STEPS + 1); // fired on the last of these steps
     expect(ghost(s.sim, 'g').cooldown).toBe(1);
-    run(s.sim, 238);
-    g.slam(); // 239 steps after firing
+    run(s.sim, 178);
+    g.slam(); // 179 steps after firing
     s.sim.step();
     expect(ghost(s.sim, 'g').windup).toBe(0);
     expect(ghost(s.sim, 'g').cooldown).toBeGreaterThan(0);
-    g.dash(); // 240 steps after firing → accepted
+    g.dash(); // 180 steps after firing → accepted
     s.sim.step();
     expect(ghost(s.sim, 'g').cooldown).toBe(0);
     expect(ghost(s.sim, 'g').windup).toBeGreaterThan(0);

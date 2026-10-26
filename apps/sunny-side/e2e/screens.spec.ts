@@ -13,7 +13,10 @@ import {
   playerByName,
   startMatch,
   type Host,
+  closeContexts,
 } from './helpers';
+
+test.afterEach(closeContexts);
 
 const OUT = join(import.meta.dirname, '__screens__');
 

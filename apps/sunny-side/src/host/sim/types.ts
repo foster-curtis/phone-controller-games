@@ -5,7 +5,7 @@
 // One `step()` advances exactly 1/60 s (SPEC §8); the host loop (src/host/loop) owns the accumulator.
 // Angles are radians, 0 = +x, increasing clockwise on screen (because +y is down). Velocities px/s.
 // Stick input uses the same axes: +x right, +y down.
-import type { InputTuple } from '../../shared/messages';
+import type { Difficulty, InputTuple } from '../../shared/messages';
 
 /** Eggs and ghosts are keyed by the owning player's id. */
 export type SimPlayerId = string;
@@ -93,8 +93,11 @@ export type SimEvent =
   | { type: 'shrinkStart' };
 
 export interface Sim {
-  /** Reset the world and place one egg per spawn (arena radius ∝ √n). Ghosts are cleared. */
-  startRound(eggs: readonly EggSpawn[]): void;
+  /**
+   * Reset the world and place one egg per spawn (arena radius ∝ √n, scaled by `difficulty`, default
+   * hard). Ghosts are cleared.
+   */
+  startRound(eggs: readonly EggSpawn[], opts?: RoundOptions): void;
   /** Freeze or unfreeze one egg; freezing stops it dead. No-op for unknown ids. */
   setFrozen(id: SimPlayerId, frozen: boolean): void;
   /**
@@ -116,6 +119,11 @@ export interface Sim {
   /** A fresh copy of the current state (safe to keep as `prev` for interpolation). */
   snapshot(): SimSnapshot;
   destroy(): void;
+}
+
+export interface RoundOptions {
+  /** Pan size: easy/medium start bigger than hard. */
+  difficulty?: Difficulty;
 }
 
 export interface SimOptions {

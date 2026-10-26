@@ -9,6 +9,7 @@ describe('host-refresh restore', () => {
     const h1 = setup(storage);
     for (const id of ['a', 'b', 'c']) h1.join(id);
     h1.msg('b', { t: 'profile', name: 'Benedict', color: 'sky' });
+    h1.readyAll();
     h1.match.hostAction('start');
     h1.runMs(3000);
     h1.eliminate('c', 'b');

@@ -33,6 +33,7 @@ describe('spectator emoji', () => {
     h.join('a');
     h.join('b');
     h.msg('a', { t: 'emoji', i: 0 }); // lobby
+    h.readyAll();
     h.match.hostAction('start');
     h.runMs(3000);
     h.msg('a', { t: 'emoji', i: 0 }); // playing

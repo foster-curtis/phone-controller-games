@@ -55,17 +55,21 @@ export const SIM_CONFIG = {
     /** Terminal speed ≈ accel / (60 × frictionAir) = 300 px/s. */
     accel: 1440,
     windupMs: 400,
-    cooldownMs: 4000,
+    /** 4000 → 3000 ms (user notes 2026-10-26). */
+    cooldownMs: 3000,
     /** Eggs whose center is within this distance of the ghost's center get pushed. */
     pulseRadius: 170,
     /** ≈ ⅓ of a dash (follows the dash: 400 → 320 px/s at C2). */
     pulseDv: 960 / 3,
-    spawnDelayMs: 5000,
+    /** Eliminated → ghost (the phone's 4…1 countdown); 5 s → 4 s (user notes 2026-10-26). */
+    spawnDelayMs: 4000,
   },
 
   arena: {
     /** Start radius = radiusPerSqrtN × √n (constant pan area per egg). */
     radiusPerSqrtN: 180,
+    /** Start-radius multiplier per difficulty (bigger pan = easier); hard is the original size. */
+    difficultyScale: { easy: 1.3, medium: 1.15, hard: 1 },
     /** Minimum radius as a fraction of the start radius. */
     minRadiusFactor: 0.4,
     /** Full size for this long, then the shrink starts (and `shrinking` turns on). */

@@ -20,12 +20,9 @@ describe('M5-fix-8: Waiting-for line sits at the end of the scroll content', () 
     expect(scr.querySelector('.actions [data-waiting]')).toBeNull();
   });
 
-  it('lobby: last child of the scrolling lobby content, not in .actions', () => {
-    const scr = show('lobby', false);
-    const line = scr.querySelector('[data-waiting]') as HTMLElement;
-    expect(line.textContent).toBe('Waiting for Ann…');
-    expect(scr.querySelector('.lobby-standings.scroll-y')!.lastElementChild).toBe(line);
-    expect(scr.querySelector('.actions [data-waiting]')).toBeNull();
+  // The lobby's Ready button reads "Waiting for {leader}…" once ready (see app.test.ts).
+  it('lobby: no separate line for non-leaders', () => {
+    expect(show('lobby', false).querySelector('[data-waiting]')).toBeNull();
   });
 
   it.each(['lobby', 'results', 'matchEnd'] as const)('%s: absent for leaders', (k) => {

@@ -1,5 +1,6 @@
 // Per-phone screen (SPEC §6.7): what each phone should show, derived from match state.
 import type {
+  Difficulty,
   PlayerColorId,
   RoundBreakdown,
   Screen,
@@ -22,12 +23,13 @@ export interface ScreenContext {
   breakdown: RoundBreakdown | null;
   standings: Standing[];
   canStart: boolean;
+  difficulty: Difficulty;
   takenColors(p: PlayerRecord): PlayerColorId[];
   /** Player has an egg on the pan this round (under their current id). */
   hasEgg(p: PlayerRecord): boolean;
 }
 
-/** Whole seconds, so the phone shows 3-2-1 / 5…1 and screens only change once per second. */
+/** Whole seconds, so the phone shows 3-2-1 / 4…1 and screens only change once per second. */
 export function ceilSecondsMs(ms: number): number {
   return Math.max(1, Math.ceil(ms / 1000 - 1e-9)) * 1000;
 }
@@ -45,7 +47,14 @@ export function screenFor(ctx: ScreenContext, p: PlayerRecord): Screen {
   if (ctx.paused) return { ...base, kind: 'gamePaused' };
   switch (ctx.phase) {
     case 'lobby':
-      return { ...base, kind: 'lobby', takenColors: ctx.takenColors(p), canStart: ctx.canStart };
+      return {
+        ...base,
+        kind: 'lobby',
+        takenColors: ctx.takenColors(p),
+        canStart: ctx.canStart,
+        ready: p.ready,
+        difficulty: ctx.difficulty,
+      };
     case 'countdown':
       if (p.spectating || !ctx.hasEgg(p)) return { ...base, kind: 'spectating' };
       return { ...base, kind: 'countdown', ms: ceilSecondsMs(ctx.countdownMs) };

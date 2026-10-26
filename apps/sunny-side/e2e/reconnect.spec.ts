@@ -12,7 +12,10 @@ import {
   players,
   screen,
   startMatch,
+  closeContexts,
 } from './helpers';
+
+test.afterEach(closeContexts);
 
 const PLAYER_RECONNECT_MS = 2000;
 

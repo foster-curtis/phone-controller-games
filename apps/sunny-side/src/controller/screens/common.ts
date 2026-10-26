@@ -19,6 +19,8 @@ export interface ScreenCtx {
   onPause(): void;
   /** Right-hand slot of the top banner; the play surface mounts its pause button here. */
   pauseSlot: HTMLElement;
+  /** Set once the player confirmed a name on the lobby's name step (once per page load). */
+  named?: boolean;
 }
 
 export interface ScreenView<S extends Screen = Screen> {
@@ -141,6 +143,7 @@ function standingRow(s: Standing, me: boolean): HTMLElement {
   dot.style.background = colorVar(s.color);
   row.append(dot, el('span', { class: 'label name', text: s.name }));
   if (!s.connected && !s.left) row.append(el('span', { class: 'caption away', text: 'away' }));
+  else if (s.ready) row.append(el('span', { class: 'caption ready', text: 'ready' }));
   row.append(el('span', { class: 'score-num', text: String(s.score) }));
   return row;
 }

@@ -1,10 +1,17 @@
 // Match state machine (SPEC §6.3, §6.5, §6.7): lobby → countdown → playing → results/matchEnd.
 // Clock-free: `tick(dtMs)` is the only source of time.
-import { isInput, isPlayerColorId, type RoundBreakdown } from '../../shared/messages';
+import {
+  isDifficulty,
+  isInput,
+  isPlayerColorId,
+  type Difficulty,
+  type RoundBreakdown,
+} from '../../shared/messages';
 import { RoundTally } from './breakdown';
 import type { SimEvent } from '../sim/types';
 import {
   COUNTDOWN_MS,
+  DEFAULT_DIFFICULTY,
   EMOJI_COOLDOWN_MS,
   KNOCKOUT_POINTS,
   MIN_PLAYERS,
@@ -40,6 +47,7 @@ export function createMatch(deps: MatchDeps): Match {
   /** Fixed when a match starts; the lobby shows the live value. */
   let matchTarget = targetScoreFor(MIN_PLAYERS);
   let leaderId: string | null = null;
+  let difficulty: Difficulty = DEFAULT_DIFFICULTY;
   let countdownMs = 0;
   let survivorId: string | null = null;
   let winnerId: string | null = null;
@@ -80,8 +88,11 @@ export function createMatch(deps: MatchDeps): Match {
     return inRound() && eggs.has(p.id);
   }
 
+  /** Lobby Start waits for every connected player but the leader to tap Ready. */
   function canStart(): boolean {
-    return roster.eligible().length >= MIN_PLAYERS;
+    const eligible = roster.eligible();
+    if (eligible.length < MIN_PLAYERS) return false;
+    return phase !== 'lobby' || eligible.every((p) => p.ready || p.id === leaderId);
   }
 
   function targetScore(): number {
@@ -119,6 +130,7 @@ export function createMatch(deps: MatchDeps): Match {
       breakdown,
       standings: standings(roster.players),
       canStart: canStart(),
+      difficulty,
       takenColors: (p) => roster.takenColors(p),
       hasEgg,
     };
@@ -134,6 +146,7 @@ export function createMatch(deps: MatchDeps): Match {
       leaderKey: keyOf(leaderId),
       winnerKey: phase === 'matchEnd' ? keyOf(winnerId) : null,
       nextJoinIndex: roster.nextJoinIndex,
+      difficulty,
       players: roster.players.map((p) => ({
         playerId: p.id,
         playerKey: p.playerKey,
@@ -180,13 +193,16 @@ export function createMatch(deps: MatchDeps): Match {
       }
     }
     tally.start(roster.players.filter((p) => eggs.has(p.id)));
-    sim.startRound(spawns);
+    sim.startRound(spawns, { difficulty });
     countdownMs = COUNTDOWN_MS;
     setPhase('countdown');
   }
 
   function beginMatch(): void {
-    for (const p of roster.players) p.score = 0;
+    for (const p of roster.players) {
+      p.score = 0;
+      p.ready = false;
+    }
     round = 0;
     winnerId = null;
     matchTarget = targetScoreFor(roster.eligible().length);
@@ -222,8 +238,15 @@ export function createMatch(deps: MatchDeps): Match {
   function doAction(action: HostAction): void {
     if (paused) return;
     if (typeof action === 'object') {
+      if (action.kind === 'difficulty') {
+        if (phase === 'lobby' && isDifficulty(action.difficulty)) {
+          difficulty = action.difficulty;
+          sync();
+        }
+        return;
+      }
       const target = roster.current(action.playerId);
-      if (action.kind === 'remove' && target) removePlayer(target, false);
+      if (target) removePlayer(target, false);
       return;
     }
     switch (action) {
@@ -247,6 +270,7 @@ export function createMatch(deps: MatchDeps): Match {
             p.spectating = false;
             p.eliminated = false;
             p.ghost = false;
+            p.ready = false;
           }
           round = 0;
           winnerId = null;
@@ -298,10 +322,19 @@ export function createMatch(deps: MatchDeps): Match {
     switch (msg.t) {
       case 'profile': {
         if (typeof msg.name !== 'string' || !isPlayerColorId(msg.color)) return;
-        roster.setProfile(p, msg.name, msg.color);
+        // A ready player's name and color are locked until they un-ready.
+        if (!p.ready) roster.setProfile(p, msg.name, msg.color);
         emit({ type: 'roster' });
         // Always resync this phone so a rejected color snaps back.
         lastSent.delete(p.id);
+        sync();
+        return;
+      }
+      case 'ready': {
+        const ready = msg.ready === true;
+        if (phase !== 'lobby' || p.ready === ready) return;
+        p.ready = ready;
+        emit({ type: 'roster' });
         sync();
         return;
       }
@@ -325,6 +358,12 @@ export function createMatch(deps: MatchDeps): Match {
       case 'leader': {
         if (p.id !== leaderId) return;
         const a = msg.action;
+        if (a === 'difficulty') {
+          if (isDifficulty(msg.difficulty)) {
+            doAction({ kind: 'difficulty', difficulty: msg.difficulty });
+          }
+          return;
+        }
         if (a === 'remove') {
           // The leader can't remove themselves (they can Leave instead).
           if (typeof msg.playerId === 'string' && msg.playerId !== p.id) {
@@ -351,6 +390,7 @@ export function createMatch(deps: MatchDeps): Match {
     p.eliminated = false;
     p.ghost = false;
     p.respawnMs = 0;
+    p.ready = false;
     p.spectating = phase !== 'lobby';
   }
 
@@ -423,10 +463,12 @@ export function createMatch(deps: MatchDeps): Match {
       breakdown = null;
       leaderId = null;
       round = 0;
+      difficulty = DEFAULT_DIFFICULTY;
       const saved = loadPersisted(deps.storage);
       if (saved) {
         round = saved.round;
         matchTarget = saved.targetScore;
+        difficulty = saved.difficulty ?? DEFAULT_DIFFICULTY;
         roster.nextJoinIndex = saved.nextJoinIndex;
         for (const sp of saved.players) {
           const peer = peers.find((q) => q.playerKey === sp.playerKey);
@@ -534,6 +576,7 @@ export function createMatch(deps: MatchDeps): Match {
         alive: hasEgg(p),
         ghost: p.ghost,
         joinIndex: p.joinIndex,
+        ready: p.ready,
       }));
       return {
         phase,
@@ -541,6 +584,8 @@ export function createMatch(deps: MatchDeps): Match {
         round,
         targetScore: targetScore(),
         leaderId,
+        difficulty,
+        canStart: canStart(),
         countdownMs: phase === 'countdown' ? countdownMs : 0,
         players,
         survivorId: phase === 'results' || phase === 'matchEnd' ? survivorId : null,

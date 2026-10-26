@@ -37,7 +37,7 @@ describe('ghost knockouts (byGhost)', () => {
     const s = withGhost();
     pulseAt(s, 'a');
     const out = untilEliminated(s, 'a');
-    expect(out).toEqual({ type: 'eliminated', id: 'a', by: null, byGhost: true, respawnMs: 5000 });
+    expect(out).toEqual({ type: 'eliminated', id: 'a', by: null, byGhost: true, respawnMs: 4000 });
   });
 
   it('egg credit wins: byGhost is false when a last toucher is credited', () => {

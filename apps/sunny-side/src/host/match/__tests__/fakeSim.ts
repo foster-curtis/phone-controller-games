@@ -1,6 +1,6 @@
 // Test doubles for match tests: a recording FakeSim, in-memory storage, and a loop-like harness.
 import type { InputTuple, Screen, ScreenKind } from '../../../shared/messages';
-import type { EggSpawn, Sim, SimEvent, SimSnapshot } from '../../sim/types';
+import type { EggSpawn, RoundOptions, Sim, SimEvent, SimSnapshot } from '../../sim/types';
 import { STEP_MS } from '../config';
 import { createMatch } from '../index';
 import type { Match, MatchEvent, StorageLike } from '../types';
@@ -18,7 +18,11 @@ export class FakeSim implements Sim {
   steps = 0;
   private pending: SimEvent[] = [];
 
-  startRound(eggs: readonly EggSpawn[]): void {
+  /** Options passed to each `startRound`. */
+  roundOpts: (RoundOptions | undefined)[] = [];
+
+  startRound(eggs: readonly EggSpawn[], opts?: RoundOptions): void {
+    this.roundOpts.push(opts);
     this.rounds.push(eggs.map((e) => ({ ...e })));
     this.frozen = new Map(eggs.map((e) => [e.id, e.frozen]));
     this.inputs.clear();
@@ -130,9 +134,15 @@ export function setup(storage: StorageLike = new MemStorage()) {
     runMs(ms: number) {
       h.step(Math.round(ms / STEP_MS));
     },
-    /** Join each id (first = leader), Start from the host, run out the countdown. */
+    /** Every connected player taps Ready (lobby Start waits for everyone but the leader). */
+    readyAll() {
+      for (const p of match.view().players)
+        if (p.connected) h.msg(p.id, { t: 'ready', ready: true });
+    },
+    /** Join each id (first = leader), ready up, Start from the host, run out the countdown. */
     startGame(ids: string[]) {
       for (const id of ids) h.join(id);
+      h.readyAll();
       match.hostAction('start');
       h.runMs(3000);
     },

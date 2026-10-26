@@ -151,7 +151,7 @@ export function sampleScreen(kind: ScreenKind, color: PlayerColorId = 'crimson')
     case 'countdown':
       return { ...base, kind, ms: 3000 };
     case 'eliminated':
-      return { ...base, kind, respawnMs: 5000 };
+      return { ...base, kind, respawnMs: 4000 };
     case 'results':
       return { ...base, kind, survivorId: 'p0', breakdown: sampleBreakdown() };
     case 'matchEnd':

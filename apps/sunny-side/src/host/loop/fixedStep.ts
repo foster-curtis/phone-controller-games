@@ -58,7 +58,7 @@ export function createFixedStep(opts: FixedStepOptions = {}): FixedStep {
 /**
  * Catch-up cap that matches the frame clamp: a frame is at most `maxFrameMs` long, so up to
  * ceil(maxFrameMs / stepMs) steps are owed and none may be dropped. A lower cap makes the sim (and
- * every match timer, e.g. the 5 s ghost spawn) run slower than wall time below ~12 fps.
+ * every match timer, e.g. the 4 s ghost spawn) run slower than wall time below ~12 fps.
  */
 export function catchUpSteps(maxFrameMs: number, stepMs: number): number {
   return Math.ceil(maxFrameMs / stepMs) + 1;

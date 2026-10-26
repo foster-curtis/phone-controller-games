@@ -8,7 +8,15 @@ import { GHOST_SPAWN_STEPS, Ghost } from './ghost';
 import { InputTable, NEUTRAL_INPUT } from './inputs';
 import { LastTouch } from './lastTouch';
 import type { InputTuple } from '../../shared/messages';
-import type { EggSpawn, Sim, SimEvent, SimOptions, SimPlayerId, SimSnapshot } from './types';
+import type {
+  EggSpawn,
+  RoundOptions,
+  Sim,
+  SimEvent,
+  SimOptions,
+  SimPlayerId,
+  SimSnapshot,
+} from './types';
 
 const { Body, Composite, Engine, Events } = Matter;
 
@@ -84,7 +92,7 @@ export class SimWorld implements Sim {
     Engine.clear(this.engine);
   }
 
-  startRound(spawns: readonly EggSpawn[]): void {
+  startRound(spawns: readonly EggSpawn[], opts: RoundOptions = {}): void {
     this.disposeEngine();
     this.engine = this.createEngine();
     this.tick = 0;
@@ -97,7 +105,7 @@ export class SimWorld implements Sim {
     this.inputs.clear();
     this.contacts = [];
     this.pendingRemovals.length = 0;
-    this.startRadius = startRadiusFor(spawns.length);
+    this.startRadius = startRadiusFor(spawns.length, opts.difficulty);
     this.radius = this.startRadius;
     this.shrinking = false;
     const points = spawnPoints(spawns.length, this.startRadius, this.rng() * 2 * Math.PI);
