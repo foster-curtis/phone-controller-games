@@ -1,4 +1,4 @@
-// Player key (SPEC §7.1): random, kept in localStorage, scoped to (game, room code).
+// Player key (relay SPEC §3): random, kept in localStorage, scoped to (game, room code).
 import type { StorageLike } from './api';
 import type { RoomCode } from './protocol';
 

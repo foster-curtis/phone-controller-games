@@ -1,4 +1,4 @@
-// Screen Wake Lock (SPEC §3). Skipped on insecure origins (LAN http) and where unsupported; never throws.
+// Screen Wake Lock (PLATFORM §3). Skipped on insecure origins (LAN http) and where unsupported; never throws.
 
 interface WakeLockSentinelLike {
   release(): Promise<void>;

@@ -1,5 +1,10 @@
 # BUILD_PLAN: Sunny Side Shove
 
+> **Complete** (final handoff printed). On 2026-10-26 this file and `SPEC.md` moved from the repo root into
+> `apps/sunny-side/`; repo-wide rules went to `PLATFORM.md` and the relay protocol to `apps/relay/SPEC.md`.
+> Root scripts became per-game (`dev:sunny-side`, `dev:lan:sunny-side`, `build:sunny-side`, `e2e:sunny-side`,
+> `check:sunny-side`); commands below are updated, and milestone history is left as written.
+
 Orchestration plan for building `SPEC.md`. The orchestrator reads **only this file**. Subagents read their
 milestone entry plus the spec sections it names. All commands are POSIX sh (Git Bash on Windows), run
 from the repo root unless they say otherwise.
@@ -136,7 +141,7 @@ Brand kit files (`src/styles/brand.css`, `public/**`, `brand/**`) are owned by n
   - `ls apps/sunny-side/dist/index.html apps/sunny-side/dist/play.html` succeeds.
   - Negative probes (run once, then revert): adding `import 'phaser'` to `src/controller/main.ts` makes `pnpm check:bundle` exit non-zero; a file `src/host/sim/__probe.ts` importing `phaser` makes `pnpm lint` exit non-zero.
   - `git check-ignore -q .claude/worktrees/x && echo ok` prints `ok`.
-  - `grep -n "matter-js" SPEC.md` shows the updated §5 line; `grep -c "^| 2[678] " SPEC.md` prints `3`.
+  - `grep -n "matter-js" apps/sunny-side/SPEC.md` shows the updated §5 line; `grep -c "^| 2[678] " apps/sunny-side/SPEC.md` prints `3`.
   - `pnpm --filter @pcg/sunny-side exec vitest run src/shared/theme.test.ts` passes; changing one mirrored value in `theme.ts` makes it fail (verify once, revert).
   - Brand kit untouched (B): `git diff --quiet main -- apps/sunny-side/src/styles/brand.css apps/sunny-side/public apps/sunny-side/brand` exits 0.
 - **Risks / fallbacks:**
@@ -234,7 +239,7 @@ Brand kit files (`src/styles/brand.css`, `public/**`, `brand/**`) are owned by n
   - Wake Lock is skipped on insecure (LAN http) origins (fullscreen is not; see the M5-fix-1 decision).
   - Google Fonts may load late or not at all: the layout must hold with the fallback stacks (no fixed-width text boxes sized to Lilita One).
 - **Leave out:** vibration and gyro (SPEC §3), audio (SPEC §6.8), host code, edits to brand kit files.
-- **User checkpoint C1:** user runs `pnpm dev:lan`, opens `http://<PC-LAN-IP>:5173/play?dev=1` on an iPhone and an Android phone if available, and approves: landscape/rotate overlay, no scroll/zoom/selection, the floating joystick tracks the thumb, DASH/SLAM zones are large enough, the SLAM liquid fill, the hold-to-pause ring, and every screen and overlay in the switcher looks right **and on-brand** (fonts load, sticker style, player-color pads readable, ghost dampening). Notes become M5-fix-k.
+- **User checkpoint C1:** user runs `pnpm dev:lan:sunny-side`, opens `http://<PC-LAN-IP>:5173/play?dev=1` on an iPhone and an Android phone if available, and approves: landscape/rotate overlay, no scroll/zoom/selection, the floating joystick tracks the thumb, DASH/SLAM zones are large enough, the SLAM liquid fill, the hold-to-pause ring, and every screen and overlay in the switcher looks right **and on-brand** (fonts load, sticker style, player-color pads readable, ghost dampening). Notes become M5-fix-k.
 
 ### M6: Host app + wiring + e2e
 
@@ -247,7 +252,7 @@ Brand kit files (`src/styles/brand.css`, `public/**`, `brand/**`) are owned by n
   - `smoke.spec.ts`: the host shows a 4-letter code and a QR encoding `${origin}/play?code=CODE`; 2 controller pages open that URL and submit names; the host lobby lists both; the leader phone shows Start and the other shows "Waiting for"; leader Start → `__pcg.phase() === 'playing'` and both phones show `[data-screen=playing]`; `__pcg.debug.eliminate(p2)` → p2 shows `eliminated`, then `ghost` within 6 s; the round ends → `results` on both; leader Next → round 2 `playing`.
   - `reconnect.spec.ts`: a controller `page.reload()` mid-round → same `playerId`, `playing` again; a new browser context seeded with the same `playerKey` joining after the window → `spectating` with the restored score.
   - `pause.spec.ts`: forcing the host's `visibilityState` to hidden → phones show `gamePaused`; visible → they leave it.
-  - `pnpm dev:lan` prints the host URL with the LAN IP (verified at C2).
+  - `pnpm dev:lan:sunny-side` prints the host URL with the LAN IP (verified at C2).
   - `grep -rnE "#[0-9a-fA-F]{3,8}\b|0x[0-9a-fA-F]{6}\b|rgba?\(" apps/sunny-side/src/host --include='*.ts' | grep -v __tests__` prints nothing (colors only via `theme.ts`).
   - Brand check (B) passes.
 - **Risks / fallbacks:**
@@ -255,7 +260,7 @@ Brand kit files (`src/styles/brand.css`, `public/**`, `brand/**`) are owned by n
   - A host opened via `localhost` produces a useless QR → show a banner telling the user to open the LAN URL.
   - Phaser's own Matter plugin must not be enabled (physics is `src/host/sim`).
 - **Leave out:** M7 presentation (mark-style egg shape, slam ring, squash/glow, jiggle, emoji floaters, heat/shrink styling, sticker-styled screens, title/logo); audio.
-- **User checkpoint C2:** user runs `pnpm dev:lan`, opens the printed LAN host URL on the TV/laptop, joins with ≥2 phones (3+ if possible) via QR, plays a full match, and judges: steering feel, dash/slam weight, ring-out fairness, shrink pacing, ghost pulse strength, KO credit, match length, leader controls, reconnect (lock a phone ~10 s mid-round, then unlock), Leave + rejoin, and switching away from the host tab. Notes become fix milestones (§5 rule 9).
+- **User checkpoint C2:** user runs `pnpm dev:lan:sunny-side`, opens the printed LAN host URL on the TV/laptop, joins with ≥2 phones (3+ if possible) via QR, plays a full match, and judges: steering feel, dash/slam weight, ring-out fairness, shrink pacing, ghost pulse strength, KO credit, match length, leader controls, reconnect (lock a phone ~10 s mid-round, then unlock), Leave + rejoin, and switching away from the host tab. Notes become fix milestones (§5 rule 9).
 
 ### M7: TV presentation
 
@@ -283,7 +288,7 @@ Brand kit files (`src/styles/brand.css`, `public/**`, `brand/**`) are owned by n
   - Phaser text drawn before the brand fonts load stays in the fallback font → only create text after `loadBrandFonts()`.
   - Bone (`#e3e5e9`) is close to egg white → the player ring sits outside the ink outline so it still reads; C3 judges.
 - **Leave out:** audio (SPEC §6.8), edits to brand kit files, new mechanics or tuning outside what C2 notes route here.
-- **User checkpoint C3:** user opens the 5 PNGs in `apps/sunny-side/e2e/__screens__/`, then plays one match over `pnpm dev:lan` on the actual TV, and approves:
+- **User checkpoint C3:** user opens the 5 PNGs in `apps/sunny-side/e2e/__screens__/`, then plays one match over `pnpm dev:lan:sunny-side` on the actual TV, and approves:
   - QR/code readable from the couch; scoreboard and round number; names over eggs.
   - Eggs look like the brand mark (with the player ring telling the 8 colors apart); heat-edge shrink warning; slam ring + squash/glow + max flash; hit jiggle; ghost steam look; emoji float-up.
   - Sticker-styled lobby/title, results and winner screens; nothing clipped outside the TV-safe area.
@@ -403,7 +408,7 @@ Format: `- [M#] YYYY-MM-DD: what's blocked, what was tried, what's needed from w
 Format: `- [M#] decision: one line, with the reason.`
 
 - [plan] Physics: standalone `matter-js` in `src/host/sim` (no Phaser imports); Phaser only renders. Gives headless Vitest coverage and a parallel sim/render build. User-approved 2026-10-22; M0 updates SPEC §5 + the decision log.
-- [plan] Device testing over LAN http via `pnpm dev:lan` (Vite `--host` on 5173 + relay on 8787). Wake Lock/fullscreen/orientation lock are feature-detected and skipped on insecure origins. User-approved 2026-10-22.
+- [plan] Device testing over LAN http via `pnpm dev:lan:sunny-side` (Vite `--host` on 5173 + relay on 8787). Wake Lock/fullscreen/orientation lock are feature-detected and skipped on insecure origins. User-approved 2026-10-22.
 - [plan] Late rejoin matches by **player key** (SPEC §6.3, §7.1, decision #15); decision-log row 12's "name/color" is an error, and M0 fixes it.
 - [plan] Packages: `@pcg/relay`, `@pcg/net-client`, `@pcg/sunny-side`. net-client ships as TS source (no build step).
 - [plan] Tooling: TypeScript 5.9 strict (typescript-eslint needs TS < 6.1), Vite 8, Vitest 5 + jsdom, ESLint flat + typescript-eslint, Prettier, Playwright (Chromium only), `tsx` for relay dev.

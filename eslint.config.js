@@ -1,3 +1,5 @@
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import js from '@eslint/js';
 import { defineConfig } from 'eslint/config';
 import globals from 'globals';
@@ -12,6 +14,15 @@ const netClient = {
   message: 'sim/match are plain TS: no networking imports (M6 wires them).',
 };
 
+// Package names of everything under apps/ (games and the relay), read from their package.json so a
+// new game is covered without editing this file.
+const appsDir = join(import.meta.dirname, 'apps');
+const appPackages = readdirSync(appsDir)
+  .map((dir) => join(appsDir, dir, 'package.json'))
+  .filter((file) => existsSync(file))
+  .map((file) => JSON.parse(readFileSync(file, 'utf8')).name)
+  .map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
 export default defineConfig(
   {
     ignores: [
@@ -20,9 +31,9 @@ export default defineConfig(
       '.claude/worktrees/**',
       'playwright-report/**',
       'test-results/**',
-      'apps/sunny-side/e2e/__screens__/**',
-      'apps/sunny-side/public/**',
-      'apps/sunny-side/brand/**',
+      'apps/*/e2e/__screens__/**',
+      'apps/*/public/**',
+      'apps/*/brand/**',
     ],
   },
   js.configs.recommended,
@@ -41,15 +52,15 @@ export default defineConfig(
       '@typescript-eslint/consistent-type-imports': 'error',
     },
   },
-  // Boundary rules (frozen at F0).
+  // Boundary rules (frozen at F0), applied to every game that follows the apps/<game> layout.
   {
-    files: ['apps/sunny-side/src/host/sim/**', 'apps/sunny-side/src/host/match/**'],
+    files: ['apps/*/src/host/sim/**', 'apps/*/src/host/match/**'],
     rules: {
       'no-restricted-imports': ['error', { patterns: [phaser, netClient] }],
     },
   },
   {
-    files: ['apps/sunny-side/src/controller/**'],
+    files: ['apps/*/src/controller/**'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -73,7 +84,7 @@ export default defineConfig(
         {
           patterns: [
             {
-              regex: '(^|/)apps(/|$)|^@pcg/(relay|sunny-side)(/|$)',
+              regex: `(^|/)apps(/|$)|^(${appPackages.join('|')})(/|$)`,
               message: 'packages/** must not depend on apps/**.',
             },
           ],

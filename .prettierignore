@@ -4,11 +4,14 @@ pnpm-lock.yaml
 .claude/worktrees/
 playwright-report
 test-results
-apps/sunny-side/e2e/__screens__
+apps/*/e2e/__screens__
 apps/sunny-side/src/styles/brand.css
 apps/sunny-side/public/
 apps/sunny-side/brand/
 apps/sunny-side/index.html
 apps/sunny-side/play.html
-SPEC.md
-BUILD_PLAN.md
+PLATFORM.md
+apps/*/SPEC.md
+apps/*/spec.md
+apps/*/BUILD_PLAN.md
+apps/*/build_plan.md

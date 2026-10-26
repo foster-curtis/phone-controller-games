@@ -1,4 +1,4 @@
-// Host (TV) side of the relay (SPEC §7.1): create or reclaim a room, then route messages.
+// Host (TV) side of the relay (relay SPEC §3.1): create or reclaim a room, then route messages.
 import { RelayError } from './api';
 import type { ConnectionStatus, HostClient, HostClientOptions, HostRoom, PeerChange } from './api';
 import { Connection, Emitter } from './connection';

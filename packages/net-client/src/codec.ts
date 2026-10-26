@@ -1,4 +1,4 @@
-// Wire encoding (SPEC §7.1: JSON for all messages in v1). Kept in one place so inputs can
+// Wire encoding (relay SPEC §3: JSON for all messages in v1). Kept in one place so inputs can
 // move to a binary encoding later as a contained change.
 import type { ClientToRelay, RelayToClient } from './protocol';
 

@@ -1,4 +1,4 @@
-// Relay wire protocol (SPEC §7.1 + BUILD_PLAN §8 additions). Frozen at F0: additive changes only.
+// Relay wire protocol (relay SPEC §3). Frozen at F0: additive changes only.
 // Game-agnostic: `data` payloads are opaque to the relay and to this package.
 
 /** Room codes: 4 letters from an unambiguous alphabet (no I or O; letters only, so no 0 or 1). */

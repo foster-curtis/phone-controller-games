@@ -3,4 +3,4 @@ dist
 .claude/worktrees/
 playwright-report
 test-results
-apps/sunny-side/e2e/__screens__
+apps/*/e2e/__screens__

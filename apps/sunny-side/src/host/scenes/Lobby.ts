@@ -61,7 +61,7 @@ export class LobbyScene extends Phaser.Scene {
     if (ctx.loopback) {
       const msg = ctx.lanUrl
         ? `Phones can't reach localhost. Open ${ctx.lanUrl} on this screen for a working QR.`
-        : "Phones can't reach localhost. Open this page via the computer's LAN IP (pnpm dev:lan prints it).";
+        : "Phones can't reach localhost. Open this page via the computer's LAN IP (pnpm dev:lan:sunny-side prints it).";
       this.add.rectangle(0, 0, WIDTH, 72, theme.color.danger.num).setOrigin(0, 0).setDepth(-1);
       addText(this, WIDTH / 2, 36, msg, 'label', theme.color.dangerOn).setOrigin(0.5);
     }

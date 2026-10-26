@@ -31,7 +31,7 @@ function playRoute(): Plugin {
 }
 
 /**
- * Dev server only: prints the TV host URL with the LAN IP under Vite's own URLs (`pnpm dev:lan`) and
+ * Dev server only: prints the TV host URL with the LAN IP under Vite's own URLs (`pnpm dev:lan:sunny-side`) and
  * exposes the IP to the host page as `import.meta.env.VITE_LAN_HOST` (the localhost banner).
  */
 function lanUrl(): Plugin {

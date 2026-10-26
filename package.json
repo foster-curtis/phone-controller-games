@@ -13,12 +13,16 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "pnpm -r test",
-    "build": "pnpm --filter @pcg/sunny-side build",
+    "build": "pnpm -r build",
     "check:bundle": "node scripts/check-bundle.mjs",
     "check:routes": "node scripts/check-routes.mjs",
-    "dev": "concurrently -n relay,web -c yellow,cyan \"pnpm --filter @pcg/relay dev\" \"pnpm --filter @pcg/sunny-side dev\"",
-    "dev:lan": "concurrently -n relay,web -c yellow,cyan \"pnpm --filter @pcg/relay dev\" \"pnpm --filter @pcg/sunny-side dev --host\"",
-    "e2e": "pnpm --filter @pcg/sunny-side e2e"
+    "e2e": "pnpm -r --workspace-concurrency=1 e2e",
+    "dev:relay": "pnpm --filter @pcg/relay dev",
+    "dev:sunny-side": "concurrently -n relay,web -c yellow,cyan \"pnpm --filter @pcg/relay dev\" \"pnpm --filter @pcg/sunny-side dev\"",
+    "dev:lan:sunny-side": "concurrently -n relay,web -c yellow,cyan \"pnpm --filter @pcg/relay dev\" \"pnpm --filter @pcg/sunny-side dev --host\"",
+    "build:sunny-side": "pnpm --filter @pcg/sunny-side build",
+    "e2e:sunny-side": "pnpm --filter @pcg/sunny-side e2e",
+    "check:sunny-side": "pnpm --filter @pcg/sunny-side typecheck && eslint apps/sunny-side && prettier --check apps/sunny-side && pnpm --filter @pcg/sunny-side test && pnpm build:sunny-side && pnpm check:bundle sunny-side && pnpm check:routes sunny-side"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

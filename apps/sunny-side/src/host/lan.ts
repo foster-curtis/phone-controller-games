@@ -47,7 +47,7 @@ export function hostUrl(address: string, port: number, protocol = 'http'): strin
   return `${protocol}://${address}:${port}/`;
 }
 
-/** The line `pnpm dev:lan` prints under Vite's own URLs. */
+/** The line `pnpm dev:lan:sunny-side` prints under Vite's own URLs. */
 export function lanBanner(address: string | null, port: number): string {
   if (!address) return '  No LAN IPv4 address found: phones need the TV and phones on one Wi-Fi.';
   return `  TV host (open this on the TV/laptop): ${hostUrl(address, port)}`;

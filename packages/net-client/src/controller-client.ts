@@ -1,4 +1,4 @@
-// Phone side of the relay (SPEC §7.1): join with player key + stored reconnect token,
+// Phone side of the relay (relay SPEC §3.1): join with player key + stored reconnect token,
 // reconnect with backoff, stop for good on kick / dead room.
 import { RelayError } from './api';
 import type { ConnectionStatus, ControllerClient, ControllerClientOptions } from './api';

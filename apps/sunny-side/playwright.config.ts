@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 // E2E: its own relay (8788, 2 s player window) + Vite dev server (5174) pointed at it.
-// Ports 5173/8787 stay free for `pnpm dev` / `pnpm dev:lan`.
+// Ports 5173/8787 stay free for `pnpm dev:sunny-side` / `pnpm dev:lan:sunny-side`.
 const RELAY_PORT = 8788;
 const WEB_PORT = 5174;
 

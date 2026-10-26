@@ -1,54 +1,31 @@
 # Sunny Side Shove — SPEC
 
 > Living spec. Only **decided** items go in the body. Open questions live in §9 until we settle them.
-> Last updated: 2026-10-22
+> Repo-wide rules (architecture, phone requirements, hosting, layout): [`PLATFORM.md`](../../PLATFORM.md). Relay protocol: [`apps/relay/SPEC.md`](../relay/SPEC.md).
+> Sections that moved out are kept as stubs so `SPEC §…` citations in the code stay valid.
+> Last updated: 2026-10-26
 
 ## 1. Overview
 
 Same-room party game. A shared screen (TV/laptop browser) runs the game; 2–8 phones act as controllers via a web page (room code or QR, no install). Top-down free-for-all: players are fried eggs on a skillet whose edge is heating up, shoving each other off the pan. (Working title was "Bumper Royale".)
 
-First of a planned series (Hold the Line, Dungeon Crew). Build with clean boundaries, but don't extract shared packages until Hold the Line shows what's actually common.
+First game in the series (`PLATFORM.md` §1).
 
 ## 2. Architecture (settled)
 
-- **Same-room only.** No remote/online play.
-- **Host-authoritative.** Host browser runs the full simulation and rendering.
-- **Phones send input state only** (joystick vector + button bits) at ~20–30 Hz or on change. Never discrete move commands.
-- **Game-agnostic relay server**: rooms, join codes, host↔phone pairing, message forwarding, reconnects. No game rules. Rooms namespaced by game ID. In-memory only; no accounts, no DB.
-- **Transport:** WebSockets. WebRTC DataChannels are a possible later optimization (relay doubles as signaling; WebSocket as fallback, no TURN).
+Moved to `PLATFORM.md` §2 (same-room, host-authoritative, input-state-only phones, game-agnostic relay, WebSockets).
 
 ## 3. Phone controller requirements (settled)
 
-- `touch-action: none`, locked viewport
-- Wake Lock
-- Robust reconnect handling
-- Large, simple controls (players watch the TV)
-- No reliance on vibration (unsupported on iOS Safari)
-- Gyro, if ever used, needs HTTPS + iOS permission prompt
+Moved to `PLATFORM.md` §3.
 
 ## 4. Hosting & repo (settled)
 
-- **Relay:** Fly.io, one shared-cpu-1x machine, Dallas (`dfw`): Fly deprecated Denver (`den`), and Dallas is the nearest open region.
-- **Frontends:** static Vite builds on Vercel, one subdomain of fostercurtis.dev per game.
-- **Game domain:** `sunny-side.fostercurtis.dev`. Game ID (relay namespace): `sunny-side`.
-- **Relay domain:** `relay.fostercurtis.dev` (custom domain on Fly), shared by all games.
-- **Repo:** pnpm monorepo. Day-one layout:
+Repo-wide hosting and layout: `PLATFORM.md` §4. Relay hosting: relay SPEC §2. Sunny Side specifics:
 
-```
-apps/
-  relay/            Node WebSocket server → Fly.io
-  sunny-side/       Vite multi-page app → Vercel
-    index.html        host (TV): Phaser + Matter
-    play.html         controller (phone): no Phaser
-    src/host/  src/controller/  src/shared/
-packages/
-  net-client/       protocol types + host & controller clients
-tsconfig.base.json  pnpm-workspace.yaml
-```
-
-- `controller-kit` and `game-kit` start as folders inside the game app; extract after Hold the Line shows what's shared.
-- Controller is a separate Vite entry (not a route) so phones never download Phaser. QR → `/play?code=XXXX`.
-- Relay lives under `apps/` (deployable), not `packages/`.
+- **Game domain:** `sunny-side.fostercurtis.dev` (Vercel). Game ID (relay namespace): `sunny-side`.
+- **App layout:** `apps/sunny-side/`: `index.html` host (TV): Phaser + Matter; `play.html` controller (phone): no Phaser; `src/host/`, `src/controller/`, `src/shared/`.
+- `controller-kit` and `game-kit` live as folders inside this app until a second game shows what's shared (`PLATFORM.md` §4).
 
 ## 5. Engine & physics
 
@@ -187,53 +164,12 @@ Round results and the match winner screen show a **per-round points breakdown** 
 
 ### 7.1 Relay protocol
 
-**Topology:** hub-and-spoke through the host. Phones only talk to the host. The relay stamps `from: playerId` on every forwarded message (phones can't spoof). Host sends to one phone (`to`) or broadcasts (no `to`).
+Moved to [`apps/relay/SPEC.md`](../relay/SPEC.md) §3. How Sunny Side uses it:
 
-**Encoding:** JSON for all messages in v1. Encode/decode lives in `net-client` so inputs can move to binary later as a contained change.
-
-**Rooms:**
-
-- Created by the host with `{ game, maxPlayers }`. Relay enforces capacity (generic config, not a game rule).
-- Codes: 4 letters, unambiguous alphabet (no I/O/0/1), scoped per game ID.
-- In-memory only.
-
-**Admission:** relay **auto-admits**. Host has two generic room controls:
-
-- `lock` / `unlock`: while locked, new joins get `room-locked`; reconnects with a valid token still succeed.
-- `kick(playerId)`: closes that phone's connection and invalidates its token.
-
-**Identity & reconnect:**
-
-- Phone join → relay issues `playerId` + reconnect token (phone stores it in `sessionStorage`). Rejoin within ~30 s reclaims the same slot.
-- **Player key:** a random ID the phone generates and keeps in `localStorage`, scoped to the game ID + room code (`getPlayerKey(code, storage?, game?)`). Sent with every join and passed through to the host. Survives iOS killing the tab (which wipes `sessionStorage`), so the host can recognize a late rejoin. Opaque to the relay.
-- Host gets a host token. If the host tab drops/refreshes, the room survives ~60 s; host reclaims it and receives the current roster.
-- Relay emits `peer` events (`joined` / `left` / `rejoined`); the host decides game behavior (§6.3).
-- **Client reconnect (net-client):** after an unexpected close, status `reconnecting` with exponential backoff (250 ms doubling to a 4 s cap, jitter 75–100%); `visibilitychange`→visible or the window's `online` event retries at once (the window is injectable via `ClientEnv.window`). `kicked` / `no-room` / `room-closed` (and `room-full` / `room-locked`) stop for good: status `closed`, reason in `closeReason`.
-
-**Liveness:** relay-driven heartbeat, ping every ~5 s, drop after ~2 missed (catches sleeping iOS phones that never close the socket).
-
-**Envelope:**
-
-```ts
-// client → relay
-{ t: "create", game, maxPlayers }      // host
-{ t: "reclaim", hostToken }            // host
-{ t: "join", game, code, playerKey, token? }   // phone
-{ t: "send", to?: playerId, data }     // either side
-{ t: "lock" } | { t: "unlock" }        // host
-{ t: "kick", playerId }                // host
-
-// relay → client
-{ t: "created", code, hostToken }
-{ t: "reclaimed", code, roster }
-{ t: "joined", playerId, token }
-{ t: "peer", event: "joined" | "left" | "rejoined", playerId, playerKey }
-{ t: "msg", from, data }
-{ t: "kicked" }
-{ t: "error", code: "room-full" | "no-room" | "room-locked" | ... }
-```
-
-_Shape is indicative; exact fields finalized at implementation._
+- Game ID `sunny-side`; rooms are created with `maxPlayers` 8 (spectators count toward it).
+- The room never locks: mid-match joiners spectate (§6.3).
+- `peer` events drive the disconnect and late-rejoin rules (§6.3); a late rejoin is matched by **player key**.
+- Leave and removal end with a relay `kick` (§6.5, §6.7).
 
 ### 7.2 Controller input format
 
@@ -325,11 +261,11 @@ _None. Spec complete and ready for implementation._
 | 4   | 2026-10-22 | Ghost design        | Free-roaming sensor ghost, telegraphed weak pulse on cooldown, no scoring/credit, 5 s spawn delay                                                | Reuses controller layout; telegraph + no credit limit gang-ups and kingmaking. 5 s delay (Foster) makes eliminations land. Rejected: perimeter ghosts (shoves help players), hazard-droppers (less satisfying, extra system).                    |
 | 5   | 2026-10-22 | Ghosts in final 1v1 | Remain active                                                                                                                                    | Chaos is part of the genre; revisit after playtesting if it feels unfair.                                                                                                                                                                        |
 | 6   | 2026-10-22 | Core mechanics      | Force-based steering w/ `frictionAir` damping; dash impulse; charged slam w/ mass boost; center-crossing ring-out; hold-then-linear shrink       | Setting velocity directly would erase knockback every tick. Package keeps hits weighty and readable.                                                                                                                                             |
-| 7   | 2026-10-22 | Repo layout         | `apps/relay`, `apps/<game>` (multi-page host + controller), `packages/net-client`; kits deferred; relay at `relay.fostercurtis.dev`              | Relay contract is the one settled shared boundary; everything else waits for a second consumer. Separate controller entry keeps phone joins fast.                                                                                                |
+| 7   | 2026-10-22 | Repo layout (now `PLATFORM.md` #1) | `apps/relay`, `apps/<game>` (multi-page host + controller), `packages/net-client`; kits deferred; relay at `relay.fostercurtis.dev`              | Relay contract is the one settled shared boundary; everything else waits for a second consumer. Separate controller entry keeps phone joins fast.                                                                                                |
 | 8   | 2026-10-22 | Name + theme        | **Sunny Side Shove**: fried eggs on an overheating skillet; `sunny-side.fostercurtis.dev`, game ID `sunny-side`                                  | Fresher than sumo/bumper cars; circle-with-a-face art is cheap for a solo dev; every mechanic maps cleanly.                                                                                                                                      |
 | 9   | 2026-10-22 | Disconnect behavior | Egg stops dead, input zeroed, stays hittable during reconnect window                                                                             | Foster's call: fair to others (no runaway egg), and the disconnected player is still at risk.                                                                                                                                                    |
 | 10  | 2026-10-22 | Expired reconnect   | Egg stays as a hittable obstacle until knocked off                                                                                               | Knocking off stranded eggs is funny; normal KO rules apply.                                                                                                                                                                                      |
-| 11  | 2026-10-22 | Relay protocol      | Hub-and-spoke, JSON, 4-letter codes, token reconnect, heartbeat, auto-admit + `lock`/`kick`                                                      | Instant joins and no pending-join state; lock/kick are room mechanics, so the relay stays game-agnostic. Rejected: host-approved joins (pending state, stalls when host is away).                                                                |
+| 11  | 2026-10-22 | Relay protocol (now relay SPEC #1) | Hub-and-spoke, JSON, 4-letter codes, token reconnect, heartbeat, auto-admit + `lock`/`kick`                                                      | Instant joins and no pending-join state; lock/kick are room mechanics, so the relay stays game-agnostic. Rejected: host-approved joins (pending state, stalls when host is away).                                                                |
 | 12  | 2026-10-22 | Late rejoin         | Host restores score by matching player key                                                                                                       | One bad Wi-Fi moment shouldn't wipe a match.                                                                                                                                                                                                     |
 | 13  | 2026-10-22 | Controller input    | Two buttons (DASH/SLAM), `[x, y, buttons, dashCount, slamCount]`, press counters, floating joystick, landscape                                   | Single-button tap/hold either delays dash or adds an unwanted dash to slams. Counters make taps unmissable.                                                                                                                                      |
 | 14  | 2026-10-22 | Game loop           | Fixed 60 Hz + accumulator + render interpolation; 5-step catch-up cap; inputs via latest-state records; pause on hidden host tab; host Wake Lock | Consistent physics across 60/120 Hz displays; interpolation is cheap with few moving entities. Rejected: Matter default variable step, fixed-step without interpolation (judder on 120 Hz).                                                      |
@@ -345,6 +281,6 @@ _None. Spec complete and ready for implementation._
 | 24  | 2026-10-22 | Match end           | Leader: Rematch or Back to lobby                                                                                                                 | Covers "again!" and roster changes without touching the TV.                                                                                                                                                                                      |
 | 25  | 2026-10-22 | Leave game          | Egg stays as obstacle, slot freed, name greyed; player key restores score on return                                                              | Consistent with disconnect rules.                                                                                                                                                                                                                |
 | 26  | 2026-10-22 | Physics integration | Standalone `matter-js` in `src/host/sim` (no Phaser imports); Phaser renders only                                                                | Headless Vitest coverage of the sim and a parallel sim/render build. Refines #1 (was Phaser's built-in Matter).                                                                                                                          |
-| 27  | 2026-10-22 | Relay host status   | Relay → phones `{ t: "host", status: "away" \| "back" }`; error codes `room-closed`, `bad-request`; `GET /healthz`                                 | Phones need to show the host-away overlay and learn when the room dies; additive to §7.1.                                                                                                                                                       |
+| 27  | 2026-10-22 | Relay host status (now relay SPEC #2) | Relay → phones `{ t: "host", status: "away" \| "back" }`; error codes `room-closed`, `bad-request`; `GET /healthz`                                 | Phones need to show the host-away overlay and learn when the room dies; additive to §7.1.                                                                                                                                                       |
 | 28  | 2026-10-22 | Branding in v1      | Brand kit (`brand.css` tokens mirrored by `theme.ts`, brand fonts, code-drawn eggs in the mark's style); audio stays post-MVP                     | The kit arrived before the build, so the controller and TV are built on-brand instead of restyled later. Supersedes #16.                                                                                                                        |
 | 29  | 2026-10-24 | Leave / removal (C3) | Leave game = full removal (egg off the pan, no points; score/color/spot dropped; same key later = new player); leader phone + host can remove any other player (connected or away); emoji cooldown 0.5 s | Foster at C3: away players held spots and colors with no way to clear them; Leave should mean gone. Disconnects still keep the spot. Supersedes #25 and the 1 s in #22. |
