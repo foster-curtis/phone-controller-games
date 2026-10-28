@@ -1,0 +1,845 @@
+{
+  "id": "artificer",
+  "viewBox": [
+    19,
+    16,
+    103,
+    107
+  ],
+  "views": {
+    "side": {
+      "foot": [
+        66,
+        116
+      ],
+      "parts": {
+        "pack": {
+          "frame": "artificer/side/pack",
+          "pivot": [
+            45.3,
+            42.2
+          ],
+          "parent": "torso",
+          "at": [
+            45.3,
+            42.2
+          ]
+        },
+        "cell1": {
+          "frame": "artificer/side/cell1",
+          "pivot": [
+            45.3,
+            42.2
+          ],
+          "parent": "pack",
+          "at": [
+            45.3,
+            42.2
+          ]
+        },
+        "cell2": {
+          "frame": "artificer/side/cell2",
+          "pivot": [
+            45.3,
+            42.2
+          ],
+          "parent": "pack",
+          "at": [
+            45.3,
+            42.2
+          ]
+        },
+        "cell3": {
+          "frame": "artificer/side/cell3",
+          "pivot": [
+            45.3,
+            42.2
+          ],
+          "parent": "pack",
+          "at": [
+            45.3,
+            42.2
+          ]
+        },
+        "slots": {
+          "frame": "artificer/side/slots",
+          "pivot": [
+            45.3,
+            42.2
+          ],
+          "parent": "pack",
+          "at": [
+            45.3,
+            42.2
+          ]
+        },
+        "core1-full": {
+          "frame": "artificer/side/core1-full",
+          "pivot": [
+            45.3,
+            42.2
+          ],
+          "parent": "pack",
+          "at": [
+            45.3,
+            42.2
+          ],
+          "emissive": true
+        },
+        "core1-half": {
+          "frame": "artificer/side/core1-half",
+          "pivot": [
+            45.3,
+            42.2
+          ],
+          "parent": "pack",
+          "at": [
+            45.3,
+            42.2
+          ],
+          "emissive": true
+        },
+        "core2-full": {
+          "frame": "artificer/side/core2-full",
+          "pivot": [
+            45.3,
+            42.2
+          ],
+          "parent": "pack",
+          "at": [
+            45.3,
+            42.2
+          ],
+          "emissive": true
+        },
+        "core2-half": {
+          "frame": "artificer/side/core2-half",
+          "pivot": [
+            45.3,
+            42.2
+          ],
+          "parent": "pack",
+          "at": [
+            45.3,
+            42.2
+          ],
+          "emissive": true
+        },
+        "core3-full": {
+          "frame": "artificer/side/core3-full",
+          "pivot": [
+            45.3,
+            42.2
+          ],
+          "parent": "pack",
+          "at": [
+            45.3,
+            42.2
+          ],
+          "emissive": true
+        },
+        "core3-half": {
+          "frame": "artificer/side/core3-half",
+          "pivot": [
+            45.3,
+            42.2
+          ],
+          "parent": "pack",
+          "at": [
+            45.3,
+            42.2
+          ],
+          "emissive": true
+        },
+        "backleg": {
+          "frame": "artificer/side/backleg",
+          "pivot": [
+            60.5,
+            90
+          ],
+          "parent": "torso",
+          "at": [
+            60.5,
+            90
+          ]
+        },
+        "torso": {
+          "frame": "artificer/side/torso",
+          "pivot": [
+            66.5,
+            86
+          ],
+          "at": [
+            66.5,
+            86
+          ]
+        },
+        "torso-glow": {
+          "frame": "artificer/side/torso-glow",
+          "pivot": [
+            66.5,
+            86
+          ],
+          "parent": "torso",
+          "at": [
+            66.5,
+            86
+          ],
+          "emissive": true
+        },
+        "frontleg": {
+          "frame": "artificer/side/frontleg",
+          "pivot": [
+            72.0,
+            90
+          ],
+          "parent": "torso",
+          "at": [
+            72.0,
+            90
+          ]
+        },
+        "frontleg-glow": {
+          "frame": "artificer/side/frontleg-glow",
+          "pivot": [
+            72.0,
+            90
+          ],
+          "parent": "frontleg",
+          "at": [
+            72.0,
+            90
+          ],
+          "emissive": true
+        },
+        "helm": {
+          "frame": "artificer/side/helm",
+          "pivot": [
+            68.0,
+            47
+          ],
+          "parent": "torso",
+          "at": [
+            68.0,
+            47
+          ]
+        },
+        "helm-glow": {
+          "frame": "artificer/side/helm-glow",
+          "pivot": [
+            68.0,
+            47
+          ],
+          "parent": "helm",
+          "at": [
+            68.0,
+            47
+          ],
+          "emissive": true
+        },
+        "helmcap": {
+          "frame": "artificer/side/helmcap",
+          "pivot": [
+            68.0,
+            47
+          ],
+          "parent": "helm",
+          "at": [
+            68.0,
+            47
+          ],
+          "tint": "player"
+        },
+        "bezel": {
+          "frame": "artificer/side/bezel",
+          "pivot": [
+            68.0,
+            47
+          ],
+          "parent": "helm",
+          "at": [
+            68.0,
+            47
+          ],
+          "tint": "player"
+        },
+        "frontarm": {
+          "frame": "artificer/side/frontarm",
+          "pivot": [
+            74.0,
+            52.0
+          ],
+          "parent": "torso",
+          "at": [
+            74.0,
+            52.0
+          ]
+        },
+        "frontarm-glow": {
+          "frame": "artificer/side/frontarm-glow",
+          "pivot": [
+            74.0,
+            52.0
+          ],
+          "parent": "frontarm",
+          "at": [
+            74.0,
+            52.0
+          ],
+          "emissive": true
+        }
+      },
+      "order": [
+        "pack",
+        "cell1",
+        "cell2",
+        "cell3",
+        "slots",
+        "core1-full",
+        "core1-half",
+        "core2-full",
+        "core2-half",
+        "core3-full",
+        "core3-half",
+        "backleg",
+        "torso",
+        "torso-glow",
+        "frontleg",
+        "frontleg-glow",
+        "helm",
+        "helm-glow",
+        "helmcap",
+        "bezel",
+        "frontarm",
+        "frontarm-glow"
+      ],
+      "attach": {
+        "nametag": {
+          "part": "helm",
+          "at": [
+            68.0,
+            12
+          ]
+        },
+        "badge": {
+          "part": "helm",
+          "at": [
+            68.0,
+            -2
+          ]
+        },
+        "carry": {
+          "part": "pack",
+          "at": [
+            45.3,
+            39.2
+          ]
+        },
+        "lens": {
+          "part": "frontarm",
+          "at": [
+            102,
+            63
+          ]
+        },
+        "pack": {
+          "part": "pack",
+          "at": [
+            46,
+            42
+          ]
+        }
+      }
+    },
+    "front": {
+      "foot": [
+        66,
+        116
+      ],
+      "parts": {
+        "pack": {
+          "frame": "artificer/front/pack",
+          "pivot": [
+            66.5,
+            41.2
+          ],
+          "parent": "torso",
+          "at": [
+            66.5,
+            41.2
+          ]
+        },
+        "legs": {
+          "frame": "artificer/front/legs",
+          "pivot": [
+            67.0,
+            90
+          ],
+          "parent": "torso",
+          "at": [
+            67.0,
+            90
+          ]
+        },
+        "legs-glow": {
+          "frame": "artificer/front/legs-glow",
+          "pivot": [
+            67.0,
+            90
+          ],
+          "parent": "legs",
+          "at": [
+            67.0,
+            90
+          ],
+          "emissive": true
+        },
+        "torso": {
+          "frame": "artificer/front/torso",
+          "pivot": [
+            66.5,
+            86
+          ],
+          "at": [
+            66.5,
+            86
+          ]
+        },
+        "torso-glow": {
+          "frame": "artificer/front/torso-glow",
+          "pivot": [
+            66.5,
+            86
+          ],
+          "parent": "torso",
+          "at": [
+            66.5,
+            86
+          ],
+          "emissive": true
+        },
+        "helm": {
+          "frame": "artificer/front/helm",
+          "pivot": [
+            66.5,
+            47
+          ],
+          "parent": "torso",
+          "at": [
+            66.5,
+            47
+          ]
+        },
+        "helm-glow": {
+          "frame": "artificer/front/helm-glow",
+          "pivot": [
+            66.5,
+            47
+          ],
+          "parent": "helm",
+          "at": [
+            66.5,
+            47
+          ],
+          "emissive": true
+        },
+        "helmcap": {
+          "frame": "artificer/front/helmcap",
+          "pivot": [
+            66.5,
+            47
+          ],
+          "parent": "helm",
+          "at": [
+            66.5,
+            47
+          ],
+          "tint": "player"
+        },
+        "bezel": {
+          "frame": "artificer/front/bezel",
+          "pivot": [
+            66.5,
+            47
+          ],
+          "parent": "helm",
+          "at": [
+            66.5,
+            47
+          ],
+          "tint": "player"
+        },
+        "arms": {
+          "frame": "artificer/front/arms",
+          "pivot": [
+            48.0,
+            52.0
+          ],
+          "parent": "torso",
+          "at": [
+            48.0,
+            52.0
+          ]
+        },
+        "arms-glow": {
+          "frame": "artificer/front/arms-glow",
+          "pivot": [
+            48.0,
+            52.0
+          ],
+          "parent": "arms",
+          "at": [
+            48.0,
+            52.0
+          ],
+          "emissive": true
+        }
+      },
+      "order": [
+        "pack",
+        "legs",
+        "legs-glow",
+        "torso",
+        "torso-glow",
+        "helm",
+        "helm-glow",
+        "helmcap",
+        "bezel",
+        "arms",
+        "arms-glow"
+      ],
+      "attach": {
+        "nametag": {
+          "part": "helm",
+          "at": [
+            66.5,
+            12
+          ]
+        },
+        "badge": {
+          "part": "helm",
+          "at": [
+            66.5,
+            -2
+          ]
+        },
+        "carry": {
+          "part": "pack",
+          "at": [
+            66.5,
+            38.2
+          ]
+        },
+        "lens": {
+          "part": "arms",
+          "at": [
+            87.5,
+            70
+          ]
+        },
+        "pack": {
+          "part": "pack",
+          "at": [
+            66.5,
+            41
+          ]
+        }
+      }
+    },
+    "back": {
+      "foot": [
+        66,
+        116
+      ],
+      "parts": {
+        "legs": {
+          "frame": "artificer/back/legs",
+          "pivot": [
+            67.0,
+            90
+          ],
+          "parent": "torso",
+          "at": [
+            67.0,
+            90
+          ]
+        },
+        "torso": {
+          "frame": "artificer/back/torso",
+          "pivot": [
+            66.5,
+            86
+          ],
+          "at": [
+            66.5,
+            86
+          ]
+        },
+        "arms": {
+          "frame": "artificer/back/arms",
+          "pivot": [
+            63.5,
+            48
+          ],
+          "parent": "torso",
+          "at": [
+            63.5,
+            48
+          ]
+        },
+        "arms-glow": {
+          "frame": "artificer/back/arms-glow",
+          "pivot": [
+            63.5,
+            48
+          ],
+          "parent": "arms",
+          "at": [
+            63.5,
+            48
+          ],
+          "emissive": true
+        },
+        "helm": {
+          "frame": "artificer/back/helm",
+          "pivot": [
+            66.5,
+            47
+          ],
+          "parent": "torso",
+          "at": [
+            66.5,
+            47
+          ]
+        },
+        "helmcap": {
+          "frame": "artificer/back/helmcap",
+          "pivot": [
+            66.5,
+            47
+          ],
+          "parent": "helm",
+          "at": [
+            66.5,
+            47
+          ],
+          "tint": "player"
+        },
+        "pack": {
+          "frame": "artificer/back/pack",
+          "pivot": [
+            66.5,
+            42.2
+          ],
+          "parent": "torso",
+          "at": [
+            66.5,
+            42.2
+          ]
+        },
+        "cell1": {
+          "frame": "artificer/back/cell1",
+          "pivot": [
+            66.5,
+            42.2
+          ],
+          "parent": "pack",
+          "at": [
+            66.5,
+            42.2
+          ]
+        },
+        "cell2": {
+          "frame": "artificer/back/cell2",
+          "pivot": [
+            66.5,
+            42.2
+          ],
+          "parent": "pack",
+          "at": [
+            66.5,
+            42.2
+          ]
+        },
+        "cell3": {
+          "frame": "artificer/back/cell3",
+          "pivot": [
+            66.5,
+            42.2
+          ],
+          "parent": "pack",
+          "at": [
+            66.5,
+            42.2
+          ]
+        },
+        "slots": {
+          "frame": "artificer/back/slots",
+          "pivot": [
+            66.5,
+            42.2
+          ],
+          "parent": "pack",
+          "at": [
+            66.5,
+            42.2
+          ]
+        },
+        "core1-full": {
+          "frame": "artificer/back/core1-full",
+          "pivot": [
+            66.5,
+            42.2
+          ],
+          "parent": "pack",
+          "at": [
+            66.5,
+            42.2
+          ],
+          "emissive": true
+        },
+        "core1-half": {
+          "frame": "artificer/back/core1-half",
+          "pivot": [
+            66.5,
+            42.2
+          ],
+          "parent": "pack",
+          "at": [
+            66.5,
+            42.2
+          ],
+          "emissive": true
+        },
+        "core2-full": {
+          "frame": "artificer/back/core2-full",
+          "pivot": [
+            66.5,
+            42.2
+          ],
+          "parent": "pack",
+          "at": [
+            66.5,
+            42.2
+          ],
+          "emissive": true
+        },
+        "core2-half": {
+          "frame": "artificer/back/core2-half",
+          "pivot": [
+            66.5,
+            42.2
+          ],
+          "parent": "pack",
+          "at": [
+            66.5,
+            42.2
+          ],
+          "emissive": true
+        },
+        "core3-full": {
+          "frame": "artificer/back/core3-full",
+          "pivot": [
+            66.5,
+            42.2
+          ],
+          "parent": "pack",
+          "at": [
+            66.5,
+            42.2
+          ],
+          "emissive": true
+        },
+        "core3-half": {
+          "frame": "artificer/back/core3-half",
+          "pivot": [
+            66.5,
+            42.2
+          ],
+          "parent": "pack",
+          "at": [
+            66.5,
+            42.2
+          ],
+          "emissive": true
+        }
+      },
+      "order": [
+        "legs",
+        "torso",
+        "arms",
+        "arms-glow",
+        "helm",
+        "helmcap",
+        "pack",
+        "cell1",
+        "cell2",
+        "cell3",
+        "slots",
+        "core1-full",
+        "core1-half",
+        "core2-full",
+        "core2-half",
+        "core3-full",
+        "core3-half"
+      ],
+      "attach": {
+        "nametag": {
+          "part": "helm",
+          "at": [
+            66.5,
+            12
+          ]
+        },
+        "badge": {
+          "part": "helm",
+          "at": [
+            66.5,
+            -2
+          ]
+        },
+        "carry": {
+          "part": "pack",
+          "at": [
+            66.5,
+            39.2
+          ]
+        },
+        "lens": {
+          "part": "arms",
+          "at": [
+            33,
+            67
+          ]
+        },
+        "pack": {
+          "part": "pack",
+          "at": [
+            66.5,
+            42
+          ]
+        }
+      }
+    }
+  },
+  "optional": {
+    "core1-full": [
+      "core1-full"
+    ],
+    "core1-half": [
+      "core1-half"
+    ],
+    "core2-full": [
+      "core2-full"
+    ],
+    "core2-half": [
+      "core2-half"
+    ],
+    "core3-full": [
+      "core3-full"
+    ],
+    "core3-half": [
+      "core3-half"
+    ]
+  }
+}

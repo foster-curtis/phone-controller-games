@@ -1,0 +1,136 @@
+{
+  "id": "bombard",
+  "viewBox": [
+    1,
+    -23,
+    141,
+    148
+  ],
+  "views": {
+    "side": {
+      "foot": [
+        71,
+        119
+      ],
+      "parts": {
+        "leg-far-rear": {
+          "frame": "bombard/side/leg-far-rear",
+          "pivot": [
+            40.8,
+            72.5
+          ],
+          "at": [
+            40.8,
+            72.5
+          ]
+        },
+        "leg-far-front": {
+          "frame": "bombard/side/leg-far-front",
+          "pivot": [
+            58.2,
+            75.4
+          ],
+          "at": [
+            58.2,
+            75.4
+          ]
+        },
+        "barrel": {
+          "frame": "bombard/side/barrel",
+          "pivot": [
+            78.5,
+            31.9
+          ],
+          "parent": "body",
+          "at": [
+            78.5,
+            31.9
+          ]
+        },
+        "leg-near-front": {
+          "frame": "bombard/side/leg-near-front",
+          "pivot": [
+            93.0,
+            75.4
+          ],
+          "at": [
+            93.0,
+            75.4
+          ]
+        },
+        "leg-near-rear": {
+          "frame": "bombard/side/leg-near-rear",
+          "pivot": [
+            72.7,
+            78.3
+          ],
+          "at": [
+            72.7,
+            78.3
+          ]
+        },
+        "rack": {
+          "frame": "bombard/side/rack",
+          "pivot": [
+            27.8,
+            63.8
+          ],
+          "parent": "body",
+          "at": [
+            27.8,
+            63.8
+          ]
+        },
+        "body": {
+          "frame": "bombard/side/body",
+          "pivot": [
+            68.3,
+            72.5
+          ],
+          "at": [
+            68.3,
+            72.5
+          ]
+        },
+        "dome": {
+          "frame": "bombard/side/dome",
+          "pivot": [
+            75.6,
+            37.7
+          ],
+          "parent": "body",
+          "at": [
+            75.6,
+            37.7
+          ]
+        }
+      },
+      "order": [
+        "leg-far-rear",
+        "leg-far-front",
+        "barrel",
+        "leg-near-front",
+        "leg-near-rear",
+        "rack",
+        "body",
+        "dome"
+      ],
+      "attach": {
+        "top": {
+          "part": "barrel",
+          "at": [
+            102.7,
+            -16.2
+          ]
+        },
+        "muzzle": {
+          "part": "barrel",
+          "at": [
+            127.6,
+            -6.5
+          ]
+        }
+      }
+    }
+  }
+}

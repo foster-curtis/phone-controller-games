@@ -8,6 +8,10 @@ apps/*/e2e/__screens__
 apps/sunny-side/src/styles/brand.css
 apps/sunny-side/public/
 apps/sunny-side/brand/
+apps/fort-frenzy/src/styles/brand.css
+apps/fort-frenzy/public/
+apps/fort-frenzy/brand/
+apps/*/art/
 apps/sunny-side/index.html
 apps/sunny-side/play.html
 PLATFORM.md

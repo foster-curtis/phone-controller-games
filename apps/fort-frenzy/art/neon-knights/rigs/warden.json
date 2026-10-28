@@ -1,0 +1,626 @@
+{
+  "id": "warden",
+  "viewBox": [
+    0,
+    0,
+    134,
+    123
+  ],
+  "views": {
+    "side": {
+      "foot": [
+        66,
+        116
+      ],
+      "parts": {
+        "backpaul": {
+          "frame": "warden/side/backpaul",
+          "pivot": [
+            42.0,
+            51
+          ],
+          "parent": "torso",
+          "at": [
+            42.0,
+            51
+          ]
+        },
+        "backleg": {
+          "frame": "warden/side/backleg",
+          "pivot": [
+            55.5,
+            94
+          ],
+          "parent": "torso",
+          "at": [
+            55.5,
+            94
+          ]
+        },
+        "torso": {
+          "frame": "warden/side/torso",
+          "pivot": [
+            66.0,
+            93
+          ],
+          "at": [
+            66.0,
+            93
+          ]
+        },
+        "torso-glow": {
+          "frame": "warden/side/torso-glow",
+          "pivot": [
+            66.0,
+            93
+          ],
+          "parent": "torso",
+          "at": [
+            66.0,
+            93
+          ],
+          "emissive": true
+        },
+        "frontleg": {
+          "frame": "warden/side/frontleg",
+          "pivot": [
+            73.5,
+            94
+          ],
+          "parent": "torso",
+          "at": [
+            73.5,
+            94
+          ]
+        },
+        "frontleg-glow": {
+          "frame": "warden/side/frontleg-glow",
+          "pivot": [
+            73.5,
+            94
+          ],
+          "parent": "frontleg",
+          "at": [
+            73.5,
+            94
+          ],
+          "emissive": true
+        },
+        "helm": {
+          "frame": "warden/side/helm",
+          "pivot": [
+            67.0,
+            57
+          ],
+          "parent": "torso",
+          "at": [
+            67.0,
+            57
+          ]
+        },
+        "helm-glow": {
+          "frame": "warden/side/helm-glow",
+          "pivot": [
+            67.0,
+            57
+          ],
+          "parent": "helm",
+          "at": [
+            67.0,
+            57
+          ],
+          "emissive": true
+        },
+        "plume": {
+          "frame": "warden/side/plume",
+          "pivot": [
+            68.0,
+            29
+          ],
+          "parent": "helm",
+          "at": [
+            68.0,
+            29
+          ],
+          "tint": "player"
+        },
+        "frontpaul": {
+          "frame": "warden/side/frontpaul",
+          "pivot": [
+            89.0,
+            49
+          ],
+          "parent": "torso",
+          "at": [
+            89.0,
+            49
+          ]
+        },
+        "frontpaul-glow": {
+          "frame": "warden/side/frontpaul-glow",
+          "pivot": [
+            89.0,
+            49
+          ],
+          "parent": "frontpaul",
+          "at": [
+            89.0,
+            49
+          ],
+          "emissive": true
+        },
+        "hammer": {
+          "frame": "warden/side/hammer",
+          "pivot": [
+            92.1,
+            88.0
+          ],
+          "parent": "gauntlet",
+          "at": [
+            92.1,
+            88.0
+          ]
+        },
+        "hammer-glow": {
+          "frame": "warden/side/hammer-glow",
+          "pivot": [
+            92.1,
+            88.0
+          ],
+          "parent": "hammer",
+          "at": [
+            92.1,
+            88.0
+          ],
+          "emissive": true
+        },
+        "gauntlet": {
+          "frame": "warden/side/gauntlet",
+          "pivot": [
+            91.0,
+            89.0
+          ],
+          "parent": "torso",
+          "at": [
+            91.0,
+            89.0
+          ]
+        }
+      },
+      "order": [
+        "backpaul",
+        "backleg",
+        "torso",
+        "torso-glow",
+        "frontleg",
+        "frontleg-glow",
+        "helm",
+        "helm-glow",
+        "plume",
+        "frontpaul",
+        "frontpaul-glow",
+        "hammer",
+        "hammer-glow",
+        "gauntlet"
+      ],
+      "attach": {
+        "nametag": {
+          "part": "helm",
+          "at": [
+            67.0,
+            17
+          ]
+        },
+        "badge": {
+          "part": "helm",
+          "at": [
+            67.0,
+            3
+          ]
+        },
+        "carry": {
+          "part": "torso",
+          "at": [
+            95,
+            75.0
+          ]
+        },
+        "hammer": {
+          "part": "hammer",
+          "at": [
+            106,
+            44
+          ]
+        }
+      }
+    },
+    "front": {
+      "foot": [
+        66,
+        116
+      ],
+      "parts": {
+        "legs": {
+          "frame": "warden/front/legs",
+          "pivot": [
+            66.0,
+            94
+          ],
+          "parent": "torso",
+          "at": [
+            66.0,
+            94
+          ]
+        },
+        "legs-glow": {
+          "frame": "warden/front/legs-glow",
+          "pivot": [
+            66.0,
+            94
+          ],
+          "parent": "legs",
+          "at": [
+            66.0,
+            94
+          ],
+          "emissive": true
+        },
+        "torso": {
+          "frame": "warden/front/torso",
+          "pivot": [
+            66.0,
+            93
+          ],
+          "at": [
+            66.0,
+            93
+          ]
+        },
+        "torso-glow": {
+          "frame": "warden/front/torso-glow",
+          "pivot": [
+            66.0,
+            93
+          ],
+          "parent": "torso",
+          "at": [
+            66.0,
+            93
+          ],
+          "emissive": true
+        },
+        "pauls": {
+          "frame": "warden/front/pauls",
+          "pivot": [
+            66.0,
+            49
+          ],
+          "parent": "torso",
+          "at": [
+            66.0,
+            49
+          ]
+        },
+        "pauls-glow": {
+          "frame": "warden/front/pauls-glow",
+          "pivot": [
+            66.0,
+            49
+          ],
+          "parent": "pauls",
+          "at": [
+            66.0,
+            49
+          ],
+          "emissive": true
+        },
+        "plume": {
+          "frame": "warden/front/plume",
+          "pivot": [
+            66.0,
+            29
+          ],
+          "parent": "helm",
+          "at": [
+            66.0,
+            29
+          ],
+          "tint": "player"
+        },
+        "helm": {
+          "frame": "warden/front/helm",
+          "pivot": [
+            66.0,
+            57
+          ],
+          "parent": "torso",
+          "at": [
+            66.0,
+            57
+          ]
+        },
+        "helm-glow": {
+          "frame": "warden/front/helm-glow",
+          "pivot": [
+            66.0,
+            57
+          ],
+          "parent": "helm",
+          "at": [
+            66.0,
+            57
+          ],
+          "emissive": true
+        },
+        "hammer": {
+          "frame": "warden/front/hammer",
+          "pivot": [
+            95.3,
+            81.0
+          ],
+          "parent": "gauntlets",
+          "at": [
+            95.3,
+            81.0
+          ]
+        },
+        "hammer-glow": {
+          "frame": "warden/front/hammer-glow",
+          "pivot": [
+            95.3,
+            81.0
+          ],
+          "parent": "hammer",
+          "at": [
+            95.3,
+            81.0
+          ],
+          "emissive": true
+        },
+        "gauntlets": {
+          "frame": "warden/front/gauntlets",
+          "pivot": [
+            67.5,
+            81.0
+          ],
+          "parent": "torso",
+          "at": [
+            67.5,
+            81.0
+          ]
+        }
+      },
+      "order": [
+        "legs",
+        "legs-glow",
+        "torso",
+        "torso-glow",
+        "pauls",
+        "pauls-glow",
+        "plume",
+        "helm",
+        "helm-glow",
+        "hammer",
+        "hammer-glow",
+        "gauntlets"
+      ],
+      "attach": {
+        "nametag": {
+          "part": "helm",
+          "at": [
+            66.0,
+            17
+          ]
+        },
+        "badge": {
+          "part": "helm",
+          "at": [
+            66.0,
+            3
+          ]
+        },
+        "carry": {
+          "part": "torso",
+          "at": [
+            66.0,
+            75.0
+          ]
+        },
+        "hammer": {
+          "part": "hammer",
+          "at": [
+            104,
+            34
+          ]
+        }
+      }
+    },
+    "back": {
+      "foot": [
+        66,
+        116
+      ],
+      "parts": {
+        "legs": {
+          "frame": "warden/back/legs",
+          "pivot": [
+            66.0,
+            94
+          ],
+          "parent": "torso",
+          "at": [
+            66.0,
+            94
+          ]
+        },
+        "legs-glow": {
+          "frame": "warden/back/legs-glow",
+          "pivot": [
+            66.0,
+            94
+          ],
+          "parent": "legs",
+          "at": [
+            66.0,
+            94
+          ],
+          "emissive": true
+        },
+        "hammer": {
+          "frame": "warden/back/hammer",
+          "pivot": [
+            36.7,
+            81.0
+          ],
+          "parent": "gauntlets",
+          "at": [
+            36.7,
+            81.0
+          ]
+        },
+        "hammer-glow": {
+          "frame": "warden/back/hammer-glow",
+          "pivot": [
+            36.7,
+            81.0
+          ],
+          "parent": "hammer",
+          "at": [
+            36.7,
+            81.0
+          ],
+          "emissive": true
+        },
+        "torso": {
+          "frame": "warden/back/torso",
+          "pivot": [
+            66.0,
+            93
+          ],
+          "at": [
+            66.0,
+            93
+          ]
+        },
+        "torso-glow": {
+          "frame": "warden/back/torso-glow",
+          "pivot": [
+            66.0,
+            93
+          ],
+          "parent": "torso",
+          "at": [
+            66.0,
+            93
+          ],
+          "emissive": true
+        },
+        "pauls": {
+          "frame": "warden/back/pauls",
+          "pivot": [
+            66.0,
+            49
+          ],
+          "parent": "torso",
+          "at": [
+            66.0,
+            49
+          ]
+        },
+        "pauls-glow": {
+          "frame": "warden/back/pauls-glow",
+          "pivot": [
+            66.0,
+            49
+          ],
+          "parent": "pauls",
+          "at": [
+            66.0,
+            49
+          ],
+          "emissive": true
+        },
+        "helm": {
+          "frame": "warden/back/helm",
+          "pivot": [
+            66.0,
+            57
+          ],
+          "parent": "torso",
+          "at": [
+            66.0,
+            57
+          ]
+        },
+        "plume": {
+          "frame": "warden/back/plume",
+          "pivot": [
+            66.0,
+            29
+          ],
+          "parent": "helm",
+          "at": [
+            66.0,
+            29
+          ],
+          "tint": "player"
+        },
+        "gauntlets": {
+          "frame": "warden/back/gauntlets",
+          "pivot": [
+            64.5,
+            81.0
+          ],
+          "parent": "torso",
+          "at": [
+            64.5,
+            81.0
+          ]
+        }
+      },
+      "order": [
+        "legs",
+        "legs-glow",
+        "hammer",
+        "hammer-glow",
+        "torso",
+        "torso-glow",
+        "pauls",
+        "pauls-glow",
+        "helm",
+        "plume",
+        "gauntlets"
+      ],
+      "attach": {
+        "nametag": {
+          "part": "helm",
+          "at": [
+            66.0,
+            17
+          ]
+        },
+        "badge": {
+          "part": "helm",
+          "at": [
+            66.0,
+            3
+          ]
+        },
+        "carry": {
+          "part": "torso",
+          "at": [
+            66.0,
+            75.0
+          ]
+        },
+        "hammer": {
+          "part": "hammer",
+          "at": [
+            28,
+            34
+          ]
+        }
+      }
+    }
+  }
+}

@@ -168,9 +168,11 @@ Applies to every theme pack. Theme packs change the drawings, not these rules.
   Enemies use the side view only (mirrored) in v1; back views for common walkers are a v2 candidate.
   The Artificer's backpack gauge only needs to read in the side and back views.
 - **Method:** vector cut-out rigs. Each character is a set of separate SVG parts (legs, torso, helm,
-  color part, weapon, emissive layer) that code moves, rotates and scales to animate. The color part is
-  tinted per player; the emissive (amber) layer is drawn last with a bloom and can brighten or pulse
-  during attacks.
+  color part, weapon, glow pieces) that code moves, rotates and scales to animate. The color part is
+  tinted per player. Each part's amber glow is its own piece (`<part>-glow`), drawn right after that part
+  and moving with it, so glow follows a swinging limb and never shows through what covers it; the bloom
+  picks it up, and code can brighten or pulse it during attacks. (Changed on 2026-10-27 from one
+  emissive layer drawn last, §15.11 #21.)
 - **Readability:** every part has a dark ink outline; armor is cool gunmetal steel lit by amber seams.
   Each class has a distinct silhouette, helmet and color-part shape, so classes are recognizable at TV
   size before color is read.
@@ -186,6 +188,11 @@ Applies to every theme pack. Theme packs change the drawings, not these rules.
 - **State on the body:** class mechanics show on the sprite, not only in a HUD (Ranger's bolt brightens
   with Steady Aim, Commander's banner leaves his back when planted, Artificer's backpack gauge shows
   crates carried).
+- **Carried cells:** every player's carried cells also show as pips at their feet, outside the ring on
+  its front arc: one slot per point of their carry cap (from config, §6), filled left to right, shown
+  only while they carry at least one. The pips stay put while the ring's notch turns. They're drawn by
+  code from two frames, not in the character art. The Artificer keeps the backpack gauge as well
+  (Foster, 2026-10-28).
 - **Shared animations:** hit (white flash, small lean), down (kneel, emissive dims to gray, respawn
   countdown where the name was) and respawn (assemble in a column of amber light at the base) are the
   same for every class.
@@ -277,8 +284,8 @@ same circles the sim uses, so what players see always matches what hits.
 
 **Walls and nets in both directions:** a wall running across the screen shows its full light panel; a
 wall running into the screen is seen edge-on and shows as a glowing top strip between stacked posts.
-Walls and shock nets use autotile sets (across, into, corner, T-junction, cross, end) chosen from
-neighboring tiles.
+Walls and shock nets use autotile sets covering all 16 neighbor masks (isolated, end, across, into,
+corner, T-junction, cross), chosen from the four neighboring tiles.
 
 ### 2.6 UI art (neon knights)
 
@@ -295,11 +302,15 @@ neighboring tiles.
   - structures: `cell`, `turret`, `mortar`, `wall`, `net`, `fortify`
   - action button: `act-pickup`, `act-deliver`, `act-buy`, `act-place`, `act-throw`, `act-flag`,
     `act-recall`, `act-give`, `act-drop` (dimmed to 35% when nothing applies)
+  - upgrade-card marks (§6.1): `card-vitality`, `card-might`, `card-haste`, `card-reach`,
+    `card-swiftness`, `card-focus`, `card-toughness`, `card-recovery`, `card-attack`, `card-super`,
+    `card-passive`, `card-effect`, `card-hunter`, `card-ally`, `card-supply`, `card-squad`, `card-combo`
+  - lobby and status: `leader` (the party leader's mark), `overflow-shield` (beside a player's HP bar
+    while the Overflow shield holds, §6.1)
   - shop and HUD: `coins`, `ready`, `request`, `repair`, `emergency-kit`, `base-armor`, `sentry-damage`,
     `sentry-range`, `sentry-third`, `squad`, `turret-rate`, `mortar-radius`, `tower-hp`, `wall-hp`,
     `charged-walls`, `net-charges`
-  - Still to come: `act-give`, `act-drop` and `net-charges` (§14). Until they land, those slots show
-    text.
+  - status: `reconnecting` (on a disconnected player's TV nametag, §11.3)
 - **TV HUD layout (combat):** a thin top band split three ways: wave and phase top-left, base HP bar
   centered directly above the Citadel, team coins top-right. The boss bar runs along the bottom edge,
   where enemies enter. Purchase announcements stack bottom-left (glyph + text, a bar in the buyer's
@@ -310,14 +321,15 @@ neighboring tiles.
   is round.
 - **Phone screens:** join (code prefilled from the QR, name, one button); class select (swipeable cards:
   the knight's front view in the player's color, role, main and super with tap/aim, passive, build kit);
-  lobby (big Ready, lineup with color, class helm and ready state; the party leader also sees difficulty
-  and Start); combat controller with a status strip (HP, cells carried up to the carry cap, base HP);
+  lobby (big Ready, lineup with color, class helm and ready state, and the `leader` mark beside the party
+  leader; the party leader also sees difficulty and Start); combat controller with a status strip (HP, cells carried up to the carry cap, base HP);
   build tab (stick stays; kit tiles with cell costs, Place, Cancel, Give, Ready; classes with no
   structures see a "No buildings to build" note in place of the kit tiles, §10.2); shop tab (full
   screen, the stick returns on the Build tab: team coins, the private pick-1-of-3 card with rarity on
   the frame, team shop rows with price, hold-to-confirm fill on big buys, Request and "Requested by"
   tags); down (respawn countdown only); reconnecting overlay; end of run (party leader's three options).
 - **Upgrade cards:** chamfered portrait cards; common has a gunmetal frame, rare a double amber frame.
+  Each card shows its category mark (§6.1).
 - **TV screens:** home (keyboard and gamepad: the focused row is lit amber, ◂ ▸ change theme and
   difficulty, "Resume wave N" only when a snapshot exists); lobby (URL, large mono room code, QR, six
   slots showing each knight's front view in the player's color with a name band, class and ready state;
@@ -337,7 +349,9 @@ neighboring tiles.
   view, tall sprites hide what's drawn behind them (above them on screen). At the top, the Citadel only
   hides off-map space, and players see its gate rather than its back.
 - Enemies arrive through lanes from the bottom and sides and march up the screen. More lanes open as
-  waves progress.
+  waves progress. A lane that isn't open yet shows a sealed entry on the map edge, which opens with the
+  lane (left at wave 3, right at wave 8). Open lanes show violet chevrons pointing in; sealed lanes are
+  drawn as an amber hard-light gate.
 - v1 has one map with 3 lanes.
 
 ### 3.2 Camera
@@ -402,6 +416,10 @@ Crates therefore have two uses: building or repairing.
   top of the collar with a fading amber sight line; both can stack (4 loadouts × 5 aims). The third
   sentry leans out of a window above the gate, so it never blocks the core. Sentries fire amber tracers,
   including at Wasp drones.
+  Mounts, in Citadel sprite units (anchor (170, 234), the front-center of the footprint): left tower
+  (40, 106), right tower (300, 106), window (170, 150). The window sentry uses the at-camera frames at
+  0.62 scale, so it takes the Damage and Range loadouts too. Draw order: body, glow, core, corner
+  sentries, ramparts, window, window sentry, then the damage overlays.
 - **Damage stages (§3.3), cumulative:** 66% cracks (each crack drawn individually, with its own length,
   angle and branches, never one shape repeated; broken glow seams, a fallen merlon, rubble at the wall
   base); 33% adds fire (flames on the keep and walls); 10% adds heavy smoke (tall plumes, dimmed core and
@@ -410,7 +428,7 @@ Crates therefore have two uses: building or repairing.
   the footprint first); repair delivery (amber pulse climbs the keep to the core); shop repair and the
   emergency kit (an amber wave over the whole Citadel, brighter and faster for the kit); low HP at 25%
   (core pulses with the alarm); destroyed (core implodes, glow cuts out, keep collapses into its
-  footprint).
+  footprint, ending on the rubble frame with a dull core).
 - **Armory pad (supply depot):** a kiosk racked with glowing power cells under an amber hex sign with a
   cell icon, on a solid-outlined 1 × 1 tile pad with the same icon on the ground. Drawn per §2.5 (pad
   top face plus front lip, kiosk with a top face). It reads as "get cells here", while the repair zone
@@ -498,6 +516,30 @@ Crates therefore have two uses: building or repairing.
   - any card that depends on a class not on the team (none in v1, but the rule applies to future cards)
 - **Status effects:** burn and poison use the same timed-effect system as stun, slow, morale and the
   tower defense bonus.
+- **How they look** (neon knights; every one keeps the color rule, §2.3):
+  - **Burn:** amber flames on the body. **Poison:** amber nanite corrosion. Every burn or poison
+    damage tick flashes the whole body white for about 60 ms, like a hit.
+  - **Stun:** the enemy's glow goes dark (its unlit frames, §15.10), and amber chevrons orbit above it.
+  - **Slow:** arcs crawl up the legs (§7.2).
+  - **Overflow shield:** the `overflow-shield` icon beside that player's HP bar; no world sprite.
+  - **Tower defense bonus** (the Artificer's super): amber shield pips on the front edge of the tower's
+    plate.
+- **Card marks:** each card shows a category mark from the icon set (§2.6). The 8 shared commons have
+  their own marks (`card-vitality`, `card-might`, `card-haste`, `card-reach`, `card-swiftness`,
+  `card-focus`, `card-toughness`, `card-recovery`). Character cards:
+
+| Mark | Cards |
+|---|---|
+| `card-attack` | Quick Draw, Piercing Shot, Volley, Heavy Slam, Bladework |
+| `card-super` | Blast Radius, Earthshaker, Rally Cry |
+| `card-passive` | Deadeye, Master Mason, Wide Aura |
+| `card-effect` | Fire Arrows, Venom Bolts, Aftershock |
+| `card-hunter` | Skyhunter, Giant Slayer, Siege Breakers |
+| `card-ally` | Bodyguard, Overflow, Triage |
+| `card-supply` | Strong Arm, Bulk Buyer, Light Load |
+| `card-squad` | Forced March, Veterans, Last Stand |
+| `card-toughness` | Unshakable, Vanguard |
+| `card-combo` | Wildfire, Fault Line, Plague, Warcry |
 
 **Shared commons (every character, with numbers tuned per character)**
 
@@ -637,7 +679,8 @@ get there. In neon knights it is the **Shock Net** (§2.1).
   - After a discharge, the snare **rearms** after a short delay (starting value: 0.5 s).
   - When its last discharge is used, the snare fizzles out and frees the tile.
   - The TV shows the remaining discharges on the tile (pips or a dimming glow), and each discharge
-    flashes.
+    flashes. Adjacent nets draw as one joined field (16-mask ground autotiles, §2.5), but each tile
+    dims and flashes on its own.
 - **Slow:** a timed effect (§6.1) of about 40% for about 2 s, so it lasts after the enemy leaves the
   tile. Slows don't stack; the strongest active slow applies. Brutes and the Colossus take the slow at
   half strength, so snares can't stall a boss.
@@ -666,15 +709,19 @@ get there. In neon knights it is the **Shock Net** (§2.1).
     barrel. II adds twin barrels, full-depth side armor on the head and a collar flange. III adds a
     finned barrel shroud, a centered sensor mast with a dish, and buttress struts on the plate. The head
     tracks with pre-rendered aim frames (8 directions, built like the Citadel sentries in §3.6), never
-    by rotating a flat sprite; muzzles flash amber at the barrel tips.
+    by rotating a flat sprite; muzzles flash amber at the barrel tips. The bands sit on the fixed
+    pedestal, so a turret stacks: base plate (ground), pedestal (III's adds the struts), bands, then the
+    head for the snapped aim.
   - **Mortar tower:** a ring emplacement with a small dome rising out of its opening; a short tube
     inserts into the dome like a ball-and-socket joint and pivots around the dome's center as it aims,
-    so the motion reads as controlled and the tube's end never shows. II adds tube hoops and armor
-    blocks set around the rim, each angled to follow the rim's curve; III adds a slotted muzzle brake,
-    rim spikes and an ammo rack behind the ring. Shells arc with their own ground shadow and burst in an
-    amber ground ring sized to the blast radius.
+    so the motion reads as controlled and the tube's end never shows (the tube is clamped to ±75° from
+    straight up, so it always draws behind the dome; shells arc high and never need more). II adds
+    tube hoops and armor blocks set around the rim, each angled to follow the rim's curve; III adds a
+    slotted muzzle brake, rim spikes and an ammo rack behind the ring. Shells arc with their own ground
+    shadow and burst in an amber ground ring sized to the blast radius.
 - **Wall:** two emitter posts with a see-through amber hard-light panel and a ground rail. Neighbors
-  share posts and join into one barrier; autotile pieces per §2.5.
+  share posts and join into one barrier: a 16-mask autotile set (§2.5), with a ground-rail frame and
+  charged and damaged overlays for every mask (§15.2).
 - **Charged walls** (the wall upgrade; display name for the "Spiked walls" shop item, same effect:
   enemies that attack walls take damage). Walls are light, so the upgrade electrifies them instead of
   adding spikes: twin coil rings on each post, white-hot forked bolts crackling up the panel on a
@@ -694,8 +741,11 @@ get there. In neon knights it is the **Shock Net** (§2.1).
   X when blocked.
 - **States:** build (amber outline sketches the shape, then fills from the plate up); upgrade (every
   structure of that type flashes and the new parts bolt on); damaged (below half HP the glow flickers
-  and cracks appear); destroyed (glow cuts out, collapses into scrap, fades; the flow field updates
-  immediately); Mason repair (amber sparks from the Warden, cracks seal). Our attacks never use red.
+  and cracks appear: a crack overlay per wall mask, one overlay for the pulse turret at every aim, and
+  the mortar's `damaged` part group); destroyed (glow cuts out, collapses into scrap, fades; the flow
+  field updates immediately); Mason repair (amber sparks from the Warden, cracks seal). Our attacks
+  never use red. Scrap comes in two sets: ours (gunmetal with dead amber; small pieces for footmen,
+  large for structures) and theirs (violet-iron, for enemies).
 
 ## 8. Characters (v1: one per class)
 
@@ -896,8 +946,8 @@ Enabled on the TV build with a URL flag and never shown to players. It can:
 - Machine posture: hunched forward, with spikes. Knights stand upright.
 - No player colors, rings or names on enemies. Size signals toughness.
 - Same production rules as the characters (§2.4) and the perspective rules (§2.5): three-quarter view
-  with top faces, mirrored left/right, vector cut-out rigs, ink outline, emissive layer drawn last,
-  alignment and layering.
+  with top faces, mirrored left/right, vector cut-out rigs, ink outline, alignment and layering.
+  Enemy glow sits inside each part (`class="glow"` groups), so it moves with the part.
 - Every attack has a visible wind-up tell (listed per enemy). Every ground marker is a 0.6 ellipse.
 
 **Drone (Grunt):** a little shorter than a knight, reaching about the Warden's shoulders. A short torso
@@ -941,7 +991,9 @@ whole room can see who's targeted and step in.
 
 **Colossus (boss):** about 2.6× a knight's height; tall and top-heavy (the only enemy taller than it is
 wide): a wide shoulder yoke, a small sunk head with one violet eye bar, two slab fists hanging low,
-thick legs, and a big violet core in an armored chest ring.
+thick legs, and a big violet core in an armored chest ring. Drawn as a true side view facing right,
+like every enemy (mirrored for left), at every tier. Spires, plumes and back spikes ride on the yoke;
+horns ride on the head.
 **It upgrades each time it returns, at the same size.** Built as one rig with stacking optional parts:
 - **Mk I (wave 5):** the bare frame. Plain yoke, smooth slabs, few seams, no spires or spikes.
 - **Mk II (wave 10):** adds three exhaust spires on its back, spikes on the yoke and near pauldron,
@@ -1235,13 +1287,17 @@ Ideas deferred from v1. Build v1 so these can be added without rewrites.
 4. **Sound effects:** source the v1 set (§12). Candidates: Kenney.nl (CC0 packs: Sci-fi Sounds, Impact
    Sounds, Interface Sounds), jsfxr/sfxr.me (generated, owned outright), Sonniss GDC bundles
    (royalty-free) and freesound.org (CC0 filter only). Every file gets a license entry (§15.10).
-5. **Art still to come:** the character, enemy and structure SVG parts with their rig JSON, the pulse
-   turret aim frames (§7.2), and three icons: `act-give`, `act-drop` and `net-charges` (§2.6). The rest
-   of the icon set has landed (`fort-frenzy-icons.zip`, §15.10). Until the art lands, the build uses
-   the dev-only fallback shapes (§15.2) and text labels for missing icons.
+5. **Art status:** the v1 neon-knights art is complete in `art/neon-knights/` (§15.10): P1 (rigs,
+   characters, enemies, structures, Citadel, icons), P2 (autotiles, damage, scrap, effects, map) and P3
+   (the side-view Colossus, status effects, carry pips, card marks, `leader`, `overflow-shield`). The
+   mortar ring, Fortify dome, Armory and power cell keep their earlier art, drawn slightly narrower than
+   the full 80 × 48 tile and centered on their anchors. Anything missing falls back to the dev-only
+   shapes (§15.2) and text labels for icons.
 6. **Map layout:** the v1 map (§15.2: 36 × 24 tiles, lane entries bottom-center, left and right) is a
    starting layout to tune in playtesting. The map shrank from 38 × 28 to give the bottom-edge boss bar
    (§2.6) its own band inside the TV-safe margin; revisit if it plays cramped.
+7. **Knight joints:** the knights' pivots were derived from the geometry. Review them in motion once
+   animation runs, especially plumes and weapon grips.
 
 ---
 
@@ -1291,7 +1347,9 @@ in `apps/sunny-side` (its `SPEC.md` and `BUILD_PLAN.md` §8).
 apps/fort-frenzy/
   index.html  play.html  vite.config.ts  vercel.json  playwright.config.ts
   SPEC.md  BUILD_PLAN.md
-  art/<theme>/          SVG part sources, rigs/<rig>.json (§15.2), icons/ (§2.6), e.g. art/neon-knights/
+  art/<theme>/          e.g. art/neon-knights/ (layout in its README.md, §15.2, §15.10):
+                        rigs/<id>.json, sprites.json, characters/ enemies/ structures/ effects/ map/
+                        (SVG sources), icons/ (§2.6), review/ (reference only, never built)
   audio/<theme>/        .mp3 sources
   assets/LICENSES.json  one entry per asset or pack (§15.10)
   scripts/              build-atlases.ts, replay.ts (Node)
@@ -1312,8 +1370,7 @@ apps/fort-frenzy/
 ```
 
 - **Rule: all theme art lives under `art/<theme>/`** (neon knights: `art/neon-knights/`), icons included,
-  so later themes sit beside it. Art delivered anywhere else (for example the icon set at `art/icons/`)
-  is moved there by the build, and nothing reads art from outside `art/<theme>/`.
+  so later themes sit beside it. Nothing reads art from outside `art/<theme>/`.
 - **Lint boundaries** (root `eslint.config.js`; a shared-config change, so it runs the full gate):
   - `src/host/{sim,systems,party}/**`: no `phaser`, no `@pcg/net-client`, no `src/themes/**`, no DOM.
   - `src/host/{sim,systems}/**`: no `Math.random`, `Date.now`, `performance.now` or `new Date()`
@@ -1363,9 +1420,10 @@ interface Camera {
 ```
 
 - **Layers**, bottom to top:
-  1. ground: map tiles, Armory pad, repair zone
-  2. ground overlays: red danger markers, shock nets, structure base plates, player rings, Field Medic
-     circle, range previews, AoE rings (all 0.6 ellipses of sim circles)
+  1. ground: map tiles, Citadel plate, Armory pad, repair zone
+  2. ground overlays: red danger markers, shock nets, structure base plates, wall rails, build-ghost
+     footprints, the rally-flag ring, player rings, Field Medic circle, range previews, AoE rings (all
+     0.6 ellipses of sim circles)
   3. **world**, one y-sorted layer: structures, the Citadel, the Armory kiosk, units, flyers and arcing
      projectiles. Sort key = foot point; flyers and arcing projectiles sort by their shadow; multi-tile
      structures by their footprint's front edge.
@@ -1373,6 +1431,11 @@ interface Camera {
   5. world UI: nametags and HP bars (flipping below near the top edge, §2.1), aim lines, the build arc,
      the super-ready badge, the Stalker target thread
   6. HUD (screen space)
+- **Ground, world or effects:** each non-rig frame's `layer` in `sprites.json` is one of:
+  - `ground` (layers 1–2): anything flat on the ground, as its own frame.
+  - `world` (layer 3): upright things, plus projectiles, shells, scrap and the deploy beacon.
+  - `effects` (layer 4): flashes, sparks, heal glints, the shock crawl and the wall strike.
+  - No frame is on two layers, so a player standing on a pad or plate is never drawn behind it.
 - **What's Phaser and what's DOM:** layers 1–5 are Phaser, since world UI moves with entities every
   frame and needs interpolation and y-sorting. The **HUD and the full-screen TV screens** (home, lobby,
   summary) are a **DOM overlay** over the canvas, scaled with it to the 1920 × 1080 logical size. They
@@ -1387,9 +1450,13 @@ interface Camera {
 ```ts
 type ViewId = 'side' | 'front' | 'back';
 interface RigDef {
-  id: string;                                // 'warden', 'colossus', 'mortar_tower'
-  views: Partial<Record<ViewId, RigView | RigPoses>>; // enemies: side only in v1; lookup per rig (§13)
-  optional?: Record<string, string[]>;       // e.g. { mk2: [...parts], mk3: [...parts] }
+  id: string;                                // the theme's rig id: 'warden', 'colossus', 'mortar'
+  viewBox: [number, number, number, number]; // shared by every part in every view: parts stack at rest
+  views: Partial<Record<ViewId, RigView | RigPoses>>; // enemies, Colossus, mortar: side only (§13)
+  /** Named part groups, hidden unless code turns the group on: { banner: [...] } (carried flag),
+   *  { 'core1-full': [...], ... } (Artificer gauge), { mk2, mk3, final } (Colossus, cumulative),
+   *  { ii, iii, band1, band2, band3 } (mortar). */
+  optional?: Record<string, string[]>;
 }
 /** A view with several part sets (the Ranger: 'stand' and 'ready', §2.4); others have one. */
 interface RigPoses { poses: Record<string, RigView>; defaultPose: string }
@@ -1399,11 +1466,13 @@ interface RigView {
     frame: string;                           // '<rig>/<view>/<part>'
     pivot: [number, number];
     parent?: string; at: [number, number];   // attach point on the parent
-    tint?: 'player';                         // color part, flag cloth, footman plume
-    emissive?: boolean;                      // drawn last; code can pulse/brighten it
+    tint?: 'player';                         // grayscale color part only; player color multiplied over it
+    emissive?: boolean;                      // glow piece (knights' <host>-glow, drawn right after its
+                                             // host); code can pulse/brighten it
   }>;
   order: string[];                           // back-to-front for this view (and pose)
-  attach?: Record<string, [number, number]>; // muzzle, flag, weapon tip, nametag
+  /** Named points that ride on a part: nametag, badge, carry, muzzle, sword-tip, eyes, top, ... */
+  attach?: Record<string, { part: string; at: [number, number] }>;
 }
 interface Clip { durationMs: number; loop: boolean; tracks: Record<string, Keyframe[]> }
 interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: number; sy?: number;
@@ -1417,16 +1486,49 @@ interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: num
 - **Poses:** the Ranger has two part sets per view, `stand` (idle, walk) and `ready` (Steady Aim,
   firing). Steady Aim crossfades from `stand` to `ready`; firing without Steady Aim snaps to `ready` for
   the shot. Every other rig has one pose per view.
-- **Frame names:** rig parts `<rig>/<view>/<part>`, or `<rig>/<view>/<pose>/<part>` for posed rigs
-  (`ranger/front/ready/bow`); aim-framed structures `<id>/<loadout-or-tier>/<aim>`
-  (sentry aims `l dl c dr r`, loadouts `base dmg rng max`; pulse turret 8 aims × base/II/III, plus band
-  overlays); Citadel damage overlays `citadel/dmg-cracks`, `citadel/dmg-fire`, `citadel/dmg-smoke`
-  (atlas frames, since every crack is hand-drawn).
+- **Frame names:** a frame's name is its file path under its category folder (`characters`, `enemies`,
+  `structures`, `effects`, `map`), without `.svg`. Rig ids and frame names are the theme's own (the
+  theme pack maps internal ids such as `engineer` to rig ids such as `ranger`, §2.1).
+  - Rig parts: `<rig>/<view>/<part>`, or `<rig>/<view>/<pose>/<part>` for posed rigs
+    (`ranger/front/ready/bow`). Single-view rigs (enemies, the Colossus, the mortar) use `side`.
+  - Every other frame is listed in `sprites.json` with its viewBox, anchor, layer, tint and attach
+    points (for example muzzles per aim frame).
+  - Pulse turret: `plate/tile` (ground), `pulse-turret/pedestal` (or `pedestal-iii`), `band1` … `band<n>`
+    on the pedestal, then the head `pulse-turret/<base|ii|iii>/<aim>` (aims `e se s sw w nw n ne`, `s`
+    faces the camera). Unupgraded is the base head with no band; I adds `band1`; II is the `ii` head with
+    bands 1–2; III is the `iii` head on `pedestal-iii` with bands 1–3.
+  - Sentries: `sentry/<loadout>/<aim>` (loadouts `base dmg rng max`, aims `l dl c dr r`), origin at the
+    mount point (§3.6).
+  - Citadel: `citadel/<part>` and the damage overlays `citadel/dmg-cracks`, `dmg-fire`, `dmg-smoke`
+    (atlas frames, since every crack is hand-drawn); `citadel/rubble` is the destroyed end state.
+  - Walls and shock nets: `wall/m<n>` (world), `wall/rail/m<n>` (ground), `wall/charged/m<n>` and
+    `wall/dmg/m<n>` (world overlays), `shock-net/m<n>` (ground); tile-centered. `n` is the 4-bit mask of
+    same-type neighbors, N = 1, E = 2, S = 4, W = 8, recomputed for a tile and its neighbors whenever a
+    wall or net is placed or removed. Neighbors share posts: a tile draws its N and W edge posts, and
+    its E and S edge posts only when there's no neighbor on that side.
+  - Damage and scrap: `pulse-turret/dmg` (one overlay for every aim), `effects/scrap-ours-1`…`5`
+    (1–2 footman-sized, 3–5 structure-sized), `effects/scrap-theirs-1`…`5`.
+  - Effects: projectiles (`bolt`, `nanite-bolt`, `mortar-shell`, `bombard-shell`, `boulder`,
+    `wasp-shot`) and muzzle flashes point along +x from (0, 0) and rotate to their projected direction;
+    `wall-strike` runs (0, 0)–(100, 0) and stretches along x only; `shock-crawl` scales to the slowed
+    enemy's leg height.
+  - Map: `map/ground/1`…`4` (1 on most tiles, 2–4 sparsely by a seeded hash of the tile),
+    `map/edge/<n s e w ne nw se sw>` on border tiles except lane tiles, `map/lane/<lane>-<open|sealed>`
+    (§3.1), and `map/decor/*`.
+  - Status effects (§6.1): `burn-1`/`2` and `corrosion-1`/`2` loop at about 8 fps, anchored
+    bottom-center on the body and scaled to its height; `stun-1`…`4` loop centered on the enemy's
+    `top` point; `defense-bonus` shares the tower's anchor and draws right after it; `carry-pip` and
+    `carry-pip-empty` (ground) sit at slot `k` of `cap`, angle `a = 90° + (cap − 1)·7.5° − k·15°`
+    (screen space, y down), at `(cx + (rx + 8)·cos a, cy + (ry + 4.8)·sin a)` around the ring center.
 - **Facing and aim snapping:** side views mirror for left. Knights and footmen take the view from the
   stronger axis of aim (while attacking) or movement, and switch axis only when the other axis is 15%
   stronger. Aim frames switch only once the target angle is 8° past a sector boundary. The mortar tube
-  rotates in code about its dome center; projectiles rotate to their projected screen direction; Wasp
-  drones mirror only.
+  rotates in code about its dome center, clamped to ±75° from straight up (§7.2); projectiles rotate to
+  their projected screen direction; Wasp drones mirror only.
+- **Composing a rig:** walk the view's `order`, skip parts whose `optional` group is off, and rotate
+  each part about its pivot, chained through its parents. Glow pieces are normal frames whose alpha or
+  glow code may raise. The Colossus swaps its legs' draw order mid-stride with `Keyframe.order`. A
+  knight's `badge` point may sit above the rig's viewBox, over the helm.
 - **Pooling:** render-side only. Phaser objects for projectiles, effects, damage numbers and Swarm units
   come from per-kind pools; sim entities are plain objects, not pooled.
 - **Interpolation:** the renderer draws positions lerped between the last two sim steps (as in Sunny
@@ -1648,7 +1750,8 @@ interface ThemeShared {                          // phones and TV
 interface ThemeHost {                            // TV only
   atlases: AtlasRef[]; rigs: Record<string, RigDef>; clips: Record<string, Clip>;
   sfx: Partial<Record<SfxId, string>>;           // music joins this map in v2 (§13)
-  map: { ground: string; decor?: string[] };
+  map: { ground: string[]; edges: Record<'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw', string>;
+    lanes: Record<LaneId, { open: string; sealed: string }>; decor?: string[] };
 }
 ```
 
@@ -1912,17 +2015,24 @@ interface RunSnapshot {
   changed.
 - **Root wiring:** the five per-game scripts (`dev:`, `dev:lan:`, `build:`, `e2e:`, `check:fort-frenzy`),
   and Fort Frenzy rows in the `PLATFORM.md` §1, `README.md` and `AGENTS.md` tables.
-- **Brand kit:** delivered as `apps/fort-frenzy/fort-frenzy-brand-kit.zip`. The first build milestone
-  unpacks it (`brand/`, `public/`, `src/styles/brand.css`, plus its `.prettierignore` lines), adds the
+- **Brand kit:** delivered as `fort-frenzy-brand-kit.zip` and unpacked (`brand/`, `public/`,
+  `src/styles/brand.css`, plus its `.prettierignore` lines). The first build milestone adds the
   `head.html` snippet to both HTML entries and mirrors `brand.css` in `src/shared/theme.ts` with a
   parity test (§2.3). `check:routes` then passes as is (icons, manifest, Google Fonts).
-- **Icon set:** delivered as `apps/fort-frenzy/fort-frenzy-icons.zip` (or added directly) at
-  `art/icons/`; the first build milestone moves it to `art/neon-knights/icons/` (the `art/<theme>/`
-  rule, §15.1) and adds it to `LICENSES.json` as `owned`. Later art deliveries follow the same rule.
+- **Art deliveries:** the art agent delivers the whole `art/neon-knights/` folder (icons included) as
+  `fort-frenzy-art.zip`, and it replaces the folder (the `art/<theme>/` rule, §15.1). Layout and
+  conventions are in its `README.md`. `review/` holds assembled references, tier and aim sheets and UI
+  mockups, which no build reads. `.prettierignore` skips `apps/*/art/`, since each drop replaces it.
+  The first build milestone adds `art/` to `LICENSES.json` as `owned`.
 - **Atlas pipeline:** `scripts/build-atlases.ts` runs before every `build` and in dev (watch mode). It
   rasterizes each SVG part with `@resvg/resvg-js` at 1× and 2×, **strips the review-only glow filters**
   (`#glow`, `#glowU`, `#glowS`), packs Phaser JSON atlases (≤ 4096²) and checks every rig JSON against
-  the frames it found (every part present in every view and pose, §15.2). It also builds the phones'
+  the frames it found (every part present in every view and pose, `order` matching the parts, parents,
+  optional groups and attach points resolving, §15.2). Every SVG outside `review/` and `icons/` must be
+  named by a rig or by `sprites.json`. For every frame with `class="glow"` groups it also packs an
+  **unlit** variant (`<frame>@unlit`), with the glow recolored to its side's dark shade (§2.5), so code
+  can turn glow off where it's baked into a part: stunned enemies, a downed knight's glow dimming,
+  and destroyed structures and the Citadel. It also builds the phones'
   icon sprite and the class portraits (§15.4). Output is gitignored. The TV picks 2× when the canvas's device-pixel size exceeds
   1.5 × 1080. Atlases and audio get content-hashed names through Vite and are cached forever.
 - **Audio:** `.mp3` SFX in `audio/<theme>/`, mapped by `ThemeHost.sfx`. The TV preloads everything
@@ -1962,3 +2072,15 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 17 | 2026-10-27 | TV UI split | HUD and full-screen TV screens as a DOM overlay; world UI in Phaser | Brand CSS and the same SVG badges as phones, crisp text; world UI needs interpolation and y-sort |
 | 18 | 2026-10-27 | Art location | All theme art under `art/<theme>/`, icons included; deliveries elsewhere are moved there | Later themes sit beside neon knights without renames |
 | 19 | 2026-10-27 | Rig contract | Every part in every view and pose; optional poses (`ranger/<view>/<pose>/<part>`) | §2.4 full-size parts and the Ranger's stand/ready poses |
+| 20 | 2026-10-27 | Art layout | Category folders, `rigs/<id>.json`, `sprites.json`; a frame's name is its path under its category; whole-folder drops | One naming rule and no mapping tables in the atlas script |
+| 21 | 2026-10-27 | Knight glow | Per-part `<host>-glow` pieces drawn right after their host (was one emissive layer drawn last, §2.4) | One layer can't follow a swinging limb, and drawn last it shows through what covers it |
+| 22 | 2026-10-27 | Ground frames | Flat pieces (plates, rails, pads, nets, flag ring, ghosts) are separate `ground` frames | A frame can't be in two layers; players on a pad were drawn behind it |
+| 23 | 2026-10-27 | Tower frames | Turret: plate + pedestal + bands + head per aim; mortar is a rig with the tube clamped to ±75° | Bands sit on the fixed pedestal; the tube's inner end must never show |
+| 24 | 2026-10-27 | Rig attach points | `{ part, at }` instead of a fixed point; rigs carry one shared `viewBox` | Muzzles, tips and nametags must follow moving parts |
+| 25 | 2026-10-27 | Autotiles | Walls and nets: one frame per 4-bit neighbor mask (N1 E2 S4 W8), with per-mask rail, charged and damage frames; shared posts drawn once | A frame lookup per tile, no runtime composition; overlays always line up |
+| 26 | 2026-10-27 | Sprite layers | `sprites.json` `layer` is `ground`, `world` or `effects` | Flashes and sparks belong on layer 4, above the y-sorted world |
+| 27 | 2026-10-28 | Lane entries | Sealed until the lane's opening wave, drawn as an amber hard-light gate; open lanes show violet chevrons | Players see where enemies will come from before it happens |
+| 28 | 2026-10-28 | Status looks | Burn flames, nanite corrosion, a white flash per tick, stun goes dark with orbiting chevrons, shield icon by the HP bar, shield pips on towers (§6.1) | Keeps the color rule: nothing red or green |
+| 29 | 2026-10-28 | Carried cells | Pips at every player's feet, one per point of carry cap; the Artificer also keeps the gauge (§2.4) | Carrying is visible for every class; the gauge stays as class flavor (Foster) |
+| 30 | 2026-10-28 | Card and lobby marks | One category mark per upgrade card (17 marks); a `leader` mark in the lobby | Cards read at a glance without 64 illustrations |
+| 31 | 2026-10-28 | Unlit frames | The atlas script packs a `@unlit` variant of every frame with baked-in glow | Enemy glow is inside each part, so stun and destruction need a dark version without new art |

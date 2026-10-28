@@ -1,0 +1,400 @@
+{
+  "id": "footman",
+  "viewBox": [
+    6,
+    1,
+    58,
+    66
+  ],
+  "views": {
+    "side": {
+      "foot": [
+        31,
+        60
+      ],
+      "parts": {
+        "leg-far": {
+          "frame": "footman/side/leg-far",
+          "pivot": [
+            27,
+            46
+          ],
+          "at": [
+            27,
+            46
+          ]
+        },
+        "leg-near": {
+          "frame": "footman/side/leg-near",
+          "pivot": [
+            35,
+            46
+          ],
+          "at": [
+            35,
+            46
+          ]
+        },
+        "torso": {
+          "frame": "footman/side/torso",
+          "pivot": [
+            31,
+            46
+          ],
+          "at": [
+            31,
+            46
+          ]
+        },
+        "helm": {
+          "frame": "footman/side/helm",
+          "pivot": [
+            32,
+            30
+          ],
+          "parent": "torso",
+          "at": [
+            32,
+            30
+          ]
+        },
+        "plume": {
+          "frame": "footman/side/plume",
+          "pivot": [
+            30,
+            18
+          ],
+          "parent": "helm",
+          "at": [
+            30,
+            18
+          ],
+          "tint": "player"
+        },
+        "blade": {
+          "frame": "footman/side/blade",
+          "pivot": [
+            44,
+            40
+          ],
+          "parent": "hand",
+          "at": [
+            44,
+            40
+          ]
+        },
+        "hand": {
+          "frame": "footman/side/hand",
+          "pivot": [
+            41,
+            40
+          ],
+          "parent": "torso",
+          "at": [
+            41,
+            40
+          ]
+        },
+        "guard": {
+          "frame": "footman/side/guard",
+          "pivot": [
+            45,
+            37
+          ],
+          "parent": "hand",
+          "at": [
+            45,
+            37
+          ]
+        }
+      },
+      "order": [
+        "leg-far",
+        "leg-near",
+        "torso",
+        "helm",
+        "plume",
+        "blade",
+        "hand",
+        "guard"
+      ],
+      "attach": {
+        "blade": {
+          "part": "blade",
+          "at": [
+            56,
+            18
+          ]
+        }
+      }
+    },
+    "front": {
+      "foot": [
+        31,
+        60
+      ],
+      "parts": {
+        "leg-l": {
+          "frame": "footman/front/leg-l",
+          "pivot": [
+            27,
+            46
+          ],
+          "at": [
+            27,
+            46
+          ]
+        },
+        "leg-r": {
+          "frame": "footman/front/leg-r",
+          "pivot": [
+            34,
+            46
+          ],
+          "at": [
+            34,
+            46
+          ]
+        },
+        "torso": {
+          "frame": "footman/front/torso",
+          "pivot": [
+            31,
+            46
+          ],
+          "at": [
+            31,
+            46
+          ]
+        },
+        "plume": {
+          "frame": "footman/front/plume",
+          "pivot": [
+            30,
+            18
+          ],
+          "parent": "helm",
+          "at": [
+            30,
+            18
+          ],
+          "tint": "player"
+        },
+        "helm": {
+          "frame": "footman/front/helm",
+          "pivot": [
+            31,
+            30
+          ],
+          "parent": "torso",
+          "at": [
+            31,
+            30
+          ]
+        },
+        "hand-free": {
+          "frame": "footman/front/hand-free",
+          "pivot": [
+            19,
+            41
+          ],
+          "parent": "torso",
+          "at": [
+            19,
+            41
+          ]
+        },
+        "blade": {
+          "frame": "footman/front/blade",
+          "pivot": [
+            44,
+            46
+          ],
+          "parent": "hand",
+          "at": [
+            44,
+            46
+          ]
+        },
+        "hand": {
+          "frame": "footman/front/hand",
+          "pivot": [
+            44,
+            41
+          ],
+          "parent": "torso",
+          "at": [
+            44,
+            41
+          ]
+        },
+        "guard": {
+          "frame": "footman/front/guard",
+          "pivot": [
+            44,
+            40
+          ],
+          "parent": "hand",
+          "at": [
+            44,
+            40
+          ]
+        }
+      },
+      "order": [
+        "leg-l",
+        "leg-r",
+        "torso",
+        "plume",
+        "helm",
+        "hand-free",
+        "blade",
+        "hand",
+        "guard"
+      ],
+      "attach": {
+        "blade": {
+          "part": "blade",
+          "at": [
+            46,
+            20
+          ]
+        }
+      }
+    },
+    "back": {
+      "foot": [
+        31,
+        60
+      ],
+      "parts": {
+        "blade": {
+          "frame": "footman/back/blade",
+          "pivot": [
+            17,
+            37
+          ],
+          "parent": "hand",
+          "at": [
+            17,
+            37
+          ]
+        },
+        "leg-l": {
+          "frame": "footman/back/leg-l",
+          "pivot": [
+            27,
+            46
+          ],
+          "at": [
+            27,
+            46
+          ]
+        },
+        "leg-r": {
+          "frame": "footman/back/leg-r",
+          "pivot": [
+            34,
+            46
+          ],
+          "at": [
+            34,
+            46
+          ]
+        },
+        "torso": {
+          "frame": "footman/back/torso",
+          "pivot": [
+            31,
+            46
+          ],
+          "at": [
+            31,
+            46
+          ]
+        },
+        "guard": {
+          "frame": "footman/back/guard",
+          "pivot": [
+            17,
+            40
+          ],
+          "parent": "hand",
+          "at": [
+            17,
+            40
+          ]
+        },
+        "hand": {
+          "frame": "footman/back/hand",
+          "pivot": [
+            17,
+            42
+          ],
+          "parent": "torso",
+          "at": [
+            17,
+            42
+          ]
+        },
+        "hand-free": {
+          "frame": "footman/back/hand-free",
+          "pivot": [
+            44,
+            41
+          ],
+          "parent": "torso",
+          "at": [
+            44,
+            41
+          ]
+        },
+        "helm": {
+          "frame": "footman/back/helm",
+          "pivot": [
+            31,
+            30
+          ],
+          "parent": "torso",
+          "at": [
+            31,
+            30
+          ]
+        },
+        "plume": {
+          "frame": "footman/back/plume",
+          "pivot": [
+            31,
+            18
+          ],
+          "parent": "helm",
+          "at": [
+            31,
+            18
+          ],
+          "tint": "player"
+        }
+      },
+      "order": [
+        "blade",
+        "leg-l",
+        "leg-r",
+        "torso",
+        "guard",
+        "hand",
+        "hand-free",
+        "helm",
+        "plume"
+      ],
+      "attach": {
+        "blade": {
+          "part": "blade",
+          "at": [
+            16.5,
+            18
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,164 @@
+{
+  "id": "brute",
+  "viewBox": [
+    -5,
+    -9,
+    159,
+    133
+  ],
+  "views": {
+    "side": {
+      "foot": [
+        75,
+        117
+      ],
+      "parts": {
+        "arm-far": {
+          "frame": "brute/side/arm-far",
+          "pivot": [
+            37.8,
+            32.0
+          ],
+          "parent": "torso",
+          "at": [
+            37.8,
+            32.0
+          ]
+        },
+        "fist-far": {
+          "frame": "brute/side/fist-far",
+          "pivot": [
+            21.0,
+            63.2
+          ],
+          "parent": "arm-far",
+          "at": [
+            21.0,
+            63.2
+          ]
+        },
+        "leg-far": {
+          "frame": "brute/side/leg-far",
+          "pivot": [
+            47.4,
+            87.2
+          ],
+          "at": [
+            47.4,
+            87.2
+          ]
+        },
+        "leg-near": {
+          "frame": "brute/side/leg-near",
+          "pivot": [
+            77.4,
+            87.2
+          ],
+          "at": [
+            77.4,
+            87.2
+          ]
+        },
+        "pauldron-far": {
+          "frame": "brute/side/pauldron-far",
+          "pivot": [
+            37.8,
+            32.0
+          ],
+          "parent": "torso",
+          "at": [
+            37.8,
+            32.0
+          ]
+        },
+        "torso": {
+          "frame": "brute/side/torso",
+          "pivot": [
+            66.6,
+            87.2
+          ],
+          "at": [
+            66.6,
+            87.2
+          ]
+        },
+        "head": {
+          "frame": "brute/side/head",
+          "pivot": [
+            78.6,
+            20.0
+          ],
+          "parent": "torso",
+          "at": [
+            78.6,
+            20.0
+          ]
+        },
+        "arm-near": {
+          "frame": "brute/side/arm-near",
+          "pivot": [
+            107.4,
+            32.0
+          ],
+          "parent": "torso",
+          "at": [
+            107.4,
+            32.0
+          ]
+        },
+        "pauldron-near": {
+          "frame": "brute/side/pauldron-near",
+          "pivot": [
+            107.4,
+            32.0
+          ],
+          "parent": "torso",
+          "at": [
+            107.4,
+            32.0
+          ]
+        },
+        "fist-near": {
+          "frame": "brute/side/fist-near",
+          "pivot": [
+            121.8,
+            68.0
+          ],
+          "parent": "arm-near",
+          "at": [
+            121.8,
+            68.0
+          ]
+        }
+      },
+      "order": [
+        "arm-far",
+        "fist-far",
+        "leg-far",
+        "leg-near",
+        "pauldron-far",
+        "torso",
+        "head",
+        "arm-near",
+        "pauldron-near",
+        "fist-near"
+      ],
+      "attach": {
+        "top": {
+          "part": "head",
+          "at": [
+            78.6,
+            -2.8
+          ]
+        },
+        "fist": {
+          "part": "fist-near",
+          "at": [
+            122.9,
+            86.0
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,125 @@
+/* Fort Frenzy brand kit (SPEC §2.1, §2.3). Dark only.
+   Core tokens are the shared fostercurtis.dev family values; keep them identical across games.
+   Glow rule: amber = ours (player armor, friendly structures, ready/selected UI); violet = the Iron Tide.
+   Red is danger only. Signature shape: chamfered (cut) corners, no tilt, no hard offset shadow. */
+:root {
+  color-scheme: dark;
+
+  /* family core (shared with fostercurtis.dev, Sunny Side, World Conquest) */
+  --brand-ink: #14161a;
+  --brand-paper: #ffffff;
+  --brand-amber: #e8a33d;
+  --brand-gray: #6b7280;
+  --background: #14161a;
+  --foreground: #ffffff;
+  --surface: #1a1d23;
+  --surface-strong: #22262e;
+  --border: #2e333c;
+  --border-control: #6b7280;
+  --muted: #9aa1ad;
+  --presence-off: #5a6270;
+  --scrim: rgba(10, 11, 13, 0.72);
+
+  /* world */
+  --stone: #262b33;
+  --stone-edge: #3a404b;
+
+  /* ours: amber glow */
+  --amber: var(--brand-amber);
+  --ember: #ffd08a;
+  --glow: rgba(232, 163, 61, 0.42);
+  --glow-strong: rgba(232, 163, 61, 0.7);
+
+  /* theirs: the Iron Tide */
+  --hostile: #8f6bff;
+  --hostile-core: #c7b4ff;
+  --hostile-glow: rgba(143, 107, 255, 0.42);
+
+  /* semantic */
+  --accent: var(--brand-amber);
+  --accent-on: #14161a;
+  --accent-text: #e8a33d;
+  --select: #ffffff;
+  --danger: #e05252;
+  --danger-on: #14161a;
+  --success: #3fb98a;
+  --success-on: #14161a;
+
+  /* players: nametags and rings only; never amber (ours), violet (enemy) or red (danger) */
+  --player-cobalt: #2f63c4;
+  --player-cobalt-on: #ffffff;
+  --player-jade: #3fb98a;
+  --player-jade-on: #14161a;
+  --player-sky: #7cc4f2;
+  --player-sky-on: #14161a;
+  --player-bone: #e3e5e9;
+  --player-bone-on: #14161a;
+  --player-rose: #f2a0b8;
+  --player-rose-on: #14161a;
+  --player-forest: #2f7d4f;
+  --player-forest-on: #ffffff;
+
+  /* spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-tv-safe: 96px;
+
+  /* shape */
+  --radius: 6px;
+  --radius-mark: 7px;
+  --radius-pill: 999px;
+  --radius-round: 50%;
+  --chamfer: 10px;
+  --chamfer-sm: 6px;
+  --clip-chamfer: polygon(var(--chamfer) 0, calc(100% - var(--chamfer)) 0, 100% var(--chamfer), 100% calc(100% - var(--chamfer)), calc(100% - var(--chamfer)) 100%, var(--chamfer) 100%, 0 calc(100% - var(--chamfer)), 0 var(--chamfer));
+  --clip-chamfer-sm: polygon(var(--chamfer-sm) 0, calc(100% - var(--chamfer-sm)) 0, 100% var(--chamfer-sm), 100% calc(100% - var(--chamfer-sm)), calc(100% - var(--chamfer-sm)) 100%, var(--chamfer-sm) 100%, 0 calc(100% - var(--chamfer-sm)), 0 var(--chamfer-sm));
+  --clip-tag: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+
+  /* glow (use filter: drop-shadow on clipped elements; box-shadow is clipped away) */
+  --glow-sm: 0 0 6px var(--glow);
+  --glow-md: 0 0 14px var(--glow);
+  --glow-lg: 0 0 28px var(--glow-strong);
+  --glow-hostile: 0 0 14px var(--hostile-glow);
+
+  /* stroke */
+  --stroke-ring: 3px;
+  --stroke-select: 3px;
+  --stroke-tag: 4px;
+
+  /* motion */
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --pulse-period: 2.4s;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* type */
+  --font-display: "Chakra Petch", "Arial Narrow", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --tracking-display: 0.04em;
+}
+
+/* Display styles are uppercase Chakra Petch 700. */
+.title { font: 700 120px/0.9 var(--font-display); letter-spacing: var(--tracking-display); text-transform: uppercase; }
+.banner { font: 700 72px/1 var(--font-display); letter-spacing: var(--tracking-display); text-transform: uppercase; }
+.h2 { font: 700 40px/1.1 var(--font-display); letter-spacing: var(--tracking-display); text-transform: uppercase; }
+.score { font: 700 48px/1 var(--font-display); }
+.tag { font: 600 22px/1 var(--font-display); letter-spacing: var(--tracking-display); text-transform: uppercase; }
+.pad { font: 700 28px/1 var(--font-display); letter-spacing: var(--tracking-display); text-transform: uppercase; }
+.body { font: 400 18px/26px var(--font-sans); }
+.label { font: 600 16px/20px var(--font-sans); }
+.caption { font: 400 14px/20px var(--font-sans); }
+.code-tv { font: 600 64px/1 var(--font-mono); letter-spacing: 8px; }
+.code { font: 600 24px/1 var(--font-mono); letter-spacing: 4px; }
+
+/* Shape and glow helpers */
+.chamfer { clip-path: var(--clip-chamfer); }
+.chamfer-sm { clip-path: var(--clip-chamfer-sm); }
+.glow { filter: drop-shadow(var(--glow-md)); }
+
+body { margin: 0; background: var(--background); color: var(--foreground); font: 400 18px/26px var(--font-sans); }

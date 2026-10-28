@@ -1,0 +1,123 @@
+{
+  "id": "skitter",
+  "viewBox": [
+    26,
+    68,
+    82,
+    57
+  ],
+  "views": {
+    "side": {
+      "foot": [
+        67,
+        120
+      ],
+      "parts": {
+        "leg-far-a": {
+          "frame": "skitter/side/leg-far-a",
+          "pivot": [
+            50.0,
+            99.0
+          ],
+          "at": [
+            50.0,
+            99.0
+          ]
+        },
+        "leg-far-b": {
+          "frame": "skitter/side/leg-far-b",
+          "pivot": [
+            58.0,
+            101.0
+          ],
+          "at": [
+            58.0,
+            101.0
+          ]
+        },
+        "leg-near-a": {
+          "frame": "skitter/side/leg-near-a",
+          "pivot": [
+            74.0,
+            102.0
+          ],
+          "at": [
+            74.0,
+            102.0
+          ]
+        },
+        "leg-near-b": {
+          "frame": "skitter/side/leg-near-b",
+          "pivot": [
+            66.0,
+            104.0
+          ],
+          "at": [
+            66.0,
+            104.0
+          ]
+        },
+        "body": {
+          "frame": "skitter/side/body",
+          "pivot": [
+            64,
+            100
+          ],
+          "at": [
+            64,
+            100
+          ]
+        },
+        "head": {
+          "frame": "skitter/side/head",
+          "pivot": [
+            90,
+            95
+          ],
+          "parent": "body",
+          "at": [
+            90,
+            95
+          ]
+        },
+        "core": {
+          "frame": "skitter/side/core",
+          "pivot": [
+            64,
+            88
+          ],
+          "parent": "body",
+          "at": [
+            64,
+            88
+          ]
+        }
+      },
+      "order": [
+        "leg-far-a",
+        "leg-far-b",
+        "leg-near-a",
+        "leg-near-b",
+        "body",
+        "head",
+        "core"
+      ],
+      "attach": {
+        "top": {
+          "part": "core",
+          "at": [
+            64.0,
+            74.5
+          ]
+        },
+        "core": {
+          "part": "core",
+          "at": [
+            64,
+            83
+          ]
+        }
+      }
+    }
+  }
+}

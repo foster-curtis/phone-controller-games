@@ -1,0 +1,112 @@
+{
+  "id": "drone",
+  "viewBox": [
+    26,
+    29,
+    108,
+    95
+  ],
+  "views": {
+    "side": {
+      "foot": [
+        80,
+        117
+      ],
+      "parts": {
+        "leg-far": {
+          "frame": "drone/side/leg-far",
+          "pivot": [
+            47.3,
+            84.8
+          ],
+          "at": [
+            47.3,
+            84.8
+          ]
+        },
+        "arm-far": {
+          "frame": "drone/side/arm-far",
+          "pivot": [
+            79.8,
+            77.0
+          ],
+          "parent": "torso",
+          "at": [
+            79.8,
+            77.0
+          ]
+        },
+        "leg-near": {
+          "frame": "drone/side/leg-near",
+          "pivot": [
+            61.6,
+            90.0
+          ],
+          "at": [
+            61.6,
+            90.0
+          ]
+        },
+        "torso": {
+          "frame": "drone/side/torso",
+          "pivot": [
+            69.4,
+            82.2
+          ],
+          "at": [
+            69.4,
+            82.2
+          ]
+        },
+        "head": {
+          "frame": "drone/side/head",
+          "pivot": [
+            85.0,
+            58.8
+          ],
+          "parent": "torso",
+          "at": [
+            85.0,
+            58.8
+          ]
+        },
+        "arm-near": {
+          "frame": "drone/side/arm-near",
+          "pivot": [
+            83.7,
+            73.1
+          ],
+          "parent": "torso",
+          "at": [
+            83.7,
+            73.1
+          ]
+        }
+      },
+      "order": [
+        "leg-far",
+        "arm-far",
+        "leg-near",
+        "torso",
+        "head",
+        "arm-near"
+      ],
+      "attach": {
+        "top": {
+          "part": "torso",
+          "at": [
+            61.5,
+            35.8
+          ]
+        },
+        "blade": {
+          "part": "arm-near",
+          "at": [
+            126.6,
+            67.9
+          ]
+        }
+      }
+    }
+  }
+}

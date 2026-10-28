@@ -1,0 +1,494 @@
+{
+  "id": "colossus",
+  "viewBox": [
+    40,
+    -40,
+    202,
+    295
+  ],
+  "views": {
+    "side": {
+      "foot": [
+        140,
+        245
+      ],
+      "parts": {
+        "spires-mk3": {
+          "frame": "colossus/side/spires-mk3",
+          "pivot": [
+            120,
+            70
+          ],
+          "parent": "yoke",
+          "at": [
+            120,
+            70
+          ]
+        },
+        "spires-mk2": {
+          "frame": "colossus/side/spires-mk2",
+          "pivot": [
+            100,
+            70
+          ],
+          "parent": "yoke",
+          "at": [
+            100,
+            70
+          ]
+        },
+        "plumes": {
+          "frame": "colossus/side/plumes",
+          "pivot": [
+            106,
+            0
+          ],
+          "parent": "yoke",
+          "at": [
+            106,
+            0
+          ]
+        },
+        "arm-far": {
+          "frame": "colossus/side/arm-far",
+          "pivot": [
+            184,
+            98
+          ],
+          "parent": "torso",
+          "at": [
+            184,
+            98
+          ]
+        },
+        "fist-far": {
+          "frame": "colossus/side/fist-far",
+          "pivot": [
+            192,
+            150
+          ],
+          "parent": "arm-far",
+          "at": [
+            192,
+            150
+          ]
+        },
+        "fist-far-mk2": {
+          "frame": "colossus/side/fist-far-mk2",
+          "pivot": [
+            192,
+            150
+          ],
+          "parent": "fist-far",
+          "at": [
+            192,
+            150
+          ]
+        },
+        "fist-far-mk3": {
+          "frame": "colossus/side/fist-far-mk3",
+          "pivot": [
+            192,
+            150
+          ],
+          "parent": "fist-far",
+          "at": [
+            192,
+            150
+          ]
+        },
+        "leg-far": {
+          "frame": "colossus/side/leg-far",
+          "pivot": [
+            124,
+            176
+          ],
+          "parent": "torso",
+          "at": [
+            124,
+            176
+          ]
+        },
+        "leg-far-mk2": {
+          "frame": "colossus/side/leg-far-mk2",
+          "pivot": [
+            124,
+            176
+          ],
+          "parent": "leg-far",
+          "at": [
+            124,
+            176
+          ]
+        },
+        "hip": {
+          "frame": "colossus/side/hip",
+          "pivot": [
+            140,
+            172
+          ],
+          "parent": "torso",
+          "at": [
+            140,
+            172
+          ]
+        },
+        "torso": {
+          "frame": "colossus/side/torso",
+          "pivot": [
+            140,
+            172
+          ],
+          "at": [
+            140,
+            172
+          ]
+        },
+        "leg-near": {
+          "frame": "colossus/side/leg-near",
+          "pivot": [
+            166,
+            178
+          ],
+          "parent": "torso",
+          "at": [
+            166,
+            178
+          ]
+        },
+        "leg-near-mk2": {
+          "frame": "colossus/side/leg-near-mk2",
+          "pivot": [
+            166,
+            178
+          ],
+          "parent": "leg-near",
+          "at": [
+            166,
+            178
+          ]
+        },
+        "leg-near-mk3": {
+          "frame": "colossus/side/leg-near-mk3",
+          "pivot": [
+            166,
+            178
+          ],
+          "parent": "leg-near",
+          "at": [
+            166,
+            178
+          ]
+        },
+        "yoke": {
+          "frame": "colossus/side/yoke",
+          "pivot": [
+            140,
+            80
+          ],
+          "parent": "torso",
+          "at": [
+            140,
+            80
+          ]
+        },
+        "yoke-mk2": {
+          "frame": "colossus/side/yoke-mk2",
+          "pivot": [
+            140,
+            80
+          ],
+          "parent": "yoke",
+          "at": [
+            140,
+            80
+          ]
+        },
+        "yoke-mk3": {
+          "frame": "colossus/side/yoke-mk3",
+          "pivot": [
+            140,
+            80
+          ],
+          "parent": "yoke",
+          "at": [
+            140,
+            80
+          ]
+        },
+        "head-mk3": {
+          "frame": "colossus/side/head-mk3",
+          "pivot": [
+            212,
+            110
+          ],
+          "parent": "head",
+          "at": [
+            212,
+            110
+          ]
+        },
+        "head": {
+          "frame": "colossus/side/head",
+          "pivot": [
+            212,
+            110
+          ],
+          "parent": "torso",
+          "at": [
+            212,
+            110
+          ]
+        },
+        "core": {
+          "frame": "colossus/side/core",
+          "pivot": [
+            195,
+            136
+          ],
+          "parent": "torso",
+          "at": [
+            195,
+            136
+          ]
+        },
+        "core-mk3": {
+          "frame": "colossus/side/core-mk3",
+          "pivot": [
+            195,
+            136
+          ],
+          "parent": "core",
+          "at": [
+            195,
+            136
+          ]
+        },
+        "core-final": {
+          "frame": "colossus/side/core-final",
+          "pivot": [
+            195,
+            136
+          ],
+          "parent": "core",
+          "at": [
+            195,
+            136
+          ]
+        },
+        "arm-near": {
+          "frame": "colossus/side/arm-near",
+          "pivot": [
+            150,
+            98
+          ],
+          "parent": "torso",
+          "at": [
+            150,
+            98
+          ]
+        },
+        "arm-near-mk3": {
+          "frame": "colossus/side/arm-near-mk3",
+          "pivot": [
+            150,
+            98
+          ],
+          "parent": "arm-near",
+          "at": [
+            150,
+            98
+          ]
+        },
+        "pauldron-near": {
+          "frame": "colossus/side/pauldron-near",
+          "pivot": [
+            150,
+            98
+          ],
+          "parent": "torso",
+          "at": [
+            150,
+            98
+          ]
+        },
+        "pauldron-near-mk2": {
+          "frame": "colossus/side/pauldron-near-mk2",
+          "pivot": [
+            150,
+            98
+          ],
+          "parent": "pauldron-near",
+          "at": [
+            150,
+            98
+          ]
+        },
+        "pauldron-near-mk3": {
+          "frame": "colossus/side/pauldron-near-mk3",
+          "pivot": [
+            150,
+            98
+          ],
+          "parent": "pauldron-near",
+          "at": [
+            150,
+            98
+          ]
+        },
+        "fist-near": {
+          "frame": "colossus/side/fist-near",
+          "pivot": [
+            160,
+            150
+          ],
+          "parent": "arm-near",
+          "at": [
+            160,
+            150
+          ]
+        },
+        "fist-near-mk2": {
+          "frame": "colossus/side/fist-near-mk2",
+          "pivot": [
+            160,
+            150
+          ],
+          "parent": "fist-near",
+          "at": [
+            160,
+            150
+          ]
+        }
+      },
+      "order": [
+        "spires-mk3",
+        "spires-mk2",
+        "plumes",
+        "arm-far",
+        "fist-far",
+        "fist-far-mk2",
+        "fist-far-mk3",
+        "leg-far",
+        "leg-far-mk2",
+        "hip",
+        "torso",
+        "leg-near",
+        "leg-near-mk2",
+        "leg-near-mk3",
+        "yoke",
+        "yoke-mk2",
+        "yoke-mk3",
+        "head-mk3",
+        "head",
+        "core",
+        "core-mk3",
+        "core-final",
+        "arm-near",
+        "arm-near-mk3",
+        "pauldron-near",
+        "pauldron-near-mk2",
+        "pauldron-near-mk3",
+        "fist-near",
+        "fist-near-mk2"
+      ],
+      "attach": {
+        "top": {
+          "part": "yoke",
+          "at": [
+            128,
+            46
+          ]
+        },
+        "eye": {
+          "part": "head",
+          "at": [
+            222,
+            100
+          ]
+        },
+        "core": {
+          "part": "core",
+          "at": [
+            196,
+            136
+          ]
+        },
+        "fist-near": {
+          "part": "fist-near",
+          "at": [
+            160,
+            180
+          ]
+        },
+        "fist-far": {
+          "part": "fist-far",
+          "at": [
+            192,
+            190
+          ]
+        },
+        "spire-1": {
+          "part": "spires-mk2",
+          "at": [
+            80,
+            22
+          ]
+        },
+        "spire-2": {
+          "part": "spires-mk2",
+          "at": [
+            96,
+            8
+          ]
+        },
+        "spire-3": {
+          "part": "spires-mk3",
+          "at": [
+            108,
+            -10
+          ]
+        },
+        "spire-4": {
+          "part": "spires-mk2",
+          "at": [
+            120,
+            18
+          ]
+        },
+        "spire-5": {
+          "part": "spires-mk3",
+          "at": [
+            132,
+            -2
+          ]
+        }
+      }
+    }
+  },
+  "optional": {
+    "mk3": [
+      "spires-mk3",
+      "fist-far-mk3",
+      "leg-near-mk3",
+      "yoke-mk3",
+      "head-mk3",
+      "core-mk3",
+      "arm-near-mk3",
+      "pauldron-near-mk3"
+    ],
+    "mk2": [
+      "spires-mk2",
+      "fist-far-mk2",
+      "leg-far-mk2",
+      "leg-near-mk2",
+      "yoke-mk2",
+      "pauldron-near-mk2",
+      "fist-near-mk2"
+    ],
+    "final": [
+      "plumes",
+      "core-final"
+    ]
+  }
+}

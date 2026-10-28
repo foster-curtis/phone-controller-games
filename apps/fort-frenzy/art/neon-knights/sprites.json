@@ -1,0 +1,3755 @@
+{
+  "notes": [
+    "Every frame that is not a rig part. Key = frame name (path under its category folder, no .svg).",
+    "anchor: the ground point used for placement and y-sorting, in the file's own units. Turret and sentry frames use (0, 0): the tile center for turrets, the mount point for sentries.",
+    "layer: ground (drawn under everything that stands), world (y-sorted) or effects (the effects layer above the world, \u00a715.2 layer 4).",
+    "tint: true means the whole frame is multiplied by the player color.",
+    "attach: named points in the frame's own units."
+  ],
+  "frames": {
+    "armory/kiosk": {
+      "category": "structures",
+      "file": "structures/armory/kiosk.svg",
+      "viewBox": [
+        13,
+        1,
+        94,
+        135
+      ],
+      "anchor": [
+        60,
+        100
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "armory/pad": {
+      "category": "structures",
+      "file": "structures/armory/pad.svg",
+      "viewBox": [
+        13,
+        1,
+        94,
+        135
+      ],
+      "anchor": [
+        60,
+        100
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "bolt": {
+      "category": "effects",
+      "file": "effects/bolt.svg",
+      "viewBox": [
+        -27,
+        -9,
+        50,
+        18
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "bombard-shell": {
+      "category": "effects",
+      "file": "effects/bombard-shell.svg",
+      "viewBox": [
+        -12,
+        -12,
+        24,
+        24
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "boulder": {
+      "category": "effects",
+      "file": "effects/boulder.svg",
+      "viewBox": [
+        -18,
+        -14,
+        34,
+        29
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "build-ghost/blocked": {
+      "category": "structures",
+      "file": "structures/build-ghost/blocked.svg",
+      "viewBox": [
+        0,
+        64,
+        96,
+        64
+      ],
+      "anchor": [
+        48,
+        96
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "build-ghost/valid": {
+      "category": "structures",
+      "file": "structures/build-ghost/valid.svg",
+      "viewBox": [
+        0,
+        64,
+        96,
+        64
+      ],
+      "anchor": [
+        48,
+        96
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "burn-1": {
+      "category": "effects",
+      "file": "effects/burn-1.svg",
+      "viewBox": [
+        -22,
+        -34,
+        44,
+        38
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "effects",
+      "tint": false
+    },
+    "burn-2": {
+      "category": "effects",
+      "file": "effects/burn-2.svg",
+      "viewBox": [
+        -22,
+        -34,
+        44,
+        38
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "effects",
+      "tint": false
+    },
+    "carry-pip": {
+      "category": "effects",
+      "file": "effects/carry-pip.svg",
+      "viewBox": [
+        -8,
+        -10,
+        16,
+        20
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "carry-pip-empty": {
+      "category": "effects",
+      "file": "effects/carry-pip-empty.svg",
+      "viewBox": [
+        -8,
+        -10,
+        16,
+        20
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "citadel/body": {
+      "category": "structures",
+      "file": "structures/citadel/body.svg",
+      "viewBox": [
+        2,
+        -62,
+        336,
+        331
+      ],
+      "anchor": [
+        170,
+        234
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "citadel/core": {
+      "category": "structures",
+      "file": "structures/citadel/core.svg",
+      "viewBox": [
+        2,
+        -62,
+        336,
+        331
+      ],
+      "anchor": [
+        170,
+        234
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "citadel/dmg-cracks": {
+      "category": "structures",
+      "file": "structures/citadel/dmg-cracks.svg",
+      "viewBox": [
+        2,
+        -62,
+        336,
+        331
+      ],
+      "anchor": [
+        170,
+        234
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "citadel/dmg-fire": {
+      "category": "structures",
+      "file": "structures/citadel/dmg-fire.svg",
+      "viewBox": [
+        2,
+        -62,
+        336,
+        331
+      ],
+      "anchor": [
+        170,
+        234
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "citadel/dmg-smoke": {
+      "category": "structures",
+      "file": "structures/citadel/dmg-smoke.svg",
+      "viewBox": [
+        2,
+        -62,
+        336,
+        331
+      ],
+      "anchor": [
+        170,
+        234
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "citadel/glow": {
+      "category": "structures",
+      "file": "structures/citadel/glow.svg",
+      "viewBox": [
+        2,
+        -62,
+        336,
+        331
+      ],
+      "anchor": [
+        170,
+        234
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "citadel/plate": {
+      "category": "structures",
+      "file": "structures/citadel/plate.svg",
+      "viewBox": [
+        2,
+        -62,
+        336,
+        331
+      ],
+      "anchor": [
+        170,
+        234
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "citadel/ramparts": {
+      "category": "structures",
+      "file": "structures/citadel/ramparts.svg",
+      "viewBox": [
+        2,
+        -62,
+        336,
+        331
+      ],
+      "anchor": [
+        170,
+        234
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "citadel/repair-zone": {
+      "category": "structures",
+      "file": "structures/citadel/repair-zone.svg",
+      "viewBox": [
+        2,
+        -62,
+        336,
+        331
+      ],
+      "anchor": [
+        170,
+        234
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "citadel/rubble": {
+      "category": "structures",
+      "file": "structures/citadel/rubble.svg",
+      "viewBox": [
+        2,
+        -62,
+        336,
+        331
+      ],
+      "anchor": [
+        170,
+        234
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "citadel/window": {
+      "category": "structures",
+      "file": "structures/citadel/window.svg",
+      "viewBox": [
+        2,
+        -62,
+        336,
+        331
+      ],
+      "anchor": [
+        170,
+        234
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "corrosion-1": {
+      "category": "effects",
+      "file": "effects/corrosion-1.svg",
+      "viewBox": [
+        -23,
+        -40,
+        46,
+        42
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "effects",
+      "tint": false
+    },
+    "corrosion-2": {
+      "category": "effects",
+      "file": "effects/corrosion-2.svg",
+      "viewBox": [
+        -23,
+        -40,
+        46,
+        42
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "effects",
+      "tint": false
+    },
+    "decor/crack": {
+      "category": "map",
+      "file": "map/decor/crack.svg",
+      "viewBox": [
+        -44,
+        -28,
+        88,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "decor/grate": {
+      "category": "map",
+      "file": "map/decor/grate.svg",
+      "viewBox": [
+        -44,
+        -28,
+        88,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "decor/lines": {
+      "category": "map",
+      "file": "map/decor/lines.svg",
+      "viewBox": [
+        -44,
+        -28,
+        88,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "decor/plate": {
+      "category": "map",
+      "file": "map/decor/plate.svg",
+      "viewBox": [
+        -44,
+        -28,
+        88,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "defense-bonus": {
+      "category": "effects",
+      "file": "effects/defense-bonus.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "deploy-beacon": {
+      "category": "effects",
+      "file": "effects/deploy-beacon.svg",
+      "viewBox": [
+        -14,
+        -32,
+        28,
+        43
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "edge/e": {
+      "category": "map",
+      "file": "map/edge/e.svg",
+      "viewBox": [
+        -44,
+        -28,
+        88,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "edge/n": {
+      "category": "map",
+      "file": "map/edge/n.svg",
+      "viewBox": [
+        -44,
+        -28,
+        88,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "edge/ne": {
+      "category": "map",
+      "file": "map/edge/ne.svg",
+      "viewBox": [
+        -44,
+        -28,
+        88,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "edge/nw": {
+      "category": "map",
+      "file": "map/edge/nw.svg",
+      "viewBox": [
+        -44,
+        -28,
+        88,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "edge/s": {
+      "category": "map",
+      "file": "map/edge/s.svg",
+      "viewBox": [
+        -44,
+        -28,
+        88,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "edge/se": {
+      "category": "map",
+      "file": "map/edge/se.svg",
+      "viewBox": [
+        -44,
+        -28,
+        88,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "edge/sw": {
+      "category": "map",
+      "file": "map/edge/sw.svg",
+      "viewBox": [
+        -44,
+        -28,
+        88,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "edge/w": {
+      "category": "map",
+      "file": "map/edge/w.svg",
+      "viewBox": [
+        -44,
+        -28,
+        88,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "fortify/back": {
+      "category": "structures",
+      "file": "structures/fortify/back.svg",
+      "viewBox": [
+        -3,
+        9,
+        102,
+        120
+      ],
+      "anchor": [
+        48,
+        96
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "fortify/front": {
+      "category": "structures",
+      "file": "structures/fortify/front.svg",
+      "viewBox": [
+        -3,
+        9,
+        102,
+        120
+      ],
+      "anchor": [
+        48,
+        96
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "ground/1": {
+      "category": "map",
+      "file": "map/ground/1.svg",
+      "viewBox": [
+        -44,
+        -28,
+        88,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "ground/2": {
+      "category": "map",
+      "file": "map/ground/2.svg",
+      "viewBox": [
+        -44,
+        -28,
+        88,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "ground/3": {
+      "category": "map",
+      "file": "map/ground/3.svg",
+      "viewBox": [
+        -44,
+        -28,
+        88,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "ground/4": {
+      "category": "map",
+      "file": "map/ground/4.svg",
+      "viewBox": [
+        -44,
+        -28,
+        88,
+        64
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "heal-glint": {
+      "category": "effects",
+      "file": "effects/heal-glint.svg",
+      "viewBox": [
+        -11,
+        -11,
+        22,
+        22
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "effects",
+      "tint": false
+    },
+    "lane/bottom-open": {
+      "category": "map",
+      "file": "map/lane/bottom-open.svg",
+      "viewBox": [
+        -89,
+        -4,
+        178,
+        41
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "lane/bottom-sealed": {
+      "category": "map",
+      "file": "map/lane/bottom-sealed.svg",
+      "viewBox": [
+        -89,
+        -4,
+        178,
+        41
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "lane/left-open": {
+      "category": "map",
+      "file": "map/lane/left-open.svg",
+      "viewBox": [
+        -45,
+        -57,
+        26,
+        114
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "lane/left-sealed": {
+      "category": "map",
+      "file": "map/lane/left-sealed.svg",
+      "viewBox": [
+        -45,
+        -57,
+        26,
+        114
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "lane/right-open": {
+      "category": "map",
+      "file": "map/lane/right-open.svg",
+      "viewBox": [
+        19,
+        -57,
+        26,
+        114
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "lane/right-sealed": {
+      "category": "map",
+      "file": "map/lane/right-sealed.svg",
+      "viewBox": [
+        19,
+        -57,
+        26,
+        114
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "mortar-shell": {
+      "category": "effects",
+      "file": "effects/mortar-shell.svg",
+      "viewBox": [
+        -11,
+        -11,
+        22,
+        22
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "muzzle-ours": {
+      "category": "effects",
+      "file": "effects/muzzle-ours.svg",
+      "viewBox": [
+        -9,
+        -16,
+        29,
+        30
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "effects",
+      "tint": false
+    },
+    "muzzle-theirs": {
+      "category": "effects",
+      "file": "effects/muzzle-theirs.svg",
+      "viewBox": [
+        -9,
+        -13,
+        28,
+        25
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "effects",
+      "tint": false
+    },
+    "nanite-bolt": {
+      "category": "effects",
+      "file": "effects/nanite-bolt.svg",
+      "viewBox": [
+        -18,
+        -8,
+        30,
+        16
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "nanite-mote": {
+      "category": "effects",
+      "file": "effects/nanite-mote.svg",
+      "viewBox": [
+        -7,
+        -7,
+        14,
+        14
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "effects",
+      "tint": false
+    },
+    "plate/tile": {
+      "category": "structures",
+      "file": "structures/plate/tile.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "power-cell": {
+      "category": "structures",
+      "file": "structures/power-cell.svg",
+      "viewBox": [
+        32,
+        83,
+        32,
+        42
+      ],
+      "anchor": [
+        48,
+        112
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "pulse-turret/band1": {
+      "category": "structures",
+      "file": "structures/pulse-turret/band1.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "pulse-turret/band2": {
+      "category": "structures",
+      "file": "structures/pulse-turret/band2.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "pulse-turret/band3": {
+      "category": "structures",
+      "file": "structures/pulse-turret/band3.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "pulse-turret/base/e": {
+      "category": "structures",
+      "file": "structures/pulse-turret/base/e.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          45.0,
+          -22.5
+        ]
+      }
+    },
+    "pulse-turret/base/n": {
+      "category": "structures",
+      "file": "structures/pulse-turret/base/n.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          -0.0,
+          -49.5
+        ]
+      }
+    },
+    "pulse-turret/base/ne": {
+      "category": "structures",
+      "file": "structures/pulse-turret/base/ne.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          31.8,
+          -41.6
+        ]
+      }
+    },
+    "pulse-turret/base/nw": {
+      "category": "structures",
+      "file": "structures/pulse-turret/base/nw.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          -31.8,
+          -41.6
+        ]
+      }
+    },
+    "pulse-turret/base/s": {
+      "category": "structures",
+      "file": "structures/pulse-turret/base/s.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          0.0,
+          4.5
+        ]
+      }
+    },
+    "pulse-turret/base/se": {
+      "category": "structures",
+      "file": "structures/pulse-turret/base/se.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          31.8,
+          -3.4
+        ]
+      }
+    },
+    "pulse-turret/base/sw": {
+      "category": "structures",
+      "file": "structures/pulse-turret/base/sw.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          -31.8,
+          -3.4
+        ]
+      }
+    },
+    "pulse-turret/base/w": {
+      "category": "structures",
+      "file": "structures/pulse-turret/base/w.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          -45.0,
+          -22.5
+        ]
+      }
+    },
+    "pulse-turret/dmg": {
+      "category": "structures",
+      "file": "structures/pulse-turret/dmg.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "pulse-turret/ii/e": {
+      "category": "structures",
+      "file": "structures/pulse-turret/ii/e.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          45.0,
+          -25.9
+        ],
+        "muzzle-2": [
+          45.0,
+          -19.1
+        ]
+      }
+    },
+    "pulse-turret/ii/n": {
+      "category": "structures",
+      "file": "structures/pulse-turret/ii/n.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          -5.8,
+          -49.5
+        ],
+        "muzzle-2": [
+          5.7,
+          -49.5
+        ]
+      }
+    },
+    "pulse-turret/ii/ne": {
+      "category": "structures",
+      "file": "structures/pulse-turret/ii/ne.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          27.8,
+          -44.0
+        ],
+        "muzzle-2": [
+          35.9,
+          -39.2
+        ]
+      }
+    },
+    "pulse-turret/ii/nw": {
+      "category": "structures",
+      "file": "structures/pulse-turret/ii/nw.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          -35.9,
+          -39.2
+        ],
+        "muzzle-2": [
+          -27.8,
+          -44.0
+        ]
+      }
+    },
+    "pulse-turret/ii/s": {
+      "category": "structures",
+      "file": "structures/pulse-turret/ii/s.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          5.8,
+          4.5
+        ],
+        "muzzle-2": [
+          -5.7,
+          4.5
+        ]
+      }
+    },
+    "pulse-turret/ii/se": {
+      "category": "structures",
+      "file": "structures/pulse-turret/ii/se.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          35.9,
+          -5.8
+        ],
+        "muzzle-2": [
+          27.8,
+          -1.0
+        ]
+      }
+    },
+    "pulse-turret/ii/sw": {
+      "category": "structures",
+      "file": "structures/pulse-turret/ii/sw.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          -27.8,
+          -1.0
+        ],
+        "muzzle-2": [
+          -35.9,
+          -5.8
+        ]
+      }
+    },
+    "pulse-turret/ii/w": {
+      "category": "structures",
+      "file": "structures/pulse-turret/ii/w.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          -45.0,
+          -19.0
+        ],
+        "muzzle-2": [
+          -45.0,
+          -25.9
+        ]
+      }
+    },
+    "pulse-turret/iii/e": {
+      "category": "structures",
+      "file": "structures/pulse-turret/iii/e.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          47.5,
+          -25.9
+        ],
+        "muzzle-2": [
+          47.5,
+          -19.1
+        ]
+      }
+    },
+    "pulse-turret/iii/n": {
+      "category": "structures",
+      "file": "structures/pulse-turret/iii/n.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          -5.8,
+          -51.0
+        ],
+        "muzzle-2": [
+          5.7,
+          -51.0
+        ]
+      }
+    },
+    "pulse-turret/iii/ne": {
+      "category": "structures",
+      "file": "structures/pulse-turret/iii/ne.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          29.5,
+          -45.1
+        ],
+        "muzzle-2": [
+          37.7,
+          -40.2
+        ]
+      }
+    },
+    "pulse-turret/iii/nw": {
+      "category": "structures",
+      "file": "structures/pulse-turret/iii/nw.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          -37.7,
+          -40.2
+        ],
+        "muzzle-2": [
+          -29.5,
+          -45.1
+        ]
+      }
+    },
+    "pulse-turret/iii/s": {
+      "category": "structures",
+      "file": "structures/pulse-turret/iii/s.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          5.8,
+          6.0
+        ],
+        "muzzle-2": [
+          -5.7,
+          6.0
+        ]
+      }
+    },
+    "pulse-turret/iii/se": {
+      "category": "structures",
+      "file": "structures/pulse-turret/iii/se.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          37.7,
+          -4.8
+        ],
+        "muzzle-2": [
+          29.5,
+          0.1
+        ]
+      }
+    },
+    "pulse-turret/iii/sw": {
+      "category": "structures",
+      "file": "structures/pulse-turret/iii/sw.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          -29.5,
+          0.1
+        ],
+        "muzzle-2": [
+          -37.7,
+          -4.8
+        ]
+      }
+    },
+    "pulse-turret/iii/w": {
+      "category": "structures",
+      "file": "structures/pulse-turret/iii/w.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          -47.5,
+          -19.0
+        ],
+        "muzzle-2": [
+          -47.5,
+          -25.9
+        ]
+      }
+    },
+    "pulse-turret/pedestal": {
+      "category": "structures",
+      "file": "structures/pulse-turret/pedestal.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "pulse-turret/pedestal-iii": {
+      "category": "structures",
+      "file": "structures/pulse-turret/pedestal-iii.svg",
+      "viewBox": [
+        -56,
+        -90,
+        112,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "rally-flag/cloth": {
+      "category": "structures",
+      "file": "structures/rally-flag/cloth.svg",
+      "viewBox": [
+        6,
+        -2,
+        50,
+        75
+      ],
+      "anchor": [
+        22,
+        60
+      ],
+      "layer": "world",
+      "tint": true
+    },
+    "rally-flag/cloth-trim": {
+      "category": "structures",
+      "file": "structures/rally-flag/cloth-trim.svg",
+      "viewBox": [
+        6,
+        -2,
+        50,
+        75
+      ],
+      "anchor": [
+        22,
+        60
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "rally-flag/pole": {
+      "category": "structures",
+      "file": "structures/rally-flag/pole.svg",
+      "viewBox": [
+        6,
+        -2,
+        50,
+        75
+      ],
+      "anchor": [
+        22,
+        60
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "rally-flag/ring": {
+      "category": "structures",
+      "file": "structures/rally-flag/ring.svg",
+      "viewBox": [
+        6,
+        -2,
+        50,
+        75
+      ],
+      "anchor": [
+        22,
+        60
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "scrap-ours-1": {
+      "category": "effects",
+      "file": "effects/scrap-ours-1.svg",
+      "viewBox": [
+        -19,
+        -11,
+        40,
+        21
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "scrap-ours-2": {
+      "category": "effects",
+      "file": "effects/scrap-ours-2.svg",
+      "viewBox": [
+        -24,
+        -12,
+        48,
+        24
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "scrap-ours-3": {
+      "category": "effects",
+      "file": "effects/scrap-ours-3.svg",
+      "viewBox": [
+        -30,
+        -17,
+        60,
+        32
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "scrap-ours-4": {
+      "category": "effects",
+      "file": "effects/scrap-ours-4.svg",
+      "viewBox": [
+        -40,
+        -22,
+        76,
+        40
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "scrap-ours-5": {
+      "category": "effects",
+      "file": "effects/scrap-ours-5.svg",
+      "viewBox": [
+        -43,
+        -22,
+        86,
+        42
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "scrap-theirs-1": {
+      "category": "effects",
+      "file": "effects/scrap-theirs-1.svg",
+      "viewBox": [
+        -20,
+        -12,
+        40,
+        22
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "scrap-theirs-2": {
+      "category": "effects",
+      "file": "effects/scrap-theirs-2.svg",
+      "viewBox": [
+        -24,
+        -12,
+        48,
+        25
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "scrap-theirs-3": {
+      "category": "effects",
+      "file": "effects/scrap-theirs-3.svg",
+      "viewBox": [
+        -30,
+        -18,
+        60,
+        32
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "scrap-theirs-4": {
+      "category": "effects",
+      "file": "effects/scrap-theirs-4.svg",
+      "viewBox": [
+        -36,
+        -20,
+        72,
+        38
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "scrap-theirs-5": {
+      "category": "effects",
+      "file": "effects/scrap-theirs-5.svg",
+      "viewBox": [
+        -43,
+        -24,
+        87,
+        45
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "sentry/base/c": {
+      "category": "structures",
+      "file": "structures/sentry/base/c.svg",
+      "viewBox": [
+        -52,
+        -31,
+        104,
+        46
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle": [
+          0.0,
+          3.6
+        ]
+      }
+    },
+    "sentry/base/dl": {
+      "category": "structures",
+      "file": "structures/sentry/base/dl.svg",
+      "viewBox": [
+        -52,
+        -31,
+        104,
+        46
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle": [
+          -18.4,
+          -1.0
+        ]
+      }
+    },
+    "sentry/base/dr": {
+      "category": "structures",
+      "file": "structures/sentry/base/dr.svg",
+      "viewBox": [
+        -52,
+        -31,
+        104,
+        46
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle": [
+          18.4,
+          -1.0
+        ]
+      }
+    },
+    "sentry/base/l": {
+      "category": "structures",
+      "file": "structures/sentry/base/l.svg",
+      "viewBox": [
+        -52,
+        -31,
+        104,
+        46
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle": [
+          -26.0,
+          -12.0
+        ]
+      }
+    },
+    "sentry/base/r": {
+      "category": "structures",
+      "file": "structures/sentry/base/r.svg",
+      "viewBox": [
+        -52,
+        -31,
+        104,
+        46
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle": [
+          26.0,
+          -12.0
+        ]
+      }
+    },
+    "sentry/dmg/c": {
+      "category": "structures",
+      "file": "structures/sentry/dmg/c.svg",
+      "viewBox": [
+        -52,
+        -31,
+        104,
+        46
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          2.5,
+          3.6
+        ],
+        "muzzle-2": [
+          -2.5,
+          3.6
+        ]
+      }
+    },
+    "sentry/dmg/dl": {
+      "category": "structures",
+      "file": "structures/sentry/dmg/dl.svg",
+      "viewBox": [
+        -52,
+        -31,
+        104,
+        46
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          -16.6,
+          0.1
+        ],
+        "muzzle-2": [
+          -20.2,
+          -2.0
+        ]
+      }
+    },
+    "sentry/dmg/dr": {
+      "category": "structures",
+      "file": "structures/sentry/dmg/dr.svg",
+      "viewBox": [
+        -52,
+        -31,
+        104,
+        46
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          20.2,
+          -2.0
+        ],
+        "muzzle-2": [
+          16.6,
+          0.1
+        ]
+      }
+    },
+    "sentry/dmg/l": {
+      "category": "structures",
+      "file": "structures/sentry/dmg/l.svg",
+      "viewBox": [
+        -52,
+        -31,
+        104,
+        46
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          -26.0,
+          -10.5
+        ],
+        "muzzle-2": [
+          -26.0,
+          -13.5
+        ]
+      }
+    },
+    "sentry/dmg/r": {
+      "category": "structures",
+      "file": "structures/sentry/dmg/r.svg",
+      "viewBox": [
+        -52,
+        -31,
+        104,
+        46
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          26.0,
+          -13.5
+        ],
+        "muzzle-2": [
+          26.0,
+          -10.5
+        ]
+      }
+    },
+    "sentry/max/c": {
+      "category": "structures",
+      "file": "structures/sentry/max/c.svg",
+      "viewBox": [
+        -52,
+        -31,
+        104,
+        46
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          2.5,
+          3.6
+        ],
+        "muzzle-2": [
+          -2.5,
+          3.6
+        ]
+      }
+    },
+    "sentry/max/dl": {
+      "category": "structures",
+      "file": "structures/sentry/max/dl.svg",
+      "viewBox": [
+        -52,
+        -31,
+        104,
+        46
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          -16.6,
+          0.1
+        ],
+        "muzzle-2": [
+          -20.2,
+          -2.0
+        ]
+      }
+    },
+    "sentry/max/dr": {
+      "category": "structures",
+      "file": "structures/sentry/max/dr.svg",
+      "viewBox": [
+        -52,
+        -31,
+        104,
+        46
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          20.2,
+          -2.0
+        ],
+        "muzzle-2": [
+          16.6,
+          0.1
+        ]
+      }
+    },
+    "sentry/max/l": {
+      "category": "structures",
+      "file": "structures/sentry/max/l.svg",
+      "viewBox": [
+        -52,
+        -31,
+        104,
+        46
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          -26.0,
+          -10.5
+        ],
+        "muzzle-2": [
+          -26.0,
+          -13.5
+        ]
+      }
+    },
+    "sentry/max/r": {
+      "category": "structures",
+      "file": "structures/sentry/max/r.svg",
+      "viewBox": [
+        -52,
+        -31,
+        104,
+        46
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle-1": [
+          26.0,
+          -13.5
+        ],
+        "muzzle-2": [
+          26.0,
+          -10.5
+        ]
+      }
+    },
+    "sentry/rng/c": {
+      "category": "structures",
+      "file": "structures/sentry/rng/c.svg",
+      "viewBox": [
+        -52,
+        -31,
+        104,
+        46
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle": [
+          0.0,
+          3.6
+        ]
+      }
+    },
+    "sentry/rng/dl": {
+      "category": "structures",
+      "file": "structures/sentry/rng/dl.svg",
+      "viewBox": [
+        -52,
+        -31,
+        104,
+        46
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle": [
+          -18.4,
+          -1.0
+        ]
+      }
+    },
+    "sentry/rng/dr": {
+      "category": "structures",
+      "file": "structures/sentry/rng/dr.svg",
+      "viewBox": [
+        -52,
+        -31,
+        104,
+        46
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle": [
+          18.4,
+          -1.0
+        ]
+      }
+    },
+    "sentry/rng/l": {
+      "category": "structures",
+      "file": "structures/sentry/rng/l.svg",
+      "viewBox": [
+        -52,
+        -31,
+        104,
+        46
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle": [
+          -26.0,
+          -12.0
+        ]
+      }
+    },
+    "sentry/rng/r": {
+      "category": "structures",
+      "file": "structures/sentry/rng/r.svg",
+      "viewBox": [
+        -52,
+        -31,
+        104,
+        46
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false,
+      "attach": {
+        "muzzle": [
+          26.0,
+          -12.0
+        ]
+      }
+    },
+    "shock-crawl": {
+      "category": "effects",
+      "file": "effects/shock-crawl.svg",
+      "viewBox": [
+        -22,
+        -46,
+        44,
+        52
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "effects",
+      "tint": false
+    },
+    "shock-net/m0": {
+      "category": "structures",
+      "file": "structures/shock-net/m0.svg",
+      "viewBox": [
+        -45,
+        -29,
+        90,
+        58
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "shock-net/m1": {
+      "category": "structures",
+      "file": "structures/shock-net/m1.svg",
+      "viewBox": [
+        -45,
+        -29,
+        90,
+        58
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "shock-net/m10": {
+      "category": "structures",
+      "file": "structures/shock-net/m10.svg",
+      "viewBox": [
+        -45,
+        -29,
+        90,
+        58
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "shock-net/m11": {
+      "category": "structures",
+      "file": "structures/shock-net/m11.svg",
+      "viewBox": [
+        -45,
+        -29,
+        90,
+        58
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "shock-net/m12": {
+      "category": "structures",
+      "file": "structures/shock-net/m12.svg",
+      "viewBox": [
+        -45,
+        -29,
+        90,
+        58
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "shock-net/m13": {
+      "category": "structures",
+      "file": "structures/shock-net/m13.svg",
+      "viewBox": [
+        -45,
+        -29,
+        90,
+        58
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "shock-net/m14": {
+      "category": "structures",
+      "file": "structures/shock-net/m14.svg",
+      "viewBox": [
+        -45,
+        -29,
+        90,
+        58
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "shock-net/m15": {
+      "category": "structures",
+      "file": "structures/shock-net/m15.svg",
+      "viewBox": [
+        -45,
+        -29,
+        90,
+        58
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "shock-net/m2": {
+      "category": "structures",
+      "file": "structures/shock-net/m2.svg",
+      "viewBox": [
+        -45,
+        -29,
+        90,
+        58
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "shock-net/m3": {
+      "category": "structures",
+      "file": "structures/shock-net/m3.svg",
+      "viewBox": [
+        -45,
+        -29,
+        90,
+        58
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "shock-net/m4": {
+      "category": "structures",
+      "file": "structures/shock-net/m4.svg",
+      "viewBox": [
+        -45,
+        -29,
+        90,
+        58
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "shock-net/m5": {
+      "category": "structures",
+      "file": "structures/shock-net/m5.svg",
+      "viewBox": [
+        -45,
+        -29,
+        90,
+        58
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "shock-net/m6": {
+      "category": "structures",
+      "file": "structures/shock-net/m6.svg",
+      "viewBox": [
+        -45,
+        -29,
+        90,
+        58
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "shock-net/m7": {
+      "category": "structures",
+      "file": "structures/shock-net/m7.svg",
+      "viewBox": [
+        -45,
+        -29,
+        90,
+        58
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "shock-net/m8": {
+      "category": "structures",
+      "file": "structures/shock-net/m8.svg",
+      "viewBox": [
+        -45,
+        -29,
+        90,
+        58
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "shock-net/m9": {
+      "category": "structures",
+      "file": "structures/shock-net/m9.svg",
+      "viewBox": [
+        -45,
+        -29,
+        90,
+        58
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "spark-ours": {
+      "category": "effects",
+      "file": "effects/spark-ours.svg",
+      "viewBox": [
+        -11,
+        -14,
+        23,
+        26
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "effects",
+      "tint": false
+    },
+    "spark-theirs": {
+      "category": "effects",
+      "file": "effects/spark-theirs.svg",
+      "viewBox": [
+        -14,
+        -12,
+        27,
+        26
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "effects",
+      "tint": false
+    },
+    "stun-1": {
+      "category": "effects",
+      "file": "effects/stun-1.svg",
+      "viewBox": [
+        -24,
+        -15,
+        47,
+        30
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "effects",
+      "tint": false
+    },
+    "stun-2": {
+      "category": "effects",
+      "file": "effects/stun-2.svg",
+      "viewBox": [
+        -24,
+        -15,
+        47,
+        30
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "effects",
+      "tint": false
+    },
+    "stun-3": {
+      "category": "effects",
+      "file": "effects/stun-3.svg",
+      "viewBox": [
+        -24,
+        -15,
+        47,
+        30
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "effects",
+      "tint": false
+    },
+    "stun-4": {
+      "category": "effects",
+      "file": "effects/stun-4.svg",
+      "viewBox": [
+        -24,
+        -15,
+        47,
+        30
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "effects",
+      "tint": false
+    },
+    "wall-strike": {
+      "category": "effects",
+      "file": "effects/wall-strike.svg",
+      "viewBox": [
+        -6,
+        -18,
+        112,
+        34
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "effects",
+      "tint": false
+    },
+    "wall/charged/m0": {
+      "category": "structures",
+      "file": "structures/wall/charged/m0.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/charged/m1": {
+      "category": "structures",
+      "file": "structures/wall/charged/m1.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/charged/m10": {
+      "category": "structures",
+      "file": "structures/wall/charged/m10.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/charged/m11": {
+      "category": "structures",
+      "file": "structures/wall/charged/m11.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/charged/m12": {
+      "category": "structures",
+      "file": "structures/wall/charged/m12.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/charged/m13": {
+      "category": "structures",
+      "file": "structures/wall/charged/m13.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/charged/m14": {
+      "category": "structures",
+      "file": "structures/wall/charged/m14.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/charged/m15": {
+      "category": "structures",
+      "file": "structures/wall/charged/m15.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/charged/m2": {
+      "category": "structures",
+      "file": "structures/wall/charged/m2.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/charged/m3": {
+      "category": "structures",
+      "file": "structures/wall/charged/m3.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/charged/m4": {
+      "category": "structures",
+      "file": "structures/wall/charged/m4.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/charged/m5": {
+      "category": "structures",
+      "file": "structures/wall/charged/m5.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/charged/m6": {
+      "category": "structures",
+      "file": "structures/wall/charged/m6.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/charged/m7": {
+      "category": "structures",
+      "file": "structures/wall/charged/m7.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/charged/m8": {
+      "category": "structures",
+      "file": "structures/wall/charged/m8.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/charged/m9": {
+      "category": "structures",
+      "file": "structures/wall/charged/m9.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/dmg/m0": {
+      "category": "structures",
+      "file": "structures/wall/dmg/m0.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/dmg/m1": {
+      "category": "structures",
+      "file": "structures/wall/dmg/m1.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/dmg/m10": {
+      "category": "structures",
+      "file": "structures/wall/dmg/m10.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/dmg/m11": {
+      "category": "structures",
+      "file": "structures/wall/dmg/m11.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/dmg/m12": {
+      "category": "structures",
+      "file": "structures/wall/dmg/m12.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/dmg/m13": {
+      "category": "structures",
+      "file": "structures/wall/dmg/m13.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/dmg/m14": {
+      "category": "structures",
+      "file": "structures/wall/dmg/m14.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/dmg/m15": {
+      "category": "structures",
+      "file": "structures/wall/dmg/m15.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/dmg/m2": {
+      "category": "structures",
+      "file": "structures/wall/dmg/m2.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/dmg/m3": {
+      "category": "structures",
+      "file": "structures/wall/dmg/m3.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/dmg/m4": {
+      "category": "structures",
+      "file": "structures/wall/dmg/m4.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/dmg/m5": {
+      "category": "structures",
+      "file": "structures/wall/dmg/m5.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/dmg/m6": {
+      "category": "structures",
+      "file": "structures/wall/dmg/m6.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/dmg/m7": {
+      "category": "structures",
+      "file": "structures/wall/dmg/m7.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/dmg/m8": {
+      "category": "structures",
+      "file": "structures/wall/dmg/m8.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/dmg/m9": {
+      "category": "structures",
+      "file": "structures/wall/dmg/m9.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/m0": {
+      "category": "structures",
+      "file": "structures/wall/m0.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/m1": {
+      "category": "structures",
+      "file": "structures/wall/m1.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/m10": {
+      "category": "structures",
+      "file": "structures/wall/m10.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/m11": {
+      "category": "structures",
+      "file": "structures/wall/m11.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/m12": {
+      "category": "structures",
+      "file": "structures/wall/m12.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/m13": {
+      "category": "structures",
+      "file": "structures/wall/m13.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/m14": {
+      "category": "structures",
+      "file": "structures/wall/m14.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/m15": {
+      "category": "structures",
+      "file": "structures/wall/m15.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/m2": {
+      "category": "structures",
+      "file": "structures/wall/m2.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/m3": {
+      "category": "structures",
+      "file": "structures/wall/m3.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/m4": {
+      "category": "structures",
+      "file": "structures/wall/m4.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/m5": {
+      "category": "structures",
+      "file": "structures/wall/m5.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/m6": {
+      "category": "structures",
+      "file": "structures/wall/m6.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/m7": {
+      "category": "structures",
+      "file": "structures/wall/m7.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/m8": {
+      "category": "structures",
+      "file": "structures/wall/m8.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/m9": {
+      "category": "structures",
+      "file": "structures/wall/m9.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "wall/rail/m0": {
+      "category": "structures",
+      "file": "structures/wall/rail/m0.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "wall/rail/m1": {
+      "category": "structures",
+      "file": "structures/wall/rail/m1.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "wall/rail/m10": {
+      "category": "structures",
+      "file": "structures/wall/rail/m10.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "wall/rail/m11": {
+      "category": "structures",
+      "file": "structures/wall/rail/m11.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "wall/rail/m12": {
+      "category": "structures",
+      "file": "structures/wall/rail/m12.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "wall/rail/m13": {
+      "category": "structures",
+      "file": "structures/wall/rail/m13.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "wall/rail/m14": {
+      "category": "structures",
+      "file": "structures/wall/rail/m14.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "wall/rail/m15": {
+      "category": "structures",
+      "file": "structures/wall/rail/m15.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "wall/rail/m2": {
+      "category": "structures",
+      "file": "structures/wall/rail/m2.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "wall/rail/m3": {
+      "category": "structures",
+      "file": "structures/wall/rail/m3.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "wall/rail/m4": {
+      "category": "structures",
+      "file": "structures/wall/rail/m4.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "wall/rail/m5": {
+      "category": "structures",
+      "file": "structures/wall/rail/m5.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "wall/rail/m6": {
+      "category": "structures",
+      "file": "structures/wall/rail/m6.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "wall/rail/m7": {
+      "category": "structures",
+      "file": "structures/wall/rail/m7.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "wall/rail/m8": {
+      "category": "structures",
+      "file": "structures/wall/rail/m8.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "wall/rail/m9": {
+      "category": "structures",
+      "file": "structures/wall/rail/m9.svg",
+      "viewBox": [
+        -53,
+        -89,
+        106,
+        121
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "wasp-shot": {
+      "category": "effects",
+      "file": "effects/wasp-shot.svg",
+      "viewBox": [
+        -16,
+        -7,
+        31,
+        14
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    }
+  }
+}

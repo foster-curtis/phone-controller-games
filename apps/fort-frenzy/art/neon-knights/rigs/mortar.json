@@ -1,0 +1,228 @@
+{
+  "id": "mortar",
+  "viewBox": [
+    7,
+    10,
+    84,
+    119
+  ],
+  "views": {
+    "side": {
+      "foot": [
+        48,
+        96
+      ],
+      "parts": {
+        "rack": {
+          "frame": "mortar/side/rack",
+          "pivot": [
+            78,
+            90
+          ],
+          "at": [
+            78,
+            90
+          ]
+        },
+        "ring-back": {
+          "frame": "mortar/side/ring-back",
+          "pivot": [
+            48,
+            96
+          ],
+          "at": [
+            48,
+            96
+          ]
+        },
+        "spikes": {
+          "frame": "mortar/side/spikes",
+          "pivot": [
+            48,
+            96
+          ],
+          "at": [
+            48,
+            96
+          ]
+        },
+        "ring-front": {
+          "frame": "mortar/side/ring-front",
+          "pivot": [
+            48,
+            96
+          ],
+          "at": [
+            48,
+            96
+          ]
+        },
+        "band1": {
+          "frame": "mortar/side/band1",
+          "pivot": [
+            48,
+            96
+          ],
+          "at": [
+            48,
+            96
+          ],
+          "emissive": true
+        },
+        "band2": {
+          "frame": "mortar/side/band2",
+          "pivot": [
+            48,
+            96
+          ],
+          "at": [
+            48,
+            96
+          ],
+          "emissive": true
+        },
+        "band3": {
+          "frame": "mortar/side/band3",
+          "pivot": [
+            48,
+            96
+          ],
+          "at": [
+            48,
+            96
+          ],
+          "emissive": true
+        },
+        "blocks": {
+          "frame": "mortar/side/blocks",
+          "pivot": [
+            48,
+            96
+          ],
+          "at": [
+            48,
+            96
+          ]
+        },
+        "tube": {
+          "frame": "mortar/side/tube",
+          "pivot": [
+            48,
+            80
+          ],
+          "at": [
+            48,
+            80
+          ]
+        },
+        "hoops": {
+          "frame": "mortar/side/hoops",
+          "pivot": [
+            48,
+            80
+          ],
+          "parent": "tube",
+          "at": [
+            48,
+            80
+          ]
+        },
+        "brake": {
+          "frame": "mortar/side/brake",
+          "pivot": [
+            48,
+            80
+          ],
+          "parent": "tube",
+          "at": [
+            48,
+            80
+          ]
+        },
+        "dome": {
+          "frame": "mortar/side/dome",
+          "pivot": [
+            48,
+            87
+          ],
+          "at": [
+            48,
+            87
+          ]
+        },
+        "cracks": {
+          "frame": "mortar/side/cracks",
+          "pivot": [
+            48,
+            96
+          ],
+          "at": [
+            48,
+            96
+          ]
+        }
+      },
+      "order": [
+        "rack",
+        "ring-back",
+        "spikes",
+        "ring-front",
+        "band1",
+        "band2",
+        "band3",
+        "cracks",
+        "blocks",
+        "tube",
+        "hoops",
+        "brake",
+        "dome"
+      ],
+      "attach": {
+        "muzzle": {
+          "part": "tube",
+          "at": [
+            48,
+            30
+          ]
+        },
+        "muzzle-iii": {
+          "part": "brake",
+          "at": [
+            48,
+            17
+          ]
+        },
+        "top": {
+          "part": "tube",
+          "at": [
+            48,
+            17
+          ]
+        }
+      }
+    }
+  },
+  "optional": {
+    "ii": [
+      "blocks",
+      "hoops"
+    ],
+    "iii": [
+      "rack",
+      "spikes",
+      "brake"
+    ],
+    "band1": [
+      "band1"
+    ],
+    "band2": [
+      "band2"
+    ],
+    "band3": [
+      "band3"
+    ],
+    "damaged": [
+      "cracks"
+    ]
+  }
+}

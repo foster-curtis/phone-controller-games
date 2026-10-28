@@ -1,0 +1,1421 @@
+{
+  "id": "ranger",
+  "viewBox": [
+    23,
+    -3,
+    97,
+    126
+  ],
+  "views": {
+    "side": {
+      "defaultPose": "stand",
+      "poses": {
+        "ready": {
+          "foot": [
+            66,
+            116
+          ],
+          "parts": {
+            "quiver": {
+              "frame": "ranger/side/ready/quiver",
+              "pivot": [
+                51.4,
+                41.4
+              ],
+              "parent": "torso",
+              "at": [
+                51.4,
+                41.4
+              ]
+            },
+            "quiver-glow": {
+              "frame": "ranger/side/ready/quiver-glow",
+              "pivot": [
+                51.4,
+                41.4
+              ],
+              "parent": "quiver",
+              "at": [
+                51.4,
+                41.4
+              ],
+              "emissive": true
+            },
+            "cloak": {
+              "frame": "ranger/side/ready/cloak",
+              "pivot": [
+                53.0,
+                46
+              ],
+              "parent": "torso",
+              "at": [
+                53.0,
+                46
+              ]
+            },
+            "backleg": {
+              "frame": "ranger/side/ready/backleg",
+              "pivot": [
+                61.0,
+                86
+              ],
+              "parent": "torso",
+              "at": [
+                61.0,
+                86
+              ]
+            },
+            "backarm": {
+              "frame": "ranger/side/ready/backarm",
+              "pivot": [
+                60.0,
+                52.0
+              ],
+              "parent": "torso",
+              "at": [
+                60.0,
+                52.0
+              ]
+            },
+            "torso": {
+              "frame": "ranger/side/ready/torso",
+              "pivot": [
+                66.5,
+                82
+              ],
+              "at": [
+                66.5,
+                82
+              ]
+            },
+            "strap": {
+              "frame": "ranger/side/ready/strap",
+              "pivot": [
+                67.5,
+                46.8
+              ],
+              "parent": "torso",
+              "at": [
+                67.5,
+                46.8
+              ]
+            },
+            "strap-glow": {
+              "frame": "ranger/side/ready/strap-glow",
+              "pivot": [
+                67.5,
+                46.8
+              ],
+              "parent": "strap",
+              "at": [
+                67.5,
+                46.8
+              ],
+              "emissive": true
+            },
+            "frontleg": {
+              "frame": "ranger/side/ready/frontleg",
+              "pivot": [
+                71.5,
+                86
+              ],
+              "parent": "torso",
+              "at": [
+                71.5,
+                86
+              ]
+            },
+            "frontleg-glow": {
+              "frame": "ranger/side/ready/frontleg-glow",
+              "pivot": [
+                71.5,
+                86
+              ],
+              "parent": "frontleg",
+              "at": [
+                71.5,
+                86
+              ],
+              "emissive": true
+            },
+            "helm": {
+              "frame": "ranger/side/ready/helm",
+              "pivot": [
+                64.0,
+                43
+              ],
+              "parent": "torso",
+              "at": [
+                64.0,
+                43
+              ]
+            },
+            "helm-glow": {
+              "frame": "ranger/side/ready/helm-glow",
+              "pivot": [
+                64.0,
+                43
+              ],
+              "parent": "helm",
+              "at": [
+                64.0,
+                43
+              ],
+              "emissive": true
+            },
+            "plume": {
+              "frame": "ranger/side/ready/plume",
+              "pivot": [
+                52,
+                23
+              ],
+              "parent": "helm",
+              "at": [
+                52,
+                23
+              ],
+              "tint": "player"
+            },
+            "bow": {
+              "frame": "ranger/side/ready/bow",
+              "pivot": [
+                94.5,
+                55.2
+              ],
+              "parent": "frontarm",
+              "at": [
+                94.5,
+                55.2
+              ]
+            },
+            "bow-glow": {
+              "frame": "ranger/side/ready/bow-glow",
+              "pivot": [
+                94.5,
+                55.2
+              ],
+              "parent": "bow",
+              "at": [
+                94.5,
+                55.2
+              ],
+              "emissive": true
+            },
+            "frontarm": {
+              "frame": "ranger/side/ready/frontarm",
+              "pivot": [
+                72.0,
+                50.0
+              ],
+              "parent": "torso",
+              "at": [
+                72.0,
+                50.0
+              ]
+            }
+          },
+          "order": [
+            "quiver",
+            "quiver-glow",
+            "cloak",
+            "backleg",
+            "backarm",
+            "torso",
+            "strap",
+            "strap-glow",
+            "frontleg",
+            "frontleg-glow",
+            "helm",
+            "helm-glow",
+            "plume",
+            "bow",
+            "bow-glow",
+            "frontarm"
+          ],
+          "attach": {
+            "nametag": {
+              "part": "helm",
+              "at": [
+                64.0,
+                11
+              ]
+            },
+            "badge": {
+              "part": "helm",
+              "at": [
+                64.0,
+                -3
+              ]
+            },
+            "carry": {
+              "part": "torso",
+              "at": [
+                82,
+                65.5
+              ]
+            },
+            "bolt": {
+              "part": "bow",
+              "at": [
+                112,
+                63
+              ]
+            }
+          }
+        },
+        "stand": {
+          "foot": [
+            66,
+            116
+          ],
+          "parts": {
+            "quiver": {
+              "frame": "ranger/side/stand/quiver",
+              "pivot": [
+                51.4,
+                41.4
+              ],
+              "parent": "torso",
+              "at": [
+                51.4,
+                41.4
+              ]
+            },
+            "quiver-glow": {
+              "frame": "ranger/side/stand/quiver-glow",
+              "pivot": [
+                51.4,
+                41.4
+              ],
+              "parent": "quiver",
+              "at": [
+                51.4,
+                41.4
+              ],
+              "emissive": true
+            },
+            "cloak": {
+              "frame": "ranger/side/stand/cloak",
+              "pivot": [
+                53.0,
+                46
+              ],
+              "parent": "torso",
+              "at": [
+                53.0,
+                46
+              ]
+            },
+            "backleg": {
+              "frame": "ranger/side/stand/backleg",
+              "pivot": [
+                61.0,
+                86
+              ],
+              "parent": "torso",
+              "at": [
+                61.0,
+                86
+              ]
+            },
+            "backarm": {
+              "frame": "ranger/side/stand/backarm",
+              "pivot": [
+                60.0,
+                52.0
+              ],
+              "parent": "torso",
+              "at": [
+                60.0,
+                52.0
+              ]
+            },
+            "torso": {
+              "frame": "ranger/side/stand/torso",
+              "pivot": [
+                66.5,
+                82
+              ],
+              "at": [
+                66.5,
+                82
+              ]
+            },
+            "strap": {
+              "frame": "ranger/side/stand/strap",
+              "pivot": [
+                67.5,
+                46.8
+              ],
+              "parent": "torso",
+              "at": [
+                67.5,
+                46.8
+              ]
+            },
+            "strap-glow": {
+              "frame": "ranger/side/stand/strap-glow",
+              "pivot": [
+                67.5,
+                46.8
+              ],
+              "parent": "strap",
+              "at": [
+                67.5,
+                46.8
+              ],
+              "emissive": true
+            },
+            "frontleg": {
+              "frame": "ranger/side/stand/frontleg",
+              "pivot": [
+                71.5,
+                86
+              ],
+              "parent": "torso",
+              "at": [
+                71.5,
+                86
+              ]
+            },
+            "frontleg-glow": {
+              "frame": "ranger/side/stand/frontleg-glow",
+              "pivot": [
+                71.5,
+                86
+              ],
+              "parent": "frontleg",
+              "at": [
+                71.5,
+                86
+              ],
+              "emissive": true
+            },
+            "helm": {
+              "frame": "ranger/side/stand/helm",
+              "pivot": [
+                64.0,
+                43
+              ],
+              "parent": "torso",
+              "at": [
+                64.0,
+                43
+              ]
+            },
+            "helm-glow": {
+              "frame": "ranger/side/stand/helm-glow",
+              "pivot": [
+                64.0,
+                43
+              ],
+              "parent": "helm",
+              "at": [
+                64.0,
+                43
+              ],
+              "emissive": true
+            },
+            "plume": {
+              "frame": "ranger/side/stand/plume",
+              "pivot": [
+                52,
+                23
+              ],
+              "parent": "helm",
+              "at": [
+                52,
+                23
+              ],
+              "tint": "player"
+            },
+            "bow": {
+              "frame": "ranger/side/stand/bow",
+              "pivot": [
+                82.9,
+                62.5
+              ],
+              "parent": "frontarm",
+              "at": [
+                82.9,
+                62.5
+              ]
+            },
+            "bow-glow": {
+              "frame": "ranger/side/stand/bow-glow",
+              "pivot": [
+                82.9,
+                62.5
+              ],
+              "parent": "bow",
+              "at": [
+                82.9,
+                62.5
+              ],
+              "emissive": true
+            },
+            "frontarm": {
+              "frame": "ranger/side/stand/frontarm",
+              "pivot": [
+                74.0,
+                52.0
+              ],
+              "parent": "torso",
+              "at": [
+                74.0,
+                52.0
+              ]
+            }
+          },
+          "order": [
+            "quiver",
+            "quiver-glow",
+            "cloak",
+            "backleg",
+            "backarm",
+            "torso",
+            "strap",
+            "strap-glow",
+            "frontleg",
+            "frontleg-glow",
+            "helm",
+            "helm-glow",
+            "plume",
+            "bow",
+            "bow-glow",
+            "frontarm"
+          ],
+          "attach": {
+            "nametag": {
+              "part": "helm",
+              "at": [
+                64.0,
+                11
+              ]
+            },
+            "badge": {
+              "part": "helm",
+              "at": [
+                64.0,
+                -3
+              ]
+            },
+            "carry": {
+              "part": "torso",
+              "at": [
+                82,
+                65.5
+              ]
+            },
+            "bolt": {
+              "part": "bow",
+              "at": [
+                85,
+                73
+              ]
+            }
+          }
+        }
+      }
+    },
+    "front": {
+      "defaultPose": "stand",
+      "poses": {
+        "ready": {
+          "foot": [
+            66,
+            116
+          ],
+          "parts": {
+            "cloak": {
+              "frame": "ranger/front/ready/cloak",
+              "pivot": [
+                66.0,
+                48
+              ],
+              "parent": "torso",
+              "at": [
+                66.0,
+                48
+              ]
+            },
+            "quivertips": {
+              "frame": "ranger/front/ready/quivertips",
+              "pivot": [
+                77.8,
+                39.5
+              ],
+              "parent": "torso",
+              "at": [
+                77.8,
+                39.5
+              ]
+            },
+            "quivertips-glow": {
+              "frame": "ranger/front/ready/quivertips-glow",
+              "pivot": [
+                77.8,
+                39.5
+              ],
+              "parent": "quivertips",
+              "at": [
+                77.8,
+                39.5
+              ],
+              "emissive": true
+            },
+            "legs": {
+              "frame": "ranger/front/ready/legs",
+              "pivot": [
+                66.0,
+                86
+              ],
+              "parent": "torso",
+              "at": [
+                66.0,
+                86
+              ]
+            },
+            "legs-glow": {
+              "frame": "ranger/front/ready/legs-glow",
+              "pivot": [
+                66.0,
+                86
+              ],
+              "parent": "legs",
+              "at": [
+                66.0,
+                86
+              ],
+              "emissive": true
+            },
+            "torso": {
+              "frame": "ranger/front/ready/torso",
+              "pivot": [
+                66.0,
+                82
+              ],
+              "at": [
+                66.0,
+                82
+              ]
+            },
+            "strap": {
+              "frame": "ranger/front/ready/strap",
+              "pivot": [
+                65.5,
+                46.8
+              ],
+              "parent": "torso",
+              "at": [
+                65.5,
+                46.8
+              ]
+            },
+            "strap-glow": {
+              "frame": "ranger/front/ready/strap-glow",
+              "pivot": [
+                65.5,
+                46.8
+              ],
+              "parent": "strap",
+              "at": [
+                65.5,
+                46.8
+              ],
+              "emissive": true
+            },
+            "plume": {
+              "frame": "ranger/front/ready/plume",
+              "pivot": [
+                56,
+                23
+              ],
+              "parent": "helm",
+              "at": [
+                56,
+                23
+              ],
+              "tint": "player"
+            },
+            "helm": {
+              "frame": "ranger/front/ready/helm",
+              "pivot": [
+                66.0,
+                43
+              ],
+              "parent": "torso",
+              "at": [
+                66.0,
+                43
+              ]
+            },
+            "helm-glow": {
+              "frame": "ranger/front/ready/helm-glow",
+              "pivot": [
+                66.0,
+                43
+              ],
+              "parent": "helm",
+              "at": [
+                66.0,
+                43
+              ],
+              "emissive": true
+            },
+            "arms": {
+              "frame": "ranger/front/ready/arms",
+              "pivot": [
+                77.0,
+                50.0
+              ],
+              "parent": "torso",
+              "at": [
+                77.0,
+                50.0
+              ]
+            },
+            "bow": {
+              "frame": "ranger/front/ready/bow",
+              "pivot": [
+                87.0,
+                62.5
+              ],
+              "parent": "hands",
+              "at": [
+                87.0,
+                62.5
+              ]
+            },
+            "bow-glow": {
+              "frame": "ranger/front/ready/bow-glow",
+              "pivot": [
+                87.0,
+                62.5
+              ],
+              "parent": "bow",
+              "at": [
+                87.0,
+                62.5
+              ],
+              "emissive": true
+            },
+            "hands": {
+              "frame": "ranger/front/ready/hands",
+              "pivot": [
+                75.5,
+                62.5
+              ],
+              "parent": "arms",
+              "at": [
+                75.5,
+                62.5
+              ]
+            }
+          },
+          "order": [
+            "cloak",
+            "quivertips",
+            "quivertips-glow",
+            "legs",
+            "legs-glow",
+            "torso",
+            "strap",
+            "strap-glow",
+            "plume",
+            "helm",
+            "helm-glow",
+            "arms",
+            "bow",
+            "bow-glow",
+            "hands"
+          ],
+          "attach": {
+            "nametag": {
+              "part": "helm",
+              "at": [
+                66.0,
+                11
+              ]
+            },
+            "badge": {
+              "part": "helm",
+              "at": [
+                66.0,
+                -3
+              ]
+            },
+            "carry": {
+              "part": "torso",
+              "at": [
+                66.0,
+                65.5
+              ]
+            },
+            "bolt": {
+              "part": "bow",
+              "at": [
+                87,
+                63
+              ]
+            }
+          }
+        },
+        "stand": {
+          "foot": [
+            66,
+            116
+          ],
+          "parts": {
+            "cloak": {
+              "frame": "ranger/front/stand/cloak",
+              "pivot": [
+                66.0,
+                48
+              ],
+              "parent": "torso",
+              "at": [
+                66.0,
+                48
+              ]
+            },
+            "quivertips": {
+              "frame": "ranger/front/stand/quivertips",
+              "pivot": [
+                77.8,
+                39.5
+              ],
+              "parent": "torso",
+              "at": [
+                77.8,
+                39.5
+              ]
+            },
+            "quivertips-glow": {
+              "frame": "ranger/front/stand/quivertips-glow",
+              "pivot": [
+                77.8,
+                39.5
+              ],
+              "parent": "quivertips",
+              "at": [
+                77.8,
+                39.5
+              ],
+              "emissive": true
+            },
+            "legs": {
+              "frame": "ranger/front/stand/legs",
+              "pivot": [
+                66.0,
+                86
+              ],
+              "parent": "torso",
+              "at": [
+                66.0,
+                86
+              ]
+            },
+            "legs-glow": {
+              "frame": "ranger/front/stand/legs-glow",
+              "pivot": [
+                66.0,
+                86
+              ],
+              "parent": "legs",
+              "at": [
+                66.0,
+                86
+              ],
+              "emissive": true
+            },
+            "torso": {
+              "frame": "ranger/front/stand/torso",
+              "pivot": [
+                66.0,
+                82
+              ],
+              "at": [
+                66.0,
+                82
+              ]
+            },
+            "strap": {
+              "frame": "ranger/front/stand/strap",
+              "pivot": [
+                65.5,
+                46.8
+              ],
+              "parent": "torso",
+              "at": [
+                65.5,
+                46.8
+              ]
+            },
+            "strap-glow": {
+              "frame": "ranger/front/stand/strap-glow",
+              "pivot": [
+                65.5,
+                46.8
+              ],
+              "parent": "strap",
+              "at": [
+                65.5,
+                46.8
+              ],
+              "emissive": true
+            },
+            "plume": {
+              "frame": "ranger/front/stand/plume",
+              "pivot": [
+                56,
+                23
+              ],
+              "parent": "helm",
+              "at": [
+                56,
+                23
+              ],
+              "tint": "player"
+            },
+            "helm": {
+              "frame": "ranger/front/stand/helm",
+              "pivot": [
+                66.0,
+                43
+              ],
+              "parent": "torso",
+              "at": [
+                66.0,
+                43
+              ]
+            },
+            "helm-glow": {
+              "frame": "ranger/front/stand/helm-glow",
+              "pivot": [
+                66.0,
+                43
+              ],
+              "parent": "helm",
+              "at": [
+                66.0,
+                43
+              ],
+              "emissive": true
+            },
+            "arms": {
+              "frame": "ranger/front/stand/arms",
+              "pivot": [
+                56.0,
+                52.0
+              ],
+              "parent": "torso",
+              "at": [
+                56.0,
+                52.0
+              ]
+            },
+            "paul-l": {
+              "frame": "ranger/front/stand/paul-l",
+              "pivot": [
+                56.5,
+                48
+              ],
+              "parent": "torso",
+              "at": [
+                56.5,
+                48
+              ]
+            },
+            "paul-r": {
+              "frame": "ranger/front/stand/paul-r",
+              "pivot": [
+                76.5,
+                48
+              ],
+              "parent": "torso",
+              "at": [
+                76.5,
+                48
+              ]
+            },
+            "bow": {
+              "frame": "ranger/front/stand/bow",
+              "pivot": [
+                85.0,
+                74.5
+              ],
+              "parent": "hands",
+              "at": [
+                85.0,
+                74.5
+              ]
+            },
+            "bow-glow": {
+              "frame": "ranger/front/stand/bow-glow",
+              "pivot": [
+                85.0,
+                74.5
+              ],
+              "parent": "bow",
+              "at": [
+                85.0,
+                74.5
+              ],
+              "emissive": true
+            },
+            "hands": {
+              "frame": "ranger/front/stand/hands",
+              "pivot": [
+                69.5,
+                74.5
+              ],
+              "parent": "arms",
+              "at": [
+                69.5,
+                74.5
+              ]
+            }
+          },
+          "order": [
+            "cloak",
+            "quivertips",
+            "quivertips-glow",
+            "legs",
+            "legs-glow",
+            "torso",
+            "strap",
+            "strap-glow",
+            "plume",
+            "helm",
+            "helm-glow",
+            "arms",
+            "paul-l",
+            "paul-r",
+            "bow",
+            "bow-glow",
+            "hands"
+          ],
+          "attach": {
+            "nametag": {
+              "part": "helm",
+              "at": [
+                66.0,
+                11
+              ]
+            },
+            "badge": {
+              "part": "helm",
+              "at": [
+                66.0,
+                -3
+              ]
+            },
+            "carry": {
+              "part": "torso",
+              "at": [
+                66.0,
+                65.5
+              ]
+            },
+            "bolt": {
+              "part": "bow",
+              "at": [
+                86.5,
+                73
+              ]
+            }
+          }
+        }
+      }
+    },
+    "back": {
+      "defaultPose": "stand",
+      "poses": {
+        "ready": {
+          "foot": [
+            66,
+            116
+          ],
+          "parts": {
+            "bow": {
+              "frame": "ranger/back/ready/bow",
+              "pivot": [
+                45.6,
+                53.5
+              ],
+              "parent": "arms",
+              "at": [
+                45.6,
+                53.5
+              ]
+            },
+            "bow-glow": {
+              "frame": "ranger/back/ready/bow-glow",
+              "pivot": [
+                45.6,
+                53.5
+              ],
+              "parent": "bow",
+              "at": [
+                45.6,
+                53.5
+              ],
+              "emissive": true
+            },
+            "arms": {
+              "frame": "ranger/back/ready/arms",
+              "pivot": [
+                56.0,
+                50.0
+              ],
+              "parent": "torso",
+              "at": [
+                56.0,
+                50.0
+              ]
+            },
+            "legs": {
+              "frame": "ranger/back/ready/legs",
+              "pivot": [
+                66.0,
+                86
+              ],
+              "parent": "torso",
+              "at": [
+                66.0,
+                86
+              ]
+            },
+            "torso": {
+              "frame": "ranger/back/ready/torso",
+              "pivot": [
+                66.0,
+                82
+              ],
+              "at": [
+                66.0,
+                82
+              ]
+            },
+            "cloak": {
+              "frame": "ranger/back/ready/cloak",
+              "pivot": [
+                66.0,
+                46
+              ],
+              "parent": "torso",
+              "at": [
+                66.0,
+                46
+              ]
+            },
+            "pauls": {
+              "frame": "ranger/back/ready/pauls",
+              "pivot": [
+                66.5,
+                48
+              ],
+              "parent": "torso",
+              "at": [
+                66.5,
+                48
+              ]
+            },
+            "helm": {
+              "frame": "ranger/back/ready/helm",
+              "pivot": [
+                66.0,
+                43
+              ],
+              "parent": "torso",
+              "at": [
+                66.0,
+                43
+              ]
+            },
+            "plume": {
+              "frame": "ranger/back/ready/plume",
+              "pivot": [
+                76,
+                23
+              ],
+              "parent": "helm",
+              "at": [
+                76,
+                23
+              ],
+              "tint": "player"
+            },
+            "quiver": {
+              "frame": "ranger/back/ready/quiver",
+              "pivot": [
+                67.0,
+                46.3
+              ],
+              "parent": "torso",
+              "at": [
+                67.0,
+                46.3
+              ]
+            },
+            "quiver-glow": {
+              "frame": "ranger/back/ready/quiver-glow",
+              "pivot": [
+                67.0,
+                46.3
+              ],
+              "parent": "quiver",
+              "at": [
+                67.0,
+                46.3
+              ],
+              "emissive": true
+            }
+          },
+          "order": [
+            "bow",
+            "bow-glow",
+            "arms",
+            "legs",
+            "torso",
+            "cloak",
+            "pauls",
+            "helm",
+            "plume",
+            "quiver",
+            "quiver-glow"
+          ],
+          "attach": {
+            "nametag": {
+              "part": "helm",
+              "at": [
+                66.0,
+                11
+              ]
+            },
+            "badge": {
+              "part": "helm",
+              "at": [
+                66.0,
+                -3
+              ]
+            },
+            "carry": {
+              "part": "torso",
+              "at": [
+                66.0,
+                65.5
+              ]
+            },
+            "bolt": {
+              "part": "bow",
+              "at": [
+                46,
+                63
+              ]
+            }
+          }
+        },
+        "stand": {
+          "foot": [
+            66,
+            116
+          ],
+          "parts": {
+            "bow": {
+              "frame": "ranger/back/stand/bow",
+              "pivot": [
+                47.0,
+                74.5
+              ],
+              "parent": "hands",
+              "at": [
+                47.0,
+                74.5
+              ]
+            },
+            "bow-glow": {
+              "frame": "ranger/back/stand/bow-glow",
+              "pivot": [
+                47.0,
+                74.5
+              ],
+              "parent": "bow",
+              "at": [
+                47.0,
+                74.5
+              ],
+              "emissive": true
+            },
+            "arms": {
+              "frame": "ranger/back/stand/arms",
+              "pivot": [
+                76.0,
+                52.0
+              ],
+              "parent": "torso",
+              "at": [
+                76.0,
+                52.0
+              ]
+            },
+            "hands": {
+              "frame": "ranger/back/stand/hands",
+              "pivot": [
+                62.5,
+                74.5
+              ],
+              "parent": "arms",
+              "at": [
+                62.5,
+                74.5
+              ]
+            },
+            "legs": {
+              "frame": "ranger/back/stand/legs",
+              "pivot": [
+                66.0,
+                86
+              ],
+              "parent": "torso",
+              "at": [
+                66.0,
+                86
+              ]
+            },
+            "torso": {
+              "frame": "ranger/back/stand/torso",
+              "pivot": [
+                66.0,
+                82
+              ],
+              "at": [
+                66.0,
+                82
+              ]
+            },
+            "cloak": {
+              "frame": "ranger/back/stand/cloak",
+              "pivot": [
+                66.0,
+                46
+              ],
+              "parent": "torso",
+              "at": [
+                66.0,
+                46
+              ]
+            },
+            "pauls": {
+              "frame": "ranger/back/stand/pauls",
+              "pivot": [
+                66.5,
+                48
+              ],
+              "parent": "torso",
+              "at": [
+                66.5,
+                48
+              ]
+            },
+            "helm": {
+              "frame": "ranger/back/stand/helm",
+              "pivot": [
+                66.0,
+                43
+              ],
+              "parent": "torso",
+              "at": [
+                66.0,
+                43
+              ]
+            },
+            "plume": {
+              "frame": "ranger/back/stand/plume",
+              "pivot": [
+                76,
+                23
+              ],
+              "parent": "helm",
+              "at": [
+                76,
+                23
+              ],
+              "tint": "player"
+            },
+            "quiver": {
+              "frame": "ranger/back/stand/quiver",
+              "pivot": [
+                67.0,
+                46.3
+              ],
+              "parent": "torso",
+              "at": [
+                67.0,
+                46.3
+              ]
+            },
+            "quiver-glow": {
+              "frame": "ranger/back/stand/quiver-glow",
+              "pivot": [
+                67.0,
+                46.3
+              ],
+              "parent": "quiver",
+              "at": [
+                67.0,
+                46.3
+              ],
+              "emissive": true
+            }
+          },
+          "order": [
+            "bow",
+            "bow-glow",
+            "arms",
+            "hands",
+            "legs",
+            "torso",
+            "cloak",
+            "pauls",
+            "helm",
+            "plume",
+            "quiver",
+            "quiver-glow"
+          ],
+          "attach": {
+            "nametag": {
+              "part": "helm",
+              "at": [
+                66.0,
+                11
+              ]
+            },
+            "badge": {
+              "part": "helm",
+              "at": [
+                66.0,
+                -3
+              ]
+            },
+            "carry": {
+              "part": "torso",
+              "at": [
+                66.0,
+                65.5
+              ]
+            },
+            "bolt": {
+              "part": "bow",
+              "at": [
+                45.5,
+                73
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

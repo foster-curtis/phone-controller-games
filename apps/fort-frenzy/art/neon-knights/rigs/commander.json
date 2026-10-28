@@ -1,0 +1,774 @@
+{
+  "id": "commander",
+  "viewBox": [
+    13,
+    -3,
+    109,
+    126
+  ],
+  "views": {
+    "side": {
+      "foot": [
+        67,
+        116
+      ],
+      "parts": {
+        "banner": {
+          "frame": "commander/side/banner",
+          "pivot": [
+            47.0,
+            71.5
+          ],
+          "parent": "torso",
+          "at": [
+            47.0,
+            71.5
+          ]
+        },
+        "banner-cloth": {
+          "frame": "commander/side/banner-cloth",
+          "pivot": [
+            47.0,
+            71.5
+          ],
+          "parent": "banner",
+          "at": [
+            47.0,
+            71.5
+          ],
+          "tint": "player"
+        },
+        "banner-glow": {
+          "frame": "commander/side/banner-glow",
+          "pivot": [
+            47.0,
+            71.5
+          ],
+          "parent": "banner",
+          "at": [
+            47.0,
+            71.5
+          ],
+          "emissive": true
+        },
+        "cape": {
+          "frame": "commander/side/cape",
+          "pivot": [
+            56.0,
+            52
+          ],
+          "parent": "torso",
+          "at": [
+            56.0,
+            52
+          ]
+        },
+        "backleg": {
+          "frame": "commander/side/backleg",
+          "pivot": [
+            59.5,
+            90
+          ],
+          "parent": "torso",
+          "at": [
+            59.5,
+            90
+          ]
+        },
+        "torso": {
+          "frame": "commander/side/torso",
+          "pivot": [
+            67.5,
+            86
+          ],
+          "at": [
+            67.5,
+            86
+          ]
+        },
+        "torso-glow": {
+          "frame": "commander/side/torso-glow",
+          "pivot": [
+            67.5,
+            86
+          ],
+          "parent": "torso",
+          "at": [
+            67.5,
+            86
+          ],
+          "emissive": true
+        },
+        "frontleg": {
+          "frame": "commander/side/frontleg",
+          "pivot": [
+            72.0,
+            90
+          ],
+          "parent": "torso",
+          "at": [
+            72.0,
+            90
+          ]
+        },
+        "frontleg-glow": {
+          "frame": "commander/side/frontleg-glow",
+          "pivot": [
+            72.0,
+            90
+          ],
+          "parent": "frontleg",
+          "at": [
+            72.0,
+            90
+          ],
+          "emissive": true
+        },
+        "helm": {
+          "frame": "commander/side/helm",
+          "pivot": [
+            68.0,
+            47
+          ],
+          "parent": "torso",
+          "at": [
+            68.0,
+            47
+          ]
+        },
+        "helm-glow": {
+          "frame": "commander/side/helm-glow",
+          "pivot": [
+            68.0,
+            47
+          ],
+          "parent": "helm",
+          "at": [
+            68.0,
+            47
+          ],
+          "emissive": true
+        },
+        "plume": {
+          "frame": "commander/side/plume",
+          "pivot": [
+            58,
+            25
+          ],
+          "parent": "helm",
+          "at": [
+            58,
+            25
+          ],
+          "tint": "player"
+        },
+        "plume-base": {
+          "frame": "commander/side/plume-base",
+          "pivot": [
+            68.0,
+            25
+          ],
+          "parent": "helm",
+          "at": [
+            68.0,
+            25
+          ]
+        },
+        "frontpaul": {
+          "frame": "commander/side/frontpaul",
+          "pivot": [
+            84.0,
+            49
+          ],
+          "parent": "torso",
+          "at": [
+            84.0,
+            49
+          ]
+        },
+        "sword": {
+          "frame": "commander/side/sword",
+          "pivot": [
+            91.0,
+            83.0
+          ],
+          "parent": "gauntlet",
+          "at": [
+            91.0,
+            83.0
+          ]
+        },
+        "sword-glow": {
+          "frame": "commander/side/sword-glow",
+          "pivot": [
+            91.0,
+            83.0
+          ],
+          "parent": "sword",
+          "at": [
+            91.0,
+            83.0
+          ],
+          "emissive": true
+        },
+        "gauntlet": {
+          "frame": "commander/side/gauntlet",
+          "pivot": [
+            91.0,
+            83.0
+          ],
+          "parent": "torso",
+          "at": [
+            91.0,
+            83.0
+          ]
+        }
+      },
+      "order": [
+        "banner",
+        "banner-cloth",
+        "banner-glow",
+        "cape",
+        "backleg",
+        "torso",
+        "torso-glow",
+        "frontleg",
+        "frontleg-glow",
+        "helm",
+        "helm-glow",
+        "plume",
+        "plume-base",
+        "frontpaul",
+        "sword",
+        "sword-glow",
+        "gauntlet"
+      ],
+      "attach": {
+        "nametag": {
+          "part": "helm",
+          "at": [
+            68.0,
+            13
+          ]
+        },
+        "badge": {
+          "part": "helm",
+          "at": [
+            68.0,
+            -1
+          ]
+        },
+        "carry": {
+          "part": "torso",
+          "at": [
+            85,
+            69.5
+          ]
+        },
+        "sword-tip": {
+          "part": "sword",
+          "at": [
+            112.7,
+            33.6
+          ]
+        },
+        "banner": {
+          "part": "banner",
+          "at": [
+            44,
+            12
+          ]
+        }
+      }
+    },
+    "front": {
+      "foot": [
+        67,
+        116
+      ],
+      "parts": {
+        "banner": {
+          "frame": "commander/front/banner",
+          "pivot": [
+            54.0,
+            69.5
+          ],
+          "parent": "torso",
+          "at": [
+            54.0,
+            69.5
+          ]
+        },
+        "banner-cloth": {
+          "frame": "commander/front/banner-cloth",
+          "pivot": [
+            54.0,
+            69.5
+          ],
+          "parent": "banner",
+          "at": [
+            54.0,
+            69.5
+          ],
+          "tint": "player"
+        },
+        "banner-glow": {
+          "frame": "commander/front/banner-glow",
+          "pivot": [
+            54.0,
+            69.5
+          ],
+          "parent": "banner",
+          "at": [
+            54.0,
+            69.5
+          ],
+          "emissive": true
+        },
+        "cape": {
+          "frame": "commander/front/cape",
+          "pivot": [
+            67.0,
+            52
+          ],
+          "parent": "torso",
+          "at": [
+            67.0,
+            52
+          ]
+        },
+        "legs": {
+          "frame": "commander/front/legs",
+          "pivot": [
+            67.0,
+            90
+          ],
+          "parent": "torso",
+          "at": [
+            67.0,
+            90
+          ]
+        },
+        "legs-glow": {
+          "frame": "commander/front/legs-glow",
+          "pivot": [
+            67.0,
+            90
+          ],
+          "parent": "legs",
+          "at": [
+            67.0,
+            90
+          ],
+          "emissive": true
+        },
+        "torso": {
+          "frame": "commander/front/torso",
+          "pivot": [
+            67.0,
+            86
+          ],
+          "at": [
+            67.0,
+            86
+          ]
+        },
+        "torso-glow": {
+          "frame": "commander/front/torso-glow",
+          "pivot": [
+            67.0,
+            86
+          ],
+          "parent": "torso",
+          "at": [
+            67.0,
+            86
+          ],
+          "emissive": true
+        },
+        "pauls": {
+          "frame": "commander/front/pauls",
+          "pivot": [
+            67.0,
+            49
+          ],
+          "parent": "torso",
+          "at": [
+            67.0,
+            49
+          ]
+        },
+        "plume": {
+          "frame": "commander/front/plume",
+          "pivot": [
+            59,
+            25
+          ],
+          "parent": "helm",
+          "at": [
+            59,
+            25
+          ],
+          "tint": "player"
+        },
+        "helm": {
+          "frame": "commander/front/helm",
+          "pivot": [
+            67.0,
+            47
+          ],
+          "parent": "torso",
+          "at": [
+            67.0,
+            47
+          ]
+        },
+        "helm-glow": {
+          "frame": "commander/front/helm-glow",
+          "pivot": [
+            67.0,
+            47
+          ],
+          "parent": "helm",
+          "at": [
+            67.0,
+            47
+          ],
+          "emissive": true
+        },
+        "sword": {
+          "frame": "commander/front/sword",
+          "pivot": [
+            92.7,
+            77.0
+          ],
+          "parent": "gauntlets",
+          "at": [
+            92.7,
+            77.0
+          ]
+        },
+        "sword-glow": {
+          "frame": "commander/front/sword-glow",
+          "pivot": [
+            92.7,
+            77.0
+          ],
+          "parent": "sword",
+          "at": [
+            92.7,
+            77.0
+          ],
+          "emissive": true
+        },
+        "gauntlets": {
+          "frame": "commander/front/gauntlets",
+          "pivot": [
+            67.0,
+            77.0
+          ],
+          "parent": "torso",
+          "at": [
+            67.0,
+            77.0
+          ]
+        }
+      },
+      "order": [
+        "banner",
+        "banner-cloth",
+        "banner-glow",
+        "cape",
+        "legs",
+        "legs-glow",
+        "torso",
+        "torso-glow",
+        "pauls",
+        "plume",
+        "helm",
+        "helm-glow",
+        "sword",
+        "sword-glow",
+        "gauntlets"
+      ],
+      "attach": {
+        "nametag": {
+          "part": "helm",
+          "at": [
+            67.0,
+            13
+          ]
+        },
+        "badge": {
+          "part": "helm",
+          "at": [
+            67.0,
+            -1
+          ]
+        },
+        "carry": {
+          "part": "torso",
+          "at": [
+            67.0,
+            69.5
+          ]
+        },
+        "sword-tip": {
+          "part": "sword",
+          "at": [
+            103.1,
+            28.9
+          ]
+        },
+        "banner": {
+          "part": "banner",
+          "at": [
+            53,
+            10
+          ]
+        }
+      }
+    },
+    "back": {
+      "foot": [
+        67,
+        116
+      ],
+      "parts": {
+        "swordtip": {
+          "frame": "commander/back/swordtip",
+          "pivot": [
+            41.3,
+            77.0
+          ],
+          "parent": "gauntlets",
+          "at": [
+            41.3,
+            77.0
+          ]
+        },
+        "swordtip-glow": {
+          "frame": "commander/back/swordtip-glow",
+          "pivot": [
+            41.3,
+            77.0
+          ],
+          "parent": "swordtip",
+          "at": [
+            41.3,
+            77.0
+          ],
+          "emissive": true
+        },
+        "legs": {
+          "frame": "commander/back/legs",
+          "pivot": [
+            67.0,
+            90
+          ],
+          "parent": "torso",
+          "at": [
+            67.0,
+            90
+          ]
+        },
+        "legs-glow": {
+          "frame": "commander/back/legs-glow",
+          "pivot": [
+            67.0,
+            90
+          ],
+          "parent": "legs",
+          "at": [
+            67.0,
+            90
+          ],
+          "emissive": true
+        },
+        "torso": {
+          "frame": "commander/back/torso",
+          "pivot": [
+            67.0,
+            86
+          ],
+          "at": [
+            67.0,
+            86
+          ]
+        },
+        "pauls": {
+          "frame": "commander/back/pauls",
+          "pivot": [
+            67.0,
+            49
+          ],
+          "parent": "torso",
+          "at": [
+            67.0,
+            49
+          ]
+        },
+        "cape": {
+          "frame": "commander/back/cape",
+          "pivot": [
+            67.0,
+            52
+          ],
+          "parent": "torso",
+          "at": [
+            67.0,
+            52
+          ]
+        },
+        "helm": {
+          "frame": "commander/back/helm",
+          "pivot": [
+            67.0,
+            47
+          ],
+          "parent": "torso",
+          "at": [
+            67.0,
+            47
+          ]
+        },
+        "helm-glow": {
+          "frame": "commander/back/helm-glow",
+          "pivot": [
+            67.0,
+            47
+          ],
+          "parent": "helm",
+          "at": [
+            67.0,
+            47
+          ],
+          "emissive": true
+        },
+        "plume": {
+          "frame": "commander/back/plume",
+          "pivot": [
+            59,
+            25
+          ],
+          "parent": "helm",
+          "at": [
+            59,
+            25
+          ],
+          "tint": "player"
+        },
+        "gauntlets": {
+          "frame": "commander/back/gauntlets",
+          "pivot": [
+            67.0,
+            77.0
+          ],
+          "parent": "torso",
+          "at": [
+            67.0,
+            77.0
+          ]
+        },
+        "banner": {
+          "frame": "commander/back/banner",
+          "pivot": [
+            72.5,
+            83.5
+          ],
+          "parent": "torso",
+          "at": [
+            72.5,
+            83.5
+          ]
+        },
+        "banner-cloth": {
+          "frame": "commander/back/banner-cloth",
+          "pivot": [
+            72.5,
+            83.5
+          ],
+          "parent": "banner",
+          "at": [
+            72.5,
+            83.5
+          ],
+          "tint": "player"
+        },
+        "banner-glow": {
+          "frame": "commander/back/banner-glow",
+          "pivot": [
+            72.5,
+            83.5
+          ],
+          "parent": "banner",
+          "at": [
+            72.5,
+            83.5
+          ],
+          "emissive": true
+        }
+      },
+      "order": [
+        "swordtip",
+        "swordtip-glow",
+        "legs",
+        "legs-glow",
+        "torso",
+        "pauls",
+        "cape",
+        "helm",
+        "helm-glow",
+        "plume",
+        "gauntlets",
+        "banner",
+        "banner-cloth",
+        "banner-glow"
+      ],
+      "attach": {
+        "nametag": {
+          "part": "helm",
+          "at": [
+            67.0,
+            13
+          ]
+        },
+        "badge": {
+          "part": "helm",
+          "at": [
+            67.0,
+            -1
+          ]
+        },
+        "carry": {
+          "part": "torso",
+          "at": [
+            67.0,
+            69.5
+          ]
+        },
+        "sword-tip": {
+          "part": "swordtip",
+          "at": [
+            30.9,
+            28.9
+          ]
+        },
+        "banner": {
+          "part": "banner",
+          "at": [
+            76,
+            8
+          ]
+        }
+      }
+    }
+  },
+  "optional": {
+    "banner": [
+      "banner",
+      "banner-cloth",
+      "banner-glow"
+    ]
+  }
+}

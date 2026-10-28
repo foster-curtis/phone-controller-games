@@ -1,0 +1,79 @@
+{
+  "id": "mite",
+  "viewBox": [
+    -18,
+    -15,
+    38,
+    31
+  ],
+  "views": {
+    "side": {
+      "foot": [
+        0,
+        6
+      ],
+      "parts": {
+        "legs-far": {
+          "frame": "mite/side/legs-far",
+          "pivot": [
+            0,
+            2
+          ],
+          "at": [
+            0,
+            2
+          ]
+        },
+        "body": {
+          "frame": "mite/side/body",
+          "pivot": [
+            -2,
+            -2
+          ],
+          "at": [
+            -2,
+            -2
+          ]
+        },
+        "head": {
+          "frame": "mite/side/head",
+          "pivot": [
+            6,
+            -1
+          ],
+          "parent": "body",
+          "at": [
+            6,
+            -1
+          ]
+        },
+        "legs-near": {
+          "frame": "mite/side/legs-near",
+          "pivot": [
+            0,
+            2
+          ],
+          "at": [
+            0,
+            2
+          ]
+        }
+      },
+      "order": [
+        "legs-far",
+        "body",
+        "head",
+        "legs-near"
+      ],
+      "attach": {
+        "top": {
+          "part": "body",
+          "at": [
+            -2.0,
+            -8.8
+          ]
+        }
+      }
+    }
+  }
+}

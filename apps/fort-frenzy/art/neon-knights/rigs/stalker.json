@@ -1,0 +1,123 @@
+{
+  "id": "stalker",
+  "viewBox": [
+    19,
+    48,
+    110,
+    76
+  ],
+  "views": {
+    "side": {
+      "foot": [
+        74,
+        118
+      ],
+      "parts": {
+        "leg-far-rear": {
+          "frame": "stalker/side/leg-far-rear",
+          "pivot": [
+            50.0,
+            92.0
+          ],
+          "at": [
+            50.0,
+            92.0
+          ]
+        },
+        "leg-far-front": {
+          "frame": "stalker/side/leg-far-front",
+          "pivot": [
+            84.0,
+            90.0
+          ],
+          "at": [
+            84.0,
+            90.0
+          ]
+        },
+        "leg-near-rear": {
+          "frame": "stalker/side/leg-near-rear",
+          "pivot": [
+            58.0,
+            92.0
+          ],
+          "at": [
+            58.0,
+            92.0
+          ]
+        },
+        "leg-near-front": {
+          "frame": "stalker/side/leg-near-front",
+          "pivot": [
+            92.0,
+            90.0
+          ],
+          "at": [
+            92.0,
+            90.0
+          ]
+        },
+        "tail": {
+          "frame": "stalker/side/tail",
+          "pivot": [
+            38,
+            80
+          ],
+          "parent": "body",
+          "at": [
+            38,
+            80
+          ]
+        },
+        "body": {
+          "frame": "stalker/side/body",
+          "pivot": [
+            66,
+            88
+          ],
+          "at": [
+            66,
+            88
+          ]
+        },
+        "head": {
+          "frame": "stalker/side/head",
+          "pivot": [
+            94,
+            74
+          ],
+          "parent": "body",
+          "at": [
+            94,
+            74
+          ]
+        }
+      },
+      "order": [
+        "leg-far-rear",
+        "leg-far-front",
+        "leg-near-rear",
+        "leg-near-front",
+        "tail",
+        "body",
+        "head"
+      ],
+      "attach": {
+        "top": {
+          "part": "head",
+          "at": [
+            106.5,
+            54.1
+          ]
+        },
+        "eyes": {
+          "part": "head",
+          "at": [
+            110,
+            70
+          ]
+        }
+      }
+    }
+  }
+}
