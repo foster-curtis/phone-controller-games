@@ -178,6 +178,11 @@ Applies to every theme pack. Theme packs change the drawings, not these rules.
   seams) sits on the edge or surface it belongs to; glows never cross onto a different part. Limbs
   attach under the body: far-side parts are drawn behind it, and near legs tuck under the body rather
   than overlapping it from above. Groups (Scrap mites, squads) draw back-to-front by depth.
+- **Full-size parts:** every part is drawn complete and at full size in every view, then layered, even
+  where another part hides most of it (a bow behind the body, a draw arm behind a cloak, the hand that
+  isn't holding anything). Animation can then move any part into view without it looking cut off or
+  disconnected. Straps and belts run edge to edge across the body so they read as wrapping around it.
+  In the back view the backpack (the Artificer's) is the top layer, since it's nearest the camera.
 - **State on the body:** class mechanics show on the sprite, not only in a HUD (Ranger's bolt brightens
   with Steady Aim, Commander's banner leaves his back when planted, Artificer's backpack gauge shows
   crates carried).
@@ -197,11 +202,15 @@ Mason passive sparks to nearby walls.
 **Ranger (neon knights):** tall, narrow silhouette with a dark cloak behind and the bow in front;
 sallet helm with a narrow amber goggle slit; one long swept-back feather plume (feather shape is
 Ranger-only); recurve rail-bow with amber rails on both limbs, an amber string and a glowing bolt.
-The bolt and rails brighten in steps while Steady Aim builds, so the passive is visible. Amber seams:
-chest baldric, knee; quiver bolts glow at the tips.
-Animations: idle, walk (quicker, lighter cadence than the Warden), Steady Aim, main (longbow shot
-with an amber tracer), super (pulse ring sized exactly to the hit circle), build (kneel and place a
-deploy beacon; turrets unfold).
+The bolt and rails brighten in steps while Steady Aim builds, so the passive is visible. A dark leather
+quiver strap runs shoulder to hip with amber studs (the bowstring is the only amber line on him);
+amber knee; quiver bolts glow at the tips.
+**Two poses in every facing:** standing (idle and walk: bow lowered in the bow hand, string relaxed and
+straight, draw arm at his side) and ready (Steady Aim and firing: string drawn to the hand, bolt nocked;
+from the front the bow is aimed at the camera, from the back the draw elbow rises past the cloak).
+Animations: idle, walk (quicker, lighter cadence than the Warden), Steady Aim (blends from standing to
+ready), main (longbow shot with an amber tracer), super (pulse ring sized exactly to the hit circle),
+build (kneel and place a deploy beacon; turrets unfold).
 
 **Commander (neon knights):** medium build; armet helm with an amber circlet across the brow (the only
 helm with a "crown"); horsehair plume that arcs up and back, then falls behind the helm (Commander-only
@@ -270,6 +279,56 @@ same circles the sim uses, so what players see always matches what hits.
 wall running into the screen is seen edge-on and shows as a glowing top strip between stacked posts.
 Walls and shock nets use autotile sets (across, into, corner, T-junction, cross, end) chosen from
 neighboring tiles.
+
+### 2.6 UI art (neon knights)
+
+- **Icons: lit badge.** A solid bone glyph (24-unit grid) with ink cut-ins and amber parts that glow,
+  set inside a chamfered gunmetal tile. The tile carries the state: rest (gunmetal edge), active,
+  selected or ready (amber edge with glow), dimmed (glyph at 35%, e.g. the action button with nothing
+  to do). Where space is tight (TV announcements, wishlist rows, inline text) the glyph is used without
+  the tile. Class badges are the class helms, so a class looks the same everywhere.
+- **Icon files:** `art/<theme>/icons/<id>.svg` with `.glyph` and `.glow` groups, plus `badge-tile.svg`
+  and `badge-tile-active.svg`. Theme packs replace them under the same names. The action button swaps
+  between the `act-*` icons per §10.1. Icon ids:
+  - classes: `class-warden`, `class-ranger`, `class-commander`, `class-artificer`
+  - main attacks and supers: `main-<class>` and `super-<class>` for each class
+  - structures: `cell`, `turret`, `mortar`, `wall`, `net`, `fortify`
+  - action button: `act-pickup`, `act-deliver`, `act-buy`, `act-place`, `act-throw`, `act-flag`,
+    `act-recall`, `act-give`, `act-drop` (dimmed to 35% when nothing applies)
+  - shop and HUD: `coins`, `ready`, `request`, `repair`, `emergency-kit`, `base-armor`, `sentry-damage`,
+    `sentry-range`, `sentry-third`, `squad`, `turret-rate`, `mortar-radius`, `tower-hp`, `wall-hp`,
+    `charged-walls`, `net-charges`
+  - Still to come: `act-give`, `act-drop` and `net-charges` (§14). Until they land, those slots show
+    text.
+- **TV HUD layout (combat):** a thin top band split three ways: wave and phase top-left, base HP bar
+  centered directly above the Citadel, team coins top-right. The boss bar runs along the bottom edge,
+  where enemies enter. Purchase announcements stack bottom-left (glyph + text, a bar in the buyer's
+  color). During the build phase the wishlist shows on the right. Everything stays inside the 96 px
+  TV-safe margin.
+- **Phone buttons:** round, at the §10.1 sizes, gunmetal fill with a gunmetal edge, the action icon
+  inside; the super's charge is a ring that fills clockwise and lights amber when full. The stick
+  is round.
+- **Phone screens:** join (code prefilled from the QR, name, one button); class select (swipeable cards:
+  the knight's front view in the player's color, role, main and super with tap/aim, passive, build kit);
+  lobby (big Ready, lineup with color, class helm and ready state; the party leader also sees difficulty
+  and Start); combat controller with a status strip (HP, cells carried up to the carry cap, base HP);
+  build tab (stick stays; kit tiles with cell costs, Place, Cancel, Give, Ready; classes with no
+  structures see a "No buildings to build" note in place of the kit tiles, §10.2); shop tab (full
+  screen, the stick returns on the Build tab: team coins, the private pick-1-of-3 card with rarity on
+  the frame, team shop rows with price, hold-to-confirm fill on big buys, Request and "Requested by"
+  tags); down (respawn countdown only); reconnecting overlay; end of run (party leader's three options).
+- **Upgrade cards:** chamfered portrait cards; common has a gunmetal frame, rare a double amber frame.
+- **TV screens:** home (keyboard and gamepad: the focused row is lit amber, ◂ ▸ change theme and
+  difficulty, "Resume wave N" only when a snapshot exists); lobby (URL, large mono room code, QR, six
+  slots showing each knight's front view in the player's color with a name band, class and ready state;
+  open slots dashed); combat HUD (see above; the Stalker's target thread and the super-ready badge over a
+  knight are world UI); low-HP alarm (red vignette and "Citadel under attack" under the base bar);
+  build-phase HUD (the phase timer replaces COMBAT; the next-wave preview takes the boss bar's place at
+  the bottom with enemy portraits and counts, a newly introduced type framed in violet; ready status and
+  wishlist on the right; build ghosts dashed amber when valid, red with an X when blocked); victory and
+  defeat summary (banner over the keep, run stats, one award card per player in their color).
+- **Lane warnings:** the spawn-warning glow (§9.4) is a violet gradient band on the screen edge where
+  the lane enters.
 
 ## 3. Map, base and camera
 
@@ -767,7 +826,7 @@ it is a giant walker mech with a glowing core in its chest (§2.1); its art is s
   meter resets.
 
 **Boss wave rules**
-- A large boss HP bar appears at the top of the TV, below the base HP bar.
+- A large boss HP bar runs along the bottom edge of the TV, where enemies enter (§2.6).
 - If the Colossus reaches the base, it attacks the base with heavy hits. This threatens a loss but isn't
   instant.
 - **The boss's death ends the wave.** Any remaining enemies collapse.
@@ -1021,8 +1080,10 @@ The button's icon changes to show what it will do. If nothing applies, the butto
 
 ### 10.2 Build phase
 - The movement stick stays the same.
-- The right side becomes the build menu: the class's structures, their crate costs, and crates carried.
-  Classes with no structures (Quartermaster) see the shop tab instead.
+- The right side becomes the **Build tab**: the class's structures, their crate costs, and crates
+  carried. Every player has a Build tab and a Shop tab (§10.3). Classes with no structures to build
+  (Quartermaster, Commander) see a "No buildings to build" note in place of the structures, and keep the
+  stick, crate count, Give crate and Ready, so they can still move and run crates.
 - A **Give crate** button next to the crate count follows the same rule as Give in combat
   (§10.1): one crate to the nearest teammate in reach with room, otherwise dropped at your feet. It's on
   both the build menu and the shop tab.
@@ -1174,12 +1235,13 @@ Ideas deferred from v1. Build v1 so these can be added without rewrites.
 4. **Sound effects:** source the v1 set (§12). Candidates: Kenney.nl (CC0 packs: Sci-fi Sounds, Impact
    Sounds, Interface Sounds), jsfxr/sfxr.me (generated, owned outright), Sonniss GDC bundles
    (royalty-free) and freesound.org (CC0 filter only). Every file gets a license entry (§15.10).
-5. **Art still to come:** the phone HUD art, the character, enemy and structure SVG parts with their
-   rig JSON, and the pulse turret aim frames (§7.2). The icon set has landed
-   (`fort-frenzy-icons.zip`, §15.10). Until the rest lands, the build uses the dev-only fallback shapes
-   (§15.2).
-6. **Map layout:** the v1 map (§15.2: 38 × 28 tiles, lane entries bottom-center, left and right) is a
-   starting layout to tune in playtesting.
+5. **Art still to come:** the character, enemy and structure SVG parts with their rig JSON, the pulse
+   turret aim frames (§7.2), and three icons: `act-give`, `act-drop` and `net-charges` (§2.6). The rest
+   of the icon set has landed (`fort-frenzy-icons.zip`, §15.10). Until the art lands, the build uses
+   the dev-only fallback shapes (§15.2) and text labels for missing icons.
+6. **Map layout:** the v1 map (§15.2: 36 × 24 tiles, lane entries bottom-center, left and right) is a
+   starting layout to tune in playtesting. The map shrank from 38 × 28 to give the bottom-edge boss bar
+   (§2.6) its own band inside the TV-safe margin; revisit if it plays cramped.
 
 ---
 
@@ -1229,7 +1291,7 @@ in `apps/sunny-side` (its `SPEC.md` and `BUILD_PLAN.md` §8).
 apps/fort-frenzy/
   index.html  play.html  vite.config.ts  vercel.json  playwright.config.ts
   SPEC.md  BUILD_PLAN.md
-  art/<theme>/          SVG part sources + rigs/<rig>.json (§15.2)
+  art/<theme>/          SVG part sources, rigs/<rig>.json (§15.2), icons/ (§2.6), e.g. art/neon-knights/
   audio/<theme>/        .mp3 sources
   assets/LICENSES.json  one entry per asset or pack (§15.10)
   scripts/              build-atlases.ts, replay.ts (Node)
@@ -1249,6 +1311,9 @@ apps/fort-frenzy/
     styles/       brand.css (brand kit)
 ```
 
+- **Rule: all theme art lives under `art/<theme>/`** (neon knights: `art/neon-knights/`), icons included,
+  so later themes sit beside it. Art delivered anywhere else (for example the icon set at `art/icons/`)
+  is moved there by the build, and nothing reads art from outside `art/<theme>/`.
 - **Lint boundaries** (root `eslint.config.js`; a shared-config change, so it runs the full gate):
   - `src/host/{sim,systems,party}/**`: no `phaser`, no `@pcg/net-client`, no `src/themes/**`, no DOM.
   - `src/host/{sim,systems}/**`: no `Math.random`, `Date.now`, `performance.now` or `new Date()`
@@ -1265,17 +1330,22 @@ apps/fort-frenzy/
 - **Canvas:** 1920 × 1080 logical, `Scale.FIT`.
 - **Screen layout** (W = 48 px tile width, depth 28.8 px per §2.5):
 
-| Band | Screen y | Holds |
-|---|---|---|
-| HUD | 0–120 | base HP bar (centered, directly above the Citadel), boss bar below it, wave and coins, wishlist, purchase announcements |
-| Headroom | 120–216 | the Citadel's keep, core and smoke plumes rise into it (§3.6) |
-| Playfield | 216–1022 | 38 × 28 sim tiles, x 48–1872 (48 px side margins for TV overscan) |
-| Bottom margin | 1022–1080 | empty |
+Everything sits inside the brand's 96 px TV-safe margin (`--space-tv-safe`) on all four sides.
 
-- **Map v1** (config, §15.4): 38 × 28 tiles. Citadel footprint cols 17–20, rows 0–1; repair zone cols
-  18–19, row 2 (in front of the gate); Armory pad col 23, row 1. Lane entries: bottom-center (cols
-  18–19, row 27; open from wave 1), left (col 0, rows 13–14; wave 3) and right (col 37, rows 13–14;
-  wave 8). Enemies spawn just outside the edge and walk in. A starting layout to tune (§14).
+| Band | Screen y | Holds (§2.6) |
+|---|---|---|
+| Top margin | 0–96 | nothing (TV-safe) |
+| Top HUD | 96–136 | wave and phase (left), base HP bar centered directly above the Citadel, team coins (right); "Citadel under attack" under the bar at low HP |
+| Headroom | 136–216 | the Citadel's keep, core and smoke plumes rise into it (§3.6) |
+| Playfield | 216–907 | 36 × 24 sim tiles, x 96–1824; during the build phase, ready status and the wishlist overlay its right side |
+| Bottom HUD | 907–984 | boss bar (boss waves) or the next-wave preview (build phase); purchase announcements stack bottom-left |
+| Bottom margin | 984–1080 | nothing (TV-safe) |
+
+- **Map v1** (config, §15.4): 36 × 24 tiles. Citadel footprint cols 16–19, rows 0–1; repair zone cols
+  17–18, row 2 (in front of the gate); Armory pad col 22, row 1. Lane entries: bottom-center (cols
+  17–18, row 23; open from wave 1), left (col 0, rows 11–12; wave 3) and right (col 35, rows 11–12;
+  wave 8). Enemies spawn just outside the edge and walk in; the lane-warning band (§2.6) glows on that
+  screen edge. A starting layout to tune (§14).
 - **Camera:** every world-to-screen conversion goes through one interface, so the v2 dynamic camera
   (§13) is a new implementation, not a rewrite.
 
@@ -1289,7 +1359,7 @@ interface Camera {
   readonly scale: number;
   update(dtMs: number, focus: readonly { x: number; y: number }[]): void; // no-op in v1
 }
-// v1 FixedCamera: sx = 48 + x·W, sy = 216 + y·W·0.6 − z·W
+// v1 FixedCamera: sx = 96 + x·W, sy = 216 + y·W·0.6 − z·W
 ```
 
 - **Layers**, bottom to top:
@@ -1303,6 +1373,11 @@ interface Camera {
   5. world UI: nametags and HP bars (flipping below near the top edge, §2.1), aim lines, the build arc,
      the super-ready badge, the Stalker target thread
   6. HUD (screen space)
+- **What's Phaser and what's DOM:** layers 1–5 are Phaser, since world UI moves with entities every
+  frame and needs interpolation and y-sorting. The **HUD and the full-screen TV screens** (home, lobby,
+  summary) are a **DOM overlay** over the canvas, scaled with it to the 1920 × 1080 logical size. They
+  reuse `brand.css` (chamfers, `drop-shadow` glow, fonts) and the same SVG icon badges as the phones,
+  with crisp text; the bloom doesn't touch them.
 - **Bloom:** one threshold bloom on the composited world (layers 1–4) at half resolution. The threshold
   catches amber `#e8a33d` and violet `#8f6bff` and never the gunmetal and violet-iron shades (§2.5). SVG
   glow filters are stripped at rasterize time (§15.10), so nothing double-glows.
@@ -1313,9 +1388,11 @@ interface Camera {
 type ViewId = 'side' | 'front' | 'back';
 interface RigDef {
   id: string;                                // 'warden', 'colossus', 'mortar_tower'
-  views: Partial<Record<ViewId, RigView>>;   // enemies: side only in v1; lookup per rig (§13)
+  views: Partial<Record<ViewId, RigView | RigPoses>>; // enemies: side only in v1; lookup per rig (§13)
   optional?: Record<string, string[]>;       // e.g. { mk2: [...parts], mk3: [...parts] }
 }
+/** A view with several part sets (the Ranger: 'stand' and 'ready', §2.4); others have one. */
+interface RigPoses { poses: Record<string, RigView>; defaultPose: string }
 interface RigView {
   foot: [number, number];                    // anchor, sprite units
   parts: Record<string, {
@@ -1325,7 +1402,7 @@ interface RigView {
     tint?: 'player';                         // color part, flag cloth, footman plume
     emissive?: boolean;                      // drawn last; code can pulse/brighten it
   }>;
-  order: string[];                           // back-to-front for this view
+  order: string[];                           // back-to-front for this view (and pose)
   attach?: Record<string, [number, number]>; // muzzle, flag, weapon tip, nametag
 }
 interface Clip { durationMs: number; loop: boolean; tracks: Record<string, Keyframe[]> }
@@ -1333,7 +1410,15 @@ interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: num
   alpha?: number; glow?: number; order?: string[] } // order: per-key draw-order swap (Colossus legs)
 ```
 
-- **Frame names:** rig parts `<rig>/<view>/<part>`; aim-framed structures `<id>/<loadout-or-tier>/<aim>`
+- **Every part in every view:** per §2.4's full-size rule, each view (and pose) lists every part,
+  including parts fully hidden at rest, so animation can bring any part into view. Never drop a part
+  because it's hidden at rest. Draw order is per view: in back views, arms come before the cloak or
+  cape and pauldrons after it, and the Artificer's backpack is the last body layer.
+- **Poses:** the Ranger has two part sets per view, `stand` (idle, walk) and `ready` (Steady Aim,
+  firing). Steady Aim crossfades from `stand` to `ready`; firing without Steady Aim snaps to `ready` for
+  the shot. Every other rig has one pose per view.
+- **Frame names:** rig parts `<rig>/<view>/<part>`, or `<rig>/<view>/<pose>/<part>` for posed rigs
+  (`ranger/front/ready/bow`); aim-framed structures `<id>/<loadout-or-tier>/<aim>`
   (sentry aims `l dl c dr r`, loadouts `base dmg rng max`; pulse turret 8 aims × base/II/III, plus band
   overlays); Citadel damage overlays `citadel/dmg-cracks`, `citadel/dmg-fire`, `citadel/dmg-smoke`
   (atlas frames, since every crack is hand-drawn).
@@ -1558,6 +1643,7 @@ interface ThemeShared {                          // phones and TV
   names: Record<ClassId | EnemyId | StructureId | ShopItemId | CardId | 'base' | 'faction', string>;
   flavor?: Partial<Record<string, string>>;      // class card lines, card text
   icons: IconSprite;                             // art/<theme>/icons/*.svg as one inline SVG sprite
+  portraits: Record<ClassId, { body: string; color: string }>; // front-view images (class select)
 }
 interface ThemeHost {                            // TV only
   atlases: AtlasRef[]; rigs: Record<string, RigDef>; clips: Record<string, Clip>;
@@ -1568,13 +1654,18 @@ interface ThemeHost {                            // TV only
 
 - **Icons** (`art/<theme>/icons/`, 24-unit SVG glyphs with `.glyph`, ink and `.glow` layers; usage rules
   in its `README.md`): phones get them as one inline SVG sprite (a `<symbol>` per icon, built at build
-  time), so `.glow` takes the CSS `drop-shadow` and badge tiles stay crisp. The TV rasterizes the same
-  files into its atlas, where the bloom picks up the amber. Theme packs replace the files under the same
-  names.
+  time), so `.glow` takes the CSS `drop-shadow` and badge tiles stay crisp. The TV's DOM HUD (§15.2)
+  uses the same sprite; world UI that Phaser draws (the build arc, the super-ready badge) uses the same
+  files rasterized into the TV atlas, where the bloom picks up the amber. Theme packs replace the files
+  under the same names. A missing icon falls back to a text label.
+- **Class portraits:** phones never load the TV atlases, but class select and the lineup show each
+  knight's front view in the player's color (§2.6). The atlas script renders, per class, the front-view
+  rest pose as two images: the body, and the color part alone as a mask that CSS tints with the
+  player's color. They're lazy-loaded images, outside the phone's JS budget (§15.7).
 
 ### 15.5 Pathfinding
 
-- **Flow fields** over the 38 × 28 grid, built with Dijkstra (a breadth-first search that weighs tile
+- **Flow fields** over the 36 × 24 grid, built with Dijkstra (a breadth-first search that weighs tile
   costs) outward from the tiles next to the Citadel. Each tile stores its distance and the neighbor to
   step to next. A rebuild takes well under 1 ms and runs in the same step a blocking structure is
   placed or destroyed.
@@ -1693,8 +1784,10 @@ interface MeView {
   isLeader: boolean; ready: boolean;
   hp: number; maxHp: number; crates: number; carryCap: number;
   superCharge: number; superReady: boolean;                     // 0..1 ring; full state (§10.1)
-  action: 'pickup' | 'deliver' | 'buy' | 'build' | 'throw' | 'flag' | 'recall' | 'none';
+  action: 'pickup' | 'deliver' | 'buy' | 'place' | 'throw' | 'flag' | 'recall' | 'none'; // act-* ids
+  give: 'give' | 'drop' | null;                                 // what Give does now (icon swap, §10.1)
   arc: { slots: (StructureId | 'give' | null)[]; enabled: boolean[] } | null;  // left, up, right, down
+  buildKit: StructureId[];                                      // empty = "No buildings to build" (§10.2)
   respawnMs: number | null;
   cards: { offer: CardId[] | null; picked: CardId | null; owned: { id: CardId; n: number }[] };
   build: { selected: StructureId | null; valid: boolean | null } | null;
@@ -1714,7 +1807,13 @@ interface MeView {
 - **DOM and CSS, no canvas** (as in Sunny Side), built on `@pcg/controller-kit`. The screen comes from
   `me.screen`; reconnecting, host away and rotate are phone-local overlays. Screen groups that share a
   view (so a held thumb survives a switch): `combat` and `dead`; `lobby` and class select; `build` with
-  its build and shop tabs.
+  its Build and Shop tabs. Every player gets both tabs; an empty `buildKit` shows the "No buildings to
+  build" note in place of the kit tiles (§10.2).
+- **Components:** plain TS DOM components, no framework (as in Sunny Side and the kit): `Badge` (icon +
+  tile state, §2.6), `RoundButton`, `ChargeRing`, `StatusStrip`, `KitTile`, `UpgradeCard`, `ShopRow`,
+  `HoldConfirm`, `Toast`, `LineupRow`, `ClassCard` (portrait, §15.4). Each screen composes them and
+  re-renders from the latest `team` and `me`. The mockups in §2.6 fix the look; the markup is the
+  build's call.
 - **Combat layout (§10.1)** comes from a pure function, `layoutCombat(viewport, safeInsets) → rects`,
   turning the percentage positions and fixed sizes into px rectangles. Unit tests check its rules at
   several viewports (644×300 to 1366×1024 landscape): gaps ≥ 24 px, button edges ≥ 64 px from the right
@@ -1735,7 +1834,8 @@ interface MeView {
 - **Shop:** hold-to-confirm (0.6 s) on items with `holdToConfirm`; Request toggles; purchase failures
   show the `ack` reason as a toast.
 - **Bundle budget:** `play.html` loads ≤ 100 KB gzipped JS, with no Phaser and no atlases, only
-  `themes/<id>/shared.ts`. `check-bundle` gains a per-app size limit.
+  `themes/<id>/shared.ts` (the icon sprite and portrait images load as assets, outside the JS budget).
+  `check-bundle` gains a per-app size limit.
 
 ### 15.8 Resume snapshot
 
@@ -1816,13 +1916,14 @@ interface RunSnapshot {
   unpacks it (`brand/`, `public/`, `src/styles/brand.css`, plus its `.prettierignore` lines), adds the
   `head.html` snippet to both HTML entries and mirrors `brand.css` in `src/shared/theme.ts` with a
   parity test (§2.3). `check:routes` then passes as is (icons, manifest, Google Fonts).
-- **Icon set:** delivered as `apps/fort-frenzy/fort-frenzy-icons.zip`, which unpacks to `art/icons/`;
-  the first build milestone moves it to `art/neon-knights/icons/` (the per-theme layout, §15.1) and adds
-  it to `LICENSES.json` as `owned`.
+- **Icon set:** delivered as `apps/fort-frenzy/fort-frenzy-icons.zip` (or added directly) at
+  `art/icons/`; the first build milestone moves it to `art/neon-knights/icons/` (the `art/<theme>/`
+  rule, §15.1) and adds it to `LICENSES.json` as `owned`. Later art deliveries follow the same rule.
 - **Atlas pipeline:** `scripts/build-atlases.ts` runs before every `build` and in dev (watch mode). It
   rasterizes each SVG part with `@resvg/resvg-js` at 1× and 2×, **strips the review-only glow filters**
   (`#glow`, `#glowU`, `#glowS`), packs Phaser JSON atlases (≤ 4096²) and checks every rig JSON against
-  the frames it found. Output is gitignored. The TV picks 2× when the canvas's device-pixel size exceeds
+  the frames it found (every part present in every view and pose, §15.2). It also builds the phones'
+  icon sprite and the class portraits (§15.4). Output is gitignored. The TV picks 2× when the canvas's device-pixel size exceeds
   1.5 × 1080. Atlases and audio get content-hashed names through Vite and are cached forever.
 - **Audio:** `.mp3` SFX in `audio/<theme>/`, mapped by `ThemeHost.sfx`. The TV preloads everything
   behind a loading bar on the home screen; the first keypress there unlocks audio (browser autoplay
@@ -1849,7 +1950,7 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 5 | 2026-10-27 | Determinism | Whole sim deterministic: steps, seeded streams, no wall clock; dev-only replays | Makes §9.3 reproduction, tests and resume exact; cheap only if designed in |
 | 6 | 2026-10-27 | Rendering | Phaser 4; one y-sorted world layer; threshold bloom on the composite; projection in the camera | Matches Sunny Side; §2.5's projection needs one sort; per-object glow is too slow |
 | 7 | 2026-10-27 | Art pipeline | SVG parts → build-time resvg atlases, glow filters stripped; rig JSON + clips in code | Fewer requests, consistent rasterizing, no double glow |
-| 8 | 2026-10-27 | Map | 48 px tiles, 38 × 28 grid, base top-center, HUD band + Citadel headroom | Fits §2.5's squash on 1080p with TV overscan margins |
+| 8 | 2026-10-27 | Map | 48 px tiles, 36 × 24 grid, base top-center; top HUD + Citadel headroom, bottom band for the boss bar; all inside the 96 px TV-safe margin | Fits §2.5's squash on 1080p; the bottom-edge boss bar (§2.6) needs its own band (was 38 × 28 with the boss bar at the top) |
 | 9 | 2026-10-27 | Config | TS data modules with `satisfies` + a validation test | Typos are compile errors; comments; hot reload in playtests |
 | 10 | 2026-10-27 | Pathing | Dijkstra flow fields: ground, breaker, per hunted player | Breaker makes walls vs Brutes a real fight; rebuilds are sub-millisecond |
 | 11 | 2026-10-27 | Input | 12-field JSON tuple, phone-resolved gestures, counters, fixed 30 Hz while touched | Taps never lost; fire and aim arrive together; satisfies §11.4 |
@@ -1858,3 +1959,6 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 14 | 2026-10-27 | Resume | `localStorage`, saved on every build-phase change; device ID for new rooms | Survives crashes; tokens and keys die with the room code |
 | 15 | 2026-10-27 | Testing | Headless sim, replays, autopilot soak, unit and e2e suites | Catches desyncs and late-wave crashes without manual play |
 | 16 | 2026-10-27 | Assets | Build-time atlases (gitignored), `.mp3` SFX, `LICENSES.json` checked by a test | No binary churn; every asset commercially cleared (§2.3) |
+| 17 | 2026-10-27 | TV UI split | HUD and full-screen TV screens as a DOM overlay; world UI in Phaser | Brand CSS and the same SVG badges as phones, crisp text; world UI needs interpolation and y-sort |
+| 18 | 2026-10-27 | Art location | All theme art under `art/<theme>/`, icons included; deliveries elsewhere are moved there | Later themes sit beside neon knights without renames |
+| 19 | 2026-10-27 | Rig contract | Every part in every view and pose; optional poses (`ranger/<view>/<pose>/<part>`) | §2.4 full-size parts and the Ranger's stand/ready poses |
