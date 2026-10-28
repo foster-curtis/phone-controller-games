@@ -12,7 +12,7 @@ every message goes through a shared, game-agnostic WebSocket **relay**.
 | --------------------- | ----------------- | --------------------------------------------------------------------- |
 | `apps/relay`          | `@pcg/relay`      | Done. Node WebSocket server, deployed to Fly.io. No game rules.       |
 | `apps/sunny-side`     | `@pcg/sunny-side` | Done. Sunny Side Slam, the first game. Vite multi-page app on Vercel. |
-| `apps/fort-frenzy`    | (none yet)        | Planning. Only a design spec exists, with no code or `package.json`.  |
+| `apps/fort-frenzy`    | (none yet)        | Planning. Spec complete (design + technical), no code yet.            |
 | `packages/net-client` | `@pcg/net-client` | Done. Relay protocol types plus host and controller clients (TS).     |
 
 `apps/` holds deployables (games and the relay). `packages/` holds code shared by more than one app.
@@ -38,7 +38,7 @@ every message goes through a shared, game-agnostic WebSocket **relay**.
 | Phone controller UI, screens, input                       | `apps/sunny-side/src/controller/` (entry `main.ts`, screens in `screens/`)                          |
 | Brand tokens (colors, fonts, spacing)                     | `apps/sunny-side/src/styles/brand.css`, mirrored for Phaser in `src/shared/theme.ts`                |
 | Debug hooks                                               | `apps/sunny-side/src/host/debug.ts` (`window.__pcg`), `src/controller/dev.ts`                       |
-| Fort Frenzy design                                        | `apps/fort-frenzy/spec.md`                                                                          |
+| Fort Frenzy design and technical design                   | `apps/fort-frenzy/SPEC.md` (§15 is the technical design)                                            |
 | Lint boundary rules                                       | `eslint.config.js`                                                                                  |
 | Build checks                                              | `scripts/check-bundle.mjs`, `scripts/check-routes.mjs`                                              |
 | CI                                                        | `.github/workflows/ci.yml` (runs `pnpm check` on every push)                                        |
@@ -141,17 +141,18 @@ These rules are enforced by ESLint or by `pnpm check`. Don't work around them.
 
 ## Adding or starting a game (Fort Frenzy)
 
-Fort Frenzy is still in planning. Its spec covers game design only. The technical sections (repo
-layout, engine, protocol, game loop, module boundaries) are still to be written, using this monorepo as
-the starting point. Don't scaffold code until the user asks. When a new game gets code:
+Fort Frenzy is still in planning. Its spec is complete: game design in §1–§14 and technical design in
+§15 (repo layout, packages, engine, protocol, sim, testing). A build plan comes next. Don't scaffold
+code until the user asks. When a new game gets code:
 
 - Model it on `apps/sunny-side`: separate `index.html` (host) and `play.html` (controller) entries,
   `src/host`, `src/controller`, `src/shared`, a unique game ID (`GAME_ID`) for the relay namespace, and a
   `@pcg/<name>` package.
 - Reuse `@pcg/net-client` and the relay as they are. Don't fork the protocol.
 - Only extract code into `packages/` once two games really need it. The repo defers shared kits until a
-  second game shows what is common (`PLATFORM.md` §4, decision #1). Fort Frenzy is that second game, so
-  expect extractions, and propose them before making them.
+  second game shows what is common (`PLATFORM.md` §4, decision #1). Fort Frenzy is that second game:
+  `@pcg/controller-kit` and `@pcg/game-kit` are decided (`PLATFORM.md` decision #4, Fort Frenzy SPEC
+  §15.1). Propose any further extraction before making it.
 - Root wiring to add for a new game:
   - In `package.json`, copy the five Sunny Side scripts (`dev:`, `dev:lan:`, `build:`, `e2e:`,
     `check:<game>`) and swap in the new folder and package names.

@@ -7,10 +7,11 @@ Co-op wave defense for 2–6 players. Phones are controllers; the shared screen 
 This file records **decisions made so far**. Items deferred past v1 are in §13. Items still open are in
 §14.
 
-**Status:** v1 game design is complete. Technical sections (repo layout, engine, protocol, game loop,
-module boundaries) are not written yet; they are to be added in the repo, where the existing monorepo
-can inform them. Internal names in this spec (Engineer, Grunt, and so on) are code IDs; player-facing
-names come from the theme (§2.1).
+**Status:** v1 game design and technical design are complete. §1–§14 are the game design; §15 is the
+technical design (repo, engine, simulation, data, pathfinding, protocol, controller, resume, testing,
+hosting) and its decision log. Next step: a build plan (`BUILD_PLAN.md`) made from this spec. Internal
+names in this spec (Engineer, Grunt, and so on) are code IDs; player-facing names come from the theme
+(§2.1).
 
 ---
 
@@ -57,14 +58,32 @@ it looks and sounds.
 **Tech-medieval (v1), neon knights style.** Classic fantasy shapes, but every ability comes from
 technology, not magic: powered armor, rail-bows and nanites. The look is clean sci-fi armor with glowing
 lines: dark backgrounds, bold silhouettes and emissive accents, which give strong contrast on a TV.
-- **Players and player structures glow amber,** matching the fostercurtis.dev brand amber. Take the exact
-  hex from the site's design tokens.
-- **The Iron Tide glows cold cyan.** Amber against cyan is the classic orange/blue pairing: maximum
-  contrast, and it stays distinguishable for the most common forms of color blindness.
+- **Players and player structures glow amber,** matching the fostercurtis.dev brand amber (`--amber`,
+  `#e8a33d`, in the brand kit, §2.3). Every knight's armor glows amber, as do towers, walls and the
+  citadel core.
+- **The Iron Tide glows violet** (`--hostile`, `#8f6bff`). Amber against violet sits on the yellow–blue
+  axis, which the common red–green forms of color blindness preserve, and the two also differ strongly in
+  lightness. (Changed from cyan on 2026-10-26: violet keeps the enemy glow clear of the blue and green
+  player colors.)
 - **Red is reserved for danger:** ground markers for incoming attacks and low-HP warnings. Neither side
   uses red as its main glow.
-- Per-player colors (assigned on join, §11.1) appear on nametags and rings, and must stay distinct from
-  enemy cyan and danger red. Display names and visuals:
+- **Player identity** (every knight glows amber, so identity never rides on the glow). Three layers,
+  from most to least important:
+  1. **Ring (primary):** a thin outline ellipse under the feet in the player's color (at the 0.6 ground
+     ratio, §2.5), never a filled disc, so it never reads as a red ground danger marker. A small notch
+     on the ring points in the aim or facing direction. The ring also marks where structures are placed
+     (§7).
+  2. **Color part on the helmet (secondary):** each class carries the player's color on its helmet,
+     each in its own shape: the Warden's crest, the Ranger's feather and the Commander's horsehair plume,
+     and the Artificer's painted crown cap and lens bezel. The color part is drawn as a separate
+     grayscale layer tinted at runtime, so one sprite sheet serves every color.
+  3. **Name and HP bar, above the sprite:** white Geist 600 with a thin ink outline, HP bar directly
+     under the name. Above, because the feet already carry the ring, the build ghost and danger markers.
+     Near the top edge of the map (by the Citadel) the label flips below the sprite.
+- Player colors (assigned on join, §11.1) must stay distinct from amber, enemy violet and danger red
+  (palette in §2.3).
+
+Display names and visuals:
 
 | Internal ID | Display name | Visual |
 |---|---|---|
@@ -76,8 +95,9 @@ lines: dark backgrounds, bold silhouettes and emissive accents, which give stron
 | Arrow tower | Pulse turret | Auto-turret |
 | Bomb tower | Mortar tower | Mortar emplacement |
 | Wall | Wall | Hard-light barrier |
-| Barricade | Barricade | Low energy barrier |
+| Snare | Shock Net | Electrified net on the ground that zaps enemies crossing it |
 | Fortify | Fortify | Shield emitter attached to a tower |
+| Spiked walls (shop item) | Charged walls | Coils and crackling bolts on the wall |
 | Supply crate | Power cell | Glowing cell |
 | Supply depot | Armory | |
 | Base archers | Sentry guns | Wall-mounted sentry turrets |
@@ -106,11 +126,159 @@ lines: dark backgrounds, bold silhouettes and emissive accents, which give stron
   playtesting.
 - The resume snapshot (§11.5) stores the run's theme and difficulty.
 
+### 2.3 Branding (settled)
+
+Domain: `fort-frenzy.fostercurtis.dev`. Branding is in v1, from the brand kit:
+`src/styles/brand.css` (every visual token as a CSS custom property), `brand/` (SVG marks and the
+`<head>` snippet) and `public/` (favicon, PWA icons, manifest). Same layout as Sunny Side's kit; when
+code exists, mirror `brand.css` in a typed `src/shared/theme.ts` for the renderer, with a parity test.
+
+- **Family core, unchanged:** ink `#14161a`, paper, amber `#e8a33d`, gray, and the shared dark surface,
+  border and muted values, identical to fostercurtis.dev, Sunny Side and World Conquest. Body text is
+  Geist; room codes are JetBrains Mono.
+- **Mark ("the keep"):** a white crenellated tower on the ink rounded tile with a lit amber gate whose
+  light spills onto the ground. Same grammar as the family marks: ink tile, white object, one amber point.
+  A pixel-snapped 16 px version (`mark-small.svg`) feeds the `.ico`.
+- **Signature treatment:** chamfered (cut) corners and amber glow. No tilt and no hard offset shadow
+  (Sunny Side's move). Glow is applied with `filter: drop-shadow`, since chamfers use `clip-path`.
+- **Color rule:** amber glow means ours (player armor, friendly structures; in the UI, ready, selected
+  and active states). Violet glow means the Iron Tide. Red means danger only.
+- **Display face:** Chakra Petch 700, uppercase, slight tracking. Its chamfered terminals match the UI
+  shape.
+- **World tokens:** `stone` `#262b33` for panels and map ground, `stone-edge` `#3a404b` for walls,
+  `ember` `#ffd08a` for glow cores, `hostile-core` `#c7b4ff` for enemy glow cores.
+- **Player colors (6):** cobalt, jade, sky, bone, rose and forest, from the shared family palette.
+  Crimson (too close to danger red) and berry (too close to violet) are left out. Because every knight
+  glows amber, player identity shows on nametags, rings and armor accents (for example plumes), never on
+  the glow itself.
+- **Themes are skins on this brand.** The color rule carries into Pillow Fort: amber becomes fairy lights
+  and flashlights, violet becomes glowing eyes under the bed.
+- All assets must be commercially licensed. Chakra Petch, Geist and JetBrains Mono are OFL.
+
+### 2.4 Character art (settled)
+
+Applies to every theme pack. Theme packs change the drawings, not these rules.
+
+- **View:** oblique three-quarter top-down, defined exactly in §2.5. Every part shows its top face
+  above its front face.
+- **Facing (4 directions):** each knight and each footman has three body views: side (mirrored for left
+  and right), front (facing the camera) and back. A unit faces where it's aiming while attacking, and
+  otherwise where it's moving; it picks the view from the stronger axis, with a small dead zone so it
+  doesn't flicker on diagonals. Attack arcs, the aim line and the ring notch still rotate a full 360°.
+  Enemies use the side view only (mirrored) in v1; back views for common walkers are a v2 candidate.
+  The Artificer's backpack gauge only needs to read in the side and back views.
+- **Method:** vector cut-out rigs. Each character is a set of separate SVG parts (legs, torso, helm,
+  color part, weapon, emissive layer) that code moves, rotates and scales to animate. The color part is
+  tinted per player; the emissive (amber) layer is drawn last with a bloom and can brighten or pulse
+  during attacks.
+- **Readability:** every part has a dark ink outline; armor is cool gunmetal steel lit by amber seams.
+  Each class has a distinct silhouette, helmet and color-part shape, so classes are recognizable at TV
+  size before color is read.
+- **Alignment and layering:** every attached part (spikes, horns, studs, plumes, ears, fins, emissive
+  seams) sits on the edge or surface it belongs to; glows never cross onto a different part. Limbs
+  attach under the body: far-side parts are drawn behind it, and near legs tuck under the body rather
+  than overlapping it from above. Groups (Scrap mites, squads) draw back-to-front by depth.
+- **State on the body:** class mechanics show on the sprite, not only in a HUD (Ranger's bolt brightens
+  with Steady Aim, Commander's banner leaves his back when planted, Artificer's backpack gauge shows
+  crates carried).
+- **Shared animations:** hit (white flash, small lean), down (kneel, emissive dims to gray, respawn
+  countdown where the name was) and respawn (assemble in a column of amber light at the base) are the
+  same for every class.
+- **Healing visuals:** all healing is amber (it's ours), marked with small white "+" glints. Never
+  green, since jade and forest are player colors.
+
+**Warden (neon knights):** widest and squattest silhouette; closed great helm with a glowing amber
+T-visor; front-to-back crest plume (crest shape is Warden-only); gravity hammer with the head centered
+on the haft and an amber gravity coil at the center of the head, which brightens during the slam
+wind-up. Amber seams: chest chevron, power core, belt, pauldron trim, knee.
+Animations: idle, walk, main (ground slam), super (stomp with shockwave), build (kneel and tap),
+Mason passive sparks to nearby walls.
+
+**Ranger (neon knights):** tall, narrow silhouette with a dark cloak behind and the bow in front;
+sallet helm with a narrow amber goggle slit; one long swept-back feather plume (feather shape is
+Ranger-only); recurve rail-bow with amber rails on both limbs, an amber string and a glowing bolt.
+The bolt and rails brighten in steps while Steady Aim builds, so the passive is visible. Amber seams:
+chest baldric, knee; quiver bolts glow at the tips.
+Animations: idle, walk (quicker, lighter cadence than the Warden), Steady Aim, main (longbow shot
+with an amber tracer), super (pulse ring sized exactly to the hit circle), build (kneel and place a
+deploy beacon; turrets unfold).
+
+**Commander (neon knights):** medium build; armet helm with an amber circlet across the brow (the only
+helm with a "crown"); horsehair plume that arcs up and back, then falls behind the helm (Commander-only
+shape); wedge-bladed sword with a chisel tip, set on the grip's center line, whose amber edge is a right
+triangle along the cutting edge, thickest at the base by the guard and thinning to the tip; amber
+diamond rank badge on the chest. The rally flag rides on his back as a banner; planting it moves it
+into the world, so "following" vs "holding" is visible at a glance.
+Animations: idle, walk, main (sword slash; the amber edge flares and leaves a trail tracing the exact
+hit arc), super (morale: amber pulse, and an amber aura on him and his squad that fades as the buff
+runs out, doubling as its timer), plant flag / recall, Lead from the Front link lines to nearby
+footmen.
+
+**Automaton footmen:** about half the Commander's height; amber eye; mini plume swept back in their
+Commander's player color; straight blade, fully amber, with a dark crossguard. No ring and no name.
+Animations: march, short stab, collapse into scrap and fade.
+
+**Rally flag:** the flag cloth is in the Commander's player color (a second tinted part), so two
+Commanders' flags and squads are never confused; a planted flag has an amber ring at its base.
+
+**Artificer (neon knights):** medium build with a boxy power-cell backpack, the only knight wider at the
+back than the front; rounded helm with a single round amber lens; no plume: his color is a painted
+crown cap and a bezel ring around the lens (the bezel deliberately breaks the helm's outline); arm-
+mounted nanite projector with an amber lens and a drifting cloud of amber nanites; amber hexagon
+(nanite cell) emblem on the chest, never a cross; tool pouches on the belt; amber knee.
+**Backpack gauge:** three cells that fill bottom-up. Each cell is 2 crates; an odd count lights only the
+bottom half of the next cell; 6 or more crates shows all three full (the cap is 8).
+Animations: idle, walk, main (nanite bolts fanning in a narrow cone, stopped by walls and towers),
+super (wide amber nanite cone drawn over walls, since it passes through them; healed players and
+buffed towers get white "+" glints), Field Medic (faint dotted amber ground circle, never filled),
+carry and throw (gauge steps up or down a half cell per crate; a thrown cell lobs in an arc).
+
+### 2.5 Perspective and projection (settled)
+
+Every sprite, structure, effect and UI element drawn in the world follows one projection: oblique
+three-quarter top-down (as in Zelda or Stardew Valley). Nothing is drawn straight from above, and
+nothing is drawn as a flat front view with no top. Applies to every theme pack.
+
+**The rule**
+- **Ground is squashed vertically by 0.6.** Everything lying on the ground is drawn at width × 0.6
+  depth: tiles, shock nets, structure footprints, player rings, red danger markers, area-of-effect
+  rings, shockwaves, auras, blast rings and shadows.
+- **Uprights keep full height and show a top face.** On chamfered shapes, the angled band above the
+  front face is the top face: shade it lighter and draw a thin crease where it meets the front. Boxes
+  get a top rectangle; cylinders and rings get an elliptical top at 0.6; domes and spheres sit in a 0.6
+  base ellipse or socket.
+- **Shading:** tops lightest, fronts mid, left side darkest, light from above and slightly right.
+  Knights and structures: tops #7d8798 or #5c6676, fronts #4a5362, shade #3c4452. Iron Tide: tops
+  #6a5f8f or #4a4068, fronts #3a3150, shade #2a2340.
+- **Shadows:** a 0.6 ellipse sized to the footprint and centered on it (not on the bottom edge of the
+  feet). Knight about 22 × 13 in sprite units; Colossus about 60 × 36.
+- **Height:** anything off the ground keeps its shadow on the ground directly beneath it; the gap
+  between object and shadow shows its height (Wasp drones, mortar shells, boulders, thrown power
+  cells, launched Skitters).
+- **Draw order:** sort by foot point (lower on screen is drawn in front). Flyers and arcing
+  projectiles sort by their shadow. Groups draw back-to-front.
+
+**Grid and scale:** a tile is W wide and 0.6 W deep on screen. On the 1920 × 1080 logical canvas,
+W = 48 px (48 × 28.8). Characters are about 1.6 W tall (about 77 px). Art is authored with a tile of
+80 × 48 sprite units.
+
+**Implementation:** the sim stays in square tile coordinates with circular hitboxes. Only the renderer
+projects: screen y = world y × 0.6 − height. Hitboxes, ranges and AoE are drawn as 0.6 ellipses of the
+same circles the sim uses, so what players see always matches what hits.
+
+**Walls and nets in both directions:** a wall running across the screen shows its full light panel; a
+wall running into the screen is seen edge-on and shows as a glowing top strip between stacked posts.
+Walls and shock nets use autotile sets (across, into, corner, T-junction, cross, end) chosen from
+neighboring tiles.
+
 ## 3. Map, base and camera
 
 ### 3.1 Map
-- The base sits on the **bottom edge** of the map.
-- Enemies arrive through lanes from the top and sides. More lanes open as waves progress.
+- The base sits on the **top edge** of the map, centered, with its gate facing down-field. In the §2.5
+  view, tall sprites hide what's drawn behind them (above them on screen). At the top, the Citadel only
+  hides off-map space, and players see its gate rather than its back.
+- Enemies arrive through lanes from the bottom and sides and march up the screen. More lanes open as
+  waves progress.
 - v1 has one map with 3 lanes.
 
 ### 3.2 Camera
@@ -121,7 +289,9 @@ lines: dark backgrounds, bold silhouettes and emissive accents, which give stron
 - A dynamic camera is planned for v2 (§13).
 
 ### 3.3 Base HP and damage
-- The base has a **single HP pool**, shown as a bar at the top of the TV.
+- The base has a **single HP pool**, shown as a bar at the top of the TV, directly above the Citadel.
+  The HUD leaves about 3 tiles of screen headroom above the Citadel's footprint for its keep, core and
+  smoke plumes (§3.6).
 - **Visual damage stages:**
   - 66%: cracks
   - 33%: fire
@@ -149,10 +319,43 @@ Crates therefore have two uses: building or repairing.
 ### 3.5 Base archers
 - **2 archers** are always present. They are part of the base and can't be killed separately.
 - They target the nearest enemy in range, **including Flyers**.
-- **Shop upgrades, buyable by anyone, in three tiers:**
-  1. Damage
-  2. Range
-  3. A third archer
+- **Shop upgrades, buyable by anyone:** three independent one-time purchases, in any order:
+  - Damage
+  - Range
+  - A third archer
+
+### 3.6 Citadel art (neon knights, settled)
+
+- **The brand keep, built:** the Citadel is the favicon in 3D: a crenellated keep with a lit amber gate,
+  flanked by curtain walls and two corner towers. Footprint 4 × 2 tiles centered on the top edge, gate
+  facing down-field. Stone-gunmetal fronts, lighter tops, amber glow seams; drawn per §2.5.
+- **Layering:** the core and tower sentries stand on the roof top faces and are drawn before the front
+  ramparts (merlons), so the ramparts overlap their bases.
+- **Power core:** a glowing amber sphere in a three-prong cradle on the keep's roof, the brightest point
+  on our side. It flickers on every hit and dims at the lowest damage stage.
+- **Repair zone:** a dashed amber pad with chevrons pointing into the lit gate, on the ground in front of
+  it. Cells are carried into the gate.
+- **Sentry guns (base archers, §3.5):** one swivelling unit per tower: a drum head on a fixed pedestal,
+  with the barrel coming out of an amber-ringed collar. The head is modeled in 3D and projected per §2.5
+  so the drum, collar and barrel always line up (pre-rendered frames, not a separately rotated barrel).
+  Five aim frames: left, down-left, at camera, down-right, right (the window sentry uses at camera). A
+  sentry snaps to the frame nearest its target. Damage swaps in twin barrels; Range adds a laser scope on
+  top of the collar with a fading amber sight line; both can stack (4 loadouts × 5 aims). The third
+  sentry leans out of a window above the gate, so it never blocks the core. Sentries fire amber tracers,
+  including at Wasp drones.
+- **Damage stages (§3.3), cumulative:** 66% cracks (each crack drawn individually, with its own length,
+  angle and branches, never one shape repeated; broken glow seams, a fallen merlon, rubble at the wall
+  base); 33% adds fire (flames on the keep and walls); 10% adds heavy smoke (tall plumes, dimmed core and
+  gate). Stages reverse as HP is repaired back over each threshold.
+- **Animations:** hit (core flickers, keep shakes, HP bar flashes); siege shells (red landing marker on
+  the footprint first); repair delivery (amber pulse climbs the keep to the core); shop repair and the
+  emergency kit (an amber wave over the whole Citadel, brighter and faster for the kit); low HP at 25%
+  (core pulses with the alarm); destroyed (core implodes, glow cuts out, keep collapses into its
+  footprint).
+- **Armory pad (supply depot):** a kiosk racked with glowing power cells under an amber hex sign with a
+  cell icon, on a solid-outlined 1 × 1 tile pad with the same icon on the ground. Drawn per §2.5 (pad
+  top face plus front lip, kiosk with a top face). It reads as "get cells here", while the repair zone
+  (dashed, chevrons, at the gate) reads as "bring cells here".
 
 ## 4. Run structure
 
@@ -179,6 +382,9 @@ Crates therefore have two uses: building or repairing.
 ## 5. Death and respawn
 
 - Players have HP. When they die, they respawn at the base after 10 seconds.
+- **HP carries over between waves;** the build phase doesn't reset it. Healing and mending auras
+  (Field Medic, Mason) are off during the build phase (§8).
+- Players who are dead when combat ends respawn at once, at the start of the build phase.
 - Nothing is lost on death: upgrade cards and team purchases persist.
 - On death, a player drops any supply crates they were carrying. The crates stay on the ground, where
   any player can pick them up. (Coins are never carried; they go straight to the team pool.)
@@ -187,15 +393,23 @@ Crates therefore have two uses: building or repairing.
 
 - Kills add **coins** directly to a **shared team pool**. Players never carry coins.
 - **Coins** buy things: supply crates and team shop items (§6.2).
-- **Supply crates** are what structures cost. Every structure (towers, walls, barricades and Fortify)
+- **Supply crates** are what structures cost. Every structure (towers, walls, snares and Fortify)
   costs crates; the rally flag is free. Crates are also used to repair the base (§3.4).
   - The **supply depot** is a pad beside the base. It sells crates to any player at full price, during
     both phases. The depot pad and the base's repair zone are separate areas, so the action button is
     never ambiguous (§10.1).
-  - Non-Quartermasters carry one crate at a time and move more slowly while carrying it.
+  - **Crates are personal inventory.** Coins stay in the team pool, but each player carries their own
+    crates. Crates bought from the phone shop go straight into the buyer's inventory.
+  - **Carry cap:** non-Quartermasters carry up to the crate cost of the most expensive structure
+    (starting value: 4), so any builder can afford any structure alone.
+  - **Carry slowdown:** non-Quartermasters move more slowly the more crates they carry. The penalty
+    grows faster than linearly: 1 crate is barely noticeable and a full load is a significant slowdown.
+    This keeps the Quartermaster busy as the team's crate runner.
+  - **Any player can hand over or drop crates,** in either phase (§10.1, §10.2), so crates are never
+    stuck with a player who can't use them.
 - **Quartermaster supply perks:**
   - Buys crates at a discount.
-  - Carries 2–3 crates at once with no slowdown.
+  - Carries up to 8 crates with no slowdown.
   - Can throw crates.
   - Has access to Quartermaster-only shop items, for example base armor and an emergency repair kit.
 - **Between waves:**
@@ -271,7 +485,7 @@ Crates therefore have two uses: building or repairing.
 
 | Card | Tier | Effect |
 |---|---|---|
-| Pack Mule | Common | +1 crate carried |
+| Light Load | Common | Allies inside the Field Medic aura suffer half the crate carry slowdown (§6). Unique |
 | Strong Arm | Common | Longer, faster crate throws |
 | Venom Bolts | Rare | Bolts apply poison |
 | Overflow | Rare | Healing beyond full HP becomes a temporary shield |
@@ -304,14 +518,15 @@ every coin purchase is a choice between team purchases.
 
 | Item | Details |
 |---|---|
-| Supply crates | Same price as the depot (§6), so crates can be bought from the phone during the build phase |
+| Supply crates | Same price as the depot (§6), including the Quartermaster discount, so crates can be bought from the phone during the build phase. They go into the buyer's inventory, up to their carry cap |
 | Base repair | Price rises with each purchase (§3.4) |
-| Base archer upgrades | 3 tiers: damage, range, a third archer (§3.5) |
+| Base archer upgrades | 3 independent upgrades, bought in any order: damage, range, a third archer (§3.5) |
 | Commander squad stats | After regular waves. Squad size grows after waves 5 and 10 (§8) |
 | Arrow towers: fire rate | 3 tiers |
 | Bomb towers: blast radius | 3 tiers |
 | Tower HP (all towers) | 3 tiers |
-| Wall and barricade HP | 3 tiers |
+| Wall HP | 3 tiers |
+| Snare charges | 3 tiers. More discharges per snare (§7.1) |
 | Spiked walls | 1 tier. Enemies that attack walls take damage |
 | Quartermaster-only items | For example base armor and the emergency repair kit |
 
@@ -335,13 +550,93 @@ every coin purchase is a choice between team purchases.
 - Structures snap to a **tile grid** and are 1×1 tiles. Player movement is free and does not snap.
 - **Pathfinding uses a flow field.** The game runs one breadth-first search outward from the base over the
   grid. Every enemy follows the resulting "next step" arrows. The flow field is rebuilt only when a
-  structure is placed or destroyed.
+  structure that affects pathing is placed or destroyed. Snares don't affect pathing (§7.1).
 - **Walls have a high path cost instead of being impassable.** Enemies route around walls when they can.
-  If no route exists, they stop and break through.
+  If no route exists, they stop and break through. **Towers block enemies the same way,** with the same
+  high path cost.
+- **Brutes and the Colossus prefer to smash through walls** rather than route around them: they follow
+  their own flow field in which walls are cheap (§15.5).
 - **Build phase:** the player opens the build menu on their phone. A ghost preview appears at their feet
   on the TV. They confirm or cancel. The ghost turns red on invalid tiles, for example occupied tiles.
-- **Combat phase:** players can only quickly place their last-used structure. There are no menus during
-  combat. This uses the action button (§10.1).
+- **Combat phase:** no phone menus. A tap on the action button places the last-used structure; holding
+  it opens the build arc on the TV to pick another (§10.1).
+- **Placement validity:** a tile must be on the map, buildable (not a lane entry, the Citadel, the repair
+  zone or the Armory pad) and free of other structures. Walls and towers also can't be placed on a tile
+  with an enemy or player on it; snares can.
+
+### 7.1 Snares
+
+The Warden's snare is a trap, not a barrier. Walls decide where enemies go; snares decide how fast they
+get there. In neon knights it is the **Shock Net** (§2.1).
+
+- **Pathing:** a snare costs the same as an empty tile in the flow field, so enemies walk straight
+  across it. Placing a snare or having one expire does not rebuild the flow field.
+- **Discharges, not HP:** a snare has no HP and can't be attacked or damaged, including by the
+  Colossus's slam. Instead it holds a number of **discharges** (starting value: 5).
+  - When a ground enemy steps onto an armed snare, it discharges: every ground enemy on the tile is
+    slowed, and one discharge is used. A single discharge catches a whole Swarm group on the tile.
+  - After a discharge, the snare **rearms** after a short delay (starting value: 0.5 s).
+  - When its last discharge is used, the snare fizzles out and frees the tile.
+  - The TV shows the remaining discharges on the tile (pips or a dimming glow), and each discharge
+    flashes.
+- **Slow:** a timed effect (§6.1) of about 40% for about 2 s, so it lasts after the enemy leaves the
+  tile. Slows don't stack; the strongest active slow applies. Brutes and the Colossus take the slow at
+  half strength, so snares can't stall a boss.
+- **Who it affects:** every ground enemy, including Runners. Flyers pass over it. Players are never
+  affected.
+- **No damage in v1.** The snare's only job is the slow.
+- **Cost:** 1 crate, the cheapest structure.
+- **Lifetime:** a snare stays across waves until its discharges run out.
+- **Wall rules don't apply:** Mason and Master Mason repair, spiked walls, Fault Line and the Brute and
+  Colossus bonus damage to walls are wall-only.
+- **Placement** follows the rules above: 1×1 tile, build-menu ghost in the build phase, and the action
+  button (tap or build arc) in combat (§10.1).
+- **Shop:** "Snare charges" (3 tiers) adds discharges to every snare, including ones already placed
+  (§6.2).
+
+### 7.2 Structure art (neon knights)
+
+- Every structure is ours: knight gunmetal with amber glow, never violet. Each sits on a dark base plate
+  filling its 1×1 tile footprint, drawn per the perspective rules (§2.5).
+- **Tiers grow in visual interest**, like the Colossus: each tier keeps the earlier parts and adds new
+  ones, plus one amber band per tier (one, two or three) as the quick read. An unupgraded tower shows
+  the base parts with no band; each shop tier (§6.2: fire rate for pulse turrets, blast radius for
+  mortar towers) adds a band, and tiers II and III also add the parts listed for them. Tower HP tiers
+  don't change the look.
+  - **Pulse turret:** the base is a round pedestal, a box head with a centered amber sensor eye, and one
+    barrel. II adds twin barrels, full-depth side armor on the head and a collar flange. III adds a
+    finned barrel shroud, a centered sensor mast with a dish, and buttress struts on the plate. The head
+    tracks with pre-rendered aim frames (8 directions, built like the Citadel sentries in §3.6), never
+    by rotating a flat sprite; muzzles flash amber at the barrel tips.
+  - **Mortar tower:** a ring emplacement with a small dome rising out of its opening; a short tube
+    inserts into the dome like a ball-and-socket joint and pivots around the dome's center as it aims,
+    so the motion reads as controlled and the tube's end never shows. II adds tube hoops and armor
+    blocks set around the rim, each angled to follow the rim's curve; III adds a slotted muzzle brake,
+    rim spikes and an ammo rack behind the ring. Shells arc with their own ground shadow and burst in an
+    amber ground ring sized to the blast radius.
+- **Wall:** two emitter posts with a see-through amber hard-light panel and a ground rail. Neighbors
+  share posts and join into one barrier; autotile pieces per §2.5.
+- **Charged walls** (the wall upgrade; display name for the "Spiked walls" shop item, same effect:
+  enemies that attack walls take damage). Walls are light, so the upgrade electrifies them instead of
+  adding spikes: twin coil rings on each post, white-hot forked bolts crackling up the panel on a
+  quick, irregular flicker, and sparks at the post tips. When an enemy attacks the wall, a forked bolt
+  strikes it and it recoils.
+- **Shock net** (the Warden's snare, §7.1): a flat 1-tile mesh on the ground with four low anchor pegs
+  and amber charges zigzagging across it on a slow loop. Adjacent nets join into one field (visually
+  only; each tile keeps its own discharges). When a discharge slows an enemy, arcs crawl up its legs
+  and it moves sluggishly. Remaining discharges and the discharge flash show on the net per §7.1.
+- **Telling them apart:** shock nets are flat and amber and slow; charged walls are upright and
+  white-hot and damage.
+- **Fortify:** a small emitter on the tower's plate projecting an amber dome shield over the whole tower;
+  the dome ripples when it absorbs a hit.
+- **Power cell (crate):** a small canister with a glowing amber core, the same design as the Artificer's
+  backpack cells.
+- **Build ghost:** a see-through structure over its ground footprint: dashed amber when valid, red with an
+  X when blocked.
+- **States:** build (amber outline sketches the shape, then fills from the plate up); upgrade (every
+  structure of that type flashes and the new parts bolt on); damaged (below half HP the glow flickers
+  and cracks appear); destroyed (glow cuts out, collapses into scrap, fades; the flow field updates
+  immediately); Mason repair (amber sparks from the Warden, cracks seal). Our attacks never use red.
 
 ## 8. Characters (v1: one per class)
 
@@ -360,10 +655,11 @@ All supers charge by dealing damage, and each character has its own charge rate.
 ### Warden (tank)
 - **Main:** Ground slam in a short arc in front of the Warden. Hits multiple enemies.
 - **Super:** A longer-range stomp with an arc area of effect. Deals damage and stuns briefly.
-- **Passive — Mason:** walls near the Warden slowly repair themselves.
+- **Passive — Mason:** walls near the Warden slowly repair themselves. Off during the build phase.
 - **Build kit:**
   - Walls: reroute enemies.
-  - Barricades: cheaper and weaker than walls, slow enemies.
+  - Snares: cheap, single-tile traps that slow enemies crossing them, and expire after a set number of
+    discharges (§7.1).
   - Fortify: attaches to a tower and gives it a defense bonus.
 - **Strongest against:** Brutes, Swarms and Hunters. The stun also stops Runners.
 
@@ -371,7 +667,7 @@ All supers charge by dealing damage, and each character has its own charge rate.
 - **Main:** 3–4 energy bolts in a narrow cone at medium-long range. Walls and towers block them.
 - **Super:** A very wide, long-range cone. It heals players it hits by a fixed amount and gives towers it
   hits a temporary defense bonus. It passes through walls and towers.
-- **Passive — Field Medic:** a small regeneration aura for nearby players.
+- **Passive — Field Medic:** a small regeneration aura for nearby players. Off during the build phase.
 - **Super charging:** damage dealt charges the super. Field Medic healing also charges it, more slowly.
   Healing from the super itself does not charge the super.
 - **Role kit:** the supply perks in §6.
@@ -406,7 +702,7 @@ Each enemy type is designed as a problem that specific classes solve.
 | Enemy | Behavior | Answered by |
 |---|---|---|
 | Grunt | Walks to the base and attacks whatever blocks it | Anyone |
-| Runner | Fast and fragile, ignores players | Towers, walls, Warden stun, Engineer |
+| Runner | Fast and fragile, ignores players | Towers, walls, snares, Warden stun, Engineer |
 | Brute | Huge HP, smashes walls | Warden, focused damage, Commander's super |
 | Siege | Stops at range and shells the base or towers | Engineer (outranges it), Commander and squad dive |
 | Flyer | Ignores walls | Engineer, arrow towers, Quartermaster, base archers |
@@ -415,10 +711,14 @@ Each enemy type is designed as a problem that specific classes solve.
 | Boss (Colossus, §9.2) | Appears at waves 5, 10 and 15 | Everyone |
 
 - **Melee attacks cannot hit Flyers.**
+- **Who attacks players (aggro leash):** Grunts, Brutes, Swarms and Flyers attack a player who comes
+  within a short aggro radius, chase up to a leash distance, then return to their path. Runners never
+  attack players, Siege always shells the base or towers, and Hunters always hunt players. Radii live in
+  config.
 - **Flyers spawn only if the team has a ranged class** (Engineer or Quartermaster). Otherwise their spawn
   slots are filled with additional ground units.
-- The team's class composition is checked at the **start of every wave**, so a ranged player dropping
-  mid-run can't strand the team against Flyers.
+- The team's class composition is checked at the **start of every wave**, counting only players
+  connected at that moment, so a ranged player dropping mid-run can't strand the team against Flyers.
 - The Commander's squad has no bonus archers in v1.
 
 ### 9.1 Starting stats
@@ -442,9 +742,8 @@ config file.
 
 ### 9.2 Boss: the Colossus
 
-The Colossus is a huge, slow walker that comes down one lane toward the base. In the neon knights theme
-it is a giant walker mech with a glowing core in its chest (§2.1); its detailed design is still open
-(§14).
+The Colossus is a huge, slow walker that comes up one lane toward the base. In the neon knights theme
+it is a giant walker mech with a glowing core in its chest (§2.1); its art is settled in §9.6.
 
 **Design rules**
 - Every big attack has a clear wind-up and a red ground marker showing where it will land, so players can
@@ -486,7 +785,8 @@ it is a giant walker mech with a glowing core in its chest (§2.1); its detailed
 - A generator spends the budget on allowed enemy types, using their budget costs, and spreads the groups
   across the open lanes and across the wave's duration.
 - **Seeded:** each run has a random seed, so runs vary but any run can be reproduced exactly for
-  debugging.
+  debugging: the seed reproduces the waves and card offers, and the seed plus a recorded input log
+  replays the whole run (§15.3, §15.9).
 - Flyers are replaced with ground units when the team has no ranged class (§9).
 - The generator should be reusable: Dungeon Crew will use the same system for its rooms.
 
@@ -511,7 +811,8 @@ it is a giant walker mech with a glowing core in its chest (§2.1); its detailed
   waves, which end when the boss dies (§9.2).
 - **Spawn warning:** a lane glows on the TV about 3 seconds before a group spawns from it.
 - **Target run length:** about 22–27 minutes, including build phases.
-- **Player-count scaling:** wave budget and boss HP are multiplied by `0.5 + 0.25 × players`. That is
+- **Player-count scaling:** wave budget and boss HP are multiplied by `0.5 + 0.25 × players`, where
+  players counts those connected at the start of the wave (§11.3). That is
   1.0× with 2 players, 1.5× with 4 and 2.0× with 6. Scaling the number of enemies, not their HP, keeps
   each enemy type feeling the same. Difficulty multipliers (§2.2) apply on top.
 
@@ -524,13 +825,93 @@ Enabled on the TV build with a URL flag and never shown to players. It can:
 - add coins
 - run the simulation at 2× speed
 - show and set the run seed
+- show hitboxes, ranges and flow-field arrows
+- download a replay of the current run (§15.9)
+
+### 9.6 Enemy art (neon knights, settled)
+
+**Faction rules:**
+- Hulls are dark violet-iron, so the whole body reads as enemy before the glow is found. Knights are
+  cool gunmetal.
+- Emissive is violet only (eyes, cores, seams). Never amber, never red.
+- Machine posture: hunched forward, with spikes. Knights stand upright.
+- No player colors, rings or names on enemies. Size signals toughness.
+- Same production rules as the characters (§2.4) and the perspective rules (§2.5): three-quarter view
+  with top faces, mirrored left/right, vector cut-out rigs, ink outline, emissive layer drawn last,
+  alignment and layering.
+- Every attack has a visible wind-up tell (listed per enemy). Every ground marker is a 0.6 ellipse.
+
+**Drone (Grunt):** a little shorter than a knight, reaching about the Warden's shoulders. A short torso
+leaning hard forward on short legs with normal knees, spikes along the spine, no neck (the head sits on
+the front shoulder), a single violet eye slit, a short blade arm and a back claw, both mounted low on
+the body. Moves at a hunched trot; blade slash with the claw bracing.
+
+**Skitter (Runner):** low and wide on four spindly legs, about half a knight's height. A violet core
+sphere sits embedded in a socket on its back (a dark collar ring with a front lip, the sphere half
+sunk into it, with curved cage ribs over it). It's the brightest thing on the enemy side, because it
+detonates on the base. Fast low scuttle; the core pulses faster as it nears the base.
+
+**Brute:** about 1.5× a knight's height. Tiny sunk head, violet furnace grille in the chest, heavy
+shoulder plate over a thick near arm ending in a ram fist, and a far fist hanging on the other side.
+Heavy stomp. Wall-hit tell: the furnace flares and the fist rears back before each hit (the Warden's
+stun window).
+
+**Bombard (Siege):** a four-legged artillery walker, noticeably bigger than a knight, on thick splayed
+legs with wide foot pads; a long mortar barrel angled up and a rack of glowing shells on its back.
+Plods to range, plants its legs and lifts the barrel; the muzzle charges violet before each shot, and a
+red landing marker shows where the shell will hit.
+
+**Wasp drone (Flyer):** no legs. Hovers above a knight's head, out of hammer reach, with two violet
+rotor discs each spinning on its own mast, a stinger cannon and a down-thruster glow under the rear of
+the body; its shadow stays on the ground far below. Bobs at a fixed height and never drops toward the
+ground, so it always reads as out of melee reach.
+
+**Scrap mites (Swarm):** tiny beetle bugs, about a fifth of a knight's height: a round split shell, a
+small head with antennae, six short legs and one violet eye, in packs of 8. Packs are scattered and
+uneven (mixed sizes, positions and tilts), never in rows, but every mite faces the same general
+direction; none ever faces backward. Animation: each mite skitters on its own jittery path at its own
+speed, with small random stops and heading wobble; the pack spreads and bunches as it moves. Never
+in step. Randomize each mite's offset, speed and wobble.
+
+**Stalker (Hunter):** a lean machine hound: deep chest, tucked waist, two pointed ears on the back of the
+head, a low head thrust forward with twin violet eye slits (the only enemy with two eyes), fins forward
+on the back that sweep well back, and a short spiked tail. Fast loping run toward its target player;
+wind-up tell: it crouches low, then lunges.
+**Target thread:** a faint violet line runs from the Stalker's eyes to the player it's hunting, so the
+whole room can see who's targeted and step in.
+
+**Colossus (boss):** about 2.6× a knight's height; tall and top-heavy (the only enemy taller than it is
+wide): a wide shoulder yoke, a small sunk head with one violet eye bar, two slab fists hanging low,
+thick legs, and a big violet core in an armored chest ring.
+**It upgrades each time it returns, at the same size.** Built as one rig with stacking optional parts:
+- **Mk I (wave 5):** the bare frame. Plain yoke, smooth slabs, few seams, no spires or spikes.
+- **Mk II (wave 10):** adds three exhaust spires on its back, spikes on the yoke and near pauldron,
+  knuckle spikes on the ram fist (the boulder-throwing hand), and more lit seams on legs and far fist.
+- **Mk III (wave 15):** adds two taller spires (five total; they launch its Runners), horns on the head,
+  rear spikes, armored shin and far-fist plates, a studded core ring, and glow seams across the yoke.
+- **Final phase (wave 15, below 50% HP):** the chest armor cracks open around a larger exposed core, and
+  violet plumes pour from the spires.
+**Stagger meter:** the core shows the hidden meter, brightening and pulsing faster as it fills. At full,
+the Colossus drops to one knee for about 3 s and the core flares white-violet during the bonus-damage
+window.
+**Tells:** slam (both fists raise, fist seams flare, red circle, lands 1.5 s later); wall breaker (same
+motion, the targeted wall flashes); boulder throw (tears up scrap with the near fist and winds back,
+red landing marker); shockwave (violet outline ring rolling out from each final-phase slam); call
+Runners (spire plumes surge, then Skitters launch from the spires).
+**Walk:** slow, heavy steps with a slight ground shake. The legs trade places every step: the stepping
+leg swings forward and is drawn in front, the planted leg drops behind, so the front leg alternates
+sides. Swap the legs' draw order at mid-stride, with a slight scale-up on the leg in front.
+**Head tracking:** the head turns side to side toward where it's walking or aiming, sliding slightly
+toward that side with the eye bar following; before a slam or boulder throw it snaps to face the
+target.
 
 ## 10. Controls
 
 General rules:
 - Phones are held in landscape.
 - The controller follows the platform requirements: `touch-action: none`, locked viewport, Wake Lock,
-  reconnect handling, and no vibration.
+  fullscreen on tap where the browser supports it, reconnect handling, and no vibration
+  (`PLATFORM.md` §3).
 - Every measurement below is inside the device safe area: offsets are added to
   `env(safe-area-inset-*)`.
 
@@ -578,6 +959,11 @@ viewport. Sizes are fixed in px, with the minimums listed.
 - **Release outside the dead zone:** fires in the aimed direction.
 - **Slide back into the dead zone, then release:** cancels.
 
+**Firing:** every attack fires **on release**, once per release.
+- Holding an aimed button only shows the aim line on the TV until release.
+- Holding a tap-type button does nothing; it fires when released.
+- Holding never repeats. A release during the attack's cooldown fires as soon as the cooldown ends.
+
 **Super charge indicator**
 - A ring around the super button fills clockwise as the super charges.
 - **When full:**
@@ -604,16 +990,42 @@ only glanceable information.
 | 1 | Next to a crate on the ground, with room to carry it | Pick it up |
 | 2 | In the base's repair zone, holding a crate | Deliver it to repair the base |
 | 3 | On the depot pad, with room to carry another crate | Buy a crate |
-| 4 | Engineer or Warden holding a crate | Place last-used structure at feet |
+| 4 | Engineer or Warden holding a crate | Place last-used structure at feet (before any placement: the class's first structure) |
 | 5 | Quartermaster holding crates | Throw one, auto-targeting the nearest Engineer or Warden |
 | 6 | Commander (default) | Plant rally flag; tap again to recall the squad |
 
 The button's icon changes to show what it will do. If nothing applies, the button is dimmed.
 
+**Build arc** (Engineer and Warden, holding a crate). Same gesture as the aimed sticks:
+- **Tap** the action button: its normal action from the table above (priority 4 places the last-used
+  structure).
+- **Press and hold** (about 0.4 s) or start dragging: an arc appears above the player's head on the TV,
+  with one icon per structure the class can build (left, up and right) and **Give crate** (down).
+  Structures that cost more crates than the player carries are dimmed and can't be picked.
+- **Drag toward an icon and release:** builds that structure at your feet (and makes it the last-used
+  structure), or gives a crate.
+- **Release in the dead zone:** cancels.
+- **Keep holding on Give:** repeats it, one crate every ~0.3 s.
+
+**Hand over / drop** (Give crate):
+- Gives one crate to the nearest teammate in reach who has room. If no one qualifies, drops it at your
+  feet.
+- Engineer and Warden give through the build arc. Quartermaster and Commander have no structures, so
+  for them Give is the only option: holding the action button (about 0.4 s) while carrying a crate gives
+  directly, repeating every ~0.3 s while held.
+- While giving, the icon switches to show "give" or "drop", and the TV draws a line to the receiver.
+- A crate you drop can't be picked back up by you for about 1 s, so a following tap still does its
+  normal action instead of grabbing the crate again.
+- Works for every class, including the Quartermaster (for example, handing crates to a Commander to
+  repair the base).
+
 ### 10.2 Build phase
 - The movement stick stays the same.
 - The right side becomes the build menu: the class's structures, their crate costs, and crates carried.
   Classes with no structures (Quartermaster) see the shop tab instead.
+- A **Give crate** button next to the crate count follows the same rule as Give in combat
+  (§10.1): one crate to the nearest teammate in reach with room, otherwise dropped at your feet. It's on
+  both the build menu and the shop tab.
 - Tap a structure to show its ghost at your feet on the TV, then tap **Place** or **Cancel**. The ghost
   is red on invalid tiles.
 - **Ready-up:** the next wave starts when every player has tapped Ready, or when the 45-second cap runs
@@ -645,27 +1057,38 @@ from Sunny Side Slam. Everything else in this section is Fort Frenzy game logic 
    - When every player is Ready, a 3-second countdown starts the run.
    - The first player to join is the **party leader**. They can force-start once at least 2 players are
      Ready.
-- Players: 2–6.
+- Players: 2–6. A seventh phone sees a "Game full" screen.
+- **Removing players:** in the lobby, the party leader's phone or the TV can remove any other player
+  (as in Sunny Side Slam). Once a run starts, nobody can leave or be removed; a player whose phone drops
+  stays in the run, dazed (§11.3).
+- **Leader handoff:** if the leader disconnects, leadership passes to the next-earliest joined
+  connected player, and doesn't snap back when the original leader returns (as in Sunny Side Slam).
 - **TV menus never need a mouse.** The home screen (theme, difficulty, create room) works with keyboard
   or gamepad, with no hover-only interactions. Once a room exists, the party leader's phone drives the
   TV menus: changing theme and difficulty in the lobby, and the end-of-run options (§4).
 
 ### 11.2 Mid-run joins and class changes
-- **Late joins** are accepted only during the build phase. The new player spawns at the base.
-- Enemy scaling and the Flyer composition check are recalculated at the next wave start.
+- **Late joins** are accepted only during the build phase. The new player spawns at the base. A phone
+  that joins during combat sees "Joining at the next build phase" until then.
+- Enemy scaling and the Flyer composition check are recalculated at the next wave start, from the
+  players connected at that moment.
 - Players **cannot change class** mid-run.
 
 ### 11.3 Player disconnect
 - **Identity:** on join, the relay issues a reconnect token, stored on the phone. Reconnecting with the
   token restores the same player slot, and the host keeps that player's full state while they're gone.
+  After the relay's token window (30 s), the host still matches a returning phone to its slot by player
+  key (§15.6).
 - **Dazed state:** while disconnected, the character stops and turns translucent. Enemies can't target
   it. Any crates it was carrying drop on the ground.
-- **Grace period:** the slot is held for 60 seconds. After that the player is removed. If they reconnect
-  later, they rejoin as a late join (§11.2). Team upgrades persist either way.
+- **The slot is held for the whole run.** A disconnected player is never removed mid-run; they stay
+  dazed until they reconnect, at any time. Player-count scaling and the Flyer check count only players
+  connected at the start of each wave (§9, §9.4).
 - **What players see:**
   - On the phone: a "Reconnecting…" overlay.
   - On the TV: a reconnecting icon on that player's nametag.
-- **No pausing in v1.** The game auto-pauses only if every player is disconnected at once.
+- **No pausing in v1.** The game auto-pauses only if every player is disconnected at once, or while the
+  TV's browser tab is hidden (browsers stop animation frames there anyway).
 - **iOS backgrounding:** when the page becomes visible again (`visibilitychange`), the phone reconnects
   immediately with its token.
 
@@ -677,22 +1100,27 @@ from Sunny Side Slam. Everything else in this section is Fort Frenzy game logic 
   phone must never leave its character running in the last direction.
 
 ### 11.5 Host refresh or crash: resume
-- **Snapshot:** at the start of every build phase, the host saves a run snapshot to its browser storage.
-  The snapshot contains:
+- **Snapshot:** the host saves a run snapshot to its browser storage (`localStorage`, so it survives a
+  browser crash) at the start of every build phase, and again on every change during the build phase
+  (builds, purchases, card picks, crates moved). The snapshot contains:
   - theme, difficulty and run seed
   - wave number
   - base HP and repair purchase count
   - team coins
-  - structures and their HP
+  - structures and their HP (snares: remaining discharges)
   - every team shop purchase and tier (archers, buildings, squad)
-  - each player slot's class, upgrade cards and reconnect identity
-  - Commander squad size
+  - each player slot's name, color, class, upgrade cards, current card offer, crates carried and
+    reconnect identity (player key and device ID, §15.8), plus the party leader
+  - Commander squad size, each soldier's Veterans gains, and the rally flag's position
+  - crates on the ground
+  - the wishlist and the run's per-player stats (for the summary screen)
 - **Room survives:** the relay keeps the room alive for about 2 minutes after the host disconnects, so a
   reloaded TV reclaims the same room code with its host token. Phones stay joined.
-- **Resume:** after a reload, the TV offers "Resume wave N." Resuming restores the snapshot at the start
-  of that build phase. Any progress from the interrupted combat phase is lost.
+- **Resume:** after a reload, the TV offers "Resume wave N." Resuming restores the latest snapshot: the
+  build phase of wave N as it was last saved. Any progress from the interrupted combat phase is lost.
 - **Expiry:** if the room has expired, the snapshot can still resume, but phones must rejoin. Players
-  are matched back to their slots by reconnect token where possible, and otherwise pick a free slot.
+  are matched back to their slots by device ID where possible (reconnect tokens and player keys belong
+  to the old room code), and otherwise pick a free slot.
 - The snapshot is cleared when the run ends in a win or a loss.
 
 ## 12. v1 scope
@@ -705,6 +1133,8 @@ from Sunny Side Slam. Everything else in this section is Fort Frenzy game logic 
 - 2–6 players.
 - All 7 enemy types plus 1 boss that returns at waves 5, 10 and 15.
 - The developer debug panel (§9.5).
+- Audio: a small set of sound effects (for example the base alarm, hits, boss wind-ups and purchases).
+  No music.
 - Everything in §13 is out of scope for v1.
 
 ## 13. Later (v2+)
@@ -713,7 +1143,7 @@ Ideas deferred from v1. Build v1 so these can be added without rewrites.
 
 | Item | Notes | v1 prep |
 |---|---|---|
-| Pillow Fort theme | Second theme pack: a kid's bedroom at lights-out, where toys invade the pillow fort. Lanes are the closet, under the bed and the hallway door. Default difficulty: Easy. Draft mapping: base = pillow fort; Engineer = foam-dart kid (dart turret, water-balloon launcher); Warden = pillow-smash kid (couch-cushion walls, book-stack barricades); Quartermaster = big sibling with a bubble wand (snack-pack crates); Commander = kid general with toy soldiers; enemies are wind-up soldiers, RC cars, possessed teddy bears, toy catapults, paper airplanes, dust bunnies and jack-in-the-boxes; the Colossus is a giant wind-up robot | Theme-agnostic build (§2.1): no gameplay changes needed |
+| Pillow Fort theme | Second theme pack: a kid's bedroom at lights-out, where toys invade the pillow fort. Lanes are the closet, under the bed and the hallway door. Default difficulty: Easy. Draft mapping: base = pillow fort; Engineer = foam-dart kid (dart turret, water-balloon launcher); Warden = pillow-smash kid (couch-cushion walls, scattered toy bricks as snares); Quartermaster = big sibling with a bubble wand (snack-pack crates); Commander = kid general with toy soldiers; enemies are wind-up soldiers, RC cars, possessed teddy bears, toy catapults, paper airplanes, dust bunnies and jack-in-the-boxes; the Colossus is a giant wind-up robot | Theme-agnostic build (§2.1): no gameplay changes needed |
 | Selectable passives | 3 options per class, chosen at class select (list in §8) | Passives are pluggable modules |
 | Dynamic camera | Zooms and pans to keep all players in view (Smash Bros. style) | Render through a camera abstraction, even though v1 keeps it fixed |
 | More characters per class | 2–3 per class | Characters are defined by config: attacks, super, passive, build kit |
@@ -723,13 +1153,708 @@ Ideas deferred from v1. Build v1 so these can be added without rewrites.
 | Critical hits | Crit chance and crit damage cards | Damage goes through one function, so crit is one extra step there |
 | Solo mode (likely v3 or v4) | One character of each class. The player switches "focus" between them, controlling the focused character with its full actions and abilities; bots control the other three. The build phase is longer, because one player makes decisions for all four characters | Characters read input through an input-source interface (phone controller now, bot later), never directly from the network |
 | Elite enemy variants | Modifiers such as armored or fast | Enemy stats come from config, so a variant is a stat override |
+| Music | v1 ships sound effects only (§12) | Theme packs carry an audio map (§15.4), so music is more entries plus a player |
+| Enemy back views | Back views for the common walkers (§2.4) | Rig views are looked up per rig from data, so a new view is data, not code (§15.2) |
 
 ## 14. Open / under discussion
 
 1. **Final name:** "Fort Frenzy" is the working title. Before any public or Steam release, check it
-   against Steam, itch.io and the USPTO trademark database, and confirm a fostercurtis.dev subdomain.
+   against Steam, itch.io and the USPTO trademark database. (The subdomain is set in §2.3.)
    ("Stronghold" was dropped because of Firefly Studios' *Stronghold* series.)
-2. **Colossus visual design:** the detailed look of the giant walker mech.
-3. **Numbers to set in playtesting:** player HP, character damage and super charge rates, structure costs
-   and HP, crate prices, base HP and the repair amount per crate. These go in config, and the starting
-   values are picked during implementation.
+2. **Numbers to set in playtesting:** player HP, character damage and super charge rates, structure costs
+   and HP, snare discharges and slow strength (no structure may cost more than the non-Quartermaster
+   carry cap, §6), crate prices, the per-crate slowdown curve, base HP and the repair amount per crate,
+   aggro and leash radii (§9), and the breaker field's wall cost (§15.5). These go in config, and the
+   starting values are picked during implementation.
+   - **Main-attack cooldowns start at 0.4 s or more.** Attacks fire once per release (§10.1), so Haste
+     only matters while the cooldown is longer than a fast tap.
+3. **Passive regeneration (balance watch):** HP carries over between waves and nothing heals players
+   except Field Medic and the Quartermaster's super (§5, §8). If playtests show players dying too often,
+   add a slow passive regeneration during combat, boosted inside the Field Medic aura.
+4. **Sound effects:** source the v1 set (§12). Candidates: Kenney.nl (CC0 packs: Sci-fi Sounds, Impact
+   Sounds, Interface Sounds), jsfxr/sfxr.me (generated, owned outright), Sonniss GDC bundles
+   (royalty-free) and freesound.org (CC0 filter only). Every file gets a license entry (§15.10).
+5. **Art still to come:** the phone HUD art, the character, enemy and structure SVG parts with their
+   rig JSON, and the pulse turret aim frames (§7.2). The icon set has landed
+   (`fort-frenzy-icons.zip`, §15.10). Until the rest lands, the build uses the dev-only fallback shapes
+   (§15.2).
+6. **Map layout:** the v1 map (§15.2: 38 × 28 tiles, lane entries bottom-center, left and right) is a
+   starting layout to tune in playtesting.
+
+---
+
+## 15. Technical design
+
+Decisions and contracts for building §1–§14. Type sketches are TypeScript and indicative: the build
+freezes the exact shapes in the contract files named in §15.11. Repo-wide rules are in `PLATFORM.md`;
+the relay protocol is in `apps/relay/SPEC.md`. Where this section says "as in Sunny Side", the pattern is
+in `apps/sunny-side` (its `SPEC.md` and `BUILD_PLAN.md` §8).
+
+### 15.1 Repo and packages
+
+- **App:** `apps/fort-frenzy`, package `@pcg/fort-frenzy`, game ID `fort-frenzy`, domain
+  `fort-frenzy.fostercurtis.dev` (§2.3). Same layout as Sunny Side: `index.html` (TV, `data-entry="host"`)
+  and `play.html` (phone, `data-entry="controller"`) as separate Vite entries.
+- **Relay and `@pcg/net-client`:** reused unchanged. No protocol change is needed (§15.6).
+- **New shared packages, extracted now** (this is the second game, `PLATFORM.md` §4). Sunny Side moves
+  onto both in the same milestone, behavior-preserving, gated by its existing `check:sunny-side` and
+  `e2e:sunny-side`. Both ship as TS source like `net-client` and import nothing from `apps/**`.
+  - **`@pcg/controller-kit`** (DOM only, never Phaser):
+    - platform: Wake Lock, **`fullscreenOnTap()`** (every tap requests fullscreen while not fullscreen,
+      so it also re-enters after an exit; a silent no-op where unsupported, e.g. iPhone Safari),
+      landscape lock and the rotate overlay, `touch-action`/viewport setup, safe-area helpers
+    - an app shell that wires the platform pieces on by default, the overlays (reconnecting, host away,
+      rotate) and a screen router that reuses DOM between screens in the same group
+    - input widgets: the floating joystick (radius, dead zone, idle opacity and ease-back as
+      parameters), the hold button, the nearest-center router with hit slop, hold-to-confirm, the
+      **aimed-button gesture** and the **radial-drag gesture** (§15.7)
+    - a schema-driven input sender: tuple layout, counters, fixed rate while touched (§15.6)
+    - the `?dev=1` fake client and screen switcher harness, plus DOM helpers
+  - **`@pcg/game-kit`** (no Phaser, no DOM in the core entry):
+    - the fixed-step loop and `catchUpSteps`, `lerp`/`lerpAngle`
+    - the seeded RNG (§15.3)
+    - host helpers: visibility pause, host Wake Lock, `relayUrl`, QR helper, the `window.__pcg` debug
+      installer
+    - `@pcg/game-kit/vite`: the `/play` rewrite plugin and the LAN URL banner plugin
+- **Extraction-ready folders inside the app** (not packages until a second consumer exists, §1, §9.3):
+  - `src/host/systems/<name>/`: `modifiers`, `effects`, `damage`, `cards`, `waves`, `flowfield`. Each
+    imports only `@pcg/game-kit` and its sibling systems, never Fort Frenzy content, sim or render code.
+    Game data comes in as parameters.
+  - `src/host/party/`: roster, player-key and device-ID matching, leader and handoff, colors, names,
+    ready and lobby removal.
+  - ESLint enforces both, so extracting later is a folder move.
+- **App layout:**
+
+```
+apps/fort-frenzy/
+  index.html  play.html  vite.config.ts  vercel.json  playwright.config.ts
+  SPEC.md  BUILD_PLAN.md
+  art/<theme>/          SVG part sources + rigs/<rig>.json (§15.2)
+  audio/<theme>/        .mp3 sources
+  assets/LICENSES.json  one entry per asset or pack (§15.10)
+  scripts/              build-atlases.ts, replay.ts (Node)
+  src/
+    shared/       messages.ts (protocol), ids.ts, theme.ts (brand.css mirror), relayUrl
+    content/      gameplay config as TS data (§15.4) + types.ts
+    themes/<id>/  shared.ts (phones + TV), host.ts (TV only)
+    host/
+      sim/        deterministic run simulation: world, systems, step order, run phases, economy
+      systems/    extraction-ready systems (above)
+      party/      extraction-ready lobby/party (above)
+      net/        relay wiring, input sources, phone state sync, intent routing
+      render/     Phaser scenes, camera, layers, rigs, bloom, effects
+      audio/      SFX player
+      debug/      debug panel (§9.5), replay recorder
+    controller/   phone app (DOM)
+    styles/       brand.css (brand kit)
+```
+
+- **Lint boundaries** (root `eslint.config.js`; a shared-config change, so it runs the full gate):
+  - `src/host/{sim,systems,party}/**`: no `phaser`, no `@pcg/net-client`, no `src/themes/**`, no DOM.
+  - `src/host/{sim,systems}/**`: no `Math.random`, `Date.now`, `performance.now` or `new Date()`
+    (determinism, §15.3).
+  - `src/host/{systems,party}/**`: no imports from `src/content`, `src/host/sim` or other app folders.
+  - `src/controller/**`: the existing rule (no Phaser, nothing under `host/`).
+
+### 15.2 Engine and rendering
+
+- **Phaser 4.2.x** renders only; it never owns game state (as in Sunny Side). **No physics engine:** the
+  sim moves bodies kinematically, with circle hitboxes, a uniform spatial hash for "who's near me"
+  queries and soft separation, collision against blocking structure tiles, and knockback as a velocity
+  impulse with damping.
+- **Canvas:** 1920 × 1080 logical, `Scale.FIT`.
+- **Screen layout** (W = 48 px tile width, depth 28.8 px per §2.5):
+
+| Band | Screen y | Holds |
+|---|---|---|
+| HUD | 0–120 | base HP bar (centered, directly above the Citadel), boss bar below it, wave and coins, wishlist, purchase announcements |
+| Headroom | 120–216 | the Citadel's keep, core and smoke plumes rise into it (§3.6) |
+| Playfield | 216–1022 | 38 × 28 sim tiles, x 48–1872 (48 px side margins for TV overscan) |
+| Bottom margin | 1022–1080 | empty |
+
+- **Map v1** (config, §15.4): 38 × 28 tiles. Citadel footprint cols 17–20, rows 0–1; repair zone cols
+  18–19, row 2 (in front of the gate); Armory pad col 23, row 1. Lane entries: bottom-center (cols
+  18–19, row 27; open from wave 1), left (col 0, rows 13–14; wave 3) and right (col 37, rows 13–14;
+  wave 8). Enemies spawn just outside the edge and walk in. A starting layout to tune (§14).
+- **Camera:** every world-to-screen conversion goes through one interface, so the v2 dynamic camera
+  (§13) is a new implementation, not a rewrite.
+
+```ts
+interface Camera {
+  /** World (tiles; z = height in tiles) → screen px, applying the §2.5 projection. */
+  worldToScreen(x: number, y: number, z?: number): { sx: number; sy: number };
+  /** Ground ellipse radii for a world circle of radius r (rx = r·W·k, ry = rx·0.6). */
+  groundEllipse(r: number): { rx: number; ry: number };
+  /** Zoom factor k (1 in v1). */
+  readonly scale: number;
+  update(dtMs: number, focus: readonly { x: number; y: number }[]): void; // no-op in v1
+}
+// v1 FixedCamera: sx = 48 + x·W, sy = 216 + y·W·0.6 − z·W
+```
+
+- **Layers**, bottom to top:
+  1. ground: map tiles, Armory pad, repair zone
+  2. ground overlays: red danger markers, shock nets, structure base plates, player rings, Field Medic
+     circle, range previews, AoE rings (all 0.6 ellipses of sim circles)
+  3. **world**, one y-sorted layer: structures, the Citadel, the Armory kiosk, units, flyers and arcing
+     projectiles. Sort key = foot point; flyers and arcing projectiles sort by their shadow; multi-tile
+     structures by their footprint's front edge.
+  4. effects: hit sparks, tracers, muzzle flashes, plumes
+  5. world UI: nametags and HP bars (flipping below near the top edge, §2.1), aim lines, the build arc,
+     the super-ready badge, the Stalker target thread
+  6. HUD (screen space)
+- **Bloom:** one threshold bloom on the composited world (layers 1–4) at half resolution. The threshold
+  catches amber `#e8a33d` and violet `#8f6bff` and never the gunmetal and violet-iron shades (§2.5). SVG
+  glow filters are stripped at rasterize time (§15.10), so nothing double-glows.
+- **Rigs** (§2.4): each character, enemy and animated structure is a rig. Its parts are atlas frames.
+  Animation clips live in code as keyframe tracks per part; the rig JSON says where parts are.
+
+```ts
+type ViewId = 'side' | 'front' | 'back';
+interface RigDef {
+  id: string;                                // 'warden', 'colossus', 'mortar_tower'
+  views: Partial<Record<ViewId, RigView>>;   // enemies: side only in v1; lookup per rig (§13)
+  optional?: Record<string, string[]>;       // e.g. { mk2: [...parts], mk3: [...parts] }
+}
+interface RigView {
+  foot: [number, number];                    // anchor, sprite units
+  parts: Record<string, {
+    frame: string;                           // '<rig>/<view>/<part>'
+    pivot: [number, number];
+    parent?: string; at: [number, number];   // attach point on the parent
+    tint?: 'player';                         // color part, flag cloth, footman plume
+    emissive?: boolean;                      // drawn last; code can pulse/brighten it
+  }>;
+  order: string[];                           // back-to-front for this view
+  attach?: Record<string, [number, number]>; // muzzle, flag, weapon tip, nametag
+}
+interface Clip { durationMs: number; loop: boolean; tracks: Record<string, Keyframe[]> }
+interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: number; sy?: number;
+  alpha?: number; glow?: number; order?: string[] } // order: per-key draw-order swap (Colossus legs)
+```
+
+- **Frame names:** rig parts `<rig>/<view>/<part>`; aim-framed structures `<id>/<loadout-or-tier>/<aim>`
+  (sentry aims `l dl c dr r`, loadouts `base dmg rng max`; pulse turret 8 aims × base/II/III, plus band
+  overlays); Citadel damage overlays `citadel/dmg-cracks`, `citadel/dmg-fire`, `citadel/dmg-smoke`
+  (atlas frames, since every crack is hand-drawn).
+- **Facing and aim snapping:** side views mirror for left. Knights and footmen take the view from the
+  stronger axis of aim (while attacking) or movement, and switch axis only when the other axis is 15%
+  stronger. Aim frames switch only once the target angle is 8° past a sector boundary. The mortar tube
+  rotates in code about its dome center; projectiles rotate to their projected screen direction; Wasp
+  drones mirror only.
+- **Pooling:** render-side only. Phaser objects for projectiles, effects, damage numbers and Swarm units
+  come from per-kind pools; sim entities are plain objects, not pooled.
+- **Interpolation:** the renderer draws positions lerped between the last two sim steps (as in Sunny
+  Side), keyed by entity id; spawned entities draw at their current position, removed ones disappear.
+- **Missing frames:** a dev-only fallback draws a labeled shape for the ID (sized from its hitbox), so a
+  missing asset never breaks a build. Production builds fail the atlas check instead (§15.10).
+- **Performance budget**, measured by an early performance test at peak load (6 knights, 30 footmen,
+  150 enemies, 100 projectiles, 60 structures; about 1,300 rig parts in one atlas) on an integrated GPU
+  laptop (Intel Iris Xe class) at 1080p: whole frame ≤ 16.7 ms, one sim step ≤ 2 ms, bloom ≤ 2 ms.
+
+### 15.3 Simulation
+
+- **Loop:** fixed 60 Hz steps with an accumulator, a catch-up cap and render interpolation, from
+  `@pcg/game-kit` (as in Sunny Side). The debug 2× speed runs two steps per frame slot.
+- **One deterministic sim owns the whole run** from the countdown to the summary: phases and timers,
+  combat, economy, shop, cards, building and scaling. The lobby is outside it (`party/`); a run starts
+  from `RunStart { seed, settings, slots }`. Everything that changes run state enters as either an
+  **input sample** or a **command** at the start of a step, which is what makes replays exact.
+- **Entity model: ECS-lite.** Plain typed arrays per entity kind, and pure system functions run in a
+  fixed order. No ECS library, no class hierarchy.
+
+```ts
+type EntityId = number;                      // incrementing counter, never reused
+interface Body { id: EntityId; x: number; y: number; vx: number; vy: number; r: number; z?: number }
+interface Unit extends Body {
+  hp: number; maxHp: number; facing: number;
+  mods: Modifier[];                          // cards, passives (attach order)
+  effects: StatusEffect[];
+  stats: StatBlock;                          // recomputed when mods/effects change
+}
+interface World {
+  tick: number; phase: Phase; wave: number;
+  players: PlayerEnt[]; soldiers: SoldierEnt[]; enemies: EnemyEnt[];
+  structures: StructureEnt[]; projectiles: ProjectileEnt[]; cratePiles: CratePile[];
+  markers: DangerMarker[];                   // telegraphs: shape, position, landsAtTick, payload
+  grid: TileGrid; fields: FlowFields; spatial: SpatialHash;
+  base: BaseState; team: TeamState;          // coins, shop tiers, wishlist, scaling
+  events: SimEvent[];                        // cleared each step; render, audio and phones read them
+}
+type Phase = 'countdown' | 'build' | 'combat' | 'victory' | 'defeat' | 'summary';
+```
+
+- **Step order:**
+  1. apply this step's commands (logged order)
+  2. sample every slot's `InputSource`; diff press counters into fire/tap/commit events
+  3. players: movement (carry slowdown), attacks and supers, action button, build arc, crates
+  4. AI: enemies (path, aggro leash, siege, hunter, flyer, runner), soldiers, the boss module
+  5. integrate movement, soft separation, structure collision
+  6. projectiles and area attacks → `applyDamage`
+  7. status effects, `onTick` hooks, auras (combat only)
+  8. deaths: hooks, coins, crate drops; destroyed blockers rebuild the flow fields
+  9. wave spawner (spawn warnings 3 s ahead)
+  10. phase checks: wave cleared, boss dead, base destroyed, build timer
+- **Determinism rules:** timers are whole steps; all randomness comes from seeded streams; no wall clock
+  in the sim (lint, §15.1); arrays iterate in id order and every sort tie-breaks by id. Replays are
+  exact on the same JS engine (`Math.sin` and similar may differ between browsers). A **state hash**
+  (FNV-1a over a canonical serialization of `World`) checks determinism in tests and replays.
+- **RNG** (`@pcg/game-kit`): a small seeded PRNG plus named streams derived from (seed, label), so one
+  stream's use never shifts another's. Streams: `waves:<n>`, `cards:<wave>:<slot>`, `combat:<wave>` (all
+  in-combat randomness, including Scrap-mite jitter, which runs in the sim so hitboxes match the art).
+
+```ts
+interface Rng { next(): number; int(lo: number, hi: number): number; pick<T>(xs: readonly T[]): T }
+function rngStream(seed: number, label: string): Rng; // hash(seed, label) → sfc32-style generator
+```
+
+- **Input sources** (§13 solo mode): characters only ever read an `InputSource`.
+
+```ts
+interface PlayerInput {
+  move: Vec2; mainAim: Vec2; superAim: Vec2;     // −1..1; aim 0,0 on a fire = auto-aim
+  mainAiming: boolean; superAiming: boolean; radialOpen: boolean;
+  radialSlot: -1 | 0 | 1 | 2 | 3;                 // left, up, right, down (Give)
+  mainFires: number; superFires: number; actionTaps: number; radialCommits: number; // counters
+}
+interface InputSource { sample(tick: number): PlayerInput }
+// PhoneInputSource (§15.6 staleness), AutopilotInputSource (§15.9), ReplayInputSource (§15.9)
+```
+
+  The first sample after a (re)connect only baselines the counters; a counter going backwards (phone
+  reload) re-baselines without firing (as in Sunny Side).
+- **Modifiers and hooks:** one interface for passives, cards, status effects, auras and boss behaviors.
+  Hooks run per entity in attach order, then status effects in application order.
+
+```ts
+interface Modifier {
+  id: string;                                    // 'card:fire_arrows', 'passive:mason', 'effect:burn'
+  stats?: StatMod[];
+  hooks?: Partial<Hooks>;
+}
+interface Hooks {
+  onTick(ctx: SimCtx, self: Unit): void;
+  onAttack(ctx: SimCtx, self: Unit, atk: AttackEvent): void;          // Volley, Piercing Shot
+  modifyOutgoing(ctx: SimCtx, self: Unit, d: DamageCalc): void;       // pipeline stage 2
+  modifyIncoming(ctx: SimCtx, self: Unit, d: DamageCalc): void;       // pipeline stage 4
+  beforeEffect(ctx: SimCtx, self: Unit, e: EffectApply): boolean;     // false = immune (Unshakable)
+  onDamageDealt(ctx: SimCtx, self: Unit, r: DamageResult): void;
+  onDamageTaken(ctx: SimCtx, self: Unit, r: DamageResult): void;
+  onHeal(ctx: SimCtx, self: Unit, h: HealResult): void;               // Overflow, super charge
+  onKill(ctx: SimCtx, self: Unit, victim: Unit): void;
+  onDeath(ctx: SimCtx, self: Unit, killer: Unit | null): void;        // Wildfire, Plague (on the effect)
+  onPhase(ctx: SimCtx, self: Unit, phase: Phase): void;               // Veterans
+}
+// Modules are registered by id and built from config params:
+function defineModule<P>(id: string, make: (params: P) => Modifier): ModuleDef<P>;
+```
+
+- **Stats:** `value = base × (1 + clamp(Σ addPct, min, cap)) + Σ add` (§6.1: stacks add, never multiply).
+  Caps come from config (range, movement speed and damage reduction: +40%).
+- **Status effects:** one timed-effect system (§6.1). Each effect carries a source, a strength, a
+  duration in steps and a stacking policy. **Auras** (Field Medic, Bodyguard, Lead from the Front,
+  Vanguard, morale) are short effects re-applied each step to units in range, with `refresh`.
+
+```ts
+interface EffectDef { id: EffectId; stacking: 'refresh' | 'strongest' | 'stack'; maxStacks?: number;
+  tickEveryMs?: number; modifier: (strength: number) => Modifier }
+interface StatusEffect { def: EffectId; strength: number; remaining: number; stacks: number;
+  source: EntityId | null }
+// v1 effects: burn, poison, stun, slow (strongest), morale, tower_defense, shield, aura_* (refresh)
+```
+
+- **Damage pipeline:** every hit goes through one function (§13 crits).
+
+```ts
+interface DamageCalc { source: EntityId | null; target: EntityId; amount: number;
+  kind: 'melee' | 'ranged' | 'area' | 'dot' | 'contact' | 'shell'; tags: readonly string[] }
+function applyDamage(ctx: SimCtx, calc: DamageCalc): DamageResult;
+// 1 base → 2 attacker modifyOutgoing (Might, Giant Slayer, Skyhunter, Steady Aim, morale, vs-wall
+// multipliers) → 3 crit (no-op in v1) → 4 target modifyIncoming (Toughness, Bodyguard, Vanguard,
+// tower defense, base armor) → 5 shields (Overflow) → 6 HP → 7 events: super charge, boss stagger,
+// run stats, onDamageDealt/Taken, death hooks, coins
+```
+
+  Difficulty and player-count multipliers are baked into stats at spawn, not applied per hit.
+- **Boss behaviors** are modules, so new bosses (§13) don't touch the Colossus.
+
+```ts
+interface BossBehavior {
+  id: string;                                    // 'colossus'
+  init(ctx: SimCtx, boss: EnemyEnt, variant: { wave: number; mk: 1 | 2 | 3 }): void;
+  tick(ctx: SimCtx, boss: EnemyEnt): void;       // picks attacks, emits DangerMarkers with wind-ups
+  onDamage?(ctx: SimCtx, boss: EnemyEnt, r: DamageResult): void;  // stagger meter
+}
+```
+
+### 15.4 Data and config
+
+- **Format: TS data modules** in `src/content/`, one file per domain, typed with `satisfies` against
+  `src/content/types.ts`. All tuning numbers live here (§14). Units: distances in tiles, speeds in
+  tiles/s, times in ms (converted to steps at load), damage and HP as numbers.
+- **Validation test** (Vitest): every referenced id exists (cards, combo prerequisites, favored enemies,
+  wave pools, guaranteed spawns, shop targets, modules); no structure costs more than the
+  non-Quartermaster carry cap (§6); every class's build list has at most 3 entries (the build arc);
+  each wave's budget covers its guaranteed spawns.
+
+```ts
+interface CharacterDef {
+  id: ClassId; hp: number; moveSpeed: number; radius: number;
+  main: AttackDef; super: AttackDef & { effects?: EffectApply[]; heal?: number };
+  input: { main: 'aimed' | 'tap'; super: 'aimed' | 'tap' };          // §10.1 table
+  superChargeRate: number; passive: ModuleRef;
+  build: StructureId[];                                               // arc order: left, up, right
+  carryCap: number; carrySlowdown: number[];                          // slowdown per crate count
+  squad?: { size: number[]; soldier: UnitStats; followRadius: number };
+}
+interface AttackDef { shape: 'projectile' | 'arc' | 'cone' | 'circle'; damage: number; range: number;
+  cooldownMs: number; windupMs?: number; arcDeg?: number; count?: number; spreadDeg?: number;
+  speed?: number; hitsFlyers: boolean; blockedBy?: ('wall' | 'tower')[]; knockback?: number }
+interface EnemyDef { id: EnemyId; hp: number; speed: number; radius: number; flying: boolean;
+  budget: number; groupSize?: number; ai: 'path' | 'runner' | 'siege' | 'hunter' | 'flyer' | 'boss';
+  field: 'ground' | 'breaker' | 'none'; attack: AttackDef;
+  vsStructure?: Partial<Record<StructureId | 'base', number>>;        // Brute 2× walls, Colossus 3×
+  aggro?: { radius: number; leash: number }; slowResist?: number; boss?: ModuleRef }
+interface StructureDef { id: StructureId; cost: number; hp: number | null; pathCost: number;
+  blocksProjectiles: boolean; attack?: AttackDef; attachesTo?: StructureId[];
+  discharges?: number; rearmMs?: number; slow?: EffectApply }         // snare
+interface CardDef { id: CardId; owner: ClassId | 'common'; tier: 'common' | 'rare' | 'combo';
+  unique?: boolean; requires?: [CardId, CardId]; favoredEnemy?: EnemyId; requiresClass?: ClassId;
+  stats?: StatMod[]; module?: ModuleRef; perClass?: Partial<Record<ClassId, StatMod[]>> }
+interface ShopItemDef { id: ShopItemId; tiers: { price: number; effect: UpgradeEffect }[];
+  visibleIf?: Condition; qmOnly?: boolean; afterRegularWaveOnly?: boolean; holdToConfirm?: boolean;
+  repeatable?: boolean }                                              // crates, repair
+interface WaveDef { n: number; budget: number; allowed: EnemyId[]; lanes: LaneId[];
+  guaranteed: { enemy: EnemyId; count: number; lane?: LaneId }[]; durationMs: number;
+  boss?: { id: EnemyId; mk: 1 | 2 | 3 } }
+interface DifficultyDef { id: 'easy' | 'normal' | 'hard'; budget: number; enemyHp: number;
+  enemyDamage: number; baseHp: number; coinIncome: number }
+interface ScalingDef { base: 0.5; perPlayer: 0.25 }                   // §9.4
+interface MapDef { id: string; cols: number; rows: number; tiles: string[];  // ASCII rows
+  legend: Record<string, TileKind>; lanes: Record<LaneId, { entry: Tile[]; spawn: Vec2 }> }
+type ModuleRef = { module: string; params?: Record<string, number | string | boolean> };
+```
+
+- **Generic system signatures** (extraction-ready, §15.1; Fort Frenzy passes its content in):
+
+```ts
+// systems/waves: spends a budget on a pool and spreads groups over lanes and time (§9.3)
+function generateWave<E extends string>(input: {
+  budget: number; pool: { id: E; cost: number; groupSize?: number }[];
+  guaranteed: { id: E; count: number; lane?: string }[]; lanes: string[]; durationMs: number;
+  substitute?: Partial<Record<E, E[]>>; rng: Rng }): { atMs: number; lane: string; id: E; count: number }[];
+// systems/cards: one pure function, so a v2 reroll is just another call (§13)
+function pickOffer<C extends { id: string }>(input: {
+  pool: readonly C[]; eligible: (c: C) => boolean; isRare: (c: C) => boolean;
+  rareChance: number; guaranteedRare: boolean; size: number; rng: Rng }): C[];
+```
+
+- **Theme packs** (§2.1) hold presentation only. The sim can't import `src/themes/**` (lint), and the
+  types carry no gameplay fields; a test fails if a theme object has keys outside its type.
+
+```ts
+interface ThemeShared {                          // phones and TV
+  id: ThemeId; defaultDifficulty: DifficultyId;
+  names: Record<ClassId | EnemyId | StructureId | ShopItemId | CardId | 'base' | 'faction', string>;
+  flavor?: Partial<Record<string, string>>;      // class card lines, card text
+  icons: IconSprite;                             // art/<theme>/icons/*.svg as one inline SVG sprite
+}
+interface ThemeHost {                            // TV only
+  atlases: AtlasRef[]; rigs: Record<string, RigDef>; clips: Record<string, Clip>;
+  sfx: Partial<Record<SfxId, string>>;           // music joins this map in v2 (§13)
+  map: { ground: string; decor?: string[] };
+}
+```
+
+- **Icons** (`art/<theme>/icons/`, 24-unit SVG glyphs with `.glyph`, ink and `.glow` layers; usage rules
+  in its `README.md`): phones get them as one inline SVG sprite (a `<symbol>` per icon, built at build
+  time), so `.glow` takes the CSS `drop-shadow` and badge tiles stay crisp. The TV rasterizes the same
+  files into its atlas, where the bloom picks up the amber. Theme packs replace the files under the same
+  names.
+
+### 15.5 Pathfinding
+
+- **Flow fields** over the 38 × 28 grid, built with Dijkstra (a breadth-first search that weighs tile
+  costs) outward from the tiles next to the Citadel. Each tile stores its distance and the neighbor to
+  step to next. A rebuild takes well under 1 ms and runs in the same step a blocking structure is
+  placed or destroyed.
+- **Tile costs:** open 1; snare 1 (no rebuild, §7.1); wall and tower: a high configurable cost (enemies
+  detour unless the detour is longer); terrain outside the map or marked blocked: impassable.
+  Structures always have a finite cost, so a route always exists, and "break through" (§7) is simply an
+  enemy attacking the blocking structure on its next tile.
+- **Fields:** `ground` (most walkers); `breaker` (Brutes and the Colossus: walls cheap, so they smash
+  through, §7); one per hunted player (Hunters), rebuilt when that player moves to a new tile. Flyers
+  ignore fields and steer straight at their target.
+- **Steering:** an enemy steers toward its next tile's center, blended with the neighbors' directions
+  so movement doesn't zigzag, plus soft separation from nearby units. Units never hard-block each other.
+- **Behavior per `ai`:** `path` follows its field and attacks whatever blocks it or the base; `runner`
+  bursts on base contact; `siege` stops once the base or a tower is in range and shells it; `hunter`
+  follows its target's field; `flyer` flies straight; aggro-leash enemies (§9) leave the path for a
+  player in aggro radius and return past the leash.
+
+```ts
+interface FlowField { cols: number; rows: number; dist: Float32Array; next: Int16Array } // −1 = goal
+function buildField(grid: TileGrid, cost: (tile: number) => number, goals: readonly number[]): FlowField;
+```
+
+### 15.6 Network protocol
+
+Relay envelope, rooms, tokens, host reclaim and heartbeats are unchanged (relay SPEC §3). Game messages
+ride in `send.data`, defined in `src/shared/messages.ts`.
+
+- **Room:** game ID `fort-frenzy`, relay `maxPlayers` 8 (headroom for a rejoin under a new id); the game
+  caps players at 6 and shows a seventh phone "Game full" (§11.1). The room never locks.
+- **Handshake:** after `joined`, the phone sends `hello`. A phone with an older `proto` gets `outdated`
+  and reloads once; if the host is older, the phone shows "Refresh the TV" and the TV shows a banner.
+- **Identity:** slots match a phone by relay `playerId` (token rejoin), then by player key (rejoin after
+  the 30 s token window, as in Sunny Side), then by device ID (resume into a new room, §15.8).
+- **Input:** a JSON array (the relay carries text frames; about 70 bytes at 30 Hz × 6 phones is
+  negligible).
+
+```ts
+export const GAME_ID = 'fort-frenzy';
+export const PROTOCOL_VERSION = 1;
+
+/** Phone → host input (§10.1, §11.4). Sticks and aims are ints −100..100, dead zone applied on the phone. */
+export type InputTuple = [
+  moveX: number, moveY: number,
+  mainX: number, mainY: number,       // aim at the last release; 0,0 with a fire = tap = auto-aim
+  superX: number, superY: number,
+  flags: number,                      // 1 main aiming (TV aim line), 2 super aiming, 4 radial open
+  mainFires: number, superFires: number, actionTaps: number, radialCommits: number, // counters
+  radialSlot: number,                 // −1 none, 0 left, 1 up, 2 right, 3 down (Give)
+];
+```
+
+- **Gestures are resolved on the phone** (tap, drag or cancel; radial slot or cancel), which has the
+  touch timing and pixel distances. A release goes out at once, so a fire and its aim arrive together.
+- **Send rate:** a fixed 30 Hz while any control is touched, 5 Hz while idle, plus every button edge
+  immediately. (Sunny Side sends sticks only on change, which a held-still thumb would starve under the
+  250 ms rule.)
+- **Staleness (§11.4):** the host stamps each input with its receive time. Older than 250 ms, the
+  `PhoneInputSource` returns zero sticks and cleared flags; counters still apply when they arrive.
+- **Menu actions are intents,** discrete messages with a `seq`, answered by `ack`. Movement and combat
+  stay pure input state (`PLATFORM.md` §2's rule covers movement; Sunny Side already sends discrete UI
+  messages). Intents that change run state become sim commands (§15.3) and are logged for replays.
+
+```ts
+export type ControllerMsg =
+  | InputTuple
+  | { t: 'hello'; proto: number; deviceId: string }
+  | { t: 'intent'; seq: number; intent: Intent };
+
+export type Intent =
+  | { k: 'name'; name: string }                       // ≤ 10 chars; color is auto-assigned
+  | { k: 'class'; classId: ClassId }
+  | { k: 'ready'; ready: boolean }
+  | { k: 'leader'; action: 'start' | 'resume' | 'newRun' }
+  | { k: 'leader'; action: 'theme'; theme: ThemeId }
+  | { k: 'leader'; action: 'difficulty'; difficulty: DifficultyId }
+  | { k: 'leader'; action: 'remove'; playerId: string }           // lobby only
+  | { k: 'leader'; action: 'end'; option: 'again' | 'classes' | 'home' }
+  | { k: 'build'; action: 'select'; structure: StructureId }       // ghost at feet (§10.2)
+  | { k: 'build'; action: 'place' | 'cancel' }
+  | { k: 'buy'; item: ShopItemId }
+  | { k: 'request'; item: ShopItemId; on: boolean }
+  | { k: 'card'; card: CardId }
+  | { k: 'give' }                                                  // §10.2 Give crate button
+  | { k: 'claim'; slot: number };                                  // resume into a new room
+
+export type AckReason = 'coins' | 'crates' | 'cap' | 'phase' | 'invalid' | 'notLeader' | 'taken';
+
+export type HostMsg =
+  | { t: 'team'; rev: number; team: TeamView }        // broadcast on change, ≤ 5 Hz
+  | { t: 'me'; rev: number; me: MeView }              // per phone on change, ≤ 10 Hz
+  | { t: 'ack'; seq: number; ok: boolean; reason?: AckReason }
+  | { t: 'outdated'; proto: number };
+```
+
+- **State sync:** `team` and `me` are full snapshots with an increasing `rev` (the phone drops older
+  ones), never diffs, so one message of each kind fully restores a phone after a reconnect. The host
+  sends both on every `hello` and rejoin.
+
+```ts
+interface TeamView {
+  phase: 'lobby' | 'countdown' | 'build' | 'combat' | 'summary' | 'restoring';
+  wave: number; buildEndsInMs: number | null; coins: number; baseHp: number; baseMaxHp: number;
+  theme: ThemeId; difficulty: DifficultyId; leaderId: string | null;
+  roster: { playerId: string; name: string; color: PlayerColorId; classId: ClassId | null;
+    ready: boolean; connected: boolean }[];
+  shop: { id: ShopItemId; tier: number; maxTier: number; price: number | null; visible: boolean;
+    qmOnly: boolean; holdToConfirm: boolean }[];
+  wishlist: { item: ShopItemId; by: string }[];
+  nextWave: { enemies: { id: EnemyId; count: number }[]; boss: boolean } | null;  // §4
+  summary: RunSummary | null;
+}
+interface MeView {
+  screen: 'name' | 'lobby' | 'waiting' | 'full' | 'combat' | 'build' | 'dead' | 'summary'
+    | 'restoring' | 'claim';
+  slot: number | null; name: string; color: PlayerColorId | null; classId: ClassId | null;
+  isLeader: boolean; ready: boolean;
+  hp: number; maxHp: number; crates: number; carryCap: number;
+  superCharge: number; superReady: boolean;                     // 0..1 ring; full state (§10.1)
+  action: 'pickup' | 'deliver' | 'buy' | 'build' | 'throw' | 'flag' | 'recall' | 'none';
+  arc: { slots: (StructureId | 'give' | null)[]; enabled: boolean[] } | null;  // left, up, right, down
+  respawnMs: number | null;
+  cards: { offer: CardId[] | null; picked: CardId | null; owned: { id: CardId; n: number }[] };
+  build: { selected: StructureId | null; valid: boolean | null } | null;
+  claim: { slot: number; name: string; classId: ClassId }[] | null;
+}
+```
+
+- **Lobby and presence** (`party/`): colors auto-assigned in brand order (cobalt, jade, sky, bone, rose,
+  forest; §2.3); first joiner leads, with handoff per §11.1. Relay `peer left` → a `presence` command
+  makes the character dazed (§11.3); `rejoined` or a key match restores it. A phone joining during combat
+  gets `waiting` and becomes a late join at the next build phase.
+- **Versioning:** `PROTOCOL_VERSION` bumps on any breaking change to `messages.ts`; additive fields don't
+  bump it. `messages.ts` is a frozen contract (§15.11).
+
+### 15.7 Controller app
+
+- **DOM and CSS, no canvas** (as in Sunny Side), built on `@pcg/controller-kit`. The screen comes from
+  `me.screen`; reconnecting, host away and rotate are phone-local overlays. Screen groups that share a
+  view (so a held thumb survives a switch): `combat` and `dead`; `lobby` and class select; `build` with
+  its build and shop tabs.
+- **Combat layout (§10.1)** comes from a pure function, `layoutCombat(viewport, safeInsets) → rects`,
+  turning the percentage positions and fixed sizes into px rectangles. Unit tests check its rules at
+  several viewports (644×300 to 1366×1024 landscape): gaps ≥ 24 px, button edges ≥ 64 px from the right
+  and bottom, every button ≥ 56 px. A Playwright test screenshots it on real viewports (as in Sunny
+  Side).
+- **Gestures** (`controller-kit`, pure state machines with DOM adapters, unit-tested without a DOM):
+  - **Aimed button:** down → `pending`; released within 150 ms inside the dead zone → `tap` (fire,
+    aim 0,0); dragged out → `aiming` (aim flag set, vector clamped to 70 px); released outside the dead
+    zone → `fire` with the aim; released inside it after aiming → `cancel`.
+  - **Tap button:** fires on release (§10.1).
+  - **Radial button:** a tap within 150 ms → `tap`; held 0.4 s or dragged out → `open` (radial flag,
+    slot by drag direction among enabled slots, 8 px hysteresis between slots); released on a slot →
+    `commit`; released in the dead zone → `cancel`; held on Give → repeat commits every 300 ms. With a
+    single slot (Give only), holding 0.4 s commits Give directly and repeats.
+- **Super ring, status strip, action icon:** drawn from `me`; the ring animates between updates. The
+  flash and 1.2 Hz pulse on `superReady` are CSS animations. Buttons and menu items use the icon set's
+  lit badges; `action: 'none'` shows the glyph at 35% on the plain tile (icons `README.md`).
+- **Shop:** hold-to-confirm (0.6 s) on items with `holdToConfirm`; Request toggles; purchase failures
+  show the `ack` reason as a toast.
+- **Bundle budget:** `play.html` loads ≤ 100 KB gzipped JS, with no Phaser and no atlases, only
+  `themes/<id>/shared.ts`. `check-bundle` gains a per-app size limit.
+
+### 15.8 Resume snapshot
+
+- **Storage:** `localStorage` key `fort-frenzy:run` (survives a browser crash, unlike Sunny Side's
+  `sessionStorage`). Versioned JSON; a version mismatch or a snapshot older than 12 hours is discarded.
+- **When:** written at the start of each build phase and on every run-state change during it,
+  debounced to 250 ms and flushed on `pagehide`. Cleared when the run ends (§4).
+- **Device ID:** a random ID the phone keeps in `localStorage` (`fort-frenzy:deviceId`), not tied to any
+  room, sent in `hello`. It's how a resume into a new room matches phones to slots (§11.5), since
+  reconnect tokens and player keys belong to a room code.
+- **No RNG state:** every stream is derived from (seed, label), so a restored card offer is identical
+  and a refresh can't reroll it.
+
+```ts
+interface RunSnapshot {
+  v: 1; savedAt: number; build: string;              // build = commit hash
+  settings: { theme: ThemeId; difficulty: DifficultyId; seed: number };
+  wave: number; base: { hp: number; repairs: number }; coins: number;
+  shop: Record<ShopItemId, number>;                  // tier owned (archer upgrades: 0 or 1 each)
+  structures: { id: StructureId; tile: [number, number]; hp: number | null;
+    dischargesUsed?: number; fortified?: boolean }[];
+  cratePiles: { x: number; y: number; n: number }[];
+  slots: { slot: number; playerKey: string; deviceId: string; name: string; color: PlayerColorId;
+    classId: ClassId; hp: number; crates: number; lastBuilt: StructureId | null;
+    cards: Record<CardId, number>; offer: CardId[] | null; picked: CardId | null; stats: RunStats;
+    squad?: { size: number; veterans: number[]; flag: [number, number] | null } }[];
+  leaderKey: string | null;
+  wishlist: { item: ShopItemId; slot: number }[];
+}
+```
+
+- **Resume flow:** on reload, the host reclaims the room (phones stay joined and show "TV is
+  restoring…"). The TV offers "Resume wave N (saved X min ago)" or "New run", focused on Resume and
+  driven by keyboard or gamepad; the leader's phone can choose too. If the relay hands back a new room
+  instead, the TV shows the new code; rejoining phones are matched by device ID, and any others see the
+  `claim` screen listing free slots.
+- A resume starts a new replay segment that begins from the snapshot (§15.9).
+
+### 15.9 Testing
+
+- **Headless sim:** `src/host/sim` and `src/host/systems` run in Node under Vitest with no Phaser and no
+  DOM, driven by input sources and commands.
+- **Replays (developer tool, not player-facing):** the host records `RunStart`, every input sample that
+  changed, and every command, per step, plus the build commit hash. The debug panel downloads it as
+  gzipped JSON (about 1 MB for a full run); an uncaught error offers the download automatically. Node
+  `scripts/replay.ts <file>` re-runs it headless and checks the state hash every 60 steps, reporting the
+  first divergence. Replays are tied to the exact build.
+- **Determinism tests:** the same seed and inputs, run twice, give identical state hashes (scripted runs
+  and the soak). Scenario tests assert outcomes, not hashes, so balance changes don't break them.
+- **Soak and benchmark:** an `AutopilotInputSource` (walk toward the nearest enemy, fire on cooldown,
+  fall back toward the base when hurt) plays waves 1–15 headless with invincible players: no exceptions,
+  and the run completes. A benchmark at peak entity counts checks the 2 ms step budget (§15.2); it runs
+  on demand, not in the CI gate. The autopilot seeds the solo-mode bots (§13).
+- **Unit tests:**
+  - wave generator: spends within ±1 of the budget, allowed types only, guaranteed spawns present,
+    Flyer substitution, open lanes only, spread across the duration, same seed same wave, scaling
+  - card picker: every §6.1 exclusion, no duplicates in an offer, at most one rare, guaranteed rare after
+    a boss, about 15% rare offers over 10,000 seeded offers, same (seed, wave, slot) same offer
+  - flow field: routes around walls when it can and through when sealed, snares change nothing, the
+    breaker field prefers walls, rebuilds on place and destroy, every reachable tile leads downhill
+  - damage pipeline order, stat stacking and caps, each effect stacking policy
+  - config validation (§15.4), theme key whitelist (§15.4)
+  - snapshot round trip: save, restore, same state hash at the build phase
+  - protocol guards, the combat layout rules and the gesture state machines
+  - asset license coverage (§15.10)
+- **E2E (Playwright, as in Sunny Side):** smoke (lobby, class select, start, build, combat), phone
+  reconnect, host reload and resume, expired room resumed by device ID, controller layout screenshots.
+
+### 15.10 Hosting, assets and licensing
+
+- **Hosting:** a Vercel project with root `apps/fort-frenzy` and `vercel.json` `{ "cleanUrls": true }`,
+  at `fort-frenzy.fostercurtis.dev`, using the shared relay through `VITE_RELAY_URL` (as in Sunny Side).
+  Vercel's ignored build step skips a deploy unless `apps/fort-frenzy`, `packages/` or the lockfile
+  changed.
+- **Root wiring:** the five per-game scripts (`dev:`, `dev:lan:`, `build:`, `e2e:`, `check:fort-frenzy`),
+  and Fort Frenzy rows in the `PLATFORM.md` §1, `README.md` and `AGENTS.md` tables.
+- **Brand kit:** delivered as `apps/fort-frenzy/fort-frenzy-brand-kit.zip`. The first build milestone
+  unpacks it (`brand/`, `public/`, `src/styles/brand.css`, plus its `.prettierignore` lines), adds the
+  `head.html` snippet to both HTML entries and mirrors `brand.css` in `src/shared/theme.ts` with a
+  parity test (§2.3). `check:routes` then passes as is (icons, manifest, Google Fonts).
+- **Icon set:** delivered as `apps/fort-frenzy/fort-frenzy-icons.zip`, which unpacks to `art/icons/`;
+  the first build milestone moves it to `art/neon-knights/icons/` (the per-theme layout, §15.1) and adds
+  it to `LICENSES.json` as `owned`.
+- **Atlas pipeline:** `scripts/build-atlases.ts` runs before every `build` and in dev (watch mode). It
+  rasterizes each SVG part with `@resvg/resvg-js` at 1× and 2×, **strips the review-only glow filters**
+  (`#glow`, `#glowU`, `#glowS`), packs Phaser JSON atlases (≤ 4096²) and checks every rig JSON against
+  the frames it found. Output is gitignored. The TV picks 2× when the canvas's device-pixel size exceeds
+  1.5 × 1080. Atlases and audio get content-hashed names through Vite and are cached forever.
+- **Audio:** `.mp3` SFX in `audio/<theme>/`, mapped by `ThemeHost.sfx`. The TV preloads everything
+  behind a loading bar on the home screen; the first keypress there unlocks audio (browser autoplay
+  rules).
+- **Licensing:** `assets/LICENSES.json` has one entry per asset file or pack: path or glob, source URL,
+  author, license and whether commercial use is allowed. A unit test fails if any file under `art/`,
+  `audio/` or the fonts lacks an entry, or allows no commercial use (§2.3). Foster's own art is
+  `owned`; a Kenney pack is one CC0 glob entry.
+
+### 15.11 Contracts and decision log
+
+**Frozen contracts** (additive changes only once the first build milestone lands; headers say
+"Frozen", as in Sunny Side): `src/shared/messages.ts`, `src/shared/ids.ts`, `src/content/types.ts`, the
+sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `BossBehavior`),
+`src/themes/types.ts` (`ThemeShared`, `ThemeHost`, `RigDef`), `RunSnapshot`, and the public APIs of
+`@pcg/controller-kit` and `@pcg/game-kit`. Tuning values in `src/content/` are never frozen.
+
+| # | Date | Decision | Choice | Why |
+|---|---|---|---|---|
+| 1 | 2026-10-27 | Shared packages | Extract `@pcg/controller-kit` and `@pcg/game-kit` now; migrate Sunny Side in the same milestone | The second game shows what's common; one copy, not two drifting ones |
+| 2 | 2026-10-27 | Reusable game systems | Extraction-ready folders (`systems/`, `party/`) enforced by lint, not packages yet | Dungeon Crew doesn't exist yet; packages need two consumers |
+| 3 | 2026-10-27 | Entity model | ECS-lite: typed arrays per kind, pure systems in a fixed order | Explicit types, trivial serialization; ~300 entities need no ECS library |
+| 4 | 2026-10-27 | Physics | None: kinematic movement, circles, spatial hash | Nothing needs rigid bodies; cheaper and deterministic |
+| 5 | 2026-10-27 | Determinism | Whole sim deterministic: steps, seeded streams, no wall clock; dev-only replays | Makes §9.3 reproduction, tests and resume exact; cheap only if designed in |
+| 6 | 2026-10-27 | Rendering | Phaser 4; one y-sorted world layer; threshold bloom on the composite; projection in the camera | Matches Sunny Side; §2.5's projection needs one sort; per-object glow is too slow |
+| 7 | 2026-10-27 | Art pipeline | SVG parts → build-time resvg atlases, glow filters stripped; rig JSON + clips in code | Fewer requests, consistent rasterizing, no double glow |
+| 8 | 2026-10-27 | Map | 48 px tiles, 38 × 28 grid, base top-center, HUD band + Citadel headroom | Fits §2.5's squash on 1080p with TV overscan margins |
+| 9 | 2026-10-27 | Config | TS data modules with `satisfies` + a validation test | Typos are compile errors; comments; hot reload in playtests |
+| 10 | 2026-10-27 | Pathing | Dijkstra flow fields: ground, breaker, per hunted player | Breaker makes walls vs Brutes a real fight; rebuilds are sub-millisecond |
+| 11 | 2026-10-27 | Input | 12-field JSON tuple, phone-resolved gestures, counters, fixed 30 Hz while touched | Taps never lost; fire and aim arrive together; satisfies §11.4 |
+| 12 | 2026-10-27 | Phone state | `team` broadcast + per-phone `me` full snapshots on change, with `rev` | Self-healing after reconnect; small enough that diffs aren't worth it |
+| 13 | 2026-10-27 | Menu actions | Intents with `seq` + `ack` | Failure feedback; movement stays pure input state |
+| 14 | 2026-10-27 | Resume | `localStorage`, saved on every build-phase change; device ID for new rooms | Survives crashes; tokens and keys die with the room code |
+| 15 | 2026-10-27 | Testing | Headless sim, replays, autopilot soak, unit and e2e suites | Catches desyncs and late-wave crashes without manual play |
+| 16 | 2026-10-27 | Assets | Build-time atlases (gitignored), `.mp3` SFX, `LICENSES.json` checked by a test | No binary churn; every asset commercially cleared (§2.3) |
