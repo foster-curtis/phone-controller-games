@@ -134,12 +134,7 @@ export type ProjectileKind =
   | 'power-cell';
 
 export type BurstKind =
-  | 'spark-ours'
-  | 'spark-theirs'
-  | 'heal-glint'
-  | 'nanite-mote'
-  | 'muzzle-ours'
-  | 'muzzle-theirs';
+  'spark-ours' | 'spark-theirs' | 'heal-glint' | 'nanite-mote' | 'muzzle-ours' | 'muzzle-theirs';
 
 export type ScrapSide = 'ours' | 'theirs';
 

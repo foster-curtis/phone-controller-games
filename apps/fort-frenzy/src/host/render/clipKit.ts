@@ -44,7 +44,14 @@ export const once = (durationMs: number, ...tracks: Tracks[]): Clip => ({
 
 /** Breathing idle: the root bobs a little and the head follows. */
 export function idleBob(ms: number, roots: readonly string[], amp = 1.2, extra: Tracks = {}): Clip {
-  return loop(ms, each(roots, wave(ms, 8, (u) => ({ dy: amp * (0.5 - 0.5 * Math.cos(u * TAU)) }))), extra);
+  return loop(
+    ms,
+    each(
+      roots,
+      wave(ms, 8, (u) => ({ dy: amp * (0.5 - 0.5 * Math.cos(u * TAU)) })),
+    ),
+    extra,
+  );
 }
 
 export interface KnightParts {
@@ -68,15 +75,35 @@ export function knightWalk(p: KnightParts, ms: number, swing = 16, bob = 2): Cli
   return loop(
     ms,
     { [p.root]: wave(ms, 8, (u) => ({ dy: -bob * Math.abs(sin(u)), rot: 1.5 * sin(u) })) },
-    each(p.legBack, wave(ms, 8, (u) => ({ rot: swing * sin(u) }))),
-    each(p.legFront, wave(ms, 8, (u) => ({ rot: -swing * sin(u) }))),
-    each(p.legsBoth, wave(ms, 8, (u) => ({ sy: 1 - 0.05 * Math.abs(sin(u)), dx: 0.8 * sin(u) }))),
-    each(p.arms, wave(ms, 8, (u) => ({ rot: 6 * sin(u) }))),
+    each(
+      p.legBack,
+      wave(ms, 8, (u) => ({ rot: swing * sin(u) })),
+    ),
+    each(
+      p.legFront,
+      wave(ms, 8, (u) => ({ rot: -swing * sin(u) })),
+    ),
+    each(
+      p.legsBoth,
+      wave(ms, 8, (u) => ({ sy: 1 - 0.05 * Math.abs(sin(u)), dx: 0.8 * sin(u) })),
+    ),
+    each(
+      p.arms,
+      wave(ms, 8, (u) => ({ rot: 6 * sin(u) })),
+    ),
   );
 }
 
 export function knightIdle(p: KnightParts, ms = 1800): Clip {
-  return idleBob(ms, [p.root], 1, each(p.glows, wave(ms, 4, (u) => ({ glow: 1 + 0.15 * Math.max(0, sin(u)) }))));
+  return idleBob(
+    ms,
+    [p.root],
+    1,
+    each(
+      p.glows,
+      wave(ms, 4, (u) => ({ glow: 1 + 0.15 * Math.max(0, sin(u)) })),
+    ),
+  );
 }
 
 /** Hit (§2.4): a small lean back; the white flash is code (RigInstance.flash). */
@@ -164,9 +191,18 @@ export function walkerWalk(
 ): Clip {
   return loop(
     ms,
-    each(body, wave(ms, 8, (u) => ({ dy: -bob * Math.abs(sin(u)) }))),
-    each(legsA, wave(ms, 8, (u) => ({ rot: swing * sin(u) }))),
-    each(legsB, wave(ms, 8, (u) => ({ rot: -swing * sin(u) }))),
+    each(
+      body,
+      wave(ms, 8, (u) => ({ dy: -bob * Math.abs(sin(u)) })),
+    ),
+    each(
+      legsA,
+      wave(ms, 8, (u) => ({ rot: swing * sin(u) })),
+    ),
+    each(
+      legsB,
+      wave(ms, 8, (u) => ({ rot: -swing * sin(u) })),
+    ),
     extra,
   );
 }

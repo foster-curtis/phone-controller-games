@@ -9,13 +9,41 @@ const parts: KnightParts = {
   legFront: ['frontleg'],
   legsBoth: ['legs'],
   arms: ['gauntlet'],
-  glows: ['torso-glow', 'frontleg-glow', 'helm-glow', 'sword-glow', 'legs-glow', 'swordtip-glow', 'banner-glow'],
-  all: ['cape', 'backleg', 'torso', 'frontleg', 'helm', 'plume', 'plume-base', 'frontpaul', 'sword', 'gauntlet', 'legs', 'pauls', 'gauntlets', 'swordtip', 'banner', 'banner-cloth'],
+  glows: [
+    'torso-glow',
+    'frontleg-glow',
+    'helm-glow',
+    'sword-glow',
+    'legs-glow',
+    'swordtip-glow',
+    'banner-glow',
+  ],
+  all: [
+    'cape',
+    'backleg',
+    'torso',
+    'frontleg',
+    'helm',
+    'plume',
+    'plume-base',
+    'frontpaul',
+    'sword',
+    'gauntlet',
+    'legs',
+    'pauls',
+    'gauntlets',
+    'swordtip',
+    'banner',
+    'banner-cloth',
+  ],
 };
 
 const base = knightClips(parts, 680, 15);
 // The carried banner sways with the walk (it only shows while the `banner` group is on).
-const sway = each(['banner'], wave(680, 8, (u) => ({ rot: 3 * sin(u, 0.25) })));
+const sway = each(
+  ['banner'],
+  wave(680, 8, (u) => ({ rot: 3 * sin(u, 0.25) })),
+);
 export const clips: Record<string, Clip> = {
   ...base,
   walk: { ...base.walk!, tracks: { ...base.walk!.tracks, ...sway } },

@@ -791,9 +791,9 @@ Rules:
   - [x] party with tests
   - [ ] Merged to `main`
 - FF3 Art in engine
-  - [ ] Atlases 1×/2×, unlit variants, rig validation
-  - [ ] Theme pack + render core (camera, layers, rigs, clips, autotiles, Citadel, towers, bloom)
-  - [ ] Gallery + stress mode + asset/rig tests + gallery e2e
+  - [x] Atlases 1×/2×, unlit variants, rig validation
+  - [x] Theme pack + render core (camera, layers, rigs, clips, autotiles, Citadel, towers, bloom)
+  - [x] Gallery + stress mode + asset/rig tests + gallery e2e
   - [ ] Merged to `main`
 - FF4 Controller
   - [x] Client wiring, sender, `layoutCombat` + tests
@@ -1042,6 +1042,53 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
 - [FF4] decision: `wishlist[].by` is read as a relay playerId (name fallback); class select lives in the lobby view
   ("Change class"); the name screen is the join screen (code + name + button) once connected.
 - [FF4] decision: extraction candidate: `fitAboveKeyboard` (copied from Sunny Side into `screens/common.ts`).
+- [FF3] decision: atlases rasterize at 0.6 px per sprite unit × scale (one 80-unit tile = 48 px at 1×),
+  icons at 1 px per unit × scale (frames `icons/<id>`); frames are alpha-trimmed into Phaser JSON-hash
+  atlases (`generated/atlases/<theme>@<s>x-<i>`), split into more bins only past 4096² (today one per
+  scale: 873×880 and 1674×1667); a small built-in PNG encoder (no new dependency).
+- [FF3] decision: frames are rasterized with root `color="#ffffff"` so grayscale `currentColor` tint
+  parts multiply to the player color (resvg's default is black).
+- [FF3] decision: `@unlit` recolors every color inside `class="glow"` groups (nested included, ink kept)
+  to its side's dark shade: violet-hued (b > r, g) → `#2a2340`, everything else → `#3c4452`. Knights'
+  separate `-glow` parts have no glow groups, so unlit/down dims them in code (fill tint `#4a5362`).
+- [FF3] decision: rig validation checks each view/pose on its own (`order` = its parts exactly once,
+  frame names, parents exist and form a tree, attach parts exist, default pose exists) and that every
+  optional-group part exists in some view; poses may differ in parts (Ranger `ready` has no
+  `paul-l`/`paul-r` in front, no `hands` in back), so no cross-pose part check.
+- [FF3] decision: dev-only fallback shapes: `pnpm assets` is strict (build, test, typecheck fail on any
+  error); `tsx scripts/build-atlases.ts --watch` rebuilds on art changes and only warns, and the renderer
+  draws a labeled magenta box for any frame missing from the atlas (counted in `__pcgGallery.fallbacks`).
+  `dev` still runs the strict one-shot `pnpm assets` (package.json is frozen for FF3), so watch is opt-in.
+- [FF3] decision: typed keys: the script also writes `generated/keys.ts` (`FrameName`/`IconName` unions,
+  atlas list); render code names frames only through `fk('…')`, `ik('…')` or the builders in
+  `render/keys.ts`, so a wrong key fails the typecheck; asset-keys.test.ts also bans bare frame strings.
+- [FF3] decision: clip units: `rot` in degrees (clockwise on screen), `dx`/`dy` in sprite units;
+  fields interpolate linearly between the keys that set them; one-shots hold their last frame. A per-key
+  `order` reorders the named parts within the slots they hold (a full list replaces the order); the
+  Colossus walk passes full orders, swapping at the legs' crossings (u = 0.25, 0.75) with a 1.04 scale-up.
+- [FF3] decision: the mortar is a structure: `mortar/idle` only, no walk; its tube aim is a code
+  override on the rig (`RigSprite.override`), not a clip.
+- [FF3] decision: aim snapping and facing use the world-ground angle (heads are modeled in 3D and turn
+  about the vertical axis); sentry targets up-screen clamp to `l`/`r`.
+- [FF3] decision: bloom is a custom hue-selective select pass (amber 25–54° and violet 238–280°, bright
+  and saturated; never gunmetal, violet-iron, player colors or danger red) that renders at half size,
+  then Phaser's Blur, in a ParallelFilters added with ADD on the world camera (layers 1–4). World UI and
+  the HUD render through a second camera without filters. `BloomSelect.divisor = 4` is the quarter-res
+  fallback if C1 finds it slow (Phaser 4 has no bloom filter: custom render node, §15.2 risk).
+- [FF3] decision: shadow sizes in §2.5 (knight 22 × 13, Colossus 60 × 36) are read as radii in sprite
+  units; the knight ring is 0.68 tiles (54.4 units, as in `review/carry-pips.svg`). Gallery hitbox and
+  body sizes live in `render/gallery/rigInfo.ts` until content supplies them (FF6).
+- [FF3] decision: the gallery is one Phaser scene per page (`rigs`, `turrets`, `citadel`, `autotiles`,
+  `effects`, `icons`, `map`), state in the URL (`page`, `color`, `unlit`, `clip`, `hitbox`, `bloom`,
+  `banner`, `gauge`, `carry`, `colossus`, `tier`, `lane-*`, `panel=0` hides the controls, `atlas=1|2`
+  forces a scale); `main.ts` lazy-loads it, so the gallery chunk (Phaser) is split from the host stub.
+- [FF3] decision: stress mode measures frame delta (mean, p95), CPU render submit (PRE_RENDER →
+  POST_RENDER) and bloom via `EXT_disjoint_timer_query_webgl2` around the ParallelFilters pass, else
+  alternates bloom on/off every 90 frames and reports the frame-delta difference. Headless Chromium has no
+  timer query, so the bloom number is only meaningful on the C1 laptop.
+- [FF3] note for C1: knight pivots (SPEC §14 #7) looked right in the gallery walk/hit/down clips at
+  TV scale; judge them in motion at C1. Art notes worked around: the Commander's back view swings
+  `swordtip` on `gauntlets`, footman side swings its blade hand only, Ranger back views move no strap.
 
 ## 9. Final handoff
 

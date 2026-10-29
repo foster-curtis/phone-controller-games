@@ -129,7 +129,9 @@ export class PulseTurret {
   /** Muzzle `muzzle-1` / `muzzle-2` of the current head, screen px. */
   muzzle(i: 1 | 2 = 1): ScreenPoint | null {
     const p = this.ctx.lib.frames[this.head.name]?.attach?.[`muzzle-${i}`];
-    return p ? { sx: this.sx + p[0] * this.ctx.unitPx, sy: this.sy + p[1] * this.ctx.unitPx } : null;
+    return p
+      ? { sx: this.sx + p[0] * this.ctx.unitPx, sy: this.sy + p[1] * this.ctx.unitPx }
+      : null;
   }
 
   private refreshHead() {
@@ -139,7 +141,16 @@ export class PulseTurret {
   }
 
   destroy() {
-    for (const a of [this.plate, this.fortBack, this.pedestal, ...this.bands, this.head, this.dmg, this.bonus, this.fortFront])
+    for (const a of [
+      this.plate,
+      this.fortBack,
+      this.pedestal,
+      ...this.bands,
+      this.head,
+      this.dmg,
+      this.bonus,
+      this.fortFront,
+    ])
       a.img.destroy();
   }
 }
@@ -256,7 +267,13 @@ export class Citadel {
     const mount = (id: SentryId) => {
       const [mx, my] = SENTRY_MOUNTS[id];
       const s = id === 'window' ? WINDOW_SENTRY_SCALE : 1;
-      return w(sentryFrame('base', this.aims[id]), [0, 0], s, sx + mx * ctx.unitPx, sy + my * ctx.unitPx);
+      return w(
+        sentryFrame('base', this.aims[id]),
+        [0, 0],
+        s,
+        sx + mx * ctx.unitPx,
+        sy + my * ctx.unitPx,
+      );
     };
     const left = mount('left');
     const right = mount('right');
@@ -315,7 +332,8 @@ export class Citadel {
     this.t += dtMs;
     const shake = this.hitMs > 0 ? Math.sin(this.t / 18) * 2 * (this.hitMs / 220) : 0;
     this.hitMs = Math.max(0, this.hitMs - dtMs);
-    for (const a of [this.body, this.glow, this.core, this.ramparts, this.window]) a.img.x = this.sx + shake;
+    for (const a of [this.body, this.glow, this.core, this.ramparts, this.window])
+      a.img.x = this.sx + shake;
     if (this.destroyed) return;
     const flicker = this.hitMs > 0 ? 0.55 + 0.45 * Math.abs(Math.sin(this.t / 25)) : 1;
     const dim = this.stage >= 3 ? 0.55 : 1;
@@ -329,7 +347,8 @@ export class Citadel {
   private refresh() {
     const lib = this.ctx.lib;
     const alive = !this.destroyed;
-    for (const a of [this.body, this.glow, this.core, this.ramparts, this.window]) setVisible(a, alive);
+    for (const a of [this.body, this.glow, this.core, this.ramparts, this.window])
+      setVisible(a, alive);
     for (const id of ['left', 'right', 'window'] as const) {
       const s = this.sentries[id];
       lib.setFrame(s, sentryFrame(this.loadout, id === 'window' ? 'c' : this.aims[id]));
@@ -383,13 +402,21 @@ export class NetField {
     const masks = masksFor(tiles.map((t) => [t.c, t.r] as const));
     for (const t of tiles) {
       const { sx, sy } = this.ctx.camera.worldToScreen(t.c + 0.5, t.r + 0.5);
-      this.images.push(placeFrame(this.ctx, netFrame(masks.get(`${t.c},${t.r}`) ?? 0), 'groundOverlay', sx, sy));
+      this.images.push(
+        placeFrame(this.ctx, netFrame(masks.get(`${t.c},${t.r}`) ?? 0), 'groundOverlay', sx, sy),
+      );
     }
   }
 }
 
 /** One frame anywhere (armory, rally flag, power cell, build ghosts…). */
-export function frameAt(ctx: RenderContext, name: string, layer: 'ground' | 'groundOverlay' | 'world' | 'effects', x: number, y: number) {
+export function frameAt(
+  ctx: RenderContext,
+  name: string,
+  layer: 'ground' | 'groundOverlay' | 'world' | 'effects',
+  x: number,
+  y: number,
+) {
   const { sx, sy } = ctx.camera.worldToScreen(x, y);
   return placeFrame(ctx, name, layer, sx, sy);
 }

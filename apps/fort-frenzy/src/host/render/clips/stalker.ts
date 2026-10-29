@@ -3,7 +3,15 @@ import type { Clip } from '../../../themes/types';
 import { each, idleBob, sin, walkerWalk, wave } from '../clipKit';
 
 export const clips: Record<string, Clip> = {
-  idle: idleBob(1600, ['body'], 1, each(['tail'], wave(1600, 8, (u) => ({ rot: 6 * sin(u) })))),
+  idle: idleBob(
+    1600,
+    ['body'],
+    1,
+    each(
+      ['tail'],
+      wave(1600, 8, (u) => ({ rot: 6 * sin(u) })),
+    ),
+  ),
   walk: walkerWalk(
     440,
     ['body'],

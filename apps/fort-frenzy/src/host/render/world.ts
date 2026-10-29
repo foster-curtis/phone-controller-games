@@ -31,15 +31,19 @@ export class RenderWorld implements RenderContext {
     opts: { bloom?: boolean } = {},
   ) {
     this.unitPx = UNIT_PX * this.camera.scale;
-    this.layers = Object.fromEntries(LAYER_IDS.map((id) => [id, scene.add.layer().setName(id)])) as Record<
-      LayerId,
-      Phaser.GameObjects.Layer
-    >;
+    this.layers = Object.fromEntries(
+      LAYER_IDS.map((id) => [id, scene.add.layer().setName(id)]),
+    ) as Record<LayerId, Phaser.GameObjects.Layer>;
     this.lib = new ArtLibrary(scene, assets, theme.atlases, scale);
     const main = scene.cameras.main;
     this.uiCamera = scene.cameras.add(0, 0, CANVAS_W, CANVAS_H, false, 'ui');
     main.ignore([this.layers.worldUi, this.layers.hud]);
-    this.uiCamera.ignore([this.layers.ground, this.layers.groundOverlay, this.layers.world, this.layers.effects]);
+    this.uiCamera.ignore([
+      this.layers.ground,
+      this.layers.groundOverlay,
+      this.layers.world,
+      this.layers.effects,
+    ]);
     this.bloom = opts.bloom === false ? null : addBloom(main);
     this.fx = new Effects(this);
     this.marks = new GroundMarks(this);
@@ -49,7 +53,14 @@ export class RenderWorld implements RenderContext {
   rig(rigId: string, opts: RigOptions = {}): RigSprite {
     const def = this.theme.rigs[rigId];
     if (!def) throw new Error(`render: unknown rig ${rigId}`);
-    const rig = new RigSprite(this.lib, this.layers.world, def, this.theme.clips, this.unitPx, opts);
+    const rig = new RigSprite(
+      this.lib,
+      this.layers.world,
+      def,
+      this.theme.clips,
+      this.unitPx,
+      opts,
+    );
     this.rigs.add(rig);
     const destroy = rig.destroy.bind(rig);
     rig.destroy = () => {
@@ -66,7 +77,8 @@ export class RenderWorld implements RenderContext {
   /** Rig parts alive (the stress overlay). */
   get partCount(): number {
     let n = 0;
-    for (const r of this.rigs) n += r.root.list.reduce((s, c) => s + (c as Phaser.GameObjects.Container).list.length, 0);
+    for (const r of this.rigs)
+      n += r.root.list.reduce((s, c) => s + (c as Phaser.GameObjects.Container).list.length, 0);
     return n;
   }
 

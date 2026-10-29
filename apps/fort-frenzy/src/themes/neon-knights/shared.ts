@@ -7,7 +7,7 @@ import iconMarkup from '../../../generated/neon-knights/icons.svg?raw';
 import type { CardId, ClassId, ShopItemId, StructureId } from '../../shared/ids';
 import { ICON_SYMBOL_PREFIX, type ThemeShared } from '../types';
 
-/** Typed icon id: the asset-keys test also checks every `ik('…')` against the manifest. */
+/** Typed icon id; the asset-keys test also checks each literal against the manifest. */
 export const ik = <K extends IconName>(k: K): K => k;
 
 /** Internal class id → the theme's rig id (also its icon suffix: `class-<rig>`). */

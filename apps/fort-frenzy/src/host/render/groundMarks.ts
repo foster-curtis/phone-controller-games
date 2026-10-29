@@ -46,7 +46,9 @@ export class GroundMarks {
   /** A 0.6 ellipse centered on the footprint (§2.5), size in sprite units. */
   shadow(sx: number, sy: number, wUnits: number, hUnits: number, alpha = 0.4) {
     const k = this.ctx.unitPx;
-    this.shadows.fillStyle(theme.color.brandInk.num, alpha).fillEllipse(sx, sy, wUnits * k, hUnits * k);
+    this.shadows
+      .fillStyle(theme.color.brandInk.num, alpha)
+      .fillEllipse(sx, sy, wUnits * k, hUnits * k);
   }
 
   /** Player ring for a world radius (tiles), with the aim notch (world-ground radians). */

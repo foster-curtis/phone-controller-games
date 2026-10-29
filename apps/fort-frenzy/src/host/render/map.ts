@@ -12,14 +12,36 @@ export const MAP_ROWS = 24;
 
 /** Lane entry tiles (map v1) and the lane frame anchors in world tiles. */
 export const LANES: Record<LaneId, { tiles: [number, number][]; anchor: [number, number] }> = {
-  bottom: { tiles: [[17, 23], [18, 23]], anchor: [18, 24] },
-  left: { tiles: [[0, 11], [0, 12]], anchor: [0.5, 12] },
-  right: { tiles: [[35, 11], [35, 12]], anchor: [35.5, 12] },
+  bottom: {
+    tiles: [
+      [17, 23],
+      [18, 23],
+    ],
+    anchor: [18, 24],
+  },
+  left: {
+    tiles: [
+      [0, 11],
+      [0, 12],
+    ],
+    anchor: [0.5, 12],
+  },
+  right: {
+    tiles: [
+      [35, 11],
+      [35, 12],
+    ],
+    anchor: [35.5, 12],
+  },
 };
 
 /** A stable 32-bit hash of a tile and a salt (render variety without randomness). */
 export function tileHash(c: number, r: number, salt = 0): number {
-  let h = (Math.imul(c + 1, 0x9e3779b1) ^ Math.imul(r + 1, 0x85ebca77) ^ Math.imul(salt + 1, 0xc2b2ae3d)) >>> 0;
+  let h =
+    (Math.imul(c + 1, 0x9e3779b1) ^
+      Math.imul(r + 1, 0x85ebca77) ^
+      Math.imul(salt + 1, 0xc2b2ae3d)) >>>
+    0;
   h = Math.imul(h ^ (h >>> 16), 0x7feb352d) >>> 0;
   h = Math.imul(h ^ (h >>> 15), 0x846ca68b) >>> 0;
   return (h ^ (h >>> 16)) >>> 0;
@@ -58,7 +80,12 @@ export class MapView {
     private readonly ctx: RenderContext,
     private readonly map: ThemeHost['map'],
     /** Draw only this tile window (the gallery's map sample); default the whole map. */
-    readonly window: { c0: number; r0: number; c1: number; r1: number } = { c0: 0, r0: 0, c1: MAP_COLS - 1, r1: MAP_ROWS - 1 },
+    readonly window: { c0: number; r0: number; c1: number; r1: number } = {
+      c0: 0,
+      r0: 0,
+      c1: MAP_COLS - 1,
+      r1: MAP_ROWS - 1,
+    },
   ) {
     const { c0, r0, c1, r1 } = window;
     // Layer-1 order: tiles (row by row), decor, edges, lanes; the Citadel plate sorts after them.
@@ -74,20 +101,25 @@ export class MapView {
     for (let r = r0; r <= r1; r++) {
       for (let c = c0; c <= c1; c++) {
         const h = tileHash(c, r, 7);
-        if (decor.length > 0 && h % 100 < 3 && !edgeFor(c, r)) at(decor[h % decor.length]!, c, r, 1);
+        if (decor.length > 0 && h % 100 < 3 && !edgeFor(c, r))
+          at(decor[h % decor.length]!, c, r, 1);
       }
     }
     for (let r = r0; r <= r1; r++) {
       for (let c = c0; c <= c1; c++) {
         const e = edgeFor(c, r);
-        if (e && !isLaneTile(c, r)) at(this.map.edges[e as keyof ThemeHost['map']['edges']], c, r, 2);
+        if (e && !isLaneTile(c, r))
+          at(this.map.edges[e as keyof ThemeHost['map']['edges']], c, r, 2);
       }
     }
     for (const lane of Object.keys(LANES) as LaneId[]) {
       const [x, y] = LANES[lane].anchor;
       if (x < c0 || x > c1 + 1 || y < r0 || y > r1 + 1) continue;
       const { sx, sy } = ctx.camera.worldToScreen(x, y);
-      this.lanes.set(lane, placeFrame(ctx, this.map.lanes[lane].sealed, 'ground', sx, sy, { sortY: 3 }));
+      this.lanes.set(
+        lane,
+        placeFrame(ctx, this.map.lanes[lane].sealed, 'ground', sx, sy, { sortY: 3 }),
+      );
     }
   }
 

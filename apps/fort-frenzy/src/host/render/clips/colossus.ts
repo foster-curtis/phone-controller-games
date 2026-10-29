@@ -7,11 +7,35 @@ import { each, idleBob, loop, wave } from '../clipKit';
 
 // The rig's side-view order (rigs/colossus.json); the near leg is in front at rest.
 const NEAR_FRONT = [
-  'spires-mk3', 'spires-mk2', 'plumes', 'arm-far', 'fist-far', 'fist-far-mk2', 'fist-far-mk3',
-  'leg-far', 'leg-far-mk2', 'hip', 'torso', 'leg-near', 'leg-near-mk2', 'leg-near-mk3',
-  'yoke', 'yoke-mk2', 'yoke-mk3', 'head-mk3', 'head', 'core', 'core-mk3', 'core-final',
-  'arm-near', 'arm-near-mk3', 'pauldron-near', 'pauldron-near-mk2', 'pauldron-near-mk3',
-  'fist-near', 'fist-near-mk2',
+  'spires-mk3',
+  'spires-mk2',
+  'plumes',
+  'arm-far',
+  'fist-far',
+  'fist-far-mk2',
+  'fist-far-mk3',
+  'leg-far',
+  'leg-far-mk2',
+  'hip',
+  'torso',
+  'leg-near',
+  'leg-near-mk2',
+  'leg-near-mk3',
+  'yoke',
+  'yoke-mk2',
+  'yoke-mk3',
+  'head-mk3',
+  'head',
+  'core',
+  'core-mk3',
+  'core-final',
+  'arm-near',
+  'arm-near-mk3',
+  'pauldron-near',
+  'pauldron-near-mk2',
+  'pauldron-near-mk3',
+  'fist-near',
+  'fist-near-mk2',
 ];
 const NEAR = ['leg-near', 'leg-near-mk2', 'leg-near-mk3'];
 const FAR = ['leg-far', 'leg-far-mk2'];
@@ -39,9 +63,9 @@ const legTrack = (near: boolean): Keyframe[] =>
     return { rot: near ? nearRot(u) : -nearRot(u), sx: s, sy: s };
   });
 
-const torso: Keyframe[] = [
-  ...wave(MS, 8, (u) => ({ dy: 3 * Math.abs(Math.sin(u * TAU)) })),
-].map((k) => k);
+const torso: Keyframe[] = [...wave(MS, 8, (u) => ({ dy: 3 * Math.abs(Math.sin(u * TAU)) }))].map(
+  (k) => k,
+);
 torso.push(
   { t: 0, order: FAR_FRONT },
   { t: MS * 0.25, order: NEAR_FRONT },
@@ -56,7 +80,10 @@ export const clips: Record<string, Clip> = {
     { torso },
     each(NEAR.slice(0, 1), legTrack(true)),
     each(FAR.slice(0, 1), legTrack(false)),
-    each(['arm-near', 'arm-far'], wave(MS, 8, (u) => ({ rot: 3 * Math.sin(u * TAU) }))),
+    each(
+      ['arm-near', 'arm-far'],
+      wave(MS, 8, (u) => ({ rot: 3 * Math.sin(u * TAU) })),
+    ),
   ),
 };
 

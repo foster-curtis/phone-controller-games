@@ -11,6 +11,9 @@ export const clips: Record<string, Clip> = {
     ['leg-near'],
     12,
     3,
-    each(['arm-near', 'arm-far'], wave(1000, 8, (u) => ({ rot: 4 * sin(u, 0.5) }))),
+    each(
+      ['arm-near', 'arm-far'],
+      wave(1000, 8, (u) => ({ rot: 4 * sin(u, 0.5) })),
+    ),
   ),
 };

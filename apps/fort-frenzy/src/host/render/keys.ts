@@ -1,10 +1,11 @@
 // Typed frame keys (SPEC §15.2 frame names). Render code names a frame only through `fk('…')` or
 // one of these builders, whose template types are checked against the generated FrameName union;
 // asset-keys.test.ts also checks every literal and every builder output against the manifest.
-import type { FrameName } from '../../../generated/keys';
+import { ICON_FRAME_PREFIX, type FrameName } from '../../../generated/keys';
 import type { LaneId } from '../../shared/ids';
 import type {
   FrameKey,
+  IconKey,
   LaneState,
   SentryAim,
   SentryLoadout,
@@ -54,7 +55,8 @@ export const EDGE_FRAMES = {
   se: fk('edge/se'),
   sw: fk('edge/sw'),
 } as const;
-export const laneFrame = (lane: LaneId, state: LaneState): FrameKey => `lane/${lane}-${state}` as const;
+export const laneFrame = (lane: LaneId, state: LaneState): FrameKey =>
+  `lane/${lane}-${state}` as const;
 export const DECOR_FRAMES = [
   fk('decor/grate'),
   fk('decor/plate'),
@@ -86,5 +88,8 @@ export const STATUS_FRAMES = {
   stun: [fk('stun-1'), fk('stun-2'), fk('stun-3'), fk('stun-4')],
   slow: [fk('shock-crawl')],
 } as const;
+
+/** An icon's atlas frame (world UI: the build arc, the super-ready badge; §15.4). */
+export const iconFrame = (id: IconKey) => `${ICON_FRAME_PREFIX}${id}` as const;
 
 export const PIP_FRAMES = { full: fk('carry-pip'), empty: fk('carry-pip-empty') } as const;

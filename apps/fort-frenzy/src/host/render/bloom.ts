@@ -101,7 +101,10 @@ export function addBloom(camera: Phaser.Cameras.Scene2D.Camera): Bloom | null {
   if (!(renderer instanceof Phaser.Renderer.WebGL.WebGLRenderer)) return null;
   const nodes = renderer.renderNodes;
   if (!nodes.getNode(NODE)) {
-    nodes.addNodeConstructor(NODE, BloomSelectNode as unknown as typeof Phaser.Renderer.WebGL.RenderNodes.RenderNode);
+    nodes.addNodeConstructor(
+      NODE,
+      BloomSelectNode as unknown as typeof Phaser.Renderer.WebGL.RenderNodes.RenderNode,
+    );
   }
   const parallel = camera.filters.internal.addParallelFilters();
   const select = new BloomSelect(camera);

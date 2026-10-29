@@ -33,7 +33,14 @@ export function partLocal(pivot: Point, at: Point, p: PartPose): Mat {
   const b = sin * p.sx;
   const c = -sin * p.sy;
   const d = cos * p.sy;
-  return [a, b, c, d, at[0] + p.dx - (a * pivot[0] + c * pivot[1]), at[1] + p.dy - (b * pivot[0] + d * pivot[1])];
+  return [
+    a,
+    b,
+    c,
+    d,
+    at[0] + p.dx - (a * pivot[0] + c * pivot[1]),
+    at[1] + p.dy - (b * pivot[0] + d * pivot[1]),
+  ];
 }
 
 /** Every part's matrix in rig units, parents first (cycles were rejected by the atlas check). */
@@ -54,7 +61,10 @@ export function composeView(view: RigView, poses: ReadonlyMap<string, PartPose>)
 }
 
 /** Position of the pivot, rotation (radians) and scale for a sprite whose origin is the pivot. */
-export function decompose(m: Readonly<Mat>, pivot: Point): {
+export function decompose(
+  m: Readonly<Mat>,
+  pivot: Point,
+): {
   x: number;
   y: number;
   rotation: number;

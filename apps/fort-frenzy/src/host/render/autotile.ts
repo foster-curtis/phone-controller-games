@@ -15,7 +15,10 @@ export const ALL_MASKS = Array.from({ length: 16 }, (_, i) => i);
 /** The mask of tile (c, r) given a same-type lookup. N is up-screen (r − 1), E is right (c + 1). */
 export function maskAt(has: (c: number, r: number) => boolean, c: number, r: number): number {
   return (
-    (has(c, r - 1) ? N : 0) | (has(c + 1, r) ? E : 0) | (has(c, r + 1) ? S : 0) | (has(c - 1, r) ? W : 0)
+    (has(c, r - 1) ? N : 0) |
+    (has(c + 1, r) ? E : 0) |
+    (has(c, r + 1) ? S : 0) |
+    (has(c - 1, r) ? W : 0)
   );
 }
 

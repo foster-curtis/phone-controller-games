@@ -118,7 +118,10 @@ export class ArtLibrary {
 
   setOrigin(art: ArtImage, origin: Point) {
     art.origin = origin;
-    art.img.setDisplayOrigin((origin[0] - art.vb[0]) * art.ppuX, (origin[1] - art.vb[1]) * art.ppuY);
+    art.img.setDisplayOrigin(
+      (origin[0] - art.vb[0]) * art.ppuX,
+      (origin[1] - art.vb[1]) * art.ppuY,
+    );
   }
 
   /** Scale so one sprite unit is `unitPx` screen px (times extra factors). */

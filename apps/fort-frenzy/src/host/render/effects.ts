@@ -110,11 +110,16 @@ export class Effects implements EffectSpawner {
     const a = pool.get();
     a.img.setPosition(sx, sy).setRotation(rotation);
     const muzzle = kind.startsWith('muzzle');
-    this.add(a.img, muzzle ? 90 : 320, () => pool.release(a), (u) => {
-      a.img.setAlpha(1 - u);
-      if (!muzzle) this.ctx.lib.setUnitScale(a, this.ctx.unitPx, 1 + 0.4 * u);
-      if (kind === 'heal-glint' || kind === 'nanite-mote') a.img.y = sy - 12 * u;
-    });
+    this.add(
+      a.img,
+      muzzle ? 90 : 320,
+      () => pool.release(a),
+      (u) => {
+        a.img.setAlpha(1 - u);
+        if (!muzzle) this.ctx.lib.setUnitScale(a, this.ctx.unitPx, 1 + 0.4 * u);
+        if (kind === 'heal-glint' || kind === 'nanite-mote') a.img.y = sy - 12 * u;
+      },
+    );
   }
 
   tracer(side: ScrapSide, from: ScreenPoint, to: ScreenPoint, ms = 120) {
@@ -123,14 +128,24 @@ export class Effects implements EffectSpawner {
     const core = side === 'ours' ? theme.color.ember.num : theme.color.hostileCore.num;
     g.lineStyle(3, color, 1).lineBetween(from.sx, from.sy, to.sx, to.sy);
     g.lineStyle(1, core, 1).lineBetween(from.sx, from.sy, to.sx, to.sy);
-    this.add(g, ms, () => this.gfxPool.release(g), (u) => g.setAlpha(1 - u));
+    this.add(
+      g,
+      ms,
+      () => this.gfxPool.release(g),
+      (u) => g.setAlpha(1 - u),
+    );
   }
 
   scrap(side: ScrapSide, size: 1 | 2 | 3 | 4 | 5, sx: number, sy: number) {
     const pool = this.pool(scrapFrame(side, size), 'world');
     const a = pool.get();
     a.img.setPosition(sx, sy).setDepth(sy);
-    this.add(a.img, 1600, () => pool.release(a), (u) => a.img.setAlpha(u < 0.6 ? 1 : 1 - (u - 0.6) / 0.4));
+    this.add(
+      a.img,
+      1600,
+      () => pool.release(a),
+      (u) => a.img.setAlpha(u < 0.6 ? 1 : 1 - (u - 0.6) / 0.4),
+    );
   }
 
   wallStrike(from: ScreenPoint, to: ScreenPoint) {
@@ -140,7 +155,12 @@ export class Effects implements EffectSpawner {
     // Runs (0,0)–(100,0) in units: stretch x only so the bolt stays thin.
     this.ctx.lib.setUnitScale(a, this.ctx.unitPx, len / (100 * this.ctx.unitPx), 1);
     a.img.setPosition(from.sx, from.sy).setRotation(Math.atan2(to.sy - from.sy, to.sx - from.sx));
-    this.add(a.img, 140, () => pool.release(a), (u) => a.img.setAlpha(u < 0.5 ? 1 : 2 - 2 * u));
+    this.add(
+      a.img,
+      140,
+      () => pool.release(a),
+      (u) => a.img.setAlpha(u < 0.5 ? 1 : 2 - 2 * u),
+    );
   }
 
   ring(side: ScrapSide | 'danger', x: number, y: number, r: number, ms = 450) {
@@ -148,12 +168,21 @@ export class Effects implements EffectSpawner {
     const { sx, sy } = this.ctx.camera.worldToScreen(x, y);
     const { rx, ry } = this.ctx.camera.groundEllipse(r);
     const color =
-      side === 'ours' ? theme.color.amber.num : side === 'theirs' ? theme.color.hostile.num : theme.color.danger.num;
-    this.add(g, ms, () => this.gfxPool.release(g), (u) => {
-      g.clear()
-        .lineStyle(3, color, 1 - u)
-        .strokeEllipse(sx, sy, 2 * rx * (0.3 + 0.7 * u), 2 * ry * (0.3 + 0.7 * u));
-    });
+      side === 'ours'
+        ? theme.color.amber.num
+        : side === 'theirs'
+          ? theme.color.hostile.num
+          : theme.color.danger.num;
+    this.add(
+      g,
+      ms,
+      () => this.gfxPool.release(g),
+      (u) => {
+        g.clear()
+          .lineStyle(3, color, 1 - u)
+          .strokeEllipse(sx, sy, 2 * rx * (0.3 + 0.7 * u), 2 * ry * (0.3 + 0.7 * u));
+      },
+    );
   }
 
   /** A pooled projectile; `release()` returns it. */
@@ -173,7 +202,10 @@ export class Effects implements EffectSpawner {
         if (TUMBLES.has(kind)) a.img.setRotation((spin += 0.12));
         else a.img.setRotation(Math.atan2(Math.sin(heading) * GROUND_SQUASH, Math.cos(heading)));
         const s = Math.max(0.25, 0.5 - z * 0.05);
-        shadow.setPosition(ground.sx, ground.sy).setScale(s, s).setVisible(z > 0.05);
+        shadow
+          .setPosition(ground.sx, ground.sy)
+          .setScale(s, s)
+          .setVisible(z > 0.05);
       },
       release() {
         pool.release(a);

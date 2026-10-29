@@ -3,7 +3,14 @@
 // parts, crossfade poses and clips, apply per-key draw-order swaps, brighten or dim emissive parts
 // and swap glow-baked frames to `@unlit`.
 import * as Phaser from 'phaser';
-import { isPosed, type Clip, type RigDef, type RigPart, type RigView, type ViewId } from '../../themes/types';
+import {
+  isPosed,
+  type Clip,
+  type RigDef,
+  type RigPart,
+  type RigView,
+  type ViewId,
+} from '../../themes/types';
 import type { ArtImage, ArtLibrary } from './atlas';
 import { applyOrder, blendSamples, REST, sampleClip, type ClipSample } from './clip';
 import { apply, composeView, decompose, type Mat } from './rigMath';
@@ -76,7 +83,8 @@ export class RigSprite implements RigInstance {
     this.tint = opts.tint ?? null;
     for (const g of opts.groups ?? []) this.groupsOn.add(g);
     const views = Object.keys(def.views) as ViewId[];
-    this._view = opts.view && def.views[opts.view] ? opts.view : (views.includes('side') ? 'side' : views[0]!);
+    this._view =
+      opts.view && def.views[opts.view] ? opts.view : views.includes('side') ? 'side' : views[0]!;
     this._mirror = opts.mirror ?? false;
     this.buildSet(this._view, null);
     this.applyRootScale();
@@ -312,7 +320,15 @@ export class RigSprite implements RigInstance {
       }
       nodes.set(name, { name, part, art, boost, groups: groupsOf.get(name) ?? [] });
     }
-    const set: PartSet = { view, pose: p, rv, container, nodes, orderKey: rv.order.join(','), mats: new Map() };
+    const set: PartSet = {
+      view,
+      pose: p,
+      rv,
+      container,
+      nodes,
+      orderKey: rv.order.join(','),
+      mats: new Map(),
+    };
     this.sets.push(set);
     this.applyTints();
   }

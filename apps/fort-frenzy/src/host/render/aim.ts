@@ -31,7 +31,8 @@ const TURRET_DEG: Record<TurretAim, number> = Object.fromEntries(
  */
 export function snapTurretAim(angleRad: number, prev: TurretAim | null = null): TurretAim {
   const deg = angleRad / DEG;
-  if (prev && Math.abs(angleDiffDeg(deg, TURRET_DEG[prev])) <= 22.5 + AIM_HYSTERESIS_DEG) return prev;
+  if (prev && Math.abs(angleDiffDeg(deg, TURRET_DEG[prev])) <= 22.5 + AIM_HYSTERESIS_DEG)
+    return prev;
   const i = (((Math.round(deg / 45) % 8) + 8) % 8) as number;
   return TURRET_AIMS[i]!;
 }

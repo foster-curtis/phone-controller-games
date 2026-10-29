@@ -150,9 +150,14 @@ const rasterJobs = new Map<ThemeId, RasterJob[]>();
 
 /** The file as it ships: review-only glow filters (`#glow`, `#glowU`, `#glowS`) stripped. */
 function shippable(text: string): string {
-  return text
-    .replace(/\s*filter="url\(#glow[US]?\)"/g, '')
-    .replace(/<filter\b[^>]*\bid="glow[US]?"[^>]*>[\s\S]*?<\/filter>/g, '');
+  return (
+    text
+      .replace(/\s*filter="url\(#glow[US]?\)"/g, '')
+      .replace(/<filter\b[^>]*\bid="glow[US]?"[^>]*>[\s\S]*?<\/filter>/g, '')
+      // Tint parts are grayscale `currentColor`: rasterize them white so the player color multiplies
+      // over them (§2.1); resvg's default would be black.
+      .replace(/<svg\b(?![^>]*\bcolor=)/, '<svg color="#ffffff"')
+  );
 }
 
 // The unlit variant: every color in a `class="glow"` group becomes its side's dark shade (§2.5

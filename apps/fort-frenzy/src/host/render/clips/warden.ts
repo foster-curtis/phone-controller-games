@@ -8,8 +8,29 @@ const parts: KnightParts = {
   legFront: ['frontleg'],
   legsBoth: ['legs'],
   arms: ['gauntlet'],
-  glows: ['torso-glow', 'frontleg-glow', 'helm-glow', 'frontpaul-glow', 'hammer-glow', 'legs-glow', 'pauls-glow'],
-  all: ['backpaul', 'backleg', 'torso', 'frontleg', 'helm', 'plume', 'frontpaul', 'hammer', 'gauntlet', 'legs', 'pauls', 'gauntlets'],
+  glows: [
+    'torso-glow',
+    'frontleg-glow',
+    'helm-glow',
+    'frontpaul-glow',
+    'hammer-glow',
+    'legs-glow',
+    'pauls-glow',
+  ],
+  all: [
+    'backpaul',
+    'backleg',
+    'torso',
+    'frontleg',
+    'helm',
+    'plume',
+    'frontpaul',
+    'hammer',
+    'gauntlet',
+    'legs',
+    'pauls',
+    'gauntlets',
+  ],
 };
 
 export const clips: Record<string, Clip> = knightClips(parts, 760, 14);
