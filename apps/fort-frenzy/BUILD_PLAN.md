@@ -789,22 +789,22 @@ Rules:
   - [x] modifiers, effects, damage with tests
   - [x] cards, waves, flowfield with tests
   - [x] party with tests
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
 - FF3 Art in engine
   - [x] Atlases 1×/2×, unlit variants, rig validation
   - [x] Theme pack + render core (camera, layers, rigs, clips, autotiles, Citadel, towers, bloom)
   - [x] Gallery + stress mode + asset/rig tests + gallery e2e
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
 - FF4 Controller
   - [x] Client wiring, sender, `layoutCombat` + tests
   - [x] All screens + components + dev mode
   - [x] Controller e2e screenshots, bundle ≤ 100 KB
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
 - FF5 TV UI
   - [x] Home, lobby, summary screens
   - [x] Combat + build HUD, alarms, lane bands
   - [x] `?ui=` dev page + e2e safe-margin checks
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
 - [ ] **User approved C1** (gallery, perf stress, phones, TV UI)
 - FF6 Sim core
   - [ ] World, step order, movement, economy loop, building, phases
