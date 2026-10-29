@@ -801,9 +801,9 @@ Rules:
   - [ ] Controller e2e screenshots, bundle ≤ 100 KB
   - [ ] Merged to `main`
 - FF5 TV UI
-  - [ ] Home, lobby, summary screens
-  - [ ] Combat + build HUD, alarms, lane bands
-  - [ ] `?ui=` dev page + e2e safe-margin checks
+  - [x] Home, lobby, summary screens
+  - [x] Combat + build HUD, alarms, lane bands
+  - [x] `?ui=` dev page + e2e safe-margin checks
   - [ ] Merged to `main`
 - [ ] **User approved C1** (gallery, perf stress, phones, TV UI)
 - FF6 Sim core
@@ -1018,6 +1018,21 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   late slots are max + 1; name/class lock once slotted.
 - [FF2] decision: the party test is co-located (`src/host/party/party.test.ts`): the party lint rule
   forbids any `../` import, so a `__tests__/` file couldn't import `../index`.
+- [FF5] decision: the overlay (`src/host/ui/overlay.ts`) renders `TvView` into independent sections
+  (HTML strings, cached per section), on a 1920 × 1080 root scaled by a CSS transform (FIT), integer font
+  sizes. Host wiring (FF7) calls `createTvOverlay(el, { onHome, onRemovePlayer }).update(view)`; home focus
+  and ◂ ▸ changes come back as `HomeIntent`s (the host owns `TvView.home`).
+- [FF5] decision: until FF3's theme pack lands, `ui/labels.ts` carries the neon-knights names and icon ids
+  the overlay needs (class, enemy, shop); FF7 may swap them for the pack's maps.
+- [FF5] decision: enemy tiles in the next-wave preview stack the rig's side-view part SVGs from
+  `art/neon-knights/enemies/` in rig order (no enemy portrait files are generated; only classes have them).
+- [FF5] decision: TV remove in the lobby is keyboard: press a slot's number (1–6), then again within 4 s;
+  Esc or another slot cancels. The gamepad (d-pad or stick, A) drives the home screen only.
+- [FF5] decision: the HUD's wave and phase share one line ("WAVE 10 / 15 · COMBAT", "BUILD · 38 S") to fit
+  the 40 px top band (§15.2); the next-wave preview is 77 px tall (bottom band), headlined with the enemy
+  total or "Boss wave" (`TvView` carries no wave name), new types get a violet frame and a "NEW" tag.
+- [FF5] decision: `index.html?ui=<screen>` screens: loading home lobby countdown combat low-hp boss build
+  victory defeat summary restoring outdated; on in dev or with `?debug=1`.
 
 ## 9. Final handoff
 

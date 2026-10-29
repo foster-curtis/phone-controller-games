@@ -1,0 +1,928 @@
+/* TV overlay (SPEC §2.6, §15.2). A 1920 × 1080 root scaled with a CSS transform, so every size here is
+   a logical px on the canvas. Colors, fonts, chamfers and glows come from brand.css variables only.
+   Anything not marked data-edge stays inside the 96 px TV-safe margin. */
+#tv-ui {
+  position: fixed;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  z-index: 10;
+  color: var(--foreground);
+  font: 400 18px/26px var(--font-sans);
+}
+#tv-ui .layer {
+  position: absolute;
+  inset: 0;
+}
+#tv-ui .sec {
+  display: contents;
+}
+#tv-ui .muted {
+  color: var(--muted);
+}
+#tv-ui .tag {
+  white-space: nowrap;
+}
+#tv-ui [class*='hud-'],
+#tv-ui .home > *,
+#tv-ui .lobby > *,
+#tv-ui .summary > *,
+#tv-ui .restoring,
+#tv-ui .outdated,
+#tv-ui .alarm-text,
+#tv-ui .cd {
+  position: absolute;
+}
+
+/* ---- shared pieces ---- */
+#tv-ui .ic {
+  width: 24px;
+  height: 24px;
+  flex: none;
+}
+#tv-ui .ic.sm {
+  width: 28px;
+  height: 28px;
+}
+#tv-ui .ic.coin {
+  width: 36px;
+  height: 36px;
+}
+#tv-ui .bar {
+  display: block;
+  position: relative;
+  height: 24px;
+  box-sizing: border-box;
+  background: var(--stone);
+  border: 2px solid var(--stone-edge);
+}
+#tv-ui .bar > i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--amber);
+}
+/* chamfered panel: wrapper carries the glow, .edge the colored rim, .in the fill */
+#tv-ui .pnl {
+  position: relative;
+  --edge: var(--stone-edge);
+  --fill: var(--surface-strong);
+  --clip: var(--clip-chamfer-sm);
+}
+#tv-ui .pnl > .edge {
+  height: 100%;
+  box-sizing: border-box;
+  padding: 3px;
+  background: var(--edge);
+  clip-path: var(--clip);
+}
+#tv-ui .pnl > .edge > .in {
+  height: 100%;
+  box-sizing: border-box;
+  background: var(--fill);
+  clip-path: var(--clip);
+}
+#tv-ui .badge {
+  position: relative;
+  display: block;
+  width: 64px;
+  height: 64px;
+  flex: none;
+}
+#tv-ui .badge .tile {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+#tv-ui .badge .glyph {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  width: 44px;
+  height: 44px;
+}
+#tv-ui .badge.dim .glyph {
+  opacity: 0.35;
+}
+#tv-ui .portrait {
+  position: relative;
+  display: block;
+  width: 215px;
+  height: 198px;
+  isolation: isolate;
+}
+#tv-ui .portrait img,
+#tv-ui .portrait .tint {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+#tv-ui .portrait .tint {
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mix-blend-mode: multiply;
+}
+#tv-ui .enemy-art {
+  position: absolute;
+  inset: 2px;
+}
+#tv-ui .enemy-art img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* ---- home ---- */
+#tv-ui .home .logo {
+  left: 96px;
+  top: 120px;
+  width: 100px;
+  height: 100px;
+  border-radius: var(--radius);
+}
+#tv-ui .home .title {
+  left: 96px;
+  top: 236px;
+  white-space: nowrap;
+}
+#tv-ui .home .tagline {
+  left: 96px;
+  top: 360px;
+  color: var(--muted);
+  font-size: 24px;
+  white-space: nowrap;
+}
+#tv-ui .home .rows {
+  left: 96px;
+  top: 440px;
+  width: 624px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#tv-ui .row {
+  height: 64px;
+}
+#tv-ui .row .in {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  gap: 16px;
+}
+#tv-ui .row .lbl {
+  font: 700 28px/1 var(--font-display);
+  letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+#tv-ui .row .val {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font: 600 28px/1 var(--font-sans);
+  color: var(--ember);
+  white-space: nowrap;
+}
+#tv-ui .row .val.plain {
+  color: var(--muted);
+}
+#tv-ui .row .arr {
+  width: 0;
+  height: 0;
+  border: 8px solid transparent;
+}
+#tv-ui .row .arr.l {
+  border-right: 12px solid var(--muted);
+  border-left: 0;
+  margin-left: auto;
+}
+#tv-ui .row .arr.r {
+  border-left: 12px solid var(--muted);
+  border-right: 0;
+}
+#tv-ui .row .arr.l + .val {
+  margin-left: 12px;
+}
+#tv-ui .row.focus {
+  --edge: var(--amber);
+  filter: drop-shadow(var(--glow-md));
+}
+#tv-ui .row.focus .arr.l {
+  border-right-color: var(--amber);
+}
+#tv-ui .row.focus .arr.r {
+  border-left-color: var(--amber);
+}
+#tv-ui .row.primary {
+  --edge: var(--amber);
+  --fill: var(--amber);
+  color: var(--accent-on);
+}
+#tv-ui .row.primary.focus {
+  --edge: var(--select);
+}
+#tv-ui .home .hint {
+  left: 96px;
+  top: 906px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 18px;
+  letter-spacing: 2px;
+}
+#tv-ui .home .loadslot {
+  left: 96px;
+  top: 940px;
+  width: 624px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  opacity: 0;
+}
+#tv-ui .home .loadslot.on {
+  opacity: 1;
+}
+#tv-ui .home .loadslot .bar {
+  flex: 1;
+  height: 16px;
+}
+
+/* ---- lobby ---- */
+#tv-ui .lobby .j1 {
+  left: 96px;
+  top: 100px;
+}
+#tv-ui .lobby .j2 {
+  left: 96px;
+  top: 214px;
+}
+#tv-ui .lobby .url {
+  left: 96px;
+  top: 130px;
+  font: 600 40px/48px var(--font-sans);
+  white-space: nowrap;
+}
+#tv-ui .lobby .code {
+  left: 96px;
+  top: 244px;
+  display: flex;
+  gap: 12px;
+}
+#tv-ui .lobby .ch {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  width: 118px;
+  height: 140px;
+  background: var(--amber);
+  clip-path: var(--clip-chamfer);
+  font: 600 88px/1 var(--font-mono);
+}
+#tv-ui .lobby .ch::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  z-index: -1;
+  background: var(--surface-strong);
+  clip-path: var(--clip-chamfer);
+}
+#tv-ui .lobby .qrbox {
+  left: 720px;
+  top: 112px;
+  width: 282px;
+  height: 282px;
+}
+#tv-ui .lobby .qr {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--brand-paper);
+}
+#tv-ui .lobby .scan {
+  left: 720px;
+  top: 404px;
+  width: 282px;
+  text-align: center;
+}
+#tv-ui .lobby .lineup {
+  left: 96px;
+  top: 466px;
+  white-space: nowrap;
+}
+#tv-ui .lobby .count {
+  left: 280px;
+  top: 480px;
+}
+#tv-ui .lobby .rmhint {
+  right: 96px;
+  top: 480px;
+}
+#tv-ui .lobby .slots {
+  left: 96px;
+  top: 546px;
+  width: 1728px;
+  height: 422px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 24px;
+}
+#tv-ui .slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-width: 0;
+  background: var(--surface);
+  border: 3px solid var(--pc);
+  clip-path: var(--clip-chamfer);
+}
+#tv-ui .slot.dim {
+  opacity: 0.55;
+}
+#tv-ui .slot.armed {
+  border-color: var(--danger);
+}
+#tv-ui .slot.open {
+  align-items: center;
+  justify-content: center;
+  border: 3px dashed var(--presence-off);
+  background: none;
+  color: var(--muted);
+}
+#tv-ui .slot-art {
+  position: relative;
+  height: 264px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#tv-ui .slot .num {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  background: var(--surface-strong);
+  color: var(--muted);
+  font: 600 22px/1 var(--font-display);
+}
+#tv-ui .slot .band {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 54px;
+  padding: 0 16px;
+  background: var(--pc);
+  color: var(--pon);
+}
+#tv-ui .slot .band .nm {
+  font: 600 28px/1 var(--font-sans);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#tv-ui .slot .band .lead {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font: 600 14px/1 var(--font-display);
+  letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+}
+#tv-ui .slot .band .lead .ic {
+  width: 20px;
+  height: 20px;
+}
+#tv-ui .slot-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+}
+#tv-ui .slot .cls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 700 26px/1 var(--font-display);
+  letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+#tv-ui .slot .st {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 22px/28px var(--font-sans);
+  color: var(--muted);
+}
+#tv-ui .slot .st.ready {
+  color: var(--amber);
+}
+#tv-ui .slot .arm-note {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 8px;
+  text-align: center;
+  background: var(--danger);
+  color: var(--danger-on);
+  font: 600 18px/22px var(--font-display);
+  letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+}
+#tv-ui .cd {
+  left: 780px;
+  top: 340px;
+  width: 360px;
+  height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: var(--scrim);
+  clip-path: var(--clip-chamfer);
+}
+
+/* ---- combat and build HUD ---- */
+#tv-ui .hud-wave {
+  left: 96px;
+  top: 96px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  white-space: nowrap;
+}
+#tv-ui .hud-wave .pad {
+  font: 700 28px/1 var(--font-display);
+  letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+}
+#tv-ui .hud-wave .phase {
+  color: var(--accent-text);
+}
+#tv-ui .hud-base {
+  left: 680px;
+  top: 96px;
+  width: 560px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+#tv-ui .hud-base .bar {
+  flex: 1;
+}
+#tv-ui .hud-base .pct {
+  width: 52px;
+  font-size: 20px;
+  text-align: right;
+}
+#tv-ui .hud-base.low .bar > i {
+  background: var(--danger);
+}
+#tv-ui .hud-base.hit .bar {
+  border-color: var(--select);
+  animation: ff-hit var(--dur-base) var(--ease-out) 2;
+}
+@keyframes ff-hit {
+  50% {
+    filter: brightness(2.2) drop-shadow(var(--glow-lg));
+  }
+}
+#tv-ui .hud-coins {
+  left: 1424px;
+  top: 96px;
+  width: 400px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+#tv-ui .hud-coins .amt {
+  font: 700 32px/1 var(--font-display);
+  color: var(--ember);
+}
+#tv-ui .vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 58%,
+    color-mix(in srgb, var(--danger) 45%, transparent) 100%
+  );
+  animation: ff-pulse var(--pulse-period) ease-in-out infinite;
+}
+@keyframes ff-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+#tv-ui .alarm-text {
+  left: 660px;
+  top: 144px;
+  width: 600px;
+  text-align: center;
+  color: var(--danger);
+  animation: ff-pulse var(--pulse-period) ease-in-out infinite;
+}
+#tv-ui .lane {
+  position: absolute;
+  animation: ff-pulse var(--pulse-period) ease-in-out infinite;
+}
+#tv-ui .lane.bottom {
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--hostile) 70%, transparent),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    var(--brand-ink) 30%,
+    var(--brand-ink) 70%,
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    var(--brand-ink) 30%,
+    var(--brand-ink) 70%,
+    transparent
+  );
+}
+#tv-ui .lane.left,
+#tv-ui .lane.right {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    var(--brand-ink) 30%,
+    var(--brand-ink) 70%,
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    var(--brand-ink) 30%,
+    var(--brand-ink) 70%,
+    transparent
+  );
+}
+#tv-ui .lane.left {
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--hostile) 70%, transparent),
+    transparent
+  );
+}
+#tv-ui .lane.right {
+  background: linear-gradient(
+    to left,
+    color-mix(in srgb, var(--hostile) 70%, transparent),
+    transparent
+  );
+}
+#tv-ui .hud-boss {
+  left: 640px;
+  top: 907px;
+  width: 640px;
+  height: 77px;
+}
+#tv-ui .hud-boss .nm {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 8px;
+  text-align: center;
+  color: var(--hostile-core);
+}
+#tv-ui .hud-boss .bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 44px;
+  height: 28px;
+}
+#tv-ui .hud-boss .bar > i {
+  background: var(--hostile);
+}
+#tv-ui .hud-boss.stagger .nm {
+  color: var(--ember);
+}
+#tv-ui .hud-boss.stagger .bar > i {
+  background: var(--ember);
+}
+#tv-ui .hud-preview {
+  position: absolute;
+  left: 600px;
+  top: 907px;
+  width: 720px;
+  height: 77px;
+  --edge: var(--stone-edge);
+  --fill: var(--surface);
+}
+#tv-ui .hud-preview .in {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 20px;
+}
+#tv-ui .pv-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 190px;
+}
+#tv-ui .pv-head .pad {
+  font: 700 28px/1 var(--font-display);
+  letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+#tv-ui .pv-tiles {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+  justify-content: flex-end;
+}
+#tv-ui .eny {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 52px;
+}
+#tv-ui .eny .tile {
+  position: relative;
+  display: block;
+  width: 52px;
+  height: 38px;
+  background: var(--stone);
+  clip-path: var(--clip-chamfer-sm);
+}
+#tv-ui .eny .cnt {
+  font: 600 18px/20px var(--font-sans);
+}
+#tv-ui .eny.new {
+  filter: drop-shadow(var(--glow-hostile));
+}
+#tv-ui .eny.new .tile {
+  box-shadow: inset 0 0 0 3px var(--hostile);
+}
+#tv-ui .eny.new .cnt {
+  color: var(--hostile-core);
+}
+#tv-ui .eny .newtag {
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  padding: 1px 4px;
+  background: var(--hostile);
+  color: var(--brand-ink);
+  font: 700 11px/12px var(--font-display);
+  letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+}
+#tv-ui .hud-ann {
+  left: 96px;
+  bottom: 96px;
+  width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#tv-ui .ann {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  box-sizing: border-box;
+  padding: 0 16px 0 14px;
+  border-left: 6px solid var(--pc);
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+}
+#tv-ui .ann .txt {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font: 600 20px/1 var(--font-display);
+  letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+}
+#tv-ui .ann.new {
+  animation: ff-slide var(--dur-base) var(--ease-out);
+}
+@keyframes ff-slide {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+}
+#tv-ui .side-col {
+  position: absolute;
+  left: 1488px;
+  top: 176px;
+  width: 336px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+#tv-ui .side .in {
+  padding: 16px 20px;
+}
+#tv-ui .side .ph {
+  margin-bottom: 10px;
+}
+#tv-ui .rrow,
+#tv-ui .wrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 40px;
+}
+#tv-ui .rrow .pip {
+  width: 6px;
+  height: 28px;
+  background: var(--pc);
+}
+#tv-ui .rrow .nm,
+#tv-ui .wrow .nm {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 600 22px/30px var(--font-sans);
+}
+#tv-ui .rrow .rdy .ic {
+  width: 28px;
+  height: 28px;
+}
+#tv-ui .rrow .off {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+}
+#tv-ui .wrow .pips {
+  display: flex;
+  gap: 3px;
+  width: 24px;
+}
+#tv-ui .wrow .pip {
+  width: 6px;
+  height: 28px;
+  background: var(--pc);
+}
+#tv-ui .wrow .price {
+  color: var(--ember);
+  font-size: 20px;
+}
+#tv-ui .outdated {
+  left: 600px;
+  top: 176px;
+  width: 720px;
+  height: 44px;
+  line-height: 44px;
+  text-align: center;
+  background: var(--amber);
+  color: var(--accent-on);
+  clip-path: var(--clip-chamfer-sm);
+  font: 600 22px/44px var(--font-display);
+  letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+}
+
+/* ---- summary ---- */
+#tv-ui .summary > .kicker,
+#tv-ui .summary > .banner,
+#tv-ui .summary > .sub,
+#tv-ui .summary > .foot {
+  left: 96px;
+  width: 1728px;
+  text-align: center;
+}
+#tv-ui .summary .kicker {
+  top: 112px;
+  color: var(--amber);
+}
+#tv-ui .summary.loss .kicker {
+  color: var(--danger);
+}
+#tv-ui .summary .banner {
+  top: 150px;
+  white-space: nowrap;
+}
+#tv-ui .summary .sub {
+  top: 240px;
+  color: var(--muted);
+  font-size: 28px;
+  line-height: 36px;
+}
+#tv-ui .summary .awards {
+  left: 96px;
+  top: 540px;
+  width: 1728px;
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+}
+#tv-ui .award {
+  position: relative;
+  flex: none;
+  box-sizing: border-box;
+  width: 264px;
+  height: 300px;
+  background: var(--surface);
+  border: 3px solid var(--border);
+  border-top: 8px solid var(--pc);
+  clip-path: var(--clip-chamfer);
+}
+#tv-ui .award .ah {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 16px 0;
+}
+#tv-ui .award .at {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+#tv-ui .award .at .tag {
+  font-size: 18px;
+}
+#tv-ui .award .nm {
+  font: 600 28px/1 var(--font-sans);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#tv-ui .award .val {
+  padding: 40px 16px 0;
+  color: var(--ember);
+}
+#tv-ui .summary .foot {
+  top: 936px;
+  color: var(--muted);
+  font-size: 24px;
+}
+#tv-ui .restoring {
+  left: 96px;
+  width: 1728px;
+  top: 420px;
+  text-align: center;
+}
+#tv-ui .restoring .body {
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 24px;
+}
+
+/* dev page backdrop (index.html?ui=<screen>): a stand-in for the Phaser canvas */
+.ui-dev-bg {
+  position: fixed;
+  inset: 0;
+  background: var(--background);
+}
+.ui-dev-bg .frame {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: 0 0;
+  background:
+    linear-gradient(var(--border) 1px, transparent 1px) 0 0 / 48px 48px,
+    linear-gradient(90deg, var(--border) 1px, transparent 1px) 0 0 / 48px 48px;
+  opacity: 0.35;
+}
+.ui-dev-bg .safe {
+  position: absolute;
+  left: 96px;
+  top: 96px;
+  width: 1728px;
+  height: 888px;
+  border: 1px dashed var(--stone-edge);
+  box-sizing: border-box;
+}
