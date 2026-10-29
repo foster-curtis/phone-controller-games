@@ -796,9 +796,9 @@ Rules:
   - [ ] Gallery + stress mode + asset/rig tests + gallery e2e
   - [ ] Merged to `main`
 - FF4 Controller
-  - [ ] Client wiring, sender, `layoutCombat` + tests
-  - [ ] All screens + components + dev mode
-  - [ ] Controller e2e screenshots, bundle ≤ 100 KB
+  - [x] Client wiring, sender, `layoutCombat` + tests
+  - [x] All screens + components + dev mode
+  - [x] Controller e2e screenshots, bundle ≤ 100 KB
   - [ ] Merged to `main`
 - FF5 TV UI
   - [x] Home, lobby, summary screens
@@ -1033,6 +1033,15 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   total or "Boss wave" (`TvView` carries no wave name), new types get a violet frame and a "NEW" tag.
 - [FF5] decision: `index.html?ui=<screen>` screens: loading home lobby countdown combat low-hp boss build
   victory defeat summary restoring outdated; on in dev or with `?debug=1`.
+- [FF4] decision: no `themes/<id>/shared.ts` exists yet (FF3), so `src/controller/copy.ts` holds the phone's
+  names, icon ids, structure costs (placeholders: 2/3/1/1/2 until playtesting) and card text; FF3 should absorb it.
+- [FF4] decision: sprite and portraits load via `?url`/`import.meta.glob` (`assets.ts`); the sprite is fetched and
+  inlined at boot. Dev samples sit in a dynamic chunk (`?dev=1`, `?screen=<id>` picks one).
+- [FF4] decision: revs reset on reconnect/host return (a reloaded host restarts its counters); `outdated` with a
+  higher proto reloads once (sessionStorage guard), lower shows "Refresh the TV".
+- [FF4] decision: `wishlist[].by` is read as a relay playerId (name fallback); class select lives in the lobby view
+  ("Change class"); the name screen is the join screen (code + name + button) once connected.
+- [FF4] decision: extraction candidate: `fitAboveKeyboard` (copied from Sunny Side into `screens/common.ts`).
 
 ## 9. Final handoff
 

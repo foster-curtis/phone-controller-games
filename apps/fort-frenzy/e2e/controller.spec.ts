@@ -42,17 +42,23 @@ for (const vp of VIEWPORTS) {
         });
       }
       for (const name of ['reconnecting', 'hostAway', 'rotate', 'refreshTv']) {
-        await page.locator(`[data-dev-overlay="${name}"]`).evaluate((b) => (b as HTMLElement).click());
+        await page
+          .locator(`[data-dev-overlay="${name}"]`)
+          .evaluate((b) => (b as HTMLElement).click());
         await expect(page.locator('.overlay')).toBeVisible();
         await page.screenshot({
           path: `e2e/__screens__/controller-${vp.width}x${vp.height}-overlay-${name}.png`,
         });
-        await page.locator(`[data-dev-overlay="${name}"]`).evaluate((b) => (b as HTMLElement).click());
+        await page
+          .locator(`[data-dev-overlay="${name}"]`)
+          .evaluate((b) => (b as HTMLElement).click());
       }
       expect(errors).toEqual([]);
     });
 
-    test('combat layout: buttons clear of the right and bottom edges, gaps and sizes hold', async ({ page }) => {
+    test('combat layout: buttons clear of the right and bottom edges, gaps and sizes hold', async ({
+      page,
+    }) => {
       await open(page, 'combat');
       const boxes = await page.evaluate(() => {
         const r = (sel: string) => {
@@ -60,7 +66,11 @@ for (const vp of VIEWPORTS) {
           const b = face.getBoundingClientRect();
           return { x: b.x, y: b.y, w: b.width, h: b.height };
         };
-        return { main: r('.round-btn.main'), sup: r('.round-btn.super'), action: r('.round-btn.action') };
+        return {
+          main: r('.round-btn.main'),
+          sup: r('.round-btn.super'),
+          action: r('.round-btn.action'),
+        };
       });
       const list = Object.values(boxes);
       for (const b of list) {
@@ -69,7 +79,9 @@ for (const vp of VIEWPORTS) {
         expect(vp.height - (b.y + b.h)).toBeGreaterThanOrEqual(64);
       }
       const gap = (a: (typeof list)[number], b: (typeof list)[number]) =>
-        Math.hypot(a.x + a.w / 2 - (b.x + b.w / 2), a.y + a.h / 2 - (b.y + b.h / 2)) - a.w / 2 - b.w / 2;
+        Math.hypot(a.x + a.w / 2 - (b.x + b.w / 2), a.y + a.h / 2 - (b.y + b.h / 2)) -
+        a.w / 2 -
+        b.w / 2;
       expect(gap(boxes.main, boxes.sup)).toBeGreaterThanOrEqual(24);
       expect(gap(boxes.main, boxes.action)).toBeGreaterThanOrEqual(24);
       expect(gap(boxes.sup, boxes.action)).toBeGreaterThanOrEqual(24);
