@@ -772,7 +772,7 @@ Rules:
 
 ## 6. Progress checklist
 
-- [ ] Pre-flight passed (S1)
+- [x] Pre-flight passed (S1)
 - FF0 Shared kits
   - [ ] `@pcg/game-kit` (loop, lerp, RNG, host helpers, `/vite`) with tests
   - [ ] `@pcg/controller-kit` (platform, shell, router, widgets, gestures, sender, dev harness) with tests
