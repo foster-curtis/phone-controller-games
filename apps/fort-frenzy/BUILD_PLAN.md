@@ -780,10 +780,10 @@ Rules:
   - [x] Dockerfile + `.prettierignore` + package tables updated
   - [x] Merged to `main`
 - FF1 Scaffold + contracts
-  - [ ] App scaffold, deps, entries, configs, `check:fort-frenzy` green
-  - [ ] Frozen contracts (7 files) + guards + theme parity
-  - [ ] Asset manifest, icon sprite, portraits, LICENSES + test
-  - [ ] Root wiring (scripts, ESLint boundaries, bundle limit, Dockerfile, doc tables)
+  - [x] App scaffold, deps, entries, configs, `check:fort-frenzy` green
+  - [x] Frozen contracts (7 files) + guards + theme parity
+  - [x] Asset manifest, icon sprite, portraits, LICENSES + test
+  - [x] Root wiring (scripts, ESLint boundaries, bundle limit, Dockerfile, doc tables)
   - [ ] Merged to `main`
 - FF2 Systems + party
   - [ ] modifiers, effects, damage with tests
@@ -948,6 +948,48 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   never opened cancels.
 - [FF0] decision: fixed-rate sender periods are `round(1000 / Hz)` (33 ms, 200 ms); edges and a change of
   touched state send at once and restart the clock; controls report touch with `touch(id, on)`.
+- [FF1] decision: dependencies: `maxrects-packer` 3.0.0 (2.7.4 is deprecated upstream as broken),
+  `@resvg/resvg-js` 2.6.2 (prebuilt binary installs on Windows), `tsx` 4.23.15; the rest match Sunny
+  Side. `e2e` also runs `pnpm assets` first; `bench` is a stub until FF6 adds scenarios.
+- [FF1] decision: internal ids not named in SPEC: structures `arrow_tower bomb_tower wall snare fortify`;
+  shop `crate repair archer_damage archer_range archer_third squad_stats arrow_rate bomb_radius tower_hp
+  wall_hp snare_charges spiked_walls base_armor emergency_kit`; cards are snake_case card names (the 8
+  commons are shared, `perClass` tunes them: 40 ids, 64 cards); effects add `aura_mason`; SFX ids are
+  FF13's cue list; theme id `neon-knights`.
+- [FF1] decision: intent acks run through the sim: `SimCommand` carries an optional `ref`, and the sim
+  answers with a `command` SimEvent (ok or an `AckReason`); host/net maps it back to the phone's `seq`.
+- [FF1] decision: the base is a unit with the reserved `BASE_ID` 0 (entities start at 1), and structures
+  are units too (`damageable: false` for snares), so base armor and the tower defense bonus use the one
+  modifier/damage path; Fortify is a flag on the tower (`fortified`), matching the snapshot.
+- [FF1] decision: theme packs map internal ids themselves: `ThemeShared.iconFor` (class, main, super,
+  structure, shop, card icons) and `ThemeHost.rigFor` (class, enemy, soldier, structure rigs); fixed icon
+  ids (`act-*`, `coins`, …) need no mapping.
+- [FF1] decision: the asset manifest's types live in `src/themes/types.ts` (`AssetManifest`,
+  `ThemeAssets`, `FrameMeta`) and `generated/manifest.ts` exports `manifest`. Rig-part frames take the
+  rig's viewBox, the view's `foot` as anchor, layer `world`, `tint: 'player'` as `tint`, and the view's
+  attach points riding on that part; every frame records `glow` (has `class="glow"`, so FF3 packs
+  `@unlit`). The icon sprite is `generated/<theme>/icons.svg` with `<symbol id="icon-<id>">` (badge
+  tiles included).
+- [FF1] decision: portraits are made for every rig with a `class-<rig>` icon, front view, default pose,
+  optional groups off (the Commander's banner too), as SVG: `<rig>-body.svg` draws color parts white
+  (`currentColor`), `<rig>-mask.svg` is the color parts minus every part drawn after them (helm over
+  plume), for CSS `mask-image` + multiply.
+- [FF1] decision: `RunStats`/`RunSummary` live in `messages.ts` (phones show the summary); a summary
+  award names the `RunStats` key it celebrates.
+- [FF1] decision: lint: "no DOM" bans browser-only globals plus `localStorage`, `sessionStorage`,
+  `Storage`, `navigator`, `fetch`, `WebSocket` (Node has them too); `systems/<name>` may import only
+  packages and sibling systems (no `../../`), `party/` only packages and its own folder (no `../`).
+  Fixtures in `src/host/{sim,systems,party}/__fixtures__/bad.ts` are lint-ignored and
+  `src/host/__tests__/boundaries.test.ts` asserts every rule fires on them.
+- [FF1] decision: `check-bundle` limits gzipped `play.html` JS per app (`PLAY_JS_LIMIT_KB`): Fort Frenzy
+  100 KB; Sunny Side 18 KB (15.0 KB measured at FF1 + 20%). Its host-bundle Phaser sanity check now runs
+  only once an app's `src` imports Phaser (Fort Frenzy's host is blank until FF3/FF7).
+- [FF1] decision: `vercel.json` `ignoreCommand` is `git diff --quiet HEAD^ HEAD -- . ../../packages
+  ../../pnpm-lock.yaml` (Vercel runs it in the project root, `apps/fort-frenzy`).
+- [FF1] decision: `assets/LICENSES.json` entries take a `path` glob (relative to the app) or a `font`
+  family; the test also fails on stale path entries, and checks the fonts against `brand/head.html`.
+- [FF1] decision: Fort Frenzy tests live in `__tests__/` (theme parity at `src/shared/__tests__/`), and
+  a Playwright smoke checks both entries load until the real smoke lands.
 
 ## 9. Final handoff
 
