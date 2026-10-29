@@ -1,0 +1,57 @@
+{
+  "notes": [
+    "One entry per asset file or pack (SPEC §15.10). `path` is a glob relative to apps/fort-frenzy/ (`*` within a folder, `**` across folders); `font` names a Google Fonts family loaded by brand/head.html.",
+    "licenses.test.ts fails if a file under art/ or audio/, or a font, has no entry, or its entry doesn't allow commercial use."
+  ],
+  "entries": [
+    {
+      "path": "art/neon-knights/**",
+      "source": "Original work for Fort Frenzy",
+      "author": "Foster Curtis",
+      "license": "owned",
+      "commercial": true
+    },
+    {
+      "path": "audio/kenney/impact-sounds/**",
+      "source": "https://kenney.nl/assets/impact-sounds",
+      "author": "Kenney (www.kenney.nl)",
+      "license": "CC0-1.0",
+      "commercial": true
+    },
+    {
+      "path": "audio/kenney/interface-sounds/**",
+      "source": "https://kenney.nl/assets/interface-sounds",
+      "author": "Kenney (www.kenney.nl)",
+      "license": "CC0-1.0",
+      "commercial": true
+    },
+    {
+      "path": "audio/kenney/sci-fi-sounds/**",
+      "source": "https://kenney.nl/assets/sci-fi-sounds",
+      "author": "Kenney (www.kenney.nl)",
+      "license": "CC0-1.0",
+      "commercial": true
+    },
+    {
+      "font": "Chakra Petch",
+      "source": "https://fonts.google.com/specimen/Chakra+Petch",
+      "author": "Cadson Demak",
+      "license": "OFL-1.1",
+      "commercial": true
+    },
+    {
+      "font": "Geist",
+      "source": "https://fonts.google.com/specimen/Geist",
+      "author": "Vercel",
+      "license": "OFL-1.1",
+      "commercial": true
+    },
+    {
+      "font": "JetBrains Mono",
+      "source": "https://fonts.google.com/specimen/JetBrains+Mono",
+      "author": "JetBrains",
+      "license": "OFL-1.1",
+      "commercial": true
+    }
+  ]
+}
