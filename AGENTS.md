@@ -8,12 +8,14 @@ A pnpm monorepo of same-room party games. A TV or laptop browser runs the game (
 players' phones load a web page that acts as the **controller**. Host and phones never talk directly:
 every message goes through a shared, game-agnostic WebSocket **relay**.
 
-| Path                  | Package           | Status                                                                |
-| --------------------- | ----------------- | --------------------------------------------------------------------- |
-| `apps/relay`          | `@pcg/relay`      | Done. Node WebSocket server, deployed to Fly.io. No game rules.       |
-| `apps/sunny-side`     | `@pcg/sunny-side` | Done. Sunny Side Slam, the first game. Vite multi-page app on Vercel. |
-| `apps/fort-frenzy`    | (none yet)        | Planning. Spec complete (design + technical), no code yet.            |
-| `packages/net-client` | `@pcg/net-client` | Done. Relay protocol types plus host and controller clients (TS).     |
+| Path                      | Package               | Status                                                                               |
+| ------------------------- | --------------------- | ------------------------------------------------------------------------------------ |
+| `apps/relay`              | `@pcg/relay`          | Done. Node WebSocket server, deployed to Fly.io. No game rules.                      |
+| `apps/sunny-side`         | `@pcg/sunny-side`     | Done. Sunny Side Slam, the first game. Vite multi-page app on Vercel.                |
+| `apps/fort-frenzy`        | (none yet)            | Planning. Spec complete (design + technical), no code yet.                           |
+| `packages/net-client`     | `@pcg/net-client`     | Done. Relay protocol types plus host and controller clients (TS).                    |
+| `packages/controller-kit` | `@pcg/controller-kit` | Done (FF0). Phone platform, app shell, widgets, gestures, input sender, dev harness. |
+| `packages/game-kit`       | `@pcg/game-kit`       | Done (FF0). Fixed-step loop, lerp, seeded RNG, host helpers; `/vite` plugins.        |
 
 `apps/` holds deployables (games and the relay). `packages/` holds code shared by more than one app.
 
@@ -32,12 +34,14 @@ every message goes through a shared, game-agnostic WebSocket **relay**.
 | Physics simulation (Matter.js, no Phaser)                 | `apps/sunny-side/src/host/sim/`                                                                     |
 | Match rules: roster, rounds, scoring, leader, persistence | `apps/sunny-side/src/host/match/`                                                                   |
 | Gameplay tuning constants                                 | `apps/sunny-side/src/host/sim/config.ts`, `apps/sunny-side/src/host/match/config.ts`                |
-| Fixed-step loop and render interpolation                  | `apps/sunny-side/src/host/loop/`                                                                    |
+| Fixed-step loop, lerp, seeded RNG, host helpers           | `packages/game-kit/src/` (public API `src/index.ts`; Vite plugins `src/vite.ts`)                    |
+| Phone platform, shell, widgets, gestures, input sender    | `packages/controller-kit/src/` (public API `src/index.ts`)                                          |
+| Sunny Side render interpolation                           | `apps/sunny-side/src/host/interpolate.ts`                                                           |
 | Host wiring (client ↔ match ↔ sim)                        | `apps/sunny-side/src/host/game.ts`, entry `src/host/main.ts`                                        |
 | TV rendering (Phaser scenes and drawing)                  | `apps/sunny-side/src/host/scenes/`, `apps/sunny-side/src/host/render/`                              |
 | Phone controller UI, screens, input                       | `apps/sunny-side/src/controller/` (entry `main.ts`, screens in `screens/`)                          |
 | Brand tokens (colors, fonts, spacing)                     | `apps/sunny-side/src/styles/brand.css`, mirrored for Phaser in `src/shared/theme.ts`                |
-| Debug hooks                                               | `apps/sunny-side/src/host/debug.ts` (`window.__pcg`), `src/controller/dev.ts`                       |
+| Debug hooks                                               | `apps/sunny-side/src/host/debug.ts` (`window.__pcg`), `src/controller/devMode.ts`                   |
 | Fort Frenzy design and technical design                   | `apps/fort-frenzy/SPEC.md` (§15 is the technical design)                                            |
 | Lint boundary rules                                       | `eslint.config.js`                                                                                  |
 | Build checks                                              | `scripts/check-bundle.mjs`, `scripts/check-routes.mjs`                                              |
@@ -64,7 +68,7 @@ pnpm dev:relay                     # the relay alone
 pnpm check:<game>                  # that game's gate: typecheck, lint, format:check, test, build, check:bundle, check:routes
 pnpm build:<game>                  # that game's Vite build
 pnpm e2e:<game>                    # that game's Playwright suite (Sunny Side: own relay on 8788, Vite on 5174)
-pnpm --filter @pcg/relay test      # one package's tests (also @pcg/net-client, @pcg/sunny-side)
+pnpm --filter @pcg/relay test      # one package's tests (also @pcg/net-client, @pcg/controller-kit, @pcg/game-kit, @pcg/sunny-side)
 pnpm check                         # the full gate, every package (CI runs this)
 pnpm e2e                           # every app's Playwright suite, one app at a time
 pnpm format                        # Prettier --write
@@ -106,7 +110,9 @@ These rules are enforced by ESLint or by `pnpm check`. Don't work around them.
   `net-client/src/api.ts`, `createRelay`/`RelayOptions` in `apps/relay/src/index.ts`, the relay env
   var names, and in Sunny Side `src/shared/messages.ts`, `src/shared/theme.ts`,
   `src/shared/fonts.ts`, `src/host/sim/types.ts` and `src/host/match/types.ts`. Their file headers say
-  "Frozen". Every game depends on the relay protocol, so a breaking change there breaks all of them.
+  "Frozen". Since FF0 the public APIs of `@pcg/controller-kit` (`src/index.ts`) and `@pcg/game-kit`
+  (`src/index.ts`, `src/vite.ts`) are frozen too. Every game depends on the relay protocol, so a
+  breaking change there breaks all of them.
   If you add to a contract, also update the matching spec section (`apps/relay/SPEC.md` for the relay
   and net-client).
 - **Tuning constants are not frozen.** Change values in the `config.ts` files freely.
@@ -124,13 +130,14 @@ These rules are enforced by ESLint or by `pnpm check`. Don't work around them.
 
 - TypeScript strict, ESM, `verbatimModuleSyntax`. Use `import type` for type-only imports (lint enforces
   it). Prefix unused parameters with `_`.
-- `net-client` and `relay` ship as TS source with no build step (`exports` points at `src/index.ts`).
+- `net-client`, the two kits and `relay` ship as TS source with no build step (`exports` points at
+  `src/index.ts`). The kits are `sideEffects: false` so phones only bundle what they import.
 - Dependencies are pinned to exact versions (`.npmrc` has `save-exact=true`). Commit the
   `pnpm-lock.yaml` changes with them.
 - Tests:
   - Sunny Side keeps tests in `__tests__/` next to the code. Files under `src/controller/**` run in
     jsdom, and everything else runs in node.
-  - The relay and net-client keep tests in `test/` (with fakes and helpers there), plus a few
+  - The relay, net-client and kits keep tests in `test/` (controller-kit runs in jsdom) (with fakes and helpers there), plus a few
     co-located `*.test.ts` files.
   - Playwright specs are in `apps/sunny-side/e2e/`. Screenshots in `e2e/__screens__/` are gitignored
     output.

@@ -774,10 +774,10 @@ Rules:
 
 - [x] Pre-flight passed (S1)
 - FF0 Shared kits
-  - [ ] `@pcg/game-kit` (loop, lerp, RNG, host helpers, `/vite`) with tests
-  - [ ] `@pcg/controller-kit` (platform, shell, router, widgets, gestures, sender, dev harness) with tests
-  - [ ] Sunny Side on the kits, its copies deleted, its checks and e2e green
-  - [ ] Dockerfile + `.prettierignore` + package tables updated
+  - [x] `@pcg/game-kit` (loop, lerp, RNG, host helpers, `/vite`) with tests
+  - [x] `@pcg/controller-kit` (platform, shell, router, widgets, gestures, sender, dev harness) with tests
+  - [x] Sunny Side on the kits, its copies deleted, its checks and e2e green
+  - [x] Dockerfile + `.prettierignore` + package tables updated
   - [ ] Merged to `main`
 - FF1 Scaffold + contracts
   - [ ] App scaffold, deps, entries, configs, `check:fort-frenzy` green
@@ -916,6 +916,38 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
 - [plan] decision: SPEC updated before the build (2026-10-29, §15.11 #32–#34): emergency kit held and used
   with the action button (new §10.1 row 3, `MeView.action` `'kit'`, `kits`); build-phase action button;
   Kenney SFX from `audio/kenney/`.
+- [FF0] decision: Sunny Side already had fullscreen on every tap, so it is not a behavior change. The kit
+  shell now takes Wake Lock and the landscape lock on the first touch of the app root (was a `window`
+  listener in `main.ts`, non-dev only; `?dev=1` now gets them too), rewrites the viewport meta (Sunny
+  Side's is already identical) and blocks iOS `gesturestart` pinch zoom (the one new behavior).
+- [FF0] decision: kept in Sunny Side as thin wrappers over the kits: `input/tuple.ts` (its tuple schema on
+  the kit sender, keeping `setStick`/`setButton` so its tests run unchanged), `input/holdToPause.ts`,
+  `storage.ts` (name key), `debug.ts` (`createDebugSim`, `PcgDebugApi`). `dev.ts` became `samples.ts`
+  (sample screens) + `devMode.ts` (kit harness); snapshot interpolation moved to `src/host/interpolate.ts`.
+  Sunny Side's loop/lan/visibility/wake-lock tests moved to `@pcg/game-kit` with the code.
+- [FF0] decision: extraction candidates left in Sunny Side (brand-coupled, one consumer): the SLAM charge
+  arc (`input/buttons.ts`, brand colors), the top banner (`banner.ts`) and the joining/removed screens.
+- [FF0] decision: the kits ship no CSS: games style the class hooks (`.screen-host`, `.overlay-host`,
+  `.overlay`, `.overlay-card`, `.stick-base`, `.pressed`, `.holding`, `.dev-*`) with their own tokens;
+  overlay copy and title/body classes are parameters.
+- [FF0] decision: both kits are `sideEffects: false`, so `play.html` doesn't bundle `qrcode` (the QR
+  helper's dependency) just because the controller imports `relayUrl` from `@pcg/game-kit`.
+- [FF0] decision: `@pcg/game-kit` has one core entry (no separate host entry): its DOM-facing helpers read
+  `document`/`navigator`/`location` lazily or as parameters, so a sim can import the RNG in Node.
+  `relayUrl(envUrl)` and `debugEnabled(dev)` take the env value; the kit reads no `import.meta.env`.
+- [FF0] decision: `@pcg/game-kit/vite` imports `./lan.ts` with the extension, because Vite loads a
+  workspace config dependency through Node's type stripping (no bundling); apps that typecheck their
+  `vite.config.ts` need `allowImportingTsExtensions` (Sunny Side has it).
+- [FF0] decision: `qrcode` stays a Sunny Side devDependency (its smoke e2e decodes the lobby QR).
+- [FF0] decision: RNG: `int(lo, hi)` is inclusive at both ends; the state is four FNV-1a hashes of
+  `${seed}\0${label}` (one offset per word) and 12 warm-up rounds; the first values are pinned in a test.
+- [FF0] decision: gestures (SPEC §15.7 leaves these open): the aimed and radial dead zones default to 12%
+  of the 70 px aim radius (8.4 px, the stick's rule); an aimed press held past 150 ms that never left the
+  dead zone cancels; a radial release after Give repeats only ends (no extra commit); with a single slot
+  the arc never opens and a dimmed single slot does nothing on hold; a radial release after 150 ms that
+  never opened cancels.
+- [FF0] decision: fixed-rate sender periods are `round(1000 / Hz)` (33 ms, 200 ms); edges and a change of
+  touched state send at once and restart the clock; controls report touch with `touch(id, on)`.
 
 ## 9. Final handoff
 

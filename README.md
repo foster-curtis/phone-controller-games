@@ -7,12 +7,14 @@ Same-room party games: the TV runs the game in a browser, phones are the control
 - Each game keeps its own `SPEC.md` (design) and `BUILD_PLAN.md` (build plan) in its app folder, e.g.
   [`apps/sunny-side/SPEC.md`](apps/sunny-side/SPEC.md).
 
-| Path                  | Package           | What                                                       |
-| --------------------- | ----------------- | ---------------------------------------------------------- |
-| `apps/relay`          | `@pcg/relay`      | Game-agnostic WebSocket relay (Fly.io)                     |
-| `apps/sunny-side`     | `@pcg/sunny-side` | Sunny Side Slam: host (`/`) + phone controller (`/play`)   |
-| `apps/fort-frenzy`    | (none yet)        | Fort Frenzy: in planning (spec only)                       |
-| `packages/net-client` | `@pcg/net-client` | Relay protocol types + host/controller clients (TS source) |
+| Path                      | Package               | What                                                                    |
+| ------------------------- | --------------------- | ----------------------------------------------------------------------- |
+| `apps/relay`              | `@pcg/relay`          | Game-agnostic WebSocket relay (Fly.io)                                  |
+| `apps/sunny-side`         | `@pcg/sunny-side`     | Sunny Side Slam: host (`/`) + phone controller (`/play`)                |
+| `apps/fort-frenzy`        | (none yet)            | Fort Frenzy: in planning (spec only)                                    |
+| `packages/net-client`     | `@pcg/net-client`     | Relay protocol types + host/controller clients (TS source)              |
+| `packages/controller-kit` | `@pcg/controller-kit` | Phone platform, app shell, input widgets, gestures, sender, dev harness |
+| `packages/game-kit`       | `@pcg/game-kit`       | Fixed-step loop, lerp, seeded RNG, host helpers, Vite plugins (`/vite`) |
 
 ## Setup
 
