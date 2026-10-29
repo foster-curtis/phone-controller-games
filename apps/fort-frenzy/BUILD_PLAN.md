@@ -784,7 +784,7 @@ Rules:
   - [x] Frozen contracts (7 files) + guards + theme parity
   - [x] Asset manifest, icon sprite, portraits, LICENSES + test
   - [x] Root wiring (scripts, ESLint boundaries, bundle limit, Dockerfile, doc tables)
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
 - FF2 Systems + party
   - [ ] modifiers, effects, damage with tests
   - [ ] cards, waves, flowfield with tests
