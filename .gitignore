@@ -4,3 +4,4 @@ dist
 playwright-report
 test-results
 apps/*/e2e/__screens__
+apps/*/generated/
