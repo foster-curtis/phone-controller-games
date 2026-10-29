@@ -786,9 +786,9 @@ Rules:
   - [x] Root wiring (scripts, ESLint boundaries, bundle limit, Dockerfile, doc tables)
   - [x] Merged to `main`
 - FF2 Systems + party
-  - [ ] modifiers, effects, damage with tests
-  - [ ] cards, waves, flowfield with tests
-  - [ ] party with tests
+  - [x] modifiers, effects, damage with tests
+  - [x] cards, waves, flowfield with tests
+  - [x] party with tests
   - [ ] Merged to `main`
 - FF3 Art in engine
   - [ ] Atlases 1×/2×, unlit variants, rig validation
@@ -990,6 +990,34 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   family; the test also fails on stale path entries, and checks the fonts against `brand/head.html`.
 - [FF1] decision: Fort Frenzy tests live in `__tests__/` (theme parity at `src/shared/__tests__/`), and
   a Playwright smoke checks both entries load until the real smoke lands.
+- [FF2] decision: systems declare their own structural types (`StatMod`, `TimedEffect`, `DamageCalcOf`/
+  `DamageResultOf`, `FlowField`, `CardLike`) shaped like `sim/types.ts` and `content/types.ts`, since lint
+  forbids importing those; ids are generics, so the sim passes its own values unchanged.
+- [FF2] decision: stats: `StatCap` bounds Σ `addPct` (`pctMin`/`pctMax`) and also Σ `add` (`addMin`/
+  `addMax`); scoped mods count only for their scope, unscoped ones always.
+- [FF2] decision: effects stacking: `refresh` keeps one instance, longer timer, stronger strength;
+  `strongest`: stronger replaces (its own duration), equal extends, weaker is ignored; `stack`: +1 stack up
+  to `maxStacks`, longer timer, stronger strength, effective strength = strength × stacks. Periodic ticks
+  fire every `tickEvery` steps from the apply, the last one included; times are steps (`msToSteps`, ≥ 1).
+- [FF2] decision: damage: `applyDamage(calc, stages)` takes caller-supplied stage callbacks and fixes
+  their order; the amount clamps at ≥ 0 after stage 4; `hpStage` reports `killed` only on the killing hit.
+- [FF2] decision: cards: cards with `requires` (combos) are unique even if unmarked; ownership is an
+  `owners` list (class + `'common'`); the rare roll is always drawn first; an offer short of commons fills
+  with one rare; an offer shrinks when too few cards are eligible.
+- [FF2] decision: waves: `cost` is per group of `groupSize` units; `guaranteed.count` counts groups paid
+  from the budget, with optional `cost`/`groupSize` for ids outside the pool (boss; default 0 and 1);
+  substituted types leave the pool and guaranteed ones become a random pool replacement (dropped if
+  none); groups are shuffled, one per equal slice of the duration, unpinned ones dealt round-robin over
+  the open lanes; a guaranteed lane that isn't open is ignored. ±1 of budget needs a cost ≤ 1 type.
+- [FF2] decision: flow field: 4-neighbor Dijkstra; entering a tile costs `cost(tile)` (> 0, `Infinity` =
+  impassable); `next` −1 = goal or unreachable (`dist` Infinity); optional `into` rebuilds in place.
+- [FF2] decision: party: stages `lobby`/`build`/`combat` (combat = any non-build run phase); a device-ID
+  match takes the new relay key (new room), other matches keep known ids; with nobody connected the
+  leader stays, then the first back leads; ready needs name + class; auto-start = every connected player
+  ready and ≥ 2; `startRun` slots everyone with a name and class (ready or not), the rest late-join;
+  late slots are max + 1; name/class lock once slotted.
+- [FF2] decision: the party test is co-located (`src/host/party/party.test.ts`): the party lint rule
+  forbids any `../` import, so a `__tests__/` file couldn't import `../index`.
 
 ## 9. Final handoff
 
