@@ -1,7 +1,8 @@
 // Real-browser layout check for the phone play surface at small and large landscape viewports.
 // Thumb band (M5-fix-7): every control center (resting stick, DASH, SLAM, ghost PULSE) is at most
 // THUMB_BAND px above the bottom edge on any viewport; DASH sits above SLAM and left of it.
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from './helpers';
 
 const THUMB_BAND = 280;
 

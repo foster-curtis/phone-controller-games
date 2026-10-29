@@ -3,7 +3,7 @@
 // Output: e2e/__screens__/{lobby,round,slam,results,winner}.png (+ ghost.png for review).
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { expect, test, type Browser, type Page } from '@playwright/test';
+import { expect, type Browser, type Page } from '@playwright/test';
 import {
   eliminate,
   joinPhone,
@@ -14,6 +14,7 @@ import {
   startMatch,
   type Host,
   closeContexts,
+  test,
 } from './helpers';
 
 test.afterEach(closeContexts);

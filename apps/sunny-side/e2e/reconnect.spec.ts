@@ -1,6 +1,6 @@
 // Reconnect: a reload mid-round rejoins with the same playerId; a player who comes back after the
 // relay window (2 s in e2e) with the same player key spectates with their score restored.
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
 import {
   eliminate,
   joinPhone,
@@ -13,6 +13,7 @@ import {
   screen,
   startMatch,
   closeContexts,
+  test,
 } from './helpers';
 
 test.afterEach(closeContexts);
@@ -60,7 +61,7 @@ test('reload mid-round keeps the id; late rejoin by key restores the score', asy
     .toBe(false);
   await new Promise((r) => setTimeout(r, PLAYER_RECONNECT_MS + 1000));
 
-  const context = await newPhoneContext(browser, { [keyName]: playerKey! });
+  const context = await newPhoneContext(browser, { seed: { [keyName]: playerKey! } });
   const page = await context.newPage();
   await page.goto(`/play?code=${host.code}`);
   await expect(screen(page, 'spectating')).toBeVisible();

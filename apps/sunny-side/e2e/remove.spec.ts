@@ -1,7 +1,7 @@
 // TV removal (M7-fix-2): an away player is dimmed on the TV; clicking its × twice (arm, confirm)
 // removes it, so the lobby lists 2 players and a new phone gets the freed color.
-import { expect, test } from '@playwright/test';
-import { closeContexts, joinPhone, openHost, players, screen } from './helpers';
+import { expect } from '@playwright/test';
+import { closeContexts, joinPhone, openHost, players, screen, test } from './helpers';
 
 test.afterEach(closeContexts);
 

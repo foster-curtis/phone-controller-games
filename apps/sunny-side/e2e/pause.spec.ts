@@ -1,6 +1,14 @@
 // Host visibility pause (SPEC §8): host tab hidden → phones show gamePaused; visible → they leave it.
-import { expect, test, type Page } from '@playwright/test';
-import { closeContexts, joinPhone, openHost, playerByName, screen, startMatch } from './helpers';
+import { expect, type Page } from '@playwright/test';
+import {
+  closeContexts,
+  joinPhone,
+  openHost,
+  playerByName,
+  screen,
+  startMatch,
+  test,
+} from './helpers';
 
 test.afterEach(closeContexts);
 

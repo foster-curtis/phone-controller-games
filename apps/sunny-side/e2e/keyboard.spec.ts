@@ -1,7 +1,7 @@
 // On-screen keyboard: the name step and the lobby rename popup stay visible above it. A keyboard
 // is simulated by shrinking the viewport height at the same width (what the visual viewport does).
-import { expect, test, type Locator, type Page } from '@playwright/test';
-import { closeContexts, blockFonts, joinPhone, openHost, screen } from './helpers';
+import { expect, type Locator, type Page } from '@playwright/test';
+import { closeContexts, joinPhone, newPhoneContext, openHost, screen, test } from './helpers';
 
 test.afterEach(closeContexts);
 
@@ -21,8 +21,7 @@ async function expectInView(page: Page, ...items: Locator[]) {
 test('name step and rename popup stay above the keyboard', async ({ browser }) => {
   const host = await openHost(browser);
   await joinPhone(browser, host.code, 'Ann');
-  const context = await browser.newContext({ viewport: { width: W, height: H } });
-  await blockFonts(context);
+  const context = await newPhoneContext(browser, { viewport: { width: W, height: H } });
   const page = await context.newPage();
   await page.goto(`/play?code=${host.code}`);
   await expect(screen(page, 'lobby')).toBeVisible();

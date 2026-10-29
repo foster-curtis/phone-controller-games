@@ -1,12 +1,39 @@
 // Shared e2e helpers: a host page plus phones, each in its own browser context (own localStorage,
 // so its own player key). Google Fonts requests are aborted so runs are offline and deterministic.
-import { expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
+// Specs import `test` from here, not from '@playwright/test', so the built-in `page` gets
+// `noFullscreen` too.
+import {
+  test as base,
+  expect,
+  type Browser,
+  type BrowserContext,
+  type Page,
+} from '@playwright/test';
 import type {} from '../src/host/debug'; // `window.__pcg` typing
 import type { PlayerView } from '../src/host/match';
 import type { ScreenKind } from '../src/shared/messages';
 
 /** Phone viewport: landscape, so the rotate overlay stays away. */
 export const PHONE_VIEWPORT = { width: 844, height: 390 };
+
+/**
+ * Turns the controller's fullscreen-on-tap (PLATFORM §3) into a no-op. Headless Chromium on Windows
+ * really fullscreens the window on the first click, and `page.setViewportSize()` then fails
+ * ("restore it to normal state first"). Applied to every phone context.
+ */
+export async function noFullscreen(context: BrowserContext): Promise<void> {
+  await context.addInitScript(() => {
+    Element.prototype.requestFullscreen = () => Promise.resolve();
+  });
+}
+
+/** `test` whose built-in `context` (and so `page`) gets `noFullscreen`. */
+export const test = base.extend({
+  context: async ({ context }, use) => {
+    await noFullscreen(context);
+    await use(context);
+  },
+});
 
 /**
  * Closes every context a test opened on the shared browser (they aren't closed automatically), so
@@ -44,12 +71,17 @@ export interface Phone {
   name: string;
 }
 
+/** A phone's browser context: fonts blocked, no fullscreen, `seed` written to localStorage. */
 export async function newPhoneContext(
   browser: Browser,
-  seed?: Record<string, string>,
+  {
+    seed,
+    viewport = PHONE_VIEWPORT,
+  }: { seed?: Record<string, string>; viewport?: typeof PHONE_VIEWPORT } = {},
 ): Promise<BrowserContext> {
-  const context = await browser.newContext({ viewport: PHONE_VIEWPORT });
+  const context = await browser.newContext({ viewport });
   await blockFonts(context);
+  await noFullscreen(context);
   if (seed) {
     await context.addInitScript((entries) => {
       for (const [k, v] of Object.entries(entries)) localStorage.setItem(k, v);

@@ -1,4 +1,5 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from './helpers';
 
 test('controller results breakdown 640x360', async ({ page }) => {
   await page.setViewportSize({ width: 640, height: 360 });

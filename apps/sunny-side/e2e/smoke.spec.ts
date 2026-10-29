@@ -1,5 +1,5 @@
 // Smoke: lobby QR + code → phones join → leader Start → elimination → ghost → results → Next.
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
 import { create as createQr } from 'qrcode';
 import {
   eliminate,
@@ -12,6 +12,7 @@ import {
   screen,
   startMatch,
   closeContexts,
+  test,
 } from './helpers';
 
 test.afterEach(closeContexts);
