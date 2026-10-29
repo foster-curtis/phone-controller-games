@@ -778,7 +778,7 @@ Rules:
   - [x] `@pcg/controller-kit` (platform, shell, router, widgets, gestures, sender, dev harness) with tests
   - [x] Sunny Side on the kits, its copies deleted, its checks and e2e green
   - [x] Dockerfile + `.prettierignore` + package tables updated
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
 - FF1 Scaffold + contracts
   - [ ] App scaffold, deps, entries, configs, `check:fort-frenzy` green
   - [ ] Frozen contracts (7 files) + guards + theme parity
