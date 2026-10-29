@@ -12,7 +12,7 @@ every message goes through a shared, game-agnostic WebSocket **relay**.
 | ------------------------- | --------------------- | ------------------------------------------------------------------------------------ |
 | `apps/relay`              | `@pcg/relay`          | Done. Node WebSocket server, deployed to Fly.io. No game rules.                      |
 | `apps/sunny-side`         | `@pcg/sunny-side`     | Done. Sunny Side Slam, the first game. Vite multi-page app on Vercel.                |
-| `apps/fort-frenzy`        | (none yet)            | Planning. Spec complete (design + technical), no code yet.                           |
+| `apps/fort-frenzy`        | `@pcg/fort-frenzy`    | In build (FF1: scaffold, frozen contracts, asset manifest). Plan in `BUILD_PLAN.md`. |
 | `packages/net-client`     | `@pcg/net-client`     | Done. Relay protocol types plus host and controller clients (TS).                    |
 | `packages/controller-kit` | `@pcg/controller-kit` | Done (FF0). Phone platform, app shell, widgets, gestures, input sender, dev harness. |
 | `packages/game-kit`       | `@pcg/game-kit`       | Done (FF0). Fixed-step loop, lerp, seeded RNG, host helpers; `/vite` plugins.        |
@@ -43,6 +43,8 @@ every message goes through a shared, game-agnostic WebSocket **relay**.
 | Brand tokens (colors, fonts, spacing)                     | `apps/sunny-side/src/styles/brand.css`, mirrored for Phaser in `src/shared/theme.ts`                |
 | Debug hooks                                               | `apps/sunny-side/src/host/debug.ts` (`window.__pcg`), `src/controller/devMode.ts`                   |
 | Fort Frenzy design and technical design                   | `apps/fort-frenzy/SPEC.md` (§15 is the technical design)                                            |
+| Fort Frenzy build plan, freeze points, build decisions    | `apps/fort-frenzy/BUILD_PLAN.md` (§3 milestones and freeze points, §8 build decisions)              |
+| Fort Frenzy asset pipeline (manifest, icons, portraits)   | `apps/fort-frenzy/scripts/build-atlases.ts` → gitignored `generated/`; licenses in `assets/`        |
 | Lint boundary rules                                       | `eslint.config.js`                                                                                  |
 | Build checks                                              | `scripts/check-bundle.mjs`, `scripts/check-routes.mjs`                                              |
 | CI                                                        | `.github/workflows/ci.yml` (runs `pnpm check` on every push)                                        |
@@ -58,7 +60,7 @@ still resolve.
 Run everything from the repo root with pnpm 10 and Node ≥ 22. Shell commands in the docs are POSIX sh
 (Git Bash on Windows).
 
-Root scripts are per game. `<game>` is the app folder name (`sunny-side`).
+Root scripts are per game. `<game>` is the app folder name (`sunny-side`, `fort-frenzy`).
 
 ```sh
 pnpm install                       # install the workspace
@@ -148,9 +150,8 @@ These rules are enforced by ESLint or by `pnpm check`. Don't work around them.
 
 ## Adding or starting a game (Fort Frenzy)
 
-Fort Frenzy is still in planning. Its spec is complete: game design in §1–§14 and technical design in
-§15 (repo layout, packages, engine, protocol, sim, testing). A build plan comes next. Don't scaffold
-code until the user asks. When a new game gets code:
+Fort Frenzy is in build: its spec (game design §1–§14, technical design §15) and `BUILD_PLAN.md`
+drive the work, and FF1 scaffolded the app and froze its contracts. When a new game gets code:
 
 - Model it on `apps/sunny-side`: separate `index.html` (host) and `play.html` (controller) entries,
   `src/host`, `src/controller`, `src/shared`, a unique game ID (`GAME_ID`) for the relay namespace, and a
@@ -166,9 +167,12 @@ code until the user asks. When a new game gets code:
   - Add the game to the tables in `PLATFORM.md` §1, `README.md` and this file.
 - Already generic, so no edits needed:
   - `eslint.config.js` applies the boundary rules to `apps/*/src/{controller,host/sim,host/match}/**`
-    and reads app package names from `apps/*/package.json`.
+    and Fort Frenzy's `apps/*/src/host/{sim,systems,party}/**` rules (no DOM, determinism, import
+    limits; fixtures in `__fixtures__/` prove them), and reads app package names from
+    `apps/*/package.json`.
   - `check-bundle.mjs` and `check-routes.mjs` find every `apps/*` with a `play.html`. `check:bundle`
-    only checks Phaser apps.
+    checks Phaser only in Phaser apps. One edit needed: add the game's gzipped `play.html` JS limit to
+    `PLAY_JS_LIMIT_KB` there.
   - `check:routes` expects Sunny Side's conventions: `data-entry` markers, the icon set and manifest, and
     Google Fonts in the `<head>`. Match them or adjust the script.
   - `.prettierignore` covers `apps/*/SPEC.md` and `BUILD_PLAN.md`, in either case.

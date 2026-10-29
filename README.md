@@ -11,7 +11,7 @@ Same-room party games: the TV runs the game in a browser, phones are the control
 | ------------------------- | --------------------- | ----------------------------------------------------------------------- |
 | `apps/relay`              | `@pcg/relay`          | Game-agnostic WebSocket relay (Fly.io)                                  |
 | `apps/sunny-side`         | `@pcg/sunny-side`     | Sunny Side Slam: host (`/`) + phone controller (`/play`)                |
-| `apps/fort-frenzy`        | (none yet)            | Fort Frenzy: in planning (spec only)                                    |
+| `apps/fort-frenzy`        | `@pcg/fort-frenzy`    | Fort Frenzy: host (`/`) + phone controller (`/play`); in build          |
 | `packages/net-client`     | `@pcg/net-client`     | Relay protocol types + host/controller clients (TS source)              |
 | `packages/controller-kit` | `@pcg/controller-kit` | Phone platform, app shell, input widgets, gestures, sender, dev harness |
 | `packages/game-kit`       | `@pcg/game-kit`       | Fixed-step loop, lerp, seeded RNG, host helpers, Vite plugins (`/vite`) |
@@ -26,7 +26,7 @@ pnpm install
 
 ## Develop
 
-Scripts are per game (`<game>` is the app folder name, e.g. `sunny-side`):
+Scripts are per game (`<game>` is the app folder name: `sunny-side` or `fort-frenzy`):
 
 ```sh
 pnpm dev:sunny-side       # relay on :8787 + Vite on :5173 (http://localhost:5173, phones at /play)
@@ -56,7 +56,12 @@ pnpm e2e                  # every app's Playwright suite, one app at a time
 pnpm format               # Prettier --write
 ```
 
-`check:bundle [<game>]` fails if anything reachable from a game's `play.html` contains Phaser;
+`check:bundle [<game>]` fails if anything reachable from a game's `play.html` contains Phaser or its
+gzipped JS exceeds the game's limit (in the script);
 `check:routes [<game>]` serves the build with `vite preview` on :4173 and checks `/`, `/play`, the
 icons and the brand `<head>`. Without a name they check every game app (any `apps/*` with a
 `play.html`).
+
+Fort Frenzy generates its asset manifest, icon sprite and class portraits into the gitignored
+`apps/fort-frenzy/generated/` with `pnpm --filter @pcg/fort-frenzy assets`; its `dev`, `build`,
+`typecheck`, `test` and `e2e` scripts run that first.

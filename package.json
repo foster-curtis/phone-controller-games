@@ -22,7 +22,12 @@
     "dev:lan:sunny-side": "concurrently -n relay,web -c yellow,cyan \"pnpm --filter @pcg/relay dev\" \"pnpm --filter @pcg/sunny-side dev --host\"",
     "build:sunny-side": "pnpm --filter @pcg/sunny-side build",
     "e2e:sunny-side": "pnpm --filter @pcg/sunny-side e2e",
-    "check:sunny-side": "pnpm --filter @pcg/sunny-side typecheck && eslint apps/sunny-side && prettier --check apps/sunny-side && pnpm --filter @pcg/sunny-side test && pnpm build:sunny-side && pnpm check:bundle sunny-side && pnpm check:routes sunny-side"
+    "check:sunny-side": "pnpm --filter @pcg/sunny-side typecheck && eslint apps/sunny-side && prettier --check apps/sunny-side && pnpm --filter @pcg/sunny-side test && pnpm build:sunny-side && pnpm check:bundle sunny-side && pnpm check:routes sunny-side",
+    "dev:fort-frenzy": "concurrently -n relay,web -c yellow,cyan \"pnpm --filter @pcg/relay dev\" \"pnpm --filter @pcg/fort-frenzy dev\"",
+    "dev:lan:fort-frenzy": "concurrently -n relay,web -c yellow,cyan \"pnpm --filter @pcg/relay dev\" \"pnpm --filter @pcg/fort-frenzy dev --host\"",
+    "build:fort-frenzy": "pnpm --filter @pcg/fort-frenzy build",
+    "e2e:fort-frenzy": "pnpm --filter @pcg/fort-frenzy e2e",
+    "check:fort-frenzy": "pnpm --filter @pcg/fort-frenzy typecheck && eslint apps/fort-frenzy && prettier --check apps/fort-frenzy && pnpm --filter @pcg/fort-frenzy test && pnpm build:fort-frenzy && pnpm check:bundle fort-frenzy && pnpm check:routes fort-frenzy"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
