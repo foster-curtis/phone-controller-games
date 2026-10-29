@@ -385,7 +385,7 @@ There is no passive regeneration. Damage is permanent unless someone acts.
 |---|---|---|
 | Crate delivery: drop a crate at the base to repair a chunk of HP | Anyone (the Quartermaster is best at it) | Any time |
 | Shop repair, with a price that rises each purchase | Anyone, paid from team coins | Build phase |
-| Emergency repair kit | Quartermaster-only shop item | Instant, usable mid-combat |
+| Emergency repair kit | Quartermaster-only shop item, bought in the build phase; the Quartermaster holds one at a time | Used with the action button in the repair zone (§10.1), in either phase, including mid-combat |
 
 Crates therefore have two uses: building or repairing.
 
@@ -1100,15 +1100,16 @@ only glanceable information.
 |---|---|---|
 | 1 | Next to a crate on the ground, with room to carry it | Pick it up |
 | 2 | In the base's repair zone, holding a crate | Deliver it to repair the base |
-| 3 | On the depot pad, with room to carry another crate | Buy a crate |
-| 4 | Engineer or Warden holding a crate | Place last-used structure at feet (before any placement: the class's first structure) |
-| 5 | Quartermaster holding crates | Throw one, auto-targeting the nearest Engineer or Warden |
-| 6 | Commander (default) | Plant rally flag; tap again to recall the squad |
+| 3 | Quartermaster in the base's repair zone, holding an emergency repair kit | Use the kit (§3.4; icon `emergency-kit`) |
+| 4 | On the depot pad, with room to carry another crate | Buy a crate |
+| 5 | Engineer or Warden holding a crate | Place last-used structure at feet (before any placement: the class's first structure) |
+| 6 | Quartermaster holding crates | Throw one, auto-targeting the nearest Engineer or Warden |
+| 7 | Commander (default) | Plant rally flag; tap again to recall the squad |
 
 The button's icon changes to show what it will do. If nothing applies, the button is dimmed.
 
 **Build arc** (Engineer and Warden, holding a crate). Same gesture as the aimed sticks:
-- **Tap** the action button: its normal action from the table above (priority 4 places the last-used
+- **Tap** the action button: its normal action from the table above (priority 5 places the last-used
   structure).
 - **Press and hold** (about 0.4 s) or start dragging: an arc appears above the player's head on the TV,
   with one icon per structure the class can build (left, up and right) and **Give crate** (down).
@@ -1136,6 +1137,9 @@ The button's icon changes to show what it will do. If nothing applies, the butto
   carried. Every player has a Build tab and a Shop tab (§10.3). Classes with no structures to build
   (Quartermaster, Commander) see a "No buildings to build" note in place of the structures, and keep the
   stick, crate count, Give crate and Ready, so they can still move and run crates.
+- The Build and Shop tabs keep a small **action button** beside Give crate for the §10.1 rows that
+  apply outside combat: pick up, deliver, use the emergency kit and buy at the Armory pad (rows 1–4).
+  Building in the build phase goes through the Build tab, never this button (2026-10-29, §15.11 #33).
 - A **Give crate** button next to the crate count follows the same rule as Give in combat
   (§10.1): one crate to the nearest teammate in reach with room, otherwise dropped at your feet. It's on
   both the build menu and the shop tab.
@@ -1284,7 +1288,9 @@ Ideas deferred from v1. Build v1 so these can be added without rewrites.
 3. **Passive regeneration (balance watch):** HP carries over between waves and nothing heals players
    except Field Medic and the Quartermaster's super (§5, §8). If playtests show players dying too often,
    add a slow passive regeneration during combat, boosted inside the Field Medic aura.
-4. **Sound effects:** source the v1 set (§12). Candidates: Kenney.nl (CC0 packs: Sci-fi Sounds, Impact
+4. **Sound effects (settled 2026-10-29, §15.11 #34):** Foster supplies Kenney.nl CC0 packs in
+   `audio/kenney/<pack>/` (with each pack's `License.txt`); the build picks the v1 set from them and
+   converts it to `.mp3` in `audio/neon-knights/`. Earlier candidates: source the v1 set (§12). Candidates: Kenney.nl (CC0 packs: Sci-fi Sounds, Impact
    Sounds, Interface Sounds), jsfxr/sfxr.me (generated, owned outright), Sonniss GDC bundles
    (royalty-free) and freesound.org (CC0 filter only). Every file gets a license entry (§15.10).
 5. **Art status:** the v1 neon-knights art is complete in `art/neon-knights/` (§15.10): P1 (rigs,
@@ -1351,6 +1357,7 @@ apps/fort-frenzy/
                         rigs/<id>.json, sprites.json, characters/ enemies/ structures/ effects/ map/
                         (SVG sources), icons/ (§2.6), review/ (reference only, never built)
   audio/<theme>/        .mp3 sources
+  audio/kenney/<pack>/  Kenney CC0 source packs (Foster's drop; the build picks and converts from them)
   assets/LICENSES.json  one entry per asset or pack (§15.10)
   scripts/              build-atlases.ts, replay.ts (Node)
   src/
@@ -1887,7 +1894,8 @@ interface MeView {
   isLeader: boolean; ready: boolean;
   hp: number; maxHp: number; crates: number; carryCap: number;
   superCharge: number; superReady: boolean;                     // 0..1 ring; full state (§10.1)
-  action: 'pickup' | 'deliver' | 'buy' | 'place' | 'throw' | 'flag' | 'recall' | 'none'; // act-* ids
+  action: 'pickup' | 'deliver' | 'buy' | 'place' | 'throw' | 'flag' | 'recall' | 'kit' | 'none'; // act-* ids; 'kit' = emergency-kit
+  kits: number;                                                 // emergency kits held (Quartermaster, 0 or 1)
   give: 'give' | 'drop' | null;                                 // what Give does now (icon swap, §10.1)
   arc: { slots: (StructureId | 'give' | null)[]; enabled: boolean[] } | null;  // left, up, right, down
   buildKit: StructureId[];                                      // empty = "No buildings to build" (§10.2)
@@ -1962,7 +1970,7 @@ interface RunSnapshot {
     dischargesUsed?: number; fortified?: boolean }[];
   cratePiles: { x: number; y: number; n: number }[];
   slots: { slot: number; playerKey: string; deviceId: string; name: string; color: PlayerColorId;
-    classId: ClassId; hp: number; crates: number; lastBuilt: StructureId | null;
+    classId: ClassId; hp: number; crates: number; kits: number; lastBuilt: StructureId | null;
     cards: Record<CardId, number>; offer: CardId[] | null; picked: CardId | null; stats: RunStats;
     squad?: { size: number; veterans: number[]; flag: [number, number] | null } }[];
   leaderKey: string | null;
@@ -2084,3 +2092,6 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 29 | 2026-10-28 | Carried cells | Pips at every player's feet, one per point of carry cap; the Artificer also keeps the gauge (§2.4) | Carrying is visible for every class; the gauge stays as class flavor (Foster) |
 | 30 | 2026-10-28 | Card and lobby marks | One category mark per upgrade card (17 marks); a `leader` mark in the lobby | Cards read at a glance without 64 illustrations |
 | 31 | 2026-10-28 | Unlit frames | The atlas script packs a `@unlit` variant of every frame with baked-in glow | Enemy glow is inside each part, so stun and destruction need a dark version without new art |
+| 32 | 2026-10-29 | Emergency kit | Bought in the build phase, one held at a time by the Quartermaster, used with the action button in the repair zone (new §10.1 row 3) in either phase; `MeView.action` gains `'kit'` and `kits` | §3.4 asked for a mid-combat kit, but combat has no menus (Foster) |
+| 33 | 2026-10-29 | Build-phase action button | The Build and Shop tabs keep an action button for pick up, deliver, kit and Armory buy (§10.2) | §6 lets players carry, deliver and buy cells in both phases, and the build tabs had no way to do it (Foster) |
+| 34 | 2026-10-29 | Sound effects | Kenney CC0 packs supplied in `audio/kenney/`, picked and converted to `.mp3` in `audio/neon-knights/` (§14 #4) | Commercially clear, already downloaded (Foster) |
