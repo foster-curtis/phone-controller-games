@@ -1,50 +1,5 @@
-// DASH / SLAM hold buttons (multi-touch safe: each tracks its own pointerIds) + the SLAM charge arc.
-
-export interface HoldButton {
-  isDown(): boolean;
-  /** Start / end a press from a pointer event that landed elsewhere (see createNearestRouter). */
-  press(e: PointerEvent): void;
-  release(e: PointerEvent): void;
-  destroy(): void;
-}
-
-export function createHoldButton(el: HTMLElement, onChange: (down: boolean) => void): HoldButton {
-  const pointers = new Set<number>();
-  const down = (e: PointerEvent) => {
-    e.preventDefault();
-    try {
-      el.setPointerCapture?.(e.pointerId);
-    } catch {
-      /* pointer already gone */
-    }
-    const was = pointers.size > 0;
-    pointers.add(e.pointerId);
-    if (!was) {
-      el.classList.add('pressed');
-      onChange(true);
-    }
-  };
-  const up = (e: PointerEvent) => {
-    if (!pointers.delete(e.pointerId)) return;
-    if (pointers.size === 0) {
-      el.classList.remove('pressed');
-      onChange(false);
-    }
-  };
-  el.addEventListener('pointerdown', down);
-  el.addEventListener('pointerup', up);
-  el.addEventListener('pointercancel', up);
-  return {
-    isDown: () => pointers.size > 0,
-    press: down,
-    release: up,
-    destroy() {
-      el.removeEventListener('pointerdown', down);
-      el.removeEventListener('pointerup', up);
-      el.removeEventListener('pointercancel', up);
-    },
-  };
-}
+// The SLAM charge arc. The DASH / SLAM hold buttons and the nearest-center router (M5-fix-5) come from
+// @pcg/controller-kit.
 
 /** Time to hold SLAM for a full gauge (visual only; the host times the real charge). */
 export const SLAM_FULL_MS = 1000;
@@ -189,40 +144,4 @@ export function createChargeArc(host: HTMLElement, fullMs = SLAM_FULL_MS): Charg
     ratio,
     destroy: stopTimer,
   };
-}
-
-/**
- * M5-fix-5: a touch on the pads goes to the button whose center is nearer (so SLAM sitting beside DASH
- * leaves no dead or misassigned area). Capture-phase on the container; a press already landing on the
- * nearer button's own zone passes through untouched. With no layout (equal distances) the zone hit wins.
- */
-export function createNearestRouter(
-  container: HTMLElement,
-  pads: Array<{ zone: HTMLElement; btn: HTMLElement; hold: HoldButton }>,
-): () => void {
-  const center = (b: HTMLElement) => {
-    const r = b.getBoundingClientRect();
-    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-  };
-  const onDown = (e: Event) => {
-    const pe = e as PointerEvent;
-    const own = pads.find((p) => p.zone === pe.target || p.zone.contains(pe.target as Node));
-    if (!own || pads.length < 2) return;
-    let best = own;
-    let bestD = Infinity;
-    for (const p of pads) {
-      if (!p.zone.isConnected) continue;
-      const c = center(p.btn);
-      const d = Math.hypot(pe.clientX - c.x, pe.clientY - c.y);
-      if (d < bestD - 1e-6 || (Math.abs(d - bestD) <= 1e-6 && p === own)) {
-        best = p;
-        bestD = d;
-      }
-    }
-    if (best === own) return;
-    pe.stopPropagation();
-    best.hold.press(pe);
-  };
-  container.addEventListener('pointerdown', onDown, true);
-  return () => container.removeEventListener('pointerdown', onDown, true);
 }

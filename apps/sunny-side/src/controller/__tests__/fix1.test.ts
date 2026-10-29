@@ -7,7 +7,7 @@ const css = readFileSync(
   join(dirname(fileURLToPath(import.meta.url)), '../controller.css'),
   'utf8',
 );
-import { sampleStandings } from '../dev';
+import { sampleStandings } from '../samples';
 import { mount, pointer, sampleScreen } from './helpers';
 import type { Screen } from '../../shared/messages';
 

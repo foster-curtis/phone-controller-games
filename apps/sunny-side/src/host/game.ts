@@ -6,11 +6,10 @@ import {
   type HostClient,
   type HostRoom,
 } from '@pcg/net-client';
+import { catchUpSteps, createFixedStep, relayUrl, type FixedStep } from '@pcg/game-kit';
 import { GAME_ID } from '../shared/messages';
-import { relayUrl } from '../shared/relayUrl';
 import { createDebugSim, type DebugSim } from './debug';
-import { catchUpSteps, createFixedStep, type FixedStep } from './loop/fixedStep';
-import { interpolateSnapshot } from './loop/interpolate';
+import { interpolateSnapshot } from './interpolate';
 import { createMatch, STEP_MS, type Match, type MatchView, type StorageLike } from './match';
 import { createSim, type Sim, type SimEvent, type SimSnapshot } from './sim';
 import { createHostNet } from './net';
@@ -61,7 +60,12 @@ export interface GameRuntime {
 
 export function createGameRuntime(opts: GameRuntimeOptions = {}): GameRuntime {
   const client =
-    opts.client ?? createHostClient({ url: relayUrl(), game: GAME_ID, maxPlayers: MAX_PLAYERS });
+    opts.client ??
+    createHostClient({
+      url: relayUrl(import.meta.env.VITE_RELAY_URL),
+      game: GAME_ID,
+      maxPlayers: MAX_PLAYERS,
+    });
   const realSim = createSim();
   const debugSim = opts.debug ? createDebugSim(realSim) : null;
   const sim: Sim = debugSim ?? realSim;

@@ -1,5 +1,5 @@
 // Eliminated: "Respawn as a ghost in" + a very large countdown (SPEC §6.7).
-import { el } from '../dom';
+import { el } from '@pcg/controller-kit';
 import type { Screen } from '../../shared/messages';
 import { standingsList, type ScreenView } from './common';
 

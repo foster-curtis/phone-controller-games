@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BRAND_FONT_FACES, loadBrandFonts } from './fonts';
 import { isInput } from './messages';
-import { relayUrl } from './relayUrl';
+import { relayUrl } from '@pcg/game-kit';
 
 describe('isInput', () => {
   it('accepts valid tuples and rejects the rest', () => {

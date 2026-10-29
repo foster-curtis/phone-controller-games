@@ -1,6 +1,6 @@
 // Pieces shared by several screens.
 import markUrl from '../../../brand/mark.svg?url';
-import { el } from '../dom';
+import { el } from '@pcg/controller-kit';
 import type {
   ControllerMsg,
   LeaderAction,
@@ -9,7 +9,7 @@ import type {
   Standing,
 } from '../../shared/messages';
 import type { StorageLike } from '@pcg/net-client';
-import type { InputSender } from '../input/sender';
+import type { InputSender } from '../input/tuple';
 
 export interface ScreenCtx {
   send(msg: ControllerMsg): void;

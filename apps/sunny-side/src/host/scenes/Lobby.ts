@@ -1,9 +1,8 @@
 // Lobby (SPEC §6.6 Screens): sticker title with the mark, QR + room code panels, joined players as
 // color pills, and the host's Start button.
+import { joinUrl, qrMatrix } from '@pcg/game-kit';
 import * as Phaser from 'phaser';
-import { create as createQr } from 'qrcode';
 import { theme } from '../../shared/theme';
-import { joinUrl } from '../lan';
 import { lobbyLayout, type Rect } from '../render/layout';
 import { addRemoveButton } from '../render/remove';
 import { drawPanel, drawPill, drawSticker } from '../render/sticker';
@@ -222,8 +221,7 @@ export class LobbyScene extends Phaser.Scene {
 
   private drawQr(url: string, panel: Rect): void {
     for (const o of this.qrObjects) o.destroy();
-    const qr = createQr(url, { errorCorrectionLevel: 'M' });
-    const { size, data } = qr.modules;
+    const { size, modules } = qrMatrix(url, 'M');
     const cell = Math.floor(QR_BOX / (size + QR_QUIET * 2));
     const box = cell * (size + QR_QUIET * 2);
     const x = panel.x + (panel.w - box) / 2;
@@ -236,11 +234,11 @@ export class LobbyScene extends Phaser.Scene {
     const oy = y + cell * QR_QUIET;
     for (let r = 0; r < size; r++) {
       for (let c = 0; c < size; c++) {
-        if (data[r * size + c]) g.fillRect(ox + c * cell, oy + r * cell, cell, cell);
+        if (modules[r * size + c]) g.fillRect(ox + c * cell, oy + r * cell, cell, cell);
       }
     }
     this.qrObjects = [g];
     this.qrFor = url;
-    hostContext(this).qr = { url, size, modules: Array.from(data, (v) => (v ? 1 : 0)) };
+    hostContext(this).qr = { url, size, modules };
   }
 }

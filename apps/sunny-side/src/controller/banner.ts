@@ -1,7 +1,7 @@
 // The top banner: filled with the player's color, connectivity dot then name on the left, and a slot on
 // the right (the play surface mounts its hold-to-pause button there). Neutral before a color is assigned.
 import type { PlayerColorId } from '../shared/messages';
-import { el } from './dom';
+import { el } from '@pcg/controller-kit';
 import { colorOnVar, colorVar } from './screens/common';
 
 export const DEFAULT_BANNER_TEXT = 'Sunny Side Slam';

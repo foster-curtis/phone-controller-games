@@ -1,5 +1,6 @@
 import { createApp, type App } from '../app';
-import { createLocalClient, sampleScreen, type LocalClient } from '../dev';
+import { createLocalClient, type LocalClient } from '@pcg/controller-kit';
+import { sampleScreen } from '../samples';
 import type { Screen } from '../../shared/messages';
 
 /** Dispatches a pointer event (jsdom's PointerEvent support varies, so fall back to a MouseEvent). */

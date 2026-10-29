@@ -1,11 +1,10 @@
 // The play surface, shared by the `countdown`, `playing` and `ghost` screens so a held thumb survives
 // the transitions. Left half: floating joystick (rests bottom-left). Right half: DASH (up/left) and
 // SLAM (down/right) zones, or one PULSE zone for ghosts. The pause button lives in the top banner.
-import { el } from '../dom';
+import { createHoldButton, createJoystick, createNearestRouter, el } from '@pcg/controller-kit';
 import { BUTTON_DASH, BUTTON_SLAM, type Screen } from '../../shared/messages';
-import { createChargeArc, createHoldButton, createNearestRouter } from '../input/buttons';
+import { createChargeArc } from '../input/buttons';
 import { createHoldToPause } from '../input/holdToPause';
-import { createJoystick } from '../input/joystick';
 import { colorVar, type ScreenCtx, type ScreenView } from './common';
 
 type PlaySurface = Extract<Screen, { kind: 'countdown' | 'playing' | 'ghost' }>;

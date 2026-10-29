@@ -9,6 +9,8 @@ RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/relay/package.json apps/relay/
 COPY apps/sunny-side/package.json apps/sunny-side/
+COPY packages/controller-kit/package.json packages/controller-kit/
+COPY packages/game-kit/package.json packages/game-kit/
 COPY packages/net-client/package.json packages/net-client/
 RUN pnpm install --frozen-lockfile --filter @pcg/relay...
 COPY tsconfig.base.json ./

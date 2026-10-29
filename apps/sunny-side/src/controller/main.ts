@@ -1,20 +1,19 @@
 // Controller (phone) entry. Must never import Phaser or src/host/**.
+import { isDevMode } from '@pcg/controller-kit';
+import { relayUrl } from '@pcg/game-kit';
 import { createControllerClient } from '@pcg/net-client';
 import '../styles/brand.css';
 import { GAME_ID } from '../shared/messages';
-import { relayUrl } from '../shared/relayUrl';
 import { createApp } from './app';
 import './controller.css';
-import { startDev } from './dev';
-import { tryLockLandscape } from './orientation';
-import { createWakeLock } from './wakeLock';
+import { startDev } from './devMode';
 
 function boot(): void {
   const root = document.getElementById('app');
   if (!root) return;
   const params = new URLSearchParams(location.search);
 
-  if (params.get('dev') === '1') {
+  if (isDevMode(location.search)) {
     startDev(root);
     return;
   }
@@ -23,17 +22,6 @@ function boot(): void {
   const goTo = (c: string) => {
     location.search = `?code=${encodeURIComponent(c)}`;
   };
-
-  const wake = createWakeLock();
-  // Wake Lock and fullscreen need a user gesture; take them on the first touch.
-  addEventListener(
-    'pointerdown',
-    () => {
-      void wake.request();
-      void tryLockLandscape();
-    },
-    { once: true },
-  );
 
   if (!code) {
     // No code: the joining screen asks for one.
@@ -44,7 +32,11 @@ function boot(): void {
 
   let client;
   try {
-    client = createControllerClient({ url: relayUrl(), game: GAME_ID, code });
+    client = createControllerClient({
+      url: relayUrl(import.meta.env.VITE_RELAY_URL),
+      game: GAME_ID,
+      code,
+    });
   } catch (e) {
     const stub = createNullClient(e instanceof Error ? e.message : 'Could not connect.');
     void createApp({ root, client: stub, code, onCode: goTo }).start();

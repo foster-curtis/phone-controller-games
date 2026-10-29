@@ -1,9 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BUTTON_DASH, BUTTON_SLAM, type InputTuple } from '../../shared/messages';
-import { createChargeArc, createHoldButton } from '../input/buttons';
+import {
+  computeStick,
+  createHoldButton,
+  createJoystick,
+  STICK_RADIUS_PX,
+} from '@pcg/controller-kit';
+import { createChargeArc } from '../input/buttons';
 import { createHoldToPause } from '../input/holdToPause';
-import { computeStick, createJoystick, STICK_RADIUS_PX } from '../input/joystick';
-import { createInputSender } from '../input/sender';
+import { createInputSender } from '../input/tuple';
 import { pointer } from './helpers';
 
 beforeEach(() => {

@@ -10,7 +10,7 @@ import {
   arcThickness,
   createChargeArc,
 } from '../input/buttons';
-import { createJoystick } from '../input/joystick';
+import { createJoystick } from '@pcg/controller-kit';
 import { mount, pointer, sampleScreen } from './helpers';
 
 const css = readFileSync(
