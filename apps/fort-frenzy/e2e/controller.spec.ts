@@ -99,3 +99,25 @@ for (const vp of VIEWPORTS) {
     });
   });
 }
+
+// C1 note (FF4-fix-1): the open screen picker covered the "dev" button, so it could not be closed.
+// Real clicks (no evaluate, no force) so a covered toggle fails the actionability check.
+test.describe('dev toggle', () => {
+  test.use({ viewport: { width: 844, height: 390 }, hasTouch: true });
+
+  test('the dev button opens and closes the picker', async ({ page }) => {
+    await open(page, 'combat');
+    const toggle = page.locator('.dev-toggle');
+    const panel = page.locator('.dev-panel');
+    await expect(panel).toBeHidden();
+    await toggle.click();
+    await expect(panel).toBeVisible();
+    await expect(toggle).toBeVisible();
+    // Picking a screen keeps the picker open; the toggle still closes it.
+    await page.locator('[data-dev-screen="lobby"]').click();
+    await toggle.click();
+    await expect(panel).toBeHidden();
+    await toggle.click();
+    await expect(panel).toBeVisible();
+  });
+});

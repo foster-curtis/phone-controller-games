@@ -1042,6 +1042,9 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
 - [FF4] decision: `wishlist[].by` is read as a relay playerId (name fallback); class select lives in the lobby view
   ("Change class"); the name screen is the join screen (code + name + button) once connected.
 - [FF4] decision: extraction candidate: `fitAboveKeyboard` (copied from Sunny Side into `screens/common.ts`).
+- [FF4-fix-1] decision: the full-screen `.dev-panel` (z 22) covered `.dev-toggle` (z 21), so the picker
+  could not be closed; the toggle now sits above it (z 23, panel bottom padding clears it). CSS only, the
+  kit is unchanged; picking a screen still leaves the picker open.
 - [FF3] decision: atlases rasterize at 0.6 px per sprite unit × scale (one 80-unit tile = 48 px at 1×),
   icons at 1 px per unit × scale (frames `icons/<id>`); frames are alpha-trimmed into Phaser JSON-hash
   atlases (`generated/atlases/<theme>@<s>x-<i>`), split into more bins only past 4096² (today one per

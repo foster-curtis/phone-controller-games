@@ -1531,12 +1531,13 @@ button {
   pointer-events: none;
 }
 
+/* Above the full-screen panel so it can close it again (C1 note, FF4-fix-1). */
 .dev-toggle {
   position: absolute;
   left: 50%;
   bottom: var(--space-1);
   transform: translateX(-50%);
-  z-index: 21;
+  z-index: 23;
   padding: var(--space-1) var(--space-2);
   border: 1px solid var(--border);
   background: var(--surface);
@@ -1551,6 +1552,8 @@ button {
   z-index: 22;
   overflow-y: auto;
   padding: var(--space-3);
+  /* Rows scroll clear of the toggle. */
+  padding-bottom: var(--space-8);
   background: var(--scrim);
   touch-action: pan-y;
 }
