@@ -1095,6 +1095,19 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
 - [FF3] note for C1: knight pivots (SPEC §14 #7) looked right in the gallery walk/hit/down clips at
   TV scale; judge them in motion at C1. Art notes worked around: the Commander's back view swings
   `swordtip` on `gauntlets`, footman side swings its blade hand only, Ranger back views move no strap.
+- [FF4-fix-2] contract+: `src/shared/messages.ts` `Intent` gains `{ k: 'color'; color: PlayerColorId }`
+  (lobby only; `isIntent` checks the id; SPEC §15.6 lists it). The phone only sends it and renders the
+  color from `team`/`me`; the host rule (validate, swap, ack `taken`) is FF2-fix-1.
+- [FF4-fix-2] decision: the kit's `bindGesture` is one element per machine with a fixed origin, so the
+  floating aimed joysticks compose `aimedGesture` in `src/controller/aimZones.ts` (one zone over the
+  right half, `pickZone` in `layout.ts`). Extraction candidate: a kit `bindZonedGestures`. `layoutCombat`
+  is unchanged; its gap/edge/size rules still apply to the resting circles, and the zones are the
+  nearest-edge partition of them (reach 56 px), so the rules hold for the floating buttons' rest state.
+- [FF4-fix-2] decision: class select moves by transform, not native scroll-snap (momentum can pass cards);
+  `swipeTarget` in `src/controller/swipe.ts` clamps any drag to one card (36 px or a fast flick).
+- [FF4-fix-2] decision: Ready dims by disabling Change class, difficulty, Start, remove and the color
+  swatches (Ready itself stays live to un-ready); the label is always READY. Dev mode applies a picked
+  color locally (no host rule).
 
 ## 9. Final handoff
 

@@ -484,16 +484,24 @@ button {
   min-height: 0;
   display: flex;
   gap: var(--space-3);
-  overflow-x: auto;
-  overflow-y: hidden;
-  scroll-snap-type: x mandatory;
+  overflow: hidden;
   padding: 0 7%;
-  scrollbar-width: none;
-  touch-action: pan-x;
+  /* Horizontal moves are ours (one card per swipe, swipe.ts); vertical stays the page's. */
+  touch-action: pan-y;
 }
 
-.class-track::-webkit-scrollbar {
-  display: none;
+.class-strip {
+  flex: 0 0 100%;
+  min-width: 0;
+  display: flex;
+  gap: var(--space-3);
+  height: 100%;
+  transition: transform 220ms ease-out;
+  will-change: transform;
+}
+
+.class-strip.dragging {
+  transition: none;
 }
 
 .class-card {
@@ -503,11 +511,10 @@ button {
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: var(--space-6);
-  padding: var(--space-4) var(--space-6);
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-6);
   background: var(--accent);
   clip-path: var(--clip-chamfer);
-  scroll-snap-align: center;
 }
 
 .class-card::before {
@@ -519,11 +526,44 @@ button {
   clip-path: var(--clip-chamfer);
 }
 
-.class-body {
+.class-head {
+  flex: none;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* what each part does: main and super on top, passive and builds below */
+.class-body {
+  flex: 1 1 0;
   min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3) var(--space-6);
+  align-content: center;
+  align-self: stretch;
+  overflow-y: auto;
+}
+
+.cc-block {
+  min-width: 0;
+}
+
+.cc-desc {
+  font: 400 13px/1.3 var(--font-sans);
+  color: var(--muted);
+}
+
+.cc-kit {
+  line-height: 1.3;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.cc-kit .fact-v {
+  font-weight: 700;
 }
 
 .class-name {
@@ -542,7 +582,12 @@ button {
   gap: var(--space-3);
 }
 
+.attack {
+  align-items: flex-start;
+}
+
 .attack .badge {
+  flex: none;
   width: 36px;
   height: 36px;
 }
@@ -566,13 +611,7 @@ button {
 }
 
 .fact {
-  flex-direction: row;
-  gap: var(--space-4);
-  align-items: baseline;
-}
-
-.fact-k {
-  min-width: 64px;
+  gap: 2px;
 }
 
 .fact-v {
@@ -598,6 +637,67 @@ button {
 .pick {
   align-self: center;
   min-width: 240px;
+}
+
+/* ---- lobby: color picker, and the dimmed state once Ready (C1 notes 4, 5) ---- */
+
+.color-picker {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.swatch {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 2px solid var(--border-control);
+  border-radius: var(--radius-round);
+  background: var(--swatch);
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.swatch.on {
+  border-color: var(--accent);
+  box-shadow: var(--glow-sm);
+}
+
+.swatch.taken {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.swatch-x {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 22px/1 var(--font-sans);
+  color: #000;
+}
+
+.swatch:disabled:not(.taken) {
+  opacity: 0.5;
+}
+
+.lobby.is-ready .link-btn,
+.lobby.is-ready .seg,
+.lobby.is-ready .start,
+.lobby.is-ready .lineup-remove,
+.lobby.is-ready .color-picker,
+.lobby.is-ready .ready {
+  opacity: 0.4;
+  filter: saturate(0.5);
+}
+
+.lobby.is-ready .ready {
+  background: var(--surface-strong);
+  color: var(--muted);
 }
 
 /* ---- portrait: body layer plus the color part tinted by CSS mask + multiply ---- */
@@ -857,6 +957,62 @@ button {
   border-radius: var(--radius-round);
   border: 2px solid var(--stone-edge);
   background: var(--surface-strong);
+}
+
+/* aimed attacks: a semi-floating joystick (FF4-fix-2). The zone takes the touches and the button
+   follows the finger: the face is the knob, the dashed ring the aim range. */
+.attack-zone {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  touch-action: none;
+}
+
+.round-btn {
+  z-index: 1;
+}
+
+.round-btn.aim {
+  pointer-events: none;
+  transform: translate(var(--fx, 0px), var(--fy, 0px));
+}
+
+.aim-ring {
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--face) + 22px);
+  height: calc(var(--face) + 22px);
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
+  border: 2px dashed var(--border-control);
+  border-radius: var(--radius-round);
+  pointer-events: none;
+}
+
+.round-btn.aim .aim-ring {
+  display: block;
+}
+
+.round-btn.aim .round-face {
+  transform: translate(var(--kx, 0px), var(--ky, 0px));
+}
+
+.round-btn.aim.floating .aim-ring {
+  width: 140px;
+  height: 140px;
+  border-style: solid;
+  border-color: var(--accent);
+  opacity: 0.7;
+}
+
+.round-btn.aim.floating .round-label,
+.round-btn.aim.floating .charge-ring {
+  visibility: hidden;
 }
 
 .round-btn.pressed .round-face {
@@ -1259,8 +1415,9 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: var(--space-1);
-  padding: var(--space-2);
+  padding: var(--space-4) var(--space-2);
   background: var(--stone-edge);
   clip-path: var(--clip-chamfer);
   text-align: center;
@@ -1315,15 +1472,15 @@ button {
 }
 
 .upgrade-card .take {
-  margin-top: auto;
+  margin-top: var(--space-1);
   min-height: 32px;
-  width: 100%;
+  width: 68%;
   padding: 0;
   font-size: 15px;
 }
 
 .card-picked {
-  margin-top: auto;
+  margin-top: var(--space-1);
   font: 700 13px/1 var(--font-display);
   color: var(--success);
 }
@@ -1622,8 +1779,12 @@ button {
   }
 
   .class-card .portrait {
-    width: 120px;
-    height: 156px;
+    width: 96px;
+    height: 125px;
+  }
+
+  .cc-desc {
+    font-size: 12px;
   }
 }
 
@@ -1678,16 +1839,26 @@ button {
 @media (max-height: 400px) {
   .upgrade-card {
     gap: 2px;
-    padding: var(--space-1) var(--space-2);
+    padding: var(--space-3) var(--space-2);
   }
 
   .upgrade-card .badge {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
   }
 
   .upgrade-card .take {
-    min-height: 28px;
+    min-height: 26px;
+    margin-top: 2px;
+  }
+
+  .card-name {
+    font-size: 12px;
+  }
+
+  .card-text {
+    font-size: 11px;
+    line-height: 1.2;
   }
 
   .lineup-row {
@@ -1720,6 +1891,6 @@ button {
 }
 
 .class-card .portrait {
-  width: 150px;
-  height: 195px;
+  width: 130px;
+  height: 169px;
 }

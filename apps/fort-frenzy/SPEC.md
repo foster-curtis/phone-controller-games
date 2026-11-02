@@ -1072,6 +1072,11 @@ viewport. Sizes are fixed in px, with the minimums listed.
 
 **Firing:** every attack fires **on release**, once per release.
 - Holding an aimed button only shows the aim line on the TV until release.
+- **Aimed buttons are semi-floating joysticks** (C1, FF4-fix-2). They draw as a joystick: the icon in the
+  center, a circle around it, and an outer ring for the range. A finger landing anywhere on the right half
+  picks the button whose edge is nearest (the bounds between the buttons; farther than 56 px from every
+  button's edge picks none), and the joystick's center becomes where the finger landed. Tap and radial
+  buttons keep their fixed circles.
 - Holding a tap-type button does nothing; it fires when released.
 - Holding never repeats. A release during the attack's cooldown fires as soon as the cooldown ends.
 
@@ -1167,9 +1172,12 @@ from Sunny Side Slam. Everything else in this section is Fort Frenzy game logic 
 ### 11.1 Lobby
 1. **TV creates a room** and shows the room code plus a QR code linking to the join URL with the code
    filled in.
-2. **A phone joins,** enters a name and is assigned a color.
-3. **Class select on the phone:** swipeable character cards, each showing name, role, and one line each
-   for the main attack and the super. The TV shows the lineup live. Duplicate classes are allowed.
+2. **A phone joins,** enters a name and is assigned a color. In the lobby it can pick another of the six
+   colors (`color` intent, §15.6); colors other players hold show as unavailable. Once Ready, the Ready
+   button and every other lobby action darken until the player taps Ready again to un-ready.
+3. **Class select on the phone:** swipeable character cards, each showing name, role, what the main attack
+   and the super do (tap or aim), the passive, and the build kit (§8). One swipe moves exactly one card,
+   however long. The TV shows the lineup live. Duplicate classes are allowed.
 4. **Start:**
    - When every player is Ready, a 3-second countdown starts the run.
    - The first player to join is the **party leader**. They can force-start once at least 2 players are
@@ -1848,6 +1856,7 @@ export type Intent =
   | { k: 'name'; name: string }                       // ≤ 10 chars; color is auto-assigned
   | { k: 'class'; classId: ClassId }
   | { k: 'ready'; ready: boolean }
+  | { k: 'color'; color: PlayerColorId }                // lobby only; host validates, swaps, acks (`taken`)
   | { k: 'leader'; action: 'start' | 'resume' | 'newRun' }
   | { k: 'leader'; action: 'theme'; theme: ThemeId }
   | { k: 'leader'; action: 'difficulty'; difficulty: DifficultyId }

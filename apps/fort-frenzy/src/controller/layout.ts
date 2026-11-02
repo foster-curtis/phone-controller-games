@@ -63,3 +63,28 @@ export function layoutCombat(
 export function gapBetween(a: Circle, b: Circle): number {
   return Math.hypot(a.cx - b.cx, a.cy - b.cy) - a.d / 2 - b.d / 2;
 }
+
+// ---- touch zones (FF4-fix-2) ---------------------------------------------------------------------
+// Aimed attack buttons are semi-floating joysticks: a finger landing anywhere on the right half picks
+// the button whose drawn edge is nearest (the bounds between buttons), and the joystick centers on the
+// finger. Taps and radials keep their fixed circles; a touch that lands in their zone is theirs.
+
+export type ZoneKey = 'main' | 'super' | 'action';
+export const ZONE_KEYS: readonly ZoneKey[] = ['main', 'super', 'action'];
+/** A touch farther than this from every button's drawn edge picks nothing (a stray thumb). */
+export const ZONE_REACH = 56;
+
+/** Which button a touch at (x, y) belongs to, or null when it is out of reach of all of them. */
+export function pickZone(layout: CombatLayout, x: number, y: number): ZoneKey | null {
+  let best: ZoneKey | null = null;
+  let bestEdge = Infinity;
+  for (const key of ZONE_KEYS) {
+    const c = layout[key];
+    const edge = Math.hypot(x - c.cx, y - c.cy) - c.d / 2;
+    if (edge < bestEdge) {
+      bestEdge = edge;
+      best = key;
+    }
+  }
+  return bestEdge <= ZONE_REACH ? best : null;
+}

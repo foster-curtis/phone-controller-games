@@ -64,6 +64,7 @@ export type Intent =
   | { k: 'name'; name: string } // ≤ NAME_MAX code points; color is auto-assigned
   | { k: 'class'; classId: ClassId }
   | { k: 'ready'; ready: boolean }
+  | { k: 'color'; color: PlayerColorId } // lobby only; host validates, swaps, acks (`taken`)
   | { k: 'leader'; action: 'start' | 'resume' | 'newRun' }
   | { k: 'leader'; action: 'theme'; theme: ThemeId }
   | { k: 'leader'; action: 'difficulty'; difficulty: DifficultyId }
@@ -320,6 +321,8 @@ export function isIntent(v: unknown): v is Intent {
       return isClassId(v.classId);
     case 'ready':
       return isBool(v.ready);
+    case 'color':
+      return isColorId(v.color);
     case 'leader':
       switch (v.action) {
         case 'start':

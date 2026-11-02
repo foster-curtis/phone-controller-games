@@ -121,3 +121,91 @@ test.describe('dev toggle', () => {
     await expect(panel).toBeVisible();
   });
 });
+
+// C1 notes (FF4-fix-2): floating aimed joysticks, one-card swipes, the Ready-dimmed lobby, shop cards.
+for (const vp of VIEWPORTS) {
+  test.describe(`FF4-fix-2 ${vp.width}x${vp.height}`, () => {
+    test.use({ viewport: vp, hasTouch: true });
+
+    test('an aimed button floats to the finger and fires its aim', async ({ page }) => {
+      await open(page, 'combat');
+      const main = (await page.locator('.round-btn.main .round-face').boundingBox())!;
+      const x = main.x + main.width / 2 + 24;
+      const y = main.y + main.height / 2 - 12;
+      await page.mouse.move(x, y);
+      await page.mouse.down();
+      await expect(page.locator('.round-btn.main')).toHaveClass(/floating/);
+      const r = (await page.locator('.round-btn.main .aim-ring').boundingBox())!;
+      expect(Math.abs(r.x + r.width / 2 - x)).toBeLessThan(2);
+      expect(Math.abs(r.y + r.height / 2 - y)).toBeLessThan(2);
+      await page.mouse.move(x - 50, y, { steps: 4 });
+      await page.mouse.up();
+      // mainFires is slot 7; 50 of 70 px left is about -71 on x.
+      await expect
+        .poll(async () => (await page.locator('.dev-readout').textContent()) ?? '')
+        .toMatch(/^\[0, 0, -7\d, 0, 0, 0, 0, 1, /);
+    });
+
+    test('one swipe of any length moves class select exactly one card', async ({ page }) => {
+      await open(page, 'classSelect');
+      const track = (await page.locator('.class-track').boundingBox())!;
+      const y = track.y + track.height / 2;
+      await page.mouse.move(track.x + track.width - 20, y);
+      await page.mouse.down();
+      await page.mouse.move(track.x + 10, y, { steps: 6 });
+      await page.mouse.move(track.x - 400, y, { steps: 3 });
+      await page.mouse.up();
+      await expect(page.locator('.pick')).toHaveText('PICK WARDEN');
+      await page.waitForTimeout(300);
+      await page.screenshot({
+        path: `e2e/__screens__/controller-${vp.width}x${vp.height}-class-swiped.png`,
+      });
+    });
+
+    test('class cards describe passive, builds and attacks, inside the card', async ({ page }) => {
+      await open(page, 'classSelect');
+      const card = page.locator('.class-card').first();
+      for (const part of ['main', 'super', 'passive', 'builds']) {
+        await expect(card.locator(`[data-part="${part}"] .cc-desc`).first()).toBeVisible();
+      }
+      const over = await card
+        .locator('.class-body')
+        .evaluate((e) => e.scrollHeight - e.clientHeight);
+      expect(over).toBeLessThanOrEqual(1);
+    });
+
+    test('Ready darkens the lobby actions and the picker marks taken colors', async ({ page }) => {
+      await open(page, 'lobby-colors');
+      await expect(page.locator('.swatch.taken')).toHaveCount(3);
+      await open(page, 'lobby-ready');
+      await expect(page.locator('.lobby')).toHaveClass(/is-ready/);
+      await expect(page.locator('.ready')).toHaveText('READY');
+      await expect(page.locator('.link-btn')).toBeDisabled();
+    });
+
+    test('shop upgrade cards center their content; Take is narrower than the card', async ({
+      page,
+    }) => {
+      await open(page, 'shop');
+      await page.waitForTimeout(100);
+      const cards = page.locator('.upgrade-card');
+      expect(await cards.count()).toBeGreaterThan(1);
+      for (let i = 0; i < (await cards.count()); i++) {
+        const m = await cards.nth(i).evaluate((card) => {
+          const b = card.getBoundingClientRect();
+          const kids = [...card.children].map((k) => k.getBoundingClientRect());
+          return {
+            top: Math.min(...kids.map((k) => k.top)) - b.top,
+            bottom: b.bottom - Math.max(...kids.map((k) => k.bottom)),
+            take: (card.querySelector('.take') as HTMLElement | null)?.offsetWidth ?? 0,
+            w: b.width,
+          };
+        });
+        expect(m.top).toBeGreaterThanOrEqual(10);
+        expect(m.bottom).toBeGreaterThanOrEqual(10);
+        expect(Math.abs(m.top - m.bottom)).toBeLessThanOrEqual(6);
+        expect(m.take).toBeLessThan(m.w * 0.8);
+      }
+    });
+  });
+}

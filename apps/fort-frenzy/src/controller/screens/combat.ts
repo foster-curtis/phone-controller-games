@@ -17,6 +17,7 @@ import {
 } from '@pcg/controller-kit';
 import type { ClassId } from '../../shared/ids';
 import type { MeView } from '../../shared/messages';
+import { mountAimZones, type AimZones } from '../aimZones';
 import { ChargeRing, RoundButton, StatusStrip } from '../components';
 import { CLASS_INFO, actionIcon, giveIcon } from '../copy';
 import {
@@ -28,7 +29,13 @@ import {
   type AttackKey,
   type PhoneSender,
 } from '../input';
-import { layoutCombat, STICK_BASE_D, STICK_KNOB_D, type Circle } from '../layout';
+import {
+  layoutCombat,
+  STICK_BASE_D,
+  STICK_KNOB_D,
+  type Circle,
+  type CombatLayout,
+} from '../layout';
 import { createCountdown, formatClock, type ScreenCtx, type Snapshot, type View } from './common';
 
 /** Radial slots from the host's arc (left, up, right, down): null absent, false dimmed, true enabled. */
@@ -121,6 +128,7 @@ export function createCombat(ctx: ScreenCtx): View {
   const sup = RoundButton('super', 'super-ranger');
   const action = RoundButton('action', 'act-pickup');
   const ring = ChargeRing();
+  for (const b of [main, sup]) b.el.append(el('span', { class: 'aim-ring' }));
   main.label('ATTACK');
   sup.label('SUPER');
   action.label('ACTION');
@@ -141,11 +149,19 @@ export function createCombat(ctx: ScreenCtx): View {
   let bindings: GestureBinding<unknown>[] = [];
   const countdown = createCountdown(clock, formatClock, ctx.now);
 
+  let layout: CombatLayout = layoutCombat({ width: innerWidth, height: innerHeight });
+  // Aimed attacks are floating joysticks over the right half (FF4-fix-2); taps and radials stay put.
+  const zones: AimZones = mountAimZones(root, {
+    sender: ctx.sender,
+    getLayout: () => layout,
+    buttons: { main: main.el, super: sup.el },
+  });
   const place = () => {
     const l = layoutCombat(
       { width: root.clientWidth || innerWidth, height: root.clientHeight || innerHeight },
       readSafeInsets(),
     );
+    layout = l;
     stick.place(l.stick);
     main.place(l.main.cx, l.main.cy, l.main.d);
     sup.place(l.super.cx, l.super.cy, l.super.d);
@@ -167,9 +183,18 @@ export function createCombat(ctx: ScreenCtx): View {
   const bind = (classId: ClassId) => {
     for (const b of bindings) b.destroy();
     const info = CLASS_INFO[classId];
+    const aimed = (['main', 'super'] as const).filter((k) => info[k].mode === 'aim');
+    zones.setAimed(aimed);
+    for (const [k, b] of [
+      ['main', main],
+      ['super', sup],
+    ] as const) {
+      b.el.classList.toggle('aim', info[k].mode === 'aim');
+    }
     bindings = [
-      bindAttack(main.el, ctx.sender, 'main', info.main.mode),
-      bindAttack(sup.el, ctx.sender, 'super', info.super.mode),
+      ...(['main', 'super'] as const)
+        .filter((k) => info[k].mode === 'tap')
+        .map((k) => bindAttack((k === 'main' ? main : sup).el, ctx.sender, k, 'tap')),
       bindAction(action.el, ctx.sender, () => me?.arc ?? null, giving),
     ];
     boundClass = classId;
@@ -188,6 +213,7 @@ export function createCombat(ctx: ScreenCtx): View {
     root.classList.toggle('is-dead', isDead);
     if (isDead) {
       for (const b of bindings) b.reset();
+      zones.reset();
       ctx.sender.neutral();
       countdown.set(m.respawnMs);
     } else {
@@ -206,6 +232,7 @@ export function createCombat(ctx: ScreenCtx): View {
     destroy() {
       window.removeEventListener('resize', onResize);
       for (const b of bindings) b.destroy();
+      zones.destroy();
       countdown.destroy();
       stick.destroy();
       ctx.sender.neutral();

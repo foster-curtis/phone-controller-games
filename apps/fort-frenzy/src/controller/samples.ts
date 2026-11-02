@@ -259,6 +259,11 @@ export const SAMPLES: Record<string, () => Sample> = {
     }),
     me: sampleMe({ screen: 'lobby', ready: true }),
   }),
+  // Jade, rose and sky are held by the others (the picker marks them unavailable).
+  'lobby-colors': () => ({
+    team: sampleTeam(),
+    me: sampleMe({ screen: 'lobby', color: 'bone' }),
+  }),
   'lobby-member': () => ({
     team: sampleTeam({ leaderId: 'p2' }),
     me: sampleMe({ screen: 'lobby', isLeader: false }),
@@ -315,6 +320,26 @@ export const SAMPLES: Record<string, () => Sample> = {
   'combat-commander': () => ({
     team: sampleTeam({ phase: 'combat' }),
     me: sampleMe({ classId: 'commander', action: 'recall', crates: 0 }),
+  }),
+  // A finger down on the main button, dragged left: the joystick floats to the touch (aimed attacks).
+  'combat-aiming': () => ({
+    team: sampleTeam({ phase: 'combat' }),
+    me: sampleMe({ classId: 'quartermaster', action: 'throw', crates: 2, arc: GIVE_ONLY }),
+    after: (stage) => {
+      const zone = stage.querySelector<HTMLElement>('.attack-zone');
+      const main = stage.querySelector<HTMLElement>('.round-btn.main');
+      if (!zone || !main) return;
+      const r = main.getBoundingClientRect();
+      const fire = (type: string, x: number, y: number) => {
+        const e = new MouseEvent(type, { clientX: x, clientY: y, bubbles: true, cancelable: true });
+        Object.defineProperty(e, 'pointerId', { value: 91 });
+        zone.dispatchEvent(e);
+      };
+      const x = r.left + r.width / 2 + 28;
+      const y = r.top + r.height / 2 - 18;
+      fire('pointerdown', x, y);
+      fire('pointermove', x - 44, y - 14);
+    },
   }),
   build: () => ({
     team: sampleTeam({ phase: 'build' }),

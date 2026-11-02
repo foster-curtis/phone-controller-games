@@ -2,7 +2,14 @@
 // UpgradeCard, ShopRow, HoldConfirm, Toast, LineupRow, ClassCard. No framework; each returns its
 // element plus a setter where it changes. Styled in controller.css from brand.css tokens only.
 import { createHoldToConfirm, el } from '@pcg/controller-kit';
-import type { CardId, ClassId, PlayerColorId, ShopItemId, StructureId } from '../shared/ids';
+import {
+  PLAYER_COLOR_IDS,
+  type CardId,
+  type ClassId,
+  type PlayerColorId,
+  type ShopItemId,
+  type StructureId,
+} from '../shared/ids';
 import type { MeView, TeamRosterEntry, TeamShopRow, TeamView } from '../shared/messages';
 import { portraitUrl } from './assets';
 import { CARD_INFO, CLASS_INFO, ROMAN, SHOP_INFO, STRUCTURE_INFO, type ClassInfo } from './copy';
@@ -336,44 +343,94 @@ export function Portrait(classId: ClassId, color: PlayerColorId | null): HTMLEle
 
 const modeText = (m: 'tap' | 'aim') => (m === 'aim' ? 'AIM' : 'TAP');
 
-/** Class select card (SPEC §2.6): portrait, role, main and super with tap/aim, passive, builds. */
+/**
+ * Class select card (SPEC §2.6, §8): portrait with name and role, then what each part does: main and
+ * super (with tap/aim), the passive, and the build kit.
+ */
 export function ClassCard(classId: ClassId, color: PlayerColorId | null): HTMLElement {
   const info: ClassInfo = CLASS_INFO[classId];
   const attack = (kind: 'main' | 'super') =>
     el(
       'div',
-      { class: 'attack' },
+      { class: 'cc-block attack', 'data-part': kind },
       Badge(`${kind}-${info.rig}`),
       el(
         'div',
         { class: 'attack-text' },
-        el('span', { class: 'attack-name', text: info[kind].name }),
         el('span', {
           class: 'attack-sub',
           text: `${kind.toUpperCase()} · ${modeText(info[kind].mode)}`,
         }),
+        el('span', { class: 'attack-name', text: info[kind].name }),
+        el('span', { class: 'cc-desc', text: info[kind].text }),
       ),
     );
-  const fact = (k: string, v: string) =>
+  const part = (kind: string, label: string, ...kids: Node[]) =>
     el(
       'div',
-      { class: 'fact' },
-      el('span', { class: 'fact-k', text: k }),
-      el('span', { class: 'fact-v', text: v }),
+      { class: 'cc-block fact', 'data-part': kind },
+      el('span', { class: 'fact-k', text: label }),
+      ...kids,
     );
   return el(
     'article',
     { class: 'class-card', 'data-class': classId },
-    Portrait(classId, color),
+    el(
+      'div',
+      { class: 'class-head' },
+      Portrait(classId, color),
+      el('h2', { class: 'class-name h2', text: info.name }),
+      el('span', { class: 'class-role', text: info.role.toUpperCase() }),
+    ),
     el(
       'div',
       { class: 'class-body' },
-      el('h2', { class: 'class-name h2', text: info.name }),
-      el('span', { class: 'class-role', text: info.role.toUpperCase() }),
       attack('main'),
       attack('super'),
-      fact('PASSIVE', info.passive),
-      fact('BUILDS', info.builds),
+      part(
+        'passive',
+        'PASSIVE',
+        el('span', { class: 'fact-v', text: info.passive }),
+        el('span', { class: 'cc-desc', text: info.passiveText }),
+      ),
+      part(
+        'builds',
+        'BUILDS',
+        ...info.kit.map((k) =>
+          el(
+            'span',
+            { class: 'cc-kit' },
+            el('b', { class: 'fact-v', text: k.name }),
+            el('span', { class: 'cc-desc', text: ` ${k.text}` }),
+          ),
+        ),
+      ),
     ),
   );
+}
+
+/** The six brand colors; ones other players hold are marked unavailable (FF4-fix-2). */
+export function ColorPicker(opts: {
+  mine: PlayerColorId | null;
+  taken: ReadonlySet<PlayerColorId>;
+  disabled?: boolean;
+  onPick(c: PlayerColorId): void;
+}): HTMLElement {
+  const row = el('div', { class: 'color-picker', role: 'group', 'aria-label': 'Your color' });
+  for (const c of PLAYER_COLOR_IDS) {
+    const taken = opts.taken.has(c) && c !== opts.mine;
+    const b = el('button', {
+      type: 'button',
+      class: `swatch${c === opts.mine ? ' on' : ''}${taken ? ' taken' : ''}`,
+      'data-color': c,
+      'aria-label': taken ? `${c} (taken)` : c,
+      'aria-pressed': String(c === opts.mine),
+    });
+    b.style.setProperty('--swatch', colorVar(c));
+    b.disabled = taken || !!opts.disabled;
+    if (taken) b.append(el('span', { class: 'swatch-x', text: '×' }));
+    b.addEventListener('click', () => c !== opts.mine && opts.onPick(c));
+    row.append(b);
+  }
+  return row;
 }

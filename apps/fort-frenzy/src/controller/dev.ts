@@ -3,7 +3,7 @@
 // `?screen=<id>` starts on one sample (e2e, screenshots).
 import { createDevHarness, createLocalClient } from '@pcg/controller-kit';
 import { PLAYER_COLOR_IDS } from '../shared/ids';
-import { isInputTuple } from '../shared/messages';
+import { isControllerMsg, isInputTuple } from '../shared/messages';
 import { OVERLAY_NAMES, createApp, type App } from './app';
 import { SAMPLES, SAMPLE_IDS } from './samples';
 
@@ -17,6 +17,16 @@ export function startDev(root: HTMLElement, search: string = location.search): A
     code: 'DEV1',
     onSent: (m) => {
       if (isInputTuple(m)) dev.setReadout(m);
+      // The color picker works offline: the host's swap rule is FF2-fix-1's, so just take it.
+      else if (
+        isControllerMsg(m) &&
+        !Array.isArray(m) &&
+        m.t === 'intent' &&
+        m.intent.k === 'color'
+      ) {
+        color = m.intent.color;
+        show(current);
+      }
     },
   });
   dev.setReadout(app.sender.tuple());
@@ -28,8 +38,14 @@ export function startDev(root: HTMLElement, search: string = location.search): A
     current = id;
     const s = SAMPLES[id]!();
     const me = color && s.me.color ? { ...s.me, color } : s.me;
+    const team = color
+      ? {
+          ...s.team,
+          roster: s.team.roster.map((p) => (p.playerId === 'dev' ? { ...p, color } : p)),
+        }
+      : s.team;
     rev++;
-    client.emit({ t: 'team', rev, team: s.team });
+    client.emit({ t: 'team', rev, team });
     client.emit({ t: 'me', rev, me });
     if (s.after) setTimeout(() => s.after?.(dev.stage), 0);
   };

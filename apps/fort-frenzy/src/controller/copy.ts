@@ -6,6 +6,8 @@ import type { MeAction } from '../shared/messages';
 
 export interface AttackInfo {
   name: string;
+  /** One line on what it does (SPEC §8), shown on the class card. */
+  text: string;
   /** How the button is used (SPEC §10.1 input type per character). */
   mode: 'tap' | 'aim';
 }
@@ -18,7 +20,10 @@ export interface ClassInfo {
   main: AttackInfo;
   super: AttackInfo;
   passive: string;
+  passiveText: string;
   builds: string;
+  /** The build kit, one entry per structure (or the Artificer's supply role). */
+  kit: { name: string; text: string }[];
 }
 
 export const CLASS_INFO: Record<ClassId, ClassInfo> = {
@@ -26,37 +31,82 @@ export const CLASS_INFO: Record<ClassId, ClassInfo> = {
     name: 'Ranger',
     role: 'Marksman',
     rig: 'ranger',
-    main: { name: 'Rail-bow shot', mode: 'aim' },
-    super: { name: 'Pulse shot', mode: 'tap' },
+    main: {
+      name: 'Rail-bow shot',
+      mode: 'aim',
+      text: 'The longest range in the game. Drag to aim.',
+    },
+    super: {
+      name: 'Pulse shot',
+      mode: 'tap',
+      text: 'A wide ring around you that hurts and knocks enemies back.',
+    },
     passive: 'Steady Aim',
+    passiveText: 'Stand still, stick released, and your shots hit harder and reach farther.',
     builds: 'Pulse turret, mortar',
+    kit: [
+      { name: 'Pulse turret', text: 'Long range, one target, can hit Flyers.' },
+      { name: 'Mortar', text: 'Short range, area damage.' },
+    ],
   },
   warden: {
     name: 'Warden',
     role: 'Tank',
     rig: 'warden',
-    main: { name: 'Ground slam', mode: 'tap' },
-    super: { name: 'Stomp', mode: 'aim' },
+    main: {
+      name: 'Ground slam',
+      mode: 'tap',
+      text: 'A short arc in front of you that hits several enemies.',
+    },
+    super: {
+      name: 'Stomp',
+      mode: 'aim',
+      text: 'A longer arc that damages and briefly stuns. Drag to aim.',
+    },
     passive: 'Mason',
+    passiveText: 'Walls near you slowly repair themselves. Off during the build phase.',
     builds: 'Wall, shock net, fortify',
+    kit: [
+      { name: 'Wall', text: 'Reroutes enemies.' },
+      { name: 'Shock net', text: 'A cheap trap that slows enemies, then wears out.' },
+      { name: 'Fortify', text: 'Gives a tower a defense bonus.' },
+    ],
   },
   quartermaster: {
     name: 'Artificer',
     role: 'Support',
     rig: 'artificer',
-    main: { name: 'Nanite bolts', mode: 'aim' },
-    super: { name: 'Nanite cone', mode: 'aim' },
+    main: {
+      name: 'Nanite bolts',
+      mode: 'aim',
+      text: '3-4 bolts in a narrow cone, medium-long range. Walls and towers block them.',
+    },
+    super: {
+      name: 'Nanite cone',
+      mode: 'aim',
+      text: 'A very wide, long cone that heals players and shields towers. Passes through walls.',
+    },
     passive: 'Field Medic',
+    passiveText: 'A small healing aura for nearby players. Off during the build phase.',
     builds: 'Nothing, supplies the team',
+    kit: [
+      { name: 'Supplies', text: 'Builds nothing. Carries and throws power cells to the team.' },
+    ],
   },
   commander: {
     name: 'Commander',
     role: 'Squad leader',
     rig: 'commander',
-    main: { name: 'Sword slash', mode: 'tap' },
-    super: { name: 'Rally', mode: 'tap' },
+    main: { name: 'Sword slash', mode: 'tap', text: 'A short arc in front of you.' },
+    super: {
+      name: 'Rally',
+      mode: 'tap',
+      text: 'Your squad and you attack faster and harder, and you run faster.',
+    },
     passive: 'Lead from the Front',
+    passiveText: 'Your squad deals more damage while near you.',
     builds: 'Rally flag',
+    kit: [{ name: 'Rally flag', text: 'Your squad holds the flag when it is not following you.' }],
   },
 };
 

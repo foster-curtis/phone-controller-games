@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { ACTION_D, MAIN_D, MIN_EDGE, MIN_GAP, SUPER_D, gapBetween, layoutCombat } from '../layout';
+import {
+  ACTION_D,
+  MAIN_D,
+  MIN_EDGE,
+  MIN_GAP,
+  SUPER_D,
+  ZONE_KEYS,
+  ZONE_REACH,
+  gapBetween,
+  layoutCombat,
+  pickZone,
+} from '../layout';
 
 const VIEWPORTS: [number, number][] = [
   [644, 300],
@@ -37,6 +48,35 @@ describe('layoutCombat (SPEC §10.1)', () => {
       it(`${label}: every button is at least 56 px and the sizes are the spec's`, () => {
         for (const b of buttons) expect(b.d).toBeGreaterThanOrEqual(56);
         expect([l.main.d, l.super.d, l.action.d]).toEqual([MAIN_D, SUPER_D, ACTION_D]);
+      });
+
+      it(`${label}: touch zones pick the button under the finger and split the gap at its middle`, () => {
+        for (const key of ZONE_KEYS) {
+          const c = l[key];
+          expect(pickZone(l, c.cx, c.cy)).toBe(key);
+          expect(pickZone(l, c.cx + c.d / 2 - 1, c.cy)).toBe(key);
+        }
+        // On the line between two buttons, a little toward one picks that one.
+        for (const [a, b] of [
+          ['main', 'super'],
+          ['main', 'action'],
+          ['super', 'action'],
+        ] as const) {
+          const ca = l[a];
+          const cb = l[b];
+          const dist = Math.hypot(cb.cx - ca.cx, cb.cy - ca.cy);
+          const at = (edgeFromA: number) => {
+            const t = (ca.d / 2 + edgeFromA) / dist;
+            return pickZone(l, ca.cx + (cb.cx - ca.cx) * t, ca.cy + (cb.cy - ca.cy) * t);
+          };
+          expect(at(2)).toBe(a);
+          expect(at(gapBetween(ca, cb) - 2)).toBe(b);
+        }
+      });
+
+      it(`${label}: a touch far from every button picks nothing`, () => {
+        expect(pickZone(l, l.main.cx, l.main.cy - l.main.d / 2 - ZONE_REACH - 40)).toBeNull();
+        expect(pickZone(l, l.stick.cx, l.stick.cy)).toBeNull();
       });
 
       it(`${label}: everything stays on screen and the stick is on the left half`, () => {
