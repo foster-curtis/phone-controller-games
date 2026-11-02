@@ -3,6 +3,7 @@
 // Plain TS: no Phaser, no net-client, no themes, no DOM (lint, §15.1). Units: tiles, ticks (60 Hz
 // steps); config times in ms are converted to ticks at load.
 // Frozen at FF1 (BUILD_PLAN §3): additive changes only (new optional fields, new union members).
+// FF6 added `Unit.push` and `BaseState.stage`.
 import type { Rng } from '@pcg/game-kit';
 import type {
   EffectApply,
@@ -78,6 +79,8 @@ export interface Unit extends Body {
   /** Application order. */
   effects: StatusEffect[];
   stats: StatBlock;
+  /** Knockback velocity (tiles/s), decaying each step; null or absent = none (FF6). */
+  push?: Vec2 | null;
 }
 
 /** One cooldown-gated attack slot (main, super, an enemy's or structure's attack). */
@@ -271,6 +274,8 @@ export interface BaseState extends Unit {
   repairs: number;
   alarm: boolean;
   archers: { count: number; attack: AttackState[]; aim: number[] };
+  /** Visual damage stage (§3.3): 0 none, 1 cracks, 2 fire, 3 heavy smoke (FF6; always set by the sim). */
+  stage?: 0 | 1 | 2 | 3;
 }
 
 export interface TeamState {

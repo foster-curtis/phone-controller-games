@@ -2,6 +2,7 @@
 // `satisfies` against these. Units: distances in tiles, speeds in tiles/s, times in ms (the sim
 // converts to steps at load), damage and HP as plain numbers. Presentation never lives here (§2.1).
 // Frozen at FF1 (BUILD_PLAN §3): additive changes only. Tuning values in src/content/ are not frozen.
+// FF6 added `BaseDef` and `RulesDef`.
 import type {
   CardId,
   ClassId,
@@ -236,4 +237,51 @@ export interface MapDef {
   tiles: string[];
   legend: Record<string, TileKind>;
   lanes: Record<LaneId, { entry: Tile[]; spawn: Vec2 }>;
+}
+
+// ---- base and run rules (FF6, additive) ---------------------------------------------------------
+
+/** The Citadel (SPEC §3.3–§3.5). */
+export interface BaseDef {
+  hp: number;
+  /** HP one delivered crate restores (§3.4). */
+  repairPerCrate: number;
+  /** Visual damage stages (§3.3), descending HP fractions: cracks, fire, heavy smoke. */
+  stages: number[];
+  /** The alarm and red edge tint at or below this HP fraction (§3.3). */
+  alarmAt: number;
+  /** Base archers (§3.5) shoot from these points (tiles), in order; `count` are present at start. */
+  archers: { count: number; at: Vec2[]; attack: AttackDef };
+}
+
+/** Run-wide rules and timings that aren't per class, enemy or structure (SPEC §4–§6, §10, §11). */
+export interface RulesDef {
+  startCoins: number;
+  countdownMs: number;
+  /** Build phase cap (§10.2: 45 s). */
+  buildCapMs: number;
+  /** Victory and defeat last this long before the summary (§4). */
+  victoryMs: number;
+  defeatMs: number;
+  /** Lane glow ahead of a group's spawn (§9.4: ~3 s). */
+  spawnWarningMs: number;
+  /** Input older than this is neutral (§11.4: 250 ms). */
+  inputStaleMs: number;
+  /** A dropped crate can't be picked back up by its dropper for this long (§10.1: ~1 s). */
+  dropLockMs: number;
+  /** Reach for picking up a crate pile and for giving a crate to a teammate (tiles). */
+  pickupRadius: number;
+  giveRadius: number;
+  /** Respawn points at the base (§5), one per slot in order (tiles). */
+  respawn: Vec2[];
+  /** Bounds on summed `addPct` / `add` per stat (§15.3 caps). */
+  statCaps: Partial<
+    Record<StatId, { pctMin?: number; pctMax?: number; addMin?: number; addMax?: number }>
+  >;
+  /** Breaker field (§15.5): what a wall tile costs a Brute or the Colossus. */
+  breakerWallCost: number;
+  /** Soft separation: the fraction of an overlap pushed apart per step. */
+  separation: number;
+  /** Knockback velocity kept per step (0..1). */
+  knockbackDecay: number;
 }
