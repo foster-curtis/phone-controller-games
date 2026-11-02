@@ -336,3 +336,117 @@ describe('late joins (§11.2)', () => {
     ]);
   });
 });
+
+describe('color change (§11.1, §15.6 `color` intent)', () => {
+  it('changes to a free color in the lobby', () => {
+    const p = filled(2);
+    expect(p.setColor('p2', 'rose')).toEqual({ ok: true });
+    expect(p.member('p2')!.color).toBe('rose');
+    expect(p.setColor('p2', 'rose')).toEqual({ ok: true }); // own color: a no-op
+    expect(p.setColor('p2', 'jade')).toEqual({ ok: true }); // back to the old one, now free
+    expect(p.member('p2')!.color).toBe('jade');
+  });
+
+  it('refuses a color another player holds, connected or not, and never swaps', () => {
+    const p = filled(3);
+    expect(p.setColor('p2', 'cobalt')).toEqual({ ok: false, reason: 'taken' });
+    p.disconnect('p3');
+    expect(p.setColor('p1', 'sky')).toEqual({ ok: false, reason: 'taken' });
+    expect(p.members.map((m) => m.color)).toEqual(['cobalt', 'jade', 'sky']);
+  });
+
+  it('refuses unknown players and colors', () => {
+    const p = filled(1);
+    expect(p.setColor('nobody', 'rose')).toEqual({ ok: false, reason: 'invalid' });
+    expect(p.setColor('p1', 'mauve' as Color)).toEqual({ ok: false, reason: 'invalid' });
+    expect(p.member('p1')!.color).toBe('cobalt');
+  });
+
+  it('refuses outside the lobby, slotted or waiting', () => {
+    const p = filled(2, { ready: true });
+    p.startRun();
+    p.connect({ playerId: 'late' });
+    expect(p.setColor('p1', 'rose')).toEqual({ ok: false, reason: 'phase' });
+    expect(p.setColor('late', 'rose')).toEqual({ ok: false, reason: 'phase' });
+    p.setStage('build');
+    expect(p.setColor('p1', 'rose')).toEqual({ ok: false, reason: 'phase' });
+    expect(p.setColor('late', 'rose')).toEqual({ ok: false, reason: 'phase' });
+    expect(p.members.map((m) => m.color)).toEqual(['cobalt', 'jade', 'sky']);
+    p.endRun();
+    expect(p.setColor('p1', 'rose')).toEqual({ ok: true });
+  });
+
+  it('refuses while the player is ready, and works again once un-ready', () => {
+    const p = filled(2);
+    p.setReady('p1', true);
+    expect(p.setColor('p1', 'rose')).toEqual({ ok: false, reason: 'phase' });
+    expect(p.member('p1')!.color).toBe('cobalt');
+    expect(p.setColor('p2', 'rose')).toEqual({ ok: true }); // others aren't held up
+    p.setReady('p1', false);
+    expect(p.setColor('p1', 'forest')).toEqual({ ok: true });
+  });
+
+  it('survives ready changes and leader handoff', () => {
+    const p = filled(3);
+    p.setColor('p1', 'forest');
+    p.setColor('p2', 'bone');
+    p.setReady('p1', true);
+    p.setReady('p1', false);
+    p.disconnect('p1');
+    expect(p.leaderId).toBe('p2');
+    p.connect({ playerId: 'p1', key: 'k1' });
+    expect(p.leaderId).toBe('p2');
+    expect(p.members.map((m) => m.color)).toEqual(['forest', 'bone', 'sky']);
+  });
+
+  it.each([
+    ['playerId', { playerId: 'p2' }],
+    ['player key', { playerId: 'new2', key: 'k2' }],
+    ['device ID', { playerId: 'new2', key: 'other', deviceId: 'd2' }],
+  ])('survives a reconnect matched by %s', (_by, peer) => {
+    const p = filled(3);
+    p.setColor('p2', 'rose');
+    p.disconnect('p2');
+    expect(p.connect(peer)).toMatchObject({ kind: 'rejoined', member: { color: 'rose' } });
+    expect(p.members.map((m) => m.color)).toEqual(['cobalt', 'rose', 'sky']);
+  });
+
+  it('survives a run and its end', () => {
+    const p = filled(2);
+    p.setColor('p1', 'bone');
+    p.setReady('p1', true);
+    p.setReady('p2', true);
+    expect(p.startRun()).toMatchObject({ slots: [{ color: 'bone' }, { color: 'jade' }] });
+    p.endRun();
+    expect(p.member('p1')!.color).toBe('bone');
+  });
+
+  it('a new joiner gets the lowest color in brand order that nobody has chosen', () => {
+    const p = filled(1);
+    p.setColor('p1', 'jade');
+    p.connect({ playerId: 'p2' });
+    expect(p.member('p2')!.color).toBe('cobalt');
+    p.setColor('p2', 'sky');
+    p.connect({ playerId: 'p3' });
+    expect(p.member('p3')!.color).toBe('cobalt');
+    p.connect({ playerId: 'p4' });
+    expect(p.member('p4')!.color).toBe('bone');
+    p.setColor('p4', 'forest');
+    p.connect({ playerId: 'p5' });
+    p.connect({ playerId: 'p6' });
+    const colors = p.members.map((m) => m.color);
+    expect(colors).toEqual(['jade', 'sky', 'cobalt', 'forest', 'bone', 'rose']);
+    expect(new Set(colors).size).toBe(6);
+  });
+
+  it('a seventh phone still sees full after color changes', () => {
+    const p = filled(6);
+    expect(p.setColor('p6', 'cobalt')).toEqual({ ok: false, reason: 'taken' });
+    p.remove(null, 'p3');
+    expect(p.setColor('p6', 'sky')).toEqual({ ok: true });
+    p.connect({ playerId: 'p7' });
+    expect(p.member('p7')!.color).toBe('forest');
+    expect(p.connect({ playerId: 'p8', key: 'k8' })).toEqual({ kind: 'full' });
+    expect(new Set(p.members.map((m) => m.color)).size).toBe(6);
+  });
+});

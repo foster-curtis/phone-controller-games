@@ -1146,6 +1146,14 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
 - [FF6] decision: perf: the bench's first profile spent ~40% in spatial-hash queries, mostly the turrets'
   nearest-enemy searches over 7-tile ranges; `nearestEnemy` now scans the enemy array (id order) and
   hash results use an insertion sort. Bench (Node, this machine): peak mean ≈ 0.6 ms, p99 ≈ 1.5 ms.
+- [FF2-fix-1] contract+: `src/host/party/index.ts` `Party.setColor(playerId, color): ColorResult`, with
+  `ColorRefusal = 'phase' | 'invalid' | 'taken'` and `ColorResult`; SPEC §11.1/§15.6 state the rule.
+- [FF2-fix-1] decision: `setColor` reasons are already `AckReason` names, so FF7 acks them as-is: outside
+  the lobby → `phase`; that player ready → `phase` (Ready locks lobby choices, like the dimmed swatches);
+  another member (connected or not) holds it → `taken`; unknown player or color → `invalid`; own color →
+  ok. "Swaps" in the `color` intent comment means the player's own color changes; two players never trade.
+- [FF2-fix-1] decision: auto-assignment needed no change: it already takes the lowest brand-order color no
+  member holds, chosen colors included; late joiners waiting mid-run can't pick (lobby only).
 
 - [FF3-fix-1] decision: Artificer gauge fills from the bottom cell up (C1 note 1). The art numbers cells
   top-down (`core1` is the top cell), so cell k from the bottom is `core(4 − k)`: 1 crate = `core3-half`,

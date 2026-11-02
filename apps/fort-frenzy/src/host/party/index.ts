@@ -42,6 +42,10 @@ export interface PartySlot<Color extends string = string, Cls extends string = s
 export type PartyRefusal = 'phase' | 'invalid' | 'notLeader';
 export type PartyResult = { ok: true } | { ok: false; reason: PartyRefusal };
 
+/** `setColor` refusals, also named as ack reasons: `taken` = another member holds the color. */
+export type ColorRefusal = 'phase' | 'invalid' | 'taken';
+export type ColorResult = { ok: true } | { ok: false; reason: ColorRefusal };
+
 export type ConnectResult<Color extends string, Cls extends string> =
   { kind: 'joined' | 'rejoined'; member: Readonly<Member<Color, Cls>> } | { kind: 'full' };
 
@@ -49,7 +53,7 @@ export type ConnectResult<Color extends string, Cls extends string> =
 export type PartyScreen = 'name' | 'lobby' | 'waiting' | 'run';
 
 export interface PartyOptions<Color extends string> {
-  /** Assigned in this order, lowest free first (brand order, §2.3). */
+  /** Assigned in this order, lowest free first (brand order, §2.3), skipping chosen colors. */
   colors: readonly Color[];
   /** Game cap (6); the next new phone gets `full`. */
   maxPlayers: number;
@@ -79,6 +83,11 @@ export interface Party<Color extends string, Cls extends string> {
   setClass(playerId: string, classId: Cls): PartyResult;
   /** Lobby only; needs a name and a class. */
   setReady(playerId: string, ready: boolean): PartyResult;
+  /**
+   * Lobby only, and not while that player is ready (`phase`). Colors stay unique: one another member
+   * holds, connected or not, is refused (`taken`), never swapped. Unknown player or color: `invalid`.
+   */
+  setColor(playerId: string, color: Color): ColorResult;
   /** Lobby only. `by` is the remover's playerId (must lead) or null for the TV. */
   remove(
     by: string | null,
@@ -223,6 +232,16 @@ export function createParty<Color extends string, Cls extends string>(
       if (ready && (!m.name || m.classId === null)) return no('invalid');
       m.ready = ready;
       return ok;
+    },
+
+    setColor(playerId, color) {
+      const m = find(playerId);
+      if (!m || !colors.includes(color)) return { ok: false, reason: 'invalid' };
+      // Ready locks lobby choices, as the phone's dimmed swatches show (§11.1).
+      if (stage !== 'lobby' || m.ready) return { ok: false, reason: 'phase' };
+      if (members.some((x) => x !== m && x.color === color)) return { ok: false, reason: 'taken' };
+      m.color = color;
+      return { ok: true };
     },
 
     remove(by, target) {

@@ -1180,7 +1180,9 @@ from Sunny Side Slam. Everything else in this section is Fort Frenzy game logic 
 1. **TV creates a room** and shows the room code plus a QR code linking to the join URL with the code
    filled in.
 2. **A phone joins,** enters a name and is assigned a color. In the lobby it can pick another of the six
-   colors (`color` intent, §15.6); colors other players hold show as unavailable. Once Ready, the Ready
+   colors (`color` intent, §15.6); colors other players hold show as unavailable. Colors stay unique: a
+   color another player holds (connected or not) is refused, never swapped, and a player keeps their
+   color through reconnects, leader handoff and the run. Once Ready, the Ready
    button and every other lobby action darken until the player taps Ready again to un-ready.
 3. **Class select on the phone:** swipeable character cards, each showing name, role, what the main attack
    and the super do (tap or aim), the passive, and the build kit (§8). One swipe moves exactly one card,
@@ -1939,7 +1941,9 @@ interface MeView {
 ```
 
 - **Lobby and presence** (`party/`): colors auto-assigned in brand order (cobalt, jade, sky, bone, rose,
-  forest; §2.3); first joiner leads, with handoff per §11.1. Relay `peer left` → a `presence` command
+  forest; §2.3), skipping colors already chosen; first joiner leads, with handoff per §11.1. The `color`
+  intent maps to `party.setColor`: lobby only and not while that player is ready (ack `phase`), a color
+  another member holds acks `taken` (no swap), an unknown player or color acks `invalid`. Relay `peer left` → a `presence` command
   makes the character dazed (§11.3); `rejoined` or a key match restores it. A phone joining during combat
   gets `waiting` and becomes a late join at the next build phase.
 - **Versioning:** `PROTOCOL_VERSION` bumps on any breaking change to `messages.ts`; additive fields don't
