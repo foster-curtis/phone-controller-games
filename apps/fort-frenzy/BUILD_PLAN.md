@@ -807,9 +807,9 @@ Rules:
   - [x] Merged to `main`
 - [ ] **User approved C1** (gallery, perf stress, phones, TV UI)
 - FF6 Sim core
-  - [ ] World, step order, movement, economy loop, building, phases
-  - [ ] Engineer + pulse turret + Grunt + waves 1–2 content
-  - [ ] Recorder, replay script, autopilot, determinism + scenario tests, bench
+  - [x] World, step order, movement, economy loop, building, phases
+  - [x] Engineer + pulse turret + Grunt + waves 1–2 content
+  - [x] Recorder, replay script, autopilot, determinism + scenario tests, bench
   - [ ] Merged to `main`
 - FF7 Vertical slice
   - [ ] Host net + party bridge + input staleness + state sync
@@ -1108,6 +1108,43 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
 - [FF4-fix-2] decision: Ready dims by disabling Change class, difficulty, Start, remove and the color
   swatches (Ready itself stays live to un-ready); the label is always READY. Dev mode applies a picked
   color locally (no host rule).
+- [FF6] contract+: `src/content/types.ts` `BaseDef` (HP, repair per crate, damage stages, alarm, archers)
+  and `RulesDef` (run timings, reaches, respawn points, stat caps, separation, knockback decay), with
+  `Content.base`/`Content.rules`; `src/host/sim/types.ts` `Unit.push?` (knockback velocity) and
+  `BaseState.stage?` (§3.3 damage stage as state). SPEC §15.3/§15.4 sketches updated.
+- [FF6] decision: projectile speed: the Engineer's bolt, the pulse turret and the base archers fly at
+  24 tiles/s (a 9-tile longbow shot lands in ~0.4 s); FF3-fix-1's speed line wasn't on `main` yet.
+- [FF6] decision: slice content: the Engineer's build list is `['arrow_tower']` (bomb tower with FF8), waves
+  1–2 are Grunts only (Runners join wave 2 with FF10), the shop holds only `crate` (2 coins, the depot price).
+  Starting values: base 1000 HP, 100 HP per crate, 6 coins; kill coins = round(budget × coinIncome).
+- [FF6] decision: run flow: 3 s countdown → build (45 s cap or every connected player ready) → combat →
+  clear → build of the next wave; clearing the last wave in content is the victory (wave 15's boss once
+  FF11 lands); victory 5 s / defeat 4 s, then summary. Every group spawns 3 s after its lane warning, so
+  the first group arrives 3 s into combat. Projectiles and markers clear at each build phase.
+- [FF6] decision: building at your feet ignores the builder's own body (§7's "no player on the tile" would
+  forbid it); structure collision pushes the builder off. Flyers don't block placement.
+- [FF6] decision: crates: a pickup takes as many as fit; a full-HP base takes no crate (row 2 falls through
+  to rows 4–5); drops within 0.3 tiles merge into one pile; a dazed or dead player's crates drop unlocked.
+- [FF6] decision: supers fire on release only when full (no queue), and a super's own damage doesn't charge
+  the super. Steady Aim: `onTick` turns it on after 600 ms with the stick released; while on, a scoped
+  `range` +20% mod, and main shots fired get a `steady` tag that `modifyOutgoing` boosts by 25%.
+- [FF6] decision: melee wind-ups root the enemy and are called off if the player target goes dazed or
+  down; path enemies attack the Citadel whenever its footprint is in reach; a knockback faster than
+  1 tile/s overrides walking. Leash distance is measured from where the enemy left its path.
+- [FF6] decision: §11.4 staleness lives in `FreshInputSource` (sim/sources.ts), counted in steps: the host
+  pushes each phone sample with the tick it arrived at (FF7's PhoneInputSource can wrap it).
+- [FF6] decision: commands `join`, `request` and `card` refuse with `invalid` until FF14/FF12; `buy` takes
+  only `crate` (build phase). `Sim.spawnEnemy/place/addSoldier` are test/bench helpers that bypass the
+  command log (not replayable); the host and debug panel use commands.
+- [FF6] decision: replay file = JSON `{ v, build, start, steps, inputs: [tick, slot, input][] (changes only),
+  commands: [tick, cmd][], hashes: [tick, hash][] (every 60 steps) }`, gzip optional;
+  `tsx scripts/replay.ts --record <file> [--seed N] [--players N]` records an invincible autopilot run.
+  The state hash skips derived state (spatial hash, flow fields, tile kinds) and the step's events.
+- [FF6] decision: registered behaviors (`ai/`, `modules/`, `structures/`) import only types,
+  `internal.ts`, `geometry.ts` and leaf helpers, never the registry, so `registry.ts` has no import cycle.
+- [FF6] decision: perf: the bench's first profile spent ~40% in spatial-hash queries, mostly the turrets'
+  nearest-enemy searches over 7-tile ranges; `nearestEnemy` now scans the enemy array (id order) and
+  hash results use an insertion sort. Bench (Node, this machine): peak mean ≈ 0.6 ms, p99 ≈ 1.5 ms.
 
 ## 9. Final handoff
 

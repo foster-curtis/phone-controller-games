@@ -260,6 +260,8 @@ export interface RulesDef {
   countdownMs: number;
   /** Build phase cap (§10.2: 45 s). */
   buildCapMs: number;
+  /** Death to respawn at the base (§5: 10 s). */
+  respawnMs: number;
   /** Victory and defeat last this long before the summary (§4). */
   victoryMs: number;
   defeatMs: number;

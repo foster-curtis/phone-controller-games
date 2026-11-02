@@ -30,6 +30,7 @@ export const rules = {
   startCoins: 6,
   countdownMs: 3000,
   buildCapMs: 45_000,
+  respawnMs: 10_000,
   victoryMs: 5000,
   defeatMs: 4000,
   spawnWarningMs: 3000,

@@ -84,9 +84,10 @@ describe('combat: spawner, warnings, scaling', () => {
       const start = startOf(players, 5);
       start.slots.forEach((s, i) => (s.connected = i < connected));
       const sim = createSim(start);
-      while (sim.world.phase !== 'build') sim.step();
+      const phase = () => sim.world.phase;
+      while (phase() !== 'build') sim.step();
       for (const p of sim.world.players) sim.command({ c: 'ready', slot: p.slot, ready: true });
-      while (sim.world.phase !== 'combat') sim.step();
+      while (phase() !== 'combat') sim.step();
       const n = sim.world.spawns.reduce((a, s) => a + s.count, 0) + sim.world.enemies.length;
       return { n, scaling: sim.world.team.scaling };
     };

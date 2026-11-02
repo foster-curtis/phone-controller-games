@@ -1573,7 +1573,9 @@ interface Unit extends Body {
   mods: Modifier[];                          // cards, passives (attach order)
   effects: StatusEffect[];
   stats: StatBlock;                          // recomputed when mods/effects change
+  push?: Vec2 | null;                        // knockback velocity, decays each step (FF6)
 }
+// BaseState also keeps its visual damage stage (§3.3) as `stage?: 0 | 1 | 2 | 3` (FF6).
 interface World {
   tick: number; phase: Phase; wave: number;
   players: PlayerEnt[]; soldiers: SoldierEnt[]; enemies: EnemyEnt[];
@@ -1735,6 +1737,13 @@ interface ScalingDef { base: 0.5; perPlayer: 0.25 }                   // §9.4
 interface MapDef { id: string; cols: number; rows: number; tiles: string[];  // ASCII rows
   legend: Record<string, TileKind>; lanes: Record<LaneId, { entry: Tile[]; spawn: Vec2 }> }
 type ModuleRef = { module: string; params?: Record<string, number | string | boolean> };
+// FF6: the Citadel and the run-wide rules and timings
+interface BaseDef { hp: number; repairPerCrate: number; stages: number[]; alarmAt: number;   // §3.3–§3.5
+  archers: { count: number; at: Vec2[]; attack: AttackDef } }
+interface RulesDef { startCoins: number; countdownMs: number; buildCapMs: number; respawnMs: number;
+  victoryMs: number; defeatMs: number; spawnWarningMs: number; inputStaleMs: number; dropLockMs: number;
+  pickupRadius: number; giveRadius: number; respawn: Vec2[]; statCaps: Partial<Record<StatId, StatCap>>;
+  breakerWallCost: number; separation: number; knockbackDecay: number }
 ```
 
 - **Generic system signatures** (extraction-ready, §15.1; Fort Frenzy passes its content in):

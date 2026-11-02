@@ -17,7 +17,12 @@ describe('build phase: ghost, place, cancel', () => {
     h.run(1);
     const s = h.sim.world.structures;
     expect(s).toHaveLength(1);
-    expect(s[0]).toMatchObject({ kind: 'arrow_tower', tile: [10, 10], owner: 0, hp: arrowTower.hp });
+    expect(s[0]).toMatchObject({
+      kind: 'arrow_tower',
+      tile: [10, 10],
+      owner: 0,
+      hp: arrowTower.hp,
+    });
     expect(h.p(0).crates).toBe(3 - arrowTower.cost);
     expect(h.p(0).lastBuilt).toBe('arrow_tower');
     expect(h.p(0).ghost).toBeNull();
@@ -126,7 +131,8 @@ describe('pathing', () => {
     h.toCombat();
     h.holdSpawns();
     h.put(0, 30, 3.5);
-    for (let col = 0; col < 36; col++) if (col !== 24 && col !== 25) h.sim.place('arrow_tower', col, 15, 0);
+    for (let col = 0; col < 36; col++)
+      if (col !== 24 && col !== 25) h.sim.place('arrow_tower', col, 15, 0);
     const g = h.sim.spawnEnemy('grunt', 18.5, 20.5);
     g.hp = g.maxHp = 1e9;
     let crossX: number | null = null;
@@ -161,10 +167,16 @@ describe('pathing', () => {
     h.toBuild();
     const f = h.sim.world.fields.ground;
     const t = 10 * 36 + 10;
-    const before = f.dist[t]!;
-    h.sim.place('arrow_tower', 10, 10, 0);
+    const routedThrough = () => Array.from(f.next).includes(t);
+    expect(routedThrough()).toBe(true);
+    const st = h.sim.place('arrow_tower', 10, 10, 0);
     h.run(1);
-    expect(h.sim.world.fields.ground.dist[t]).toBeGreaterThan(before);
     expect(h.sim.world.fields.dirty).toBe(false);
+    // Detours cost a step or two, the tower many: nobody routes through it any more.
+    expect(routedThrough()).toBe(false);
+    st.hp = 0;
+    h.run(1);
+    expect(h.sim.world.structures).toHaveLength(0);
+    expect(routedThrough()).toBe(true);
   });
 });

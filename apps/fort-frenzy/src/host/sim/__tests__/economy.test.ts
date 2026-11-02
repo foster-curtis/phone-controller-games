@@ -81,7 +81,9 @@ describe('give and drop', () => {
     expect(h.p(0).crates).toBe(1);
     expect(h.p(1).crates).toBe(engineer.carryCap);
     expect(h.p(2).crates).toBe(1);
-    expect(h.events('crate')).toEqual([expect.objectContaining({ action: 'give', slot: 0, to: 2 })]);
+    expect(h.events('crate')).toEqual([
+      expect.objectContaining({ action: 'give', slot: 0, to: 2 }),
+    ]);
     expect(h.events('command')).toEqual([{ e: 'command', ref: 5, slot: 0, ok: true }]);
     expect(h.p(0).run.cratesGiven).toBe(1);
   });

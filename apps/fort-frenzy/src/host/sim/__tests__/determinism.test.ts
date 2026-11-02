@@ -17,7 +17,10 @@ function wanderer(slot: number): ScriptedInputSource {
   });
 }
 
-function runHashes(seed: number, mk: (slot: number, sim: ReturnType<typeof createSim>) => InputSource) {
+function runHashes(
+  seed: number,
+  mk: (slot: number, sim: ReturnType<typeof createSim>) => InputSource,
+) {
   const start = startOf(2, seed);
   const sim = createSim(start);
   for (const s of start.slots) sim.setSource(s.slot, mk(s.slot, sim));

@@ -76,7 +76,8 @@ describe('content ids', () => {
       for (const t of item.tiers) {
         if (t.effect.kind === 'stats' || t.effect.kind === 'module')
           expect(targets).toContain(t.effect.target);
-        if (t.effect.kind === 'module') expect(Object.keys(modules)).toContain(t.effect.module.module);
+        if (t.effect.kind === 'module')
+          expect(Object.keys(modules)).toContain(t.effect.module.module);
       }
     }
     expect(c.shop.map((s) => s.id)).toContain('crate');

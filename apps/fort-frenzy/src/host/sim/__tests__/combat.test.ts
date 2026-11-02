@@ -16,10 +16,17 @@ function combat(players = 1) {
   return h;
 }
 
+/** A barely moving stick breaks Steady Aim, so shots deal their base damage. */
+function unsteady(h: ReturnType<typeof harness>) {
+  h.pads[0]!.set({ move: { x: 0.001, y: 0 } });
+  h.run(1);
+}
+
 describe('Engineer longbow', () => {
   it('fires on release in the aimed direction and hits what it points at', () => {
     const h = combat();
     h.put(0, 10, 16);
+    unsteady(h);
     const g = h.sim.spawnEnemy('grunt', 10, 11);
     const miss = h.sim.spawnEnemy('grunt', 14, 16);
     h.pads[0]!.tap('mainFires', { mainAim: { x: 0, y: -1 } });
@@ -35,6 +42,7 @@ describe('Engineer longbow', () => {
   it('a tap (aim 0,0) auto-aims at the nearest enemy in range', () => {
     const h = combat();
     h.put(0, 10, 16);
+    unsteady(h);
     const far = h.sim.spawnEnemy('grunt', 10, 10);
     const near = h.sim.spawnEnemy('grunt', 14, 16);
     h.pads[0]!.tap('mainFires', { mainAim: { x: 0, y: 0 } });
@@ -58,6 +66,7 @@ describe('Engineer longbow', () => {
   it('dealing damage charges the super', () => {
     const h = combat();
     h.put(0, 10, 16);
+    unsteady(h);
     h.sim.spawnEnemy('grunt', 13, 16);
     h.pads[0]!.tap('mainFires');
     h.run(30);
