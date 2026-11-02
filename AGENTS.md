@@ -13,6 +13,7 @@ every message goes through a shared, game-agnostic WebSocket **relay**.
 | `apps/relay`          | `@pcg/relay`      | Done. Node WebSocket server, deployed to Fly.io. No game rules.       |
 | `apps/sunny-side`     | `@pcg/sunny-side` | Done. Sunny Side Slam, the first game. Vite multi-page app on Vercel. |
 | `apps/fort-frenzy`    | (none yet)        | Planning. Spec complete (design + technical), no code yet.            |
+| `apps/say-cheese`    | (none yet)        | Planning. Spec drafted (`apps/say-cheese/SPEC.md`), no code yet.      |
 | `packages/net-client` | `@pcg/net-client` | Done. Relay protocol types plus host and controller clients (TS).     |
 
 `apps/` holds deployables (games and the relay). `packages/` holds code shared by more than one app.
