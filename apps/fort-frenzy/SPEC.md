@@ -193,9 +193,12 @@ Applies to every theme pack. Theme packs change the drawings, not these rules.
   only while they carry at least one. The pips stay put while the ring's notch turns. They're drawn by
   code from two frames, not in the character art. The Artificer keeps the backpack gauge as well
   (Foster, 2026-10-28).
-- **Shared animations:** hit (white flash, small lean), down (kneel, emissive dims to gray, respawn
-  countdown where the name was) and respawn (assemble in a column of amber light at the base) are the
-  same for every class.
+- **Shared animations:** hit (white flash, small lean), down (the emissive dims to gray, then every
+  piece of armor falls to the ground into a pile with some scrap and stays there for the down timer;
+  respawn countdown where the name was) and respawn (assemble, unhurried, in a column of amber light at
+  the base) are the same for every class (down changed at C1, 2026-11-02, §15.11 #35). Walks swing each
+  leg on its own in every view: side legs bend on the forward swing, front and back legs step toward
+  and away from the camera and trade which one is drawn in front each step.
 - **Healing visuals:** all healing is amber (it's ours), marked with small white "+" glints. Never
   green, since jade and forest are player colors.
 
@@ -422,8 +425,8 @@ Crates therefore have two uses: building or repairing.
   sentries, ramparts, window, window sentry, then the damage overlays.
 - **Damage stages (§3.3), cumulative:** 66% cracks (each crack drawn individually, with its own length,
   angle and branches, never one shape repeated; broken glow seams, a fallen merlon, rubble at the wall
-  base); 33% adds fire (flames on the keep and walls); 10% adds heavy smoke (tall plumes, dimmed core and
-  gate). Stages reverse as HP is repaired back over each threshold.
+  base); 33% adds fire (flames on the keep and walls); 10% adds heavy smoke (tall plumes that pour
+  upward and flicker, dimmed core and gate). Stages reverse as HP is repaired back over each threshold.
 - **Animations:** hit (core flickers, keep shakes, HP bar flashes); siege shells (red landing marker on
   the footprint first); repair delivery (amber pulse climbs the keep to the core); shop repair and the
   emergency kit (an amber wave over the whole Citadel, brighter and faster for the kit); low HP at 25%
@@ -520,7 +523,8 @@ Crates therefore have two uses: building or repairing.
   - **Burn:** amber flames on the body. **Poison:** amber nanite corrosion. Every burn or poison
     damage tick flashes the whole body white for about 60 ms, like a hit.
   - **Stun:** the enemy's glow goes dark (its unlit frames, §15.10), and amber chevrons orbit above it.
-  - **Slow:** arcs crawl up the legs (§7.2).
+    A stunned enemy always plays its idle clip, never its walk, even while it slides (§15.11 #36).
+  - **Slow:** arcs crawl up the legs, climbing and flickering (§7.2), and the walk plays slower.
   - **Overflow shield:** the `overflow-shield` icon beside that player's HP bar; no world sprite.
   - **Tower defense bonus** (the Artificer's super): amber shield pips on the front edge of the tower's
     plate.
@@ -949,6 +953,9 @@ Enabled on the TV build with a URL flag and never shown to players. It can:
   with top faces, mirrored left/right, vector cut-out rigs, ink outline, alignment and layering.
   Enemy glow sits inside each part (`class="glow"` groups), so it moves with the part.
 - Every attack has a visible wind-up tell (listed per enemy). Every ground marker is a 0.6 ellipse.
+- Every enemy and the Colossus has a hit (a recoil lean with the white flash) and a death: the glow
+  cuts out, the parts collapse into a pile on the ground with `scrap-theirs`, then fade (§15.11 #35).
+  Big walkers (Brute, Colossus) stomp: the body drops hard on each footfall.
 
 **Drone (Grunt):** a little shorter than a knight, reaching about the Warden's shoulders. A short torso
 leaning hard forward on short legs with normal knees, spikes along the spine, no neck (the head sits on
@@ -1543,7 +1550,14 @@ interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: num
 - **Composing a rig:** walk the view's `order`, skip parts whose `optional` group is off, and rotate
   each part about its pivot, chained through its parents. Glow pieces are normal frames whose alpha or
   glow code may raise. The Colossus swaps its legs' draw order mid-stride with `Keyframe.order`. A
-  knight's `badge` point may sit above the rig's viewBox, over the helm.
+  knight's `badge` point may sit above the rig's viewBox, over the helm. The knights' one-piece
+  front/back `legs` (and `legs-glow`) are drawn as two halves cropped at the crotch, `legs.l`/`legs.r`
+  (back view `legs.bl`/`legs.br`), so clips move each leg on its own (§15.11 #37). A clip may be solved
+  per view as `<clip>@<view>` (the down pile); the rig plays the variant for its current view.
+- **Renderer API additions** (FF3-fix-1, `src/host/render/types.ts`, additive): `RigInstance.clipMs(clip)`
+  and `clipDone` (remove a dead enemy once its death clip ends); `EffectSpawner.burst(…, delayMs?)`,
+  `bodyBurst(kind, footSx, footSy, heightPx)` (3–5 heal glints or nanite motes spread over a body) and
+  `scrap(…, holdMs?)` (a downed knight's pile holds for the down timer).
 - **Pooling:** render-side only. Phaser objects for projectiles, effects, damage numbers and Swarm units
   come from per-kind pools; sim entities are plain objects, not pooled.
 - **Interpolation:** the renderer draws positions lerped between the last two sim steps (as in Sunny
@@ -2113,3 +2127,6 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 32 | 2026-10-29 | Emergency kit | Bought in the build phase, one held at a time by the Quartermaster, used with the action button in the repair zone (new §10.1 row 3) in either phase; `MeView.action` gains `'kit'` and `kits` | §3.4 asked for a mid-combat kit, but combat has no menus (Foster) |
 | 33 | 2026-10-29 | Build-phase action button | The Build and Shop tabs keep an action button for pick up, deliver, kit and Armory buy (§10.2) | §6 lets players carry, deliver and buy cells in both phases, and the build tabs had no way to do it (Foster) |
 | 34 | 2026-10-29 | Sound effects | Kenney CC0 packs supplied in `audio/kenney/`, picked and converted to `.mp3` in `audio/neon-knights/` (§14 #4) | Commercially clear, already downloaded (Foster) |
+| 35 | 2026-11-02 | Down and death | A downed knight dims, then falls apart into a pile of armor with scrap that stays for the down timer (was a kneel); every enemy and the Colossus gets a hit and a death (collapse into a pile, `scrap-theirs`, fade) | C1 gallery notes (Foster) |
+| 36 | 2026-11-02 | Stunned units | Always idle, never walking (a render rule) | A stunned enemy that walks reads as not stunned (Foster, C1) |
+| 37 | 2026-11-02 | Knight legs, front and back | The renderer draws the one-piece `legs` frame twice, cropped into left and right halves, so each leg steps on its own | The art has one legs part per view; a split keeps the art as is (Foster, C1) |

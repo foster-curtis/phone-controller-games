@@ -5,6 +5,15 @@ import type { Point } from '../../themes/types';
 import type { ArtImage } from './atlas';
 import { mortarTubeAngle, snapSentryAim, snapTurretAim } from './aim';
 import { masksFor } from './autotile';
+import {
+  citadelCollapseAt,
+  CITADEL_COLLAPSE_MS,
+  COLLAPSE_AT,
+  SMOKE_CROP_Y,
+  smokeBaseAlpha,
+  smokeLayers,
+  type CollapseFrame,
+} from './citadelFx';
 import { placeFrame, type RenderContext } from './context';
 import {
   CITADEL,
@@ -22,6 +31,7 @@ import {
 import type { RigSprite } from './rig';
 import type {
   CitadelStage,
+  EffectSpawner,
   ScreenPoint,
   SentryAim,
   SentryLoadout,
@@ -37,6 +47,11 @@ function setVisible(a: ArtImage | null | undefined, on: boolean) {
 }
 
 // ---- pulse turret ---------------------------------------------------------------------------------
+
+/** Muzzle attach indices per tier: the base head has one barrel, II and III twin barrels (§7.2). */
+export function turretMuzzleIndices(tier: TowerTier): (1 | 2)[] {
+  return tier >= 2 ? [1, 2] : [1];
+}
 
 /** plate (ground), pedestal (III's adds struts), bands, the head for the snapped aim (§15.2). */
 export class PulseTurret {
@@ -134,6 +149,18 @@ export class PulseTurret {
       : null;
   }
 
+  /** Every barrel tip of the current head: one up to tier I, both twin barrels from II (C1 note 6). */
+  muzzles(): ScreenPoint[] {
+    return turretMuzzleIndices(this.tier)
+      .map((i) => this.muzzle(i))
+      .filter((p): p is ScreenPoint => p !== null);
+  }
+
+  /** Muzzle flash out of every barrel, pointing along the aim (screen radians). */
+  fire(fx: EffectSpawner, rotation: number) {
+    for (const m of this.muzzles()) fx.burst('muzzle-ours', m.sx, m.sy, rotation);
+  }
+
   private refreshHead() {
     this.ctx.lib.setFrame(this.head, turretHeadFrame(this.tier, this._aim), this.unlit);
     this.ctx.lib.setOrigin(this.head, [0, 0]);
@@ -223,6 +250,9 @@ export const WINDOW_SENTRY_SCALE = 0.62;
 
 export type SentryId = keyof typeof SENTRY_MOUNTS;
 
+/** The core sphere's center, Citadel units (it implodes about it). */
+const CORE_CENTER: Point = [170, 38];
+
 export class Citadel {
   readonly ground: ArtImage[];
   private body: ArtImage;
@@ -233,6 +263,8 @@ export class Citadel {
   private sentries: Record<SentryId, ArtImage>;
   private aims: Record<SentryId, SentryAim> = { left: 'dl', right: 'dr', window: 'c' };
   private overlays: [ArtImage, ArtImage, ArtImage];
+  /** Two drifting copies of the smoke plumes over the static overlay (C1 note 7). */
+  private smokeDrift: [ArtImage, ArtImage];
   private rubble: ArtImage;
   private stage: CitadelStage = 0;
   private destroyed = false;
@@ -240,6 +272,9 @@ export class Citadel {
   private third = false;
   private t = 0;
   private hitMs = 0;
+  /** Destroyed transition playhead, ms (null when not collapsing). */
+  private collapseT: number | null = null;
+  private keepUnlit = false;
   readonly sx: number;
   readonly sy: number;
 
@@ -263,7 +298,7 @@ export class Citadel {
     // Draw order: body, glow, core, corner sentries, ramparts, window, window sentry, overlays.
     this.body = w(CITADEL.body);
     this.glow = w(CITADEL.glow);
-    this.core = w(CITADEL.core);
+    this.core = w(CITADEL.core, CORE_CENTER, 1, sx, this.coreY(1));
     const mount = (id: SentryId) => {
       const [mx, my] = SENTRY_MOUNTS[id];
       const s = id === 'window' ? WINDOW_SENTRY_SCALE : 1;
@@ -281,6 +316,11 @@ export class Citadel {
     this.window = w(CITADEL.window);
     this.sentries = { left, right, window: mount('window') };
     this.overlays = [w(CITADEL.cracks), w(CITADEL.fire), w(CITADEL.smoke)];
+    this.smokeDrift = [w(CITADEL.smoke), w(CITADEL.smoke)];
+    for (const s of this.smokeDrift) {
+      const vb = s.vb;
+      s.img.setCrop(0, 0, vb[2] * s.ppuX, (SMOKE_CROP_Y - vb[1]) * s.ppuY);
+    }
     this.rubble = w(CITADEL.rubble);
     this.refresh();
   }
@@ -296,9 +336,39 @@ export class Citadel {
     return hpFrac <= 0.1 ? 3 : hpFrac <= 0.33 ? 2 : hpFrac <= 0.66 ? 1 : 0;
   }
 
+  /** Snap to destroyed (rubble) or back to standing; cancels a running collapse. */
   setDestroyed(on: boolean) {
     this.destroyed = on;
+    this.collapseT = null;
+    this.applyCollapse(null);
     this.refresh();
+  }
+
+  /**
+   * The destroyed transition (C1 note 8; FF7/FF14 trigger it on defeat): the core implodes, the
+   * glow cuts out, the keep sinks into its footprint and the rubble frame fades in, ending in the
+   * destroyed state. Sparks and scrap burst along the way when `fx` is given. Returns its length, ms.
+   */
+  collapse(fx?: EffectSpawner): number {
+    this.destroyed = false;
+    this.collapseT = 0;
+    this.refresh();
+    this.applyCollapse(citadelCollapseAt(0));
+    if (fx) {
+      const k = this.ctx.unitPx;
+      const core = { sx: this.sx, sy: this.coreY(1) };
+      fx.burst('spark-ours', core.sx, core.sy, 0, COLLAPSE_AT.implode);
+      for (let j = 0; j < 6; j++) {
+        const x = this.sx + (j - 2.5) * 52 * k;
+        const at = COLLAPSE_AT.sinkStart + j * 170;
+        fx.burst('spark-ours', x, this.sy - (30 + (j % 3) * 22) * k, 0, at);
+      }
+    }
+    return CITADEL_COLLAPSE_MS;
+  }
+
+  get collapsing(): boolean {
+    return this.collapseT !== null;
   }
 
   /** Damage (twin barrels) and Range (scope) stack: 4 loadouts (§3.5, §3.6). */
@@ -330,33 +400,92 @@ export class Citadel {
 
   update(dtMs: number) {
     this.t += dtMs;
+    if (this.collapseT !== null) {
+      this.collapseT += dtMs;
+      if (this.collapseT >= CITADEL_COLLAPSE_MS) this.setDestroyed(true);
+      else {
+        this.applyCollapse(citadelCollapseAt(this.collapseT));
+        return;
+      }
+    }
     const shake = this.hitMs > 0 ? Math.sin(this.t / 18) * 2 * (this.hitMs / 220) : 0;
     this.hitMs = Math.max(0, this.hitMs - dtMs);
-    for (const a of [this.body, this.glow, this.core, this.ramparts, this.window])
-      a.img.x = this.sx + shake;
+    for (const a of this.keep()) a.img.x = this.sx + shake;
     if (this.destroyed) return;
     const flicker = this.hitMs > 0 ? 0.55 + 0.45 * Math.abs(Math.sin(this.t / 25)) : 1;
     const dim = this.stage >= 3 ? 0.55 : 1;
     this.core.img.setAlpha(flicker * dim);
     this.glow.img.setAlpha(this.stage >= 3 ? 0.6 : 1);
-    // Fire flickers and smoke drifts (deterministic, no randomness).
+    // Fire flickers; smoke breathes and pours upward (deterministic, no randomness).
     this.overlays[1].img.setAlpha(0.85 + 0.15 * Math.sin(this.t / 70));
-    this.overlays[2].img.setAlpha(0.8 + 0.2 * Math.sin(this.t / 400));
+    this.overlays[2].img.setAlpha(smokeBaseAlpha(this.t));
+    const k = this.ctx.unitPx;
+    smokeLayers(this.t).forEach((l, j) => {
+      const s = this.smokeDrift[j]!;
+      this.ctx.lib.setUnitScale(s, k, l.scale);
+      s.img.setPosition(this.sx + shake + l.dx * k, this.sy + l.dy * k).setAlpha(l.alpha);
+    });
+  }
+
+  /** Screen y of the core's center at a keep height factor. */
+  private coreY(keepSy: number): number {
+    return this.sy + (CORE_CENTER[1] - 234) * this.ctx.unitPx * keepSy;
+  }
+
+  /** The upright pieces that shake and sink (sentries and overlays sink too). */
+  private keep(): ArtImage[] {
+    return [this.body, this.glow, this.core, this.ramparts, this.window];
+  }
+
+  /** Applies one frame of the destroyed transition, or restores the standing keep (null). */
+  private applyCollapse(f: CollapseFrame | null) {
+    const lib = this.ctx.lib;
+    const k = this.ctx.unitPx;
+    const sy = f?.keepSy ?? 1;
+    const shake = f ? Math.sin(this.t / 16) * f.shake : 0;
+    const unlit = f?.unlit ?? false;
+    if (unlit !== this.keepUnlit) {
+      this.keepUnlit = unlit;
+      for (const a of [this.body, this.ramparts, this.window, this.core])
+        lib.setFrame(a, a.name, unlit);
+    }
+    const sinking = [this.body, this.glow, this.ramparts, this.window, ...this.overlays];
+    for (const a of sinking) {
+      lib.setUnitScale(a, k, 1, sy);
+      a.img.setPosition(this.sx + shake, this.sy).setAlpha(f?.keepAlpha ?? 1);
+    }
+    for (const s of this.smokeDrift) s.img.setVisible(!f && !this.destroyed && this.stage >= 3);
+    lib.setUnitScale(this.core, k, f?.coreScale ?? 1);
+    this.core.img.setPosition(this.sx + shake, this.coreY(sy)).setAlpha(f ? f.coreAlpha : 1);
+    if (f) this.glow.img.setAlpha(f.glowAlpha * f.keepAlpha);
+    for (const id of ['left', 'right', 'window'] as const) {
+      const s = this.sentries[id];
+      const [mx, my] = SENTRY_MOUNTS[id];
+      const scale = id === 'window' ? WINDOW_SENTRY_SCALE : 1;
+      lib.setUnitScale(s, k, scale, scale * sy);
+      s.img.setPosition(this.sx + mx * k + shake, this.sy + my * k * sy);
+      s.img.setAlpha(f?.keepAlpha ?? 1);
+    }
+    this.rubble.img.setVisible(this.destroyed || !!f).setAlpha(f ? f.rubbleAlpha : 1);
   }
 
   private refresh() {
     const lib = this.ctx.lib;
     const alive = !this.destroyed;
-    for (const a of [this.body, this.glow, this.core, this.ramparts, this.window])
-      setVisible(a, alive);
+    for (const a of this.keep()) setVisible(a, alive);
     for (const id of ['left', 'right', 'window'] as const) {
       const s = this.sentries[id];
-      lib.setFrame(s, sentryFrame(this.loadout, id === 'window' ? 'c' : this.aims[id]));
+      lib.setFrame(
+        s,
+        sentryFrame(this.loadout, id === 'window' ? 'c' : this.aims[id]),
+        this.keepUnlit,
+      );
       lib.setOrigin(s, [0, 0]);
       setVisible(s, alive && (id !== 'window' || this.third));
     }
     this.overlays.forEach((o, i) => setVisible(o, alive && this.stage > i));
-    setVisible(this.rubble, this.destroyed);
+    for (const s of this.smokeDrift) setVisible(s, alive && this.stage >= 3 && !this.collapsing);
+    setVisible(this.rubble, this.destroyed || this.collapsing);
   }
 }
 

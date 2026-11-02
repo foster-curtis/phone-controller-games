@@ -1,13 +1,13 @@
 // Commander clips (SPEC §2.4). The back view has only `swordtip` (art note, BUILD_PLAN §8): its
 // track rides on gauntlets like the full sword in the other views. Slash and super arrive with FF9.
-import type { Clip } from '../../../themes/types';
+import rig from '../../../../art/neon-knights/rigs/commander.json';
+import type { Clip, RigDef } from '../../../themes/types';
 import { each, knightClips, wave, sin, type KnightParts } from '../clipKit';
 
 const parts: KnightParts = {
   root: 'torso',
   legBack: ['backleg'],
   legFront: ['frontleg'],
-  legsBoth: ['legs'],
   arms: ['gauntlet'],
   glows: [
     'torso-glow',
@@ -38,7 +38,7 @@ const parts: KnightParts = {
   ],
 };
 
-const base = knightClips(parts, 680, 15);
+const base = knightClips(rig as unknown as RigDef, parts, 680, 15, 2.5);
 // The carried banner sways with the walk (it only shows while the `banner` group is on).
 const sway = each(
   ['banner'],

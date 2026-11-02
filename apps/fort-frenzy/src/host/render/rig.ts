@@ -1,7 +1,8 @@
 // Rig instances (SPEC §2.4, §15.2): compose a view's parts in `order` (optional groups off unless
 // switched on), turn each part about its pivot chained through its parents, tint the player color
 // parts, crossfade poses and clips, apply per-key draw-order swaps, brighten or dim emissive parts
-// and swap glow-baked frames to `@unlit`.
+// and swap glow-baked frames to `@unlit`. The knights' one-piece front/back legs draw as two
+// cropped halves (render/split.ts), so clips move each leg on its own.
 import * as Phaser from 'phaser';
 import {
   isPosed,
@@ -14,6 +15,7 @@ import {
 import type { ArtImage, ArtLibrary } from './atlas';
 import { applyOrder, blendSamples, REST, sampleClip, type ClipSample } from './clip';
 import { apply, composeView, decompose, type Mat } from './rigMath';
+import { splitView, type CropX } from './split';
 import type { PlayOptions, RigInstance, RigOptions, ScreenPoint } from './types';
 
 /** Dimmed emissive parts (unlit, downed): the knights' front shade (§2.5). */
@@ -134,6 +136,8 @@ export class RigSprite implements RigInstance {
     this.applyRootScale();
     if (v !== this._view) {
       this._view = v;
+      // Per-view clips (the down pile) follow the view, keeping their playhead.
+      for (const p of [this.cur, this.prev]) if (p) p.clip = this.clipFor(p.name) ?? p.clip;
       for (const s of this.sets) s.container.destroy();
       this.sets = [];
       this.buildSet(v, this._pose);
@@ -169,8 +173,22 @@ export class RigSprite implements RigInstance {
     return this.groupsOn.has(group);
   }
 
+  /** `<rig>/<clip>@<view>` when the clip is solved per view (the knights' down pile), else `<rig>/<clip>`. */
+  private clipFor(clip: string, view = this._view): Clip | undefined {
+    return this.clips[`${this.def.id}/${clip}@${view}`] ?? this.clips[`${this.def.id}/${clip}`];
+  }
+
+  clipMs(clip: string): number | null {
+    return this.clipFor(clip)?.durationMs ?? null;
+  }
+
+  get clipDone(): boolean {
+    const c = this.cur;
+    return !!c && !c.clip.loop && c.t >= c.clip.durationMs;
+  }
+
   play(clip: string, opts: PlayOptions = {}): boolean {
-    const c = this.clips[`${this.def.id}/${clip}`];
+    const c = this.clipFor(clip);
     if (!c) return false;
     if (this.cur?.name === clip && !opts.restart) {
       this.cur.speed = opts.speed ?? this.cur.speed;
@@ -297,7 +315,8 @@ export class RigSprite implements RigInstance {
   }
 
   private buildSet(view: ViewId, pose: string | null) {
-    const { rv, pose: p } = this.viewSet(view, pose);
+    const { rv: base, pose: p } = this.viewSet(view, pose);
+    const { rv, crops } = splitView(this.def.id, view, base, this.def.viewBox);
     this._pose = p;
     const scene = this.root.scene;
     const container = scene.make.container({ x: 0, y: 0 }, false);
@@ -318,6 +337,8 @@ export class RigSprite implements RigInstance {
         boost.img.setBlendMode(Phaser.BlendModes.ADD).setVisible(false);
         container.add(boost.img);
       }
+      const crop = crops.get(name);
+      if (crop) for (const a of boost ? [art, boost] : [art]) cropX(a, crop);
       nodes.set(name, { name, part, art, boost, groups: groupsOf.get(name) ?? [] });
     }
     const set: PartSet = {
@@ -399,4 +420,9 @@ export class RigSprite implements RigInstance {
       }
     }
   }
+}
+
+/** Crops an image to [x0, x1] sprite units of its frame (Phaser keeps it across `@unlit` swaps). */
+function cropX(a: ArtImage, [x0, x1]: CropX) {
+  a.img.setCrop((x0 - a.vb[0]) * a.ppuX, 0, (x1 - x0) * a.ppuX, a.img.frame.realHeight);
 }

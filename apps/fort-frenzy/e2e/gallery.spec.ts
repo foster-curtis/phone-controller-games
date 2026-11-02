@@ -49,6 +49,19 @@ test('gallery rigs unlit, Colossus final, Mk III mortar', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+// FF3-fix-1 (C1 notes): enemy hit and death, the knights' down pile and respawn.
+for (const clip of ['hit', 'death', 'down', 'respawn'] as const) {
+  test(`gallery rigs ${clip}`, async ({ page }) => {
+    const errors = watchErrors(page);
+    await open(page, `page=rigs&panel=0&clip=${clip}`);
+    await page.waitForTimeout(1200);
+    const probe = await page.evaluate(() => window.__pcgGallery!);
+    expect(probe.fallbacks).toBe(0);
+    await page.screenshot({ path: `e2e/__screens__/gallery-rigs-${clip}.png` });
+    expect(errors).toEqual([]);
+  });
+}
+
 test('gallery stress', async ({ page }) => {
   const errors = watchErrors(page);
   await open(page, 'stress=1');

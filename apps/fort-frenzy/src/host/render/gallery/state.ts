@@ -13,7 +13,8 @@ export const PAGES = [
 ] as const;
 export type PageId = (typeof PAGES)[number];
 
-export const CLIP_NAMES = ['idle', 'walk', 'hit', 'down', 'respawn'] as const;
+/** `death` plays on enemies and the Colossus, `down`/`respawn` on knights; a rig without the clip idles. */
+export const CLIP_NAMES = ['idle', 'walk', 'hit', 'down', 'respawn', 'death'] as const;
 
 export interface GalleryState {
   page: PageId;
@@ -82,15 +83,8 @@ export function writeState(s: GalleryState) {
   history.replaceState(null, '', `${location.pathname}?${q.toString()}`);
 }
 
-/** Artificer gauge groups for a crate count (art README): cell N full at ≥ 2N, half at 2N − 1. */
-export function gaugeGroups(crates: number): string[] {
-  const out: string[] = [];
-  for (let n = 1; n <= 3; n++) {
-    if (crates >= 2 * n) out.push(`core${n}-full`);
-    else if (crates === 2 * n - 1) out.push(`core${n}-half`);
-  }
-  return out;
-}
+/** Artificer gauge groups for a crate count: bottom cell first (render/gauge.ts). */
+export { gaugeGroups } from '../gauge';
 
 /** Colossus groups, cumulative (art README). */
 export function colossusGroups(tier: 1 | 2 | 3 | 4): string[] {

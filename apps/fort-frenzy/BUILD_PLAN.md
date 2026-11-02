@@ -795,6 +795,7 @@ Rules:
   - [x] Theme pack + render core (camera, layers, rigs, clips, autotiles, Citadel, towers, bloom)
   - [x] Gallery + stress mode + asset/rig tests + gallery e2e
   - [x] Merged to `main`
+  - [x] FF3-fix-1: C1 gallery notes (gauge, enemy hit/death, walks, down pile, respawn, twin flash, smoke, collapse, speeds, glints, stun idle, slow)
 - FF4 Controller
   - [x] Client wiring, sender, `layoutCombat` + tests
   - [x] All screens + components + dev mode
@@ -1145,6 +1146,51 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
 - [FF6] decision: perf: the bench's first profile spent ~40% in spatial-hash queries, mostly the turrets'
   nearest-enemy searches over 7-tile ranges; `nearestEnemy` now scans the enemy array (id order) and
   hash results use an insertion sort. Bench (Node, this machine): peak mean ≈ 0.6 ms, p99 ≈ 1.5 ms.
+
+- [FF3-fix-1] decision: Artificer gauge fills from the bottom cell up (C1 note 1). The art numbers cells
+  top-down (`core1` is the top cell), so cell k from the bottom is `core(4 − k)`: 1 crate = `core3-half`,
+  2 = `core3-full`, 3 = + `core2-half` … (`render/gauge.ts`, `GAUGE_CELLS_BOTTOM_UP`). This overrides the art
+  README's "cell N full at ≥ 2N"; FF9's gauge test must follow this order.
+- [FF3-fix-1] decision: straight-shot speeds (C1 note 9), tiles/s: bolt 26, nanite-bolt 20, wasp-shot 16
+  (`render/effectsMath.ts` `PROJECTILE_SPEEDS`). FF7 (Ranger bolt), FF9 (nanite bolts) and FF10 (Wasp shot)
+  set `projectileSpeed` to these.
+- [FF3-fix-1] decision: a stunned unit always plays idle, never walk (C1 note 11): wiring picks the clip
+  with `locomotionClip(moving, looks)` (or `StatusSprites.locomotion`) every frame, and slowed units walk at
+  `locomotionSpeed(looks)` (0.55). FF10 follows this.
+- [FF3-fix-1] decision: Citadel destroyed transition API (C1 note 8): `Citadel.collapse(fx?)` plays it and
+  returns its length (`CITADEL_COLLAPSE_MS`, 2400 ms), `collapsing` reports it, and the Citadel ends in
+  `setDestroyed(true)` (rubble). Core implodes (0–380 ms), glow cuts out and frames go unlit, the keep sinks
+  into its footprint while the rubble fades in, with sparks. FF7/FF14 call it on defeat.
+- [FF3-fix-1] decision: down and death (C1 note 4) are solved collapse clips (`render/fall.ts`): each loose
+  part's joint lands on the ground (riders: glow, color parts, add-ons on the same joint stay on their host).
+  Knights' piles are per view (`down@side|front|back`, picked by `RigSprite` for its view; `down` is the
+  side one); a downed Ranger should be in his `stand` pose. Wiring (FF7 knights): `play('down')`,
+  `setUnlit(true)` at `KNIGHT_DOWN.dimMs`, `spawnPile(fx, 'ours', …, { holdMs })` at `clipLandedMs(clip)` for
+  the down timer, then `play('respawn')` and `setUnlit(false)`. Enemies (FF10/FF11): `play('death')`,
+  `setUnlit(true)`, `flash()`, `spawnPile(fx, 'theirs', …, { big })` at `clipLandedMs`, remove the rig when
+  `clipDone`. The respawn is 1100 ms (was 700).
+- [FF3-fix-1] contract+: `render/types.ts` `RigInstance.clipMs(clip)`, `RigInstance.clipDone`,
+  `EffectSpawner.burst(…, delayMs?)`, `EffectSpawner.bodyBurst(kind, footSx, footSy, heightPx)`,
+  `EffectSpawner.scrap(…, holdMs?)` (SPEC §15.2).
+- [FF3-fix-1] decision: knight front/back legs move independently (C1 note 3) through a render-side split
+  (`render/split.ts`): the one-piece `legs`/`legs-glow` frame is drawn twice, cropped at the hip pivot's x
+  (1-unit overlap), as `legs.l`/`legs.r` (back view `legs.bl`/`legs.br`, whose step lifts the leg moving
+  away from the camera); the near leg drops lower, grows and is drawn in front, swapping each step.
+- [FF3-fix-1] decision: Scrap-mite scatter (C1 note 3) is `render/swarm.ts`: each mite of a pack follows a
+  seeded wander around its slot with stops and clamped heading wobble; mites are separate rigs y-sorted by
+  their own foot, so they re-layer as they pass (no per-key `order` needed inside a mite). FF10 places mites
+  at pack center + `mitePose(m, t)`.
+- [FF3-fix-1] decision: heal glints and nanite motes use `fx.bodyBurst` (3–5 seeded points over the body in
+  separate lanes, staggered); turret muzzle flashes use `PulseTurret.fire(fx, rot)` (both barrels from II).
+- [FF3-fix-1] decision: the Citadel's heavy smoke breathes (base alpha) and two copies of its plumes,
+  cropped above y = 160 so the gate dimmer stays put, rise, swell and fade half a period apart (2.6 s).
+- [FF3-fix-1] art note for C2: knights' side legs are one part (no knee): the forward swing shortens the leg
+  (sy) and leads with the foot to read as a knee bend; a knee joint needs new art.
+- [FF3-fix-1] art note for C2: the Bombard's foot pads are baked into its legs (no ankle joint) and its middle
+  legs overlap: legs translate instead of rotating so pads stay flat, and the middle pair is pushed 5 units
+  apart and steps half a cycle apart; separate pads and middle legs need new art.
+- [FF3-fix-1] art note for C2: the Brute's and Colossus's legs are single parts (no knee or foot): the stomp
+  is lift, slide and body drop; knees and feet would need new art.
 
 ## 9. Final handoff
 

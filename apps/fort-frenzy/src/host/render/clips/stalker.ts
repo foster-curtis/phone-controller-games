@@ -1,6 +1,8 @@
-// Stalker (Hunter) clips (SPEC §9.6): a fast loping run. Crouch and lunge arrive with FF10.
-import type { Clip } from '../../../themes/types';
-import { each, idleBob, sin, walkerWalk, wave } from '../clipKit';
+// Stalker (Hunter) clips (SPEC §9.6): a fast loping run with lifted forward swings. Crouch and
+// lunge arrive with FF10.
+import rig from '../../../../art/neon-knights/rigs/stalker.json';
+import type { Clip, RigDef } from '../../../themes/types';
+import { each, enemyDeath, enemyHit, idleBob, sin, walkerWalk, wave } from '../clipKit';
 
 export const clips: Record<string, Clip> = {
   idle: idleBob(
@@ -20,8 +22,11 @@ export const clips: Record<string, Clip> = {
     24,
     2.5,
     {
-      body: wave(440, 8, (u) => ({ dy: -2.5 * Math.abs(sin(u)), rot: 3 * sin(u) })),
+      body: wave(440, 16, (u) => ({ dy: -2.5 * Math.abs(sin(u)), rot: 3 * sin(u) })),
       tail: wave(440, 8, (u) => ({ rot: 10 * sin(u, 0.25) })),
     },
+    0.16,
   ),
+  hit: enemyHit(['body'], 7, 3),
+  death: enemyDeath(rig as unknown as RigDef),
 };

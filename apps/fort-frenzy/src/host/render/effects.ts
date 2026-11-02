@@ -6,6 +6,7 @@ import { theme } from '../../shared/theme';
 import type { ArtImage } from './atlas';
 import { GROUND_SQUASH } from './camera';
 import { placeFrame, type RenderContext } from './context';
+import { bodyBurstPoints } from './effectsMath';
 import { fk, scrapFrame } from './keys';
 import { Pool } from './pool';
 import type {
@@ -39,12 +40,18 @@ const PROJECTILE_FRAMES = {
 /** Tumbling projectiles don't point along their heading. */
 const TUMBLES = new Set<ProjectileKind>(['boulder', 'power-cell', 'mortar-shell', 'bombard-shell']);
 
+/** Scrap shows this long before fading (default) and fades over this long. */
+const SCRAP_SHOW_MS = 960;
+const SCRAP_FADE_MS = 640;
+
 interface Live {
   obj: Phaser.GameObjects.Image | Phaser.GameObjects.Graphics;
   age: number;
   ttl: number;
   done: () => void;
   tick?: (u: number) => void;
+  /** Hidden until this age, ms (staggered bursts). */
+  delay?: number;
 }
 
 export const SHADOW_TEXTURE = '__ff-shadow';
@@ -60,6 +67,8 @@ export function ensureShadowTexture(scene: Phaser.Scene) {
 
 export class Effects implements EffectSpawner {
   private live: Live[] = [];
+  /** Seeds bodyBurst placements (stable sequence, no randomness). */
+  private seq = 0;
   readonly pools = new Map<string, Pool<ArtImage>>();
   private readonly gfxPool: Pool<Phaser.GameObjects.Graphics>;
   private readonly shadowPool: Pool<Phaser.GameObjects.Image>;
@@ -105,21 +114,28 @@ export class Effects implements EffectSpawner {
     return p;
   }
 
-  burst(kind: BurstKind, sx: number, sy: number, rotation = 0) {
+  burst(kind: BurstKind, sx: number, sy: number, rotation = 0, delayMs = 0) {
     const pool = this.pool(BURST_FRAMES[kind], 'effects');
     const a = pool.get();
     a.img.setPosition(sx, sy).setRotation(rotation);
     const muzzle = kind.startsWith('muzzle');
+    const rise = kind === 'heal-glint' || kind === 'nanite-mote';
     this.add(
       a.img,
-      muzzle ? 90 : 320,
+      muzzle ? 90 : rise ? 520 : 320,
       () => pool.release(a),
       (u) => {
-        a.img.setAlpha(1 - u);
+        a.img.setAlpha(rise ? Math.min(1, 4 * u) * (1 - u) * 1.3 : 1 - u);
         if (!muzzle) this.ctx.lib.setUnitScale(a, this.ctx.unitPx, 1 + 0.4 * u);
-        if (kind === 'heal-glint' || kind === 'nanite-mote') a.img.y = sy - 12 * u;
+        if (rise) a.img.y = sy - 14 * u;
       },
+      delayMs,
     );
+  }
+
+  bodyBurst(kind: 'heal-glint' | 'nanite-mote', footSx: number, footSy: number, heightPx: number) {
+    for (const p of bodyBurstPoints(this.seq++))
+      this.burst(kind, footSx + p.x * heightPx, footSy - p.y * heightPx, 0, p.delayMs);
   }
 
   tracer(side: ScrapSide, from: ScreenPoint, to: ScreenPoint, ms = 120) {
@@ -136,15 +152,19 @@ export class Effects implements EffectSpawner {
     );
   }
 
-  scrap(side: ScrapSide, size: 1 | 2 | 3 | 4 | 5, sx: number, sy: number) {
+  scrap(side: ScrapSide, size: 1 | 2 | 3 | 4 | 5, sx: number, sy: number, holdMs = SCRAP_SHOW_MS) {
     const pool = this.pool(scrapFrame(side, size), 'world');
     const a = pool.get();
     a.img.setPosition(sx, sy).setDepth(sy);
+    const ttl = holdMs + SCRAP_FADE_MS;
     this.add(
       a.img,
-      1600,
+      ttl,
       () => pool.release(a),
-      (u) => a.img.setAlpha(u < 0.6 ? 1 : 1 - (u - 0.6) / 0.4),
+      (u) => {
+        const t = u * ttl;
+        a.img.setAlpha(t < holdMs ? 1 : 1 - (t - holdMs) / SCRAP_FADE_MS);
+      },
     );
   }
 
@@ -214,9 +234,16 @@ export class Effects implements EffectSpawner {
     };
   }
 
-  private add(obj: Live['obj'], ttl: number, done: () => void, tick?: (u: number) => void) {
-    this.live.push({ obj, age: 0, ttl, done, tick });
-    tick?.(0);
+  private add(
+    obj: Live['obj'],
+    ttl: number,
+    done: () => void,
+    tick?: (u: number) => void,
+    delay = 0,
+  ) {
+    this.live.push({ obj, age: 0, ttl, done, tick, delay });
+    if (delay > 0) obj.setVisible(false);
+    else tick?.(0);
   }
 
   update(dtMs: number) {
@@ -224,9 +251,15 @@ export class Effects implements EffectSpawner {
     const keep: Live[] = [];
     for (const l of this.live) {
       l.age += dtMs;
-      if (l.age >= l.ttl) l.done();
+      const d = l.delay ?? 0;
+      if (l.age < d) {
+        keep.push(l);
+        continue;
+      }
+      if (d > 0 && !l.obj.visible) l.obj.setVisible(true);
+      if (l.age - d >= l.ttl) l.done();
       else {
-        l.tick?.(l.age / l.ttl);
+        l.tick?.((l.age - d) / l.ttl);
         keep.push(l);
       }
     }

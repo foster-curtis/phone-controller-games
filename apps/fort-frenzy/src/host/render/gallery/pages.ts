@@ -20,9 +20,13 @@ import {
 } from '../keys';
 import { MapView } from '../map';
 import type { RigSprite } from '../rig';
-import { StatusSprites } from '../status';
+import { CITADEL_COLLAPSE_MS } from '../citadelFx';
+import { KNIGHT_DOWN } from '../clipKit';
+import { PROJECTILE_SPEEDS } from '../effectsMath';
+import { clipLandedMs, spawnPile } from '../fall';
+import { locomotionSpeed, StatusSprites } from '../status';
+import { mitePack, mitePose } from '../swarm';
 import { Citadel, Mortar, NetField, PulseTurret, WallField, frameAt } from '../structures';
-import { tileHash } from '../map';
 import {
   SENTRY_AIMS,
   SENTRY_LOADOUTS,
@@ -32,6 +36,7 @@ import {
   type ProjectileKind,
   type StatusLook,
   type TowerTier,
+  type TurretAim,
 } from '../types';
 import type { RenderWorld } from '../world';
 import { RIG_INFO, type RigInfo } from './rigInfo';
@@ -68,6 +73,8 @@ function addRig(
   sy: number,
   view: ViewId,
   pose?: string,
+  /** Clip to show (default: the page control); fixed demos pass their own. */
+  clipName = k.state.clip,
 ): Unit {
   const s = k.state;
   const groups: string[] = [];
@@ -92,12 +99,14 @@ function addRig(
   const fly = info.fly ?? 0;
   rig.setPosition(sx, sy - fly * 48, sy);
   rig.setUnlit(s.unlit);
-  const clip = s.clip;
-  const oneShot = clip === 'hit' || clip === 'down' || clip === 'respawn';
+  const clip = clipName;
   if (!rig.play(clip, { fadeMs: 0 })) rig.play('idle', { fadeMs: 0 });
-  else if (oneShot) {
+  else if (clip === 'down') downCycle(k, rig, sx, sy);
+  else if (clip === 'death') deathCycle(k, rig, sx, sy);
+  else if (clip === 'hit' || clip === 'respawn') {
+    const period = clip === 'hit' ? 1600 : 2000;
     k.tick((_dt, t) => {
-      if (Math.floor(t / 1600) !== Math.floor((t - _dt) / 1600)) {
+      if (Math.floor(t / period) !== Math.floor((t - _dt) / period)) {
         rig.play(clip, { restart: true, fadeMs: 0 });
         if (clip === 'hit') rig.flash(60);
       }
@@ -113,6 +122,91 @@ function addRig(
   };
   k.units.push(unit);
   return unit;
+}
+
+/** Runs `fn` once each time t passes `at` within a `period` loop. */
+function every(k: PageKit, period: number, at: number, fn: () => void) {
+  k.tick((dt, t) => {
+    const a = (t - dt) % period;
+    const b = t % period;
+    if ((a < at && b >= at) || (b < a && (a < at || b >= at))) fn();
+  });
+}
+
+/**
+ * A knight going down and back (C1 note 4): dims, falls into a pile of armor with scrap that lasts
+ * the (sample) down timer, then respawns.
+ */
+function downCycle(k: PageKit, rig: RigSprite, sx: number, sy: number) {
+  const clips = k.world.theme.clips;
+  const down = (clips[`${rig.rigId}/down@${rig.view}`] ?? clips[`${rig.rigId}/down`])!;
+  const respawnAt = 3800;
+  const period = respawnAt + (rig.clipMs('respawn') ?? 1100) + 600;
+  const start = () => {
+    rig.setUnlit(k.state.unlit);
+    rig.play('down', { restart: true, fadeMs: 0 });
+  };
+  start();
+  every(k, period, 0.001, start);
+  every(k, period, KNIGHT_DOWN.dimMs, () => rig.setUnlit(true));
+  const landed = clipLandedMs(down);
+  const pile = () =>
+    spawnPile(k.world.fx, 'ours', sx, sy, k.world.unitPx, {
+      holdMs: respawnAt - landed,
+      seed: rig.rigId,
+    });
+  every(k, period, landed, pile);
+  every(k, period, respawnAt, () => {
+    rig.setUnlit(k.state.unlit);
+    rig.play('respawn', { restart: true, fadeMs: 0 });
+  });
+}
+
+const BIG_SCRAP = new Set(['brute', 'bombard', 'colossus']);
+
+/** An enemy dying (C1 note 4): glow out, collapse into a pile, `scrap-theirs`, fade; then again. */
+function deathCycle(k: PageKit, rig: RigSprite, sx: number, sy: number) {
+  const death = k.world.theme.clips[`${rig.rigId}/death`]!;
+  const period = death.durationMs + 700;
+  const start = () => {
+    rig.play('death', { restart: true, fadeMs: 0 });
+    rig.setUnlit(true);
+    rig.flash(60);
+  };
+  start();
+  every(k, period, 0.001, start);
+  every(k, period, clipLandedMs(death), () =>
+    spawnPile(k.world.fx, 'theirs', sx, sy, k.world.unitPx, {
+      big: BIG_SCRAP.has(rig.rigId),
+      holdMs: death.durationMs - clipLandedMs(death),
+      seed: rig.rigId,
+    }),
+  );
+}
+
+/**
+ * A pack of 8 Scrap mites (§9.6, C1 note 3): mixed sizes and tilts, every mite on its own jittery
+ * path with stops (render/swarm.ts) while the clip is `walk`; each sorts by its own foot point, so
+ * the pack re-layers as mites pass each other. Other clips play on every mite in place.
+ */
+function mitePackAt(k: PageKit, cx: number, cy: number) {
+  const tile = 48;
+  const walking = k.state.clip === 'walk';
+  mitePack(7).forEach((m, i) => {
+    const p0 = mitePose(m, 0);
+    const u = addRig(k, 'mite', cx + p0.dx * tile, cy + p0.dy * tile * 0.6, 'side');
+    u.rig.root.setScale(u.rig.root.scaleX * m.scale, u.rig.root.scaleY * m.scale);
+    if (!walking) return;
+    u.rig.play('walk', { offsetMs: m.offsetMs, speed: m.speed, fadeMs: 0 });
+    k.tick((_dt, t) => {
+      const p = mitePose(m, t + i * 97);
+      u.sx = cx + p.dx * tile;
+      u.sy = cy + p.dy * tile * 0.6;
+      u.rig.setPosition(u.sx, u.sy);
+      u.rig.root.setRotation(p.wobble * 0.35);
+      u.rig.play(p.moving ? 'walk' : 'idle', { speed: m.speed, fadeMs: 60 });
+    });
+  });
 }
 
 // ---- rigs ------------------------------------------------------------------------------------------
@@ -151,17 +245,8 @@ function rigsPage(k: PageKit) {
     'mortar',
   ];
   enemies.forEach((rig, i) => {
-    if (rig === 'mite') {
-      // A pack of 8: scattered, mixed sizes, all facing the same general way (§9.6).
-      for (let m = 0; m < 8; m++) {
-        const h = tileHash(m, 3);
-        const u = addRig(k, 'mite', colX(i) - 40 + (h % 80), rowC - 30 + ((h >>> 8) % 40), 'side');
-        u.rig.play(k.state.clip === 'walk' ? 'walk' : 'idle', {
-          offsetMs: h % 500,
-          speed: 0.8 + ((h >>> 16) % 40) / 100,
-        });
-      }
-    } else addRig(k, rig, colX(i), rowC, 'side');
+    if (rig === 'mite') mitePackAt(k, colX(i), rowC - 10);
+    else addRig(k, rig, colX(i), rowC, 'side');
     k.label(
       rig === 'colossus'
         ? `colossus mk${k.state.colossus === 4 ? ' final' : k.state.colossus}`
@@ -174,12 +259,20 @@ function rigsPage(k: PageKit) {
 
 // ---- turrets + mortars -----------------------------------------------------------------------------
 
+/** Screen rotation of a turret aim (aims step 45° around the world ground from east). */
+const aimRotation = (aim: TurretAim) => {
+  const a = (TURRET_AIMS.indexOf(aim) * Math.PI) / 4;
+  return Math.atan2(Math.sin(a) * 0.6, Math.cos(a));
+};
+
 function turretsPage(k: PageKit) {
   const w = k.world;
+  const rowTurrets: { t: PulseTurret; tier: TowerTier }[] = [];
   ([0, 1, 2, 3] as TowerTier[]).forEach((tier, row) => {
     const y = 2 + row * 4;
     TURRET_AIMS.forEach((aim, i) => {
       const t = new PulseTurret(w, 2 + i * 3, y);
+      rowTurrets.push({ t, tier });
       t.setTier(tier);
       t.setAim(aim);
       t.setUnlit(k.state.unlit);
@@ -193,17 +286,26 @@ function turretsPage(k: PageKit) {
       p.sy - 10,
     );
   });
-  // A tracking turret: 8° hysteresis on a sweeping target.
-  const tracker = new PulseTurret(w, 28, 6);
-  tracker.setTier(2);
-  k.label('tracking (8° hysteresis)', tracker.sx, tracker.sy + 26);
+  // Tracking turrets: 8° hysteresis on a sweeping target; tiers II and III flash from both barrels.
+  ([2, 3] as TowerTier[]).forEach((tier, j) => {
+    const tracker = new PulseTurret(w, 28 + j * 3, 6);
+    tracker.setTier(tier);
+    k.label(
+      j === 0 ? 'tracking II (8° hysteresis, twin flash)' : 'III',
+      tracker.sx + (j === 0 ? 40 : 0),
+      tracker.sy + 26,
+    );
+    k.tick((_dt, t) => {
+      const a = t / 1400 + j * 0.7;
+      tracker.aimAt(a);
+      if (Math.floor(t / 400) !== Math.floor((t - _dt) / 400))
+        tracker.fire(w.fx, Math.atan2(Math.sin(a) * 0.6, Math.cos(a)));
+    });
+  });
+  // Every tier II and III head fires from both barrels.
   k.tick((_dt, t) => {
-    const a = t / 1400;
-    tracker.aimAt(a);
-    if (Math.floor(t / 500) !== Math.floor((t - _dt) / 500)) {
-      const m = tracker.muzzle(1);
-      if (m) w.fx.burst('muzzle-ours', m.sx, m.sy, Math.atan2(Math.sin(a) * 0.6, Math.cos(a)));
-    }
+    if (Math.floor(t / 700) === Math.floor((t - _dt) / 700)) return;
+    for (const tt of rowTurrets.filter((x) => x.tier >= 2)) tt.t.fire(w.fx, aimRotation(tt.t.aim));
   });
   // Damage, defense bonus and Fortify.
   const dmg = new PulseTurret(w, 28, 10);
@@ -244,22 +346,35 @@ function turretsPage(k: PageKit) {
 
 function citadelPage(k: PageKit) {
   const w = k.world;
-  const xs = [3.5, 10, 16.5, 23, 29.5];
+  const xs = [3, 8.8, 14.6, 20.4, 26.2, 32];
   const loadouts: [boolean, boolean, boolean][] = [
     [false, false, true],
     [true, false, false],
     [false, true, true],
     [true, true, true],
     [false, false, false],
+    [true, false, true],
   ];
   xs.forEach((x, i) => {
     const c = new Citadel(w, x, 8);
     if (i < 4) c.setStage(i as 0 | 1 | 2 | 3);
-    else c.setDestroyed(true);
+    else if (i === 4) c.setDestroyed(true);
+    else {
+      // The destroyed transition on a loop (C1 note 8): standing at the smoke stage, collapse,
+      // rubble, back up.
+      c.setStage(3);
+      const period = 1200 + CITADEL_COLLAPSE_MS + 1800;
+      every(k, period, 1200, () => c.collapse(w.fx));
+      every(k, period, period - 1, () => c.setDestroyed(false));
+    }
     const [d, r, third] = loadouts[i]!;
     c.setLoadout(d, r, third);
     k.label(
-      i < 4 ? ['stage 0', 'cracks (66%)', '+ fire (33%)', '+ smoke (10%)'][i]! : 'destroyed',
+      i < 4
+        ? ['stage 0', 'cracks (66%)', '+ fire (33%)', '+ smoke (10%)'][i]!
+        : i === 4
+          ? 'destroyed'
+          : 'collapse → destroyed',
       c.sx,
       c.sy + 24,
     );
@@ -389,15 +504,28 @@ function effectsPage(k: PageKit) {
     pr.set(2.5 + i * 2.5, 3, 0, -0.5);
     const p = at(2.5 + i * 2.5, 3);
     k.label(kind, p.sx, p.sy + 22);
+    if (kind in PROJECTILE_SPEEDS) return;
+    // Arcs in their slot.
     const fly = w.fx.projectile(kind);
     k.tick((_dt, t) => {
       const u = (t / 1600 + i * 0.13) % 1;
-      const arc =
-        kind === 'mortar-shell' ||
-        kind === 'bombard-shell' ||
-        kind === 'boulder' ||
-        kind === 'power-cell';
-      fly.set(2 + i * 2.5 + u * 2, 6, arc ? Math.sin(u * Math.PI) * 1.5 : 0.6, 0);
+      fly.set(2 + i * 2.5 + u * 2, 8.2, Math.sin(u * Math.PI) * 1.5, 0);
+    });
+  });
+  // Straight shots at their game speeds (C1 note 9), down a long lane so the speed reads.
+  (Object.entries(PROJECTILE_SPEEDS) as [ProjectileKind, number][]).forEach(([kind, tps], j) => {
+    const y = 4.9 + j * 0.55;
+    const from = 4;
+    const to = 19;
+    const fly = w.fx.projectile(kind);
+    const p = at(from - 1.6, y);
+    k.label(`${kind} ${tps} t/s`, p.sx, p.sy - 8, 10);
+    const lap = ((to - from) / tps) * 1000 + 350;
+    k.tick((_dt, t) => {
+      const s = ((t + j * 200) % lap) / 1000;
+      const x = from + s * tps;
+      // Past the lane's end it waits off-canvas for the next lap.
+      fly.set(x > to ? -20 : x, y, 0, 0);
     });
   });
   // Bursts, re-spawned on a loop.
@@ -461,33 +589,59 @@ function effectsPage(k: PageKit) {
   cloth.img.setTint(theme.players[k.state.color].fill.num);
   placeFrame(w, fk('rally-flag/cloth-trim'), 'world', fp.sx, fp.sy, { sortY: fp.sy + 0.002 });
   k.label('rally flag', fp.sx, fp.sy + 22);
-  // Statuses on Drones, and a hit flash.
+  // Statuses on walking Drones (a Stalker for slow), and a hit flash. A stunned unit idles even
+  // while it would be walking (C1 note 11); a slowed one walks sluggishly under flickering arcs.
   const looks: (StatusLook | 'flash')[] = ['burn', 'poison', 'stun', 'slow', 'flash'];
   looks.forEach((look, i) => {
     const p = at(4 + i * 4, 21);
-    const u = addRig(k, i === 3 ? 'stalker' : 'drone', p.sx, p.sy, 'side');
-    u.rig.play('walk');
+    const u = addRig(k, i === 3 ? 'stalker' : 'drone', p.sx, p.sy, 'side', undefined, 'idle');
     if (look === 'flash') {
+      u.rig.play('walk');
       k.tick((dt, t) => {
         if (Math.floor(t / 600) !== Math.floor((t - dt) / 600)) u.rig.flash(60);
       });
     } else {
-      u.status = new StatusSprites(w, u.rig, u.info.bodyH, u.info.legH);
-      u.status.set([look]);
+      const status = new StatusSprites(w, u.rig, u.info.bodyH, u.info.legH, i);
+      status.set([look]);
+      u.status = status;
+      // Wiring's per-frame rule: moving units walk unless stunned; slowed ones walk slower.
+      k.tick(() => u.rig.play(status.locomotion(true), { speed: locomotionSpeed([look]) }));
     }
-    k.label(look === 'flash' ? 'hit flash' : look, p.sx, p.sy + 26);
+    const name = { stun: 'stun (idles)', slow: 'slow (sluggish)', flash: 'hit flash' } as const;
+    k.label(name[look as keyof typeof name] ?? look, p.sx, p.sy + 26);
   });
-  // A knight downed (unlit glow) and respawning.
-  const down = addRig(k, 'warden', at(26, 21).sx, at(26, 21).sy, 'front');
-  down.rig.play('down', { fadeMs: 0 });
-  down.rig.setUnlit(true);
-  k.label('downed', down.sx, down.sy + 26);
-  const resp = addRig(k, 'ranger', at(30, 21).sx, at(30, 21).sy, 'front');
+  // A knight going down into a pile and respawning (C1 notes 4, 5), and the respawn on its own.
+  const down = addRig(k, 'warden', at(26, 21).sx, at(26, 21).sy, 'front', undefined, 'idle');
+  downCycle(k, down.rig, down.sx, down.sy);
+  k.label('down → pile → respawn', down.sx, down.sy + 26);
+  const resp = addRig(k, 'ranger', at(30, 21).sx, at(30, 21).sy, 'front', undefined, 'idle');
   k.tick((dt, t) => {
-    if (Math.floor(t / 1500) !== Math.floor((t - dt) / 1500))
+    if (Math.floor(t / 2000) !== Math.floor((t - dt) / 2000))
       resp.rig.play('respawn', { restart: true, fadeMs: 0 });
   });
   k.label('respawn', resp.sx, resp.sy + 26);
+  // Heal glints and nanite motes spread over a body (C1 note 10).
+  (['heal-glint', 'nanite-mote'] as const).forEach((kind, i) => {
+    const p = at(26 + i * 4, 15.5);
+    const u = addRig(k, i === 0 ? 'commander' : 'artificer', p.sx, p.sy, 'side', undefined, 'idle');
+    const h = u.info.bodyH * w.unitPx;
+    k.tick((dt, t) => {
+      if (Math.floor(t / 700) !== Math.floor((t - dt) / 700)) w.fx.bodyBurst(kind, p.sx, p.sy, h);
+    });
+    k.label(`${kind} on a body`, p.sx, p.sy + 26);
+  });
+  // An enemy hit and an enemy death (C1 notes 2, 4); every rig's are on the rigs page (clip).
+  const hit = addRig(k, 'brute', at(33.5, 15.5).sx, at(33.5, 15.5).sy, 'side', undefined, 'idle');
+  k.tick((dt, t) => {
+    if (Math.floor(t / 1200) !== Math.floor((t - dt) / 1200)) {
+      hit.rig.play('hit', { restart: true, fadeMs: 0 });
+      hit.rig.flash(60);
+    }
+  });
+  k.label('enemy hit', hit.sx, hit.sy + 26);
+  const dies = addRig(k, 'drone', at(33.5, 21).sx, at(33.5, 21).sy, 'side', undefined, 'idle');
+  deathCycle(k, dies.rig, dies.sx, dies.sy);
+  k.label('enemy death', dies.sx, dies.sy + 26);
 }
 
 // ---- icons as world-UI badges ----------------------------------------------------------------------

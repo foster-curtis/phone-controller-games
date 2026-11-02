@@ -82,6 +82,10 @@ export interface RigInstance {
   /** Plays `<rig>/<clip>`; unknown clips are ignored (returns false). */
   play(clip: string, opts?: PlayOptions): boolean;
   readonly clip: string | null;
+  /** Length of `<rig>/<clip>` in ms, or null when the rig has no such clip (FF3-fix-1). */
+  clipMs(clip: string): number | null;
+  /** The playing one-shot clip has reached its end (a dead enemy's fade is done: remove it). */
+  readonly clipDone: boolean;
   /** Emissive level for glow parts: 1 normal, >1 brighter (additive boost), <1 dimmer, 0 dark. */
   setGlow(level: number): void;
   /** Swap glow-baked frames to their `@unlit` variants and darken emissive parts (stun, down, destroyed). */
@@ -139,12 +143,28 @@ export type BurstKind =
 export type ScrapSide = 'ours' | 'theirs';
 
 export interface EffectSpawner {
-  /** A one-shot burst at a screen point (rotation in radians for muzzle flashes). */
-  burst(kind: BurstKind, sx: number, sy: number, rotation?: number): void;
+  /**
+   * A one-shot burst at a screen point (rotation in radians for muzzle flashes), optionally after
+   * `delayMs`.
+   */
+  burst(kind: BurstKind, sx: number, sy: number, rotation?: number, delayMs?: number): void;
+  /**
+   * Heal glints or nanite motes over a body (FF3-fix-1): 3–5 staggered bursts spread across and
+   * around a body `heightPx` tall standing at the foot point, never in one column.
+   */
+  bodyBurst(
+    kind: 'heal-glint' | 'nanite-mote',
+    footSx: number,
+    footSy: number,
+    heightPx: number,
+  ): void;
   /** A tracer line (amber ours, violet theirs) that fades over `ms`. */
   tracer(side: ScrapSide, from: ScreenPoint, to: ScreenPoint, ms?: number): void;
-  /** Scrap pile: `size` 1–5 (1–2 footman-sized, 3–5 structure-sized); fades out. */
-  scrap(side: ScrapSide, size: 1 | 2 | 3 | 4 | 5, sx: number, sy: number): void;
+  /**
+   * Scrap pile: `size` 1–5 (1–2 footman-sized, 3–5 structure-sized). Shows for `holdMs` (default
+   * 960; a downed knight's pile holds for the down timer, FF3-fix-1), then fades out.
+   */
+  scrap(side: ScrapSide, size: 1 | 2 | 3 | 4 | 5, sx: number, sy: number, holdMs?: number): void;
   /** The charged-wall strike from a post to an attacker. */
   wallStrike(from: ScreenPoint, to: ScreenPoint): void;
   /** Ground ring (AoE, blast, shockwave) at a world point, radius in tiles, expanding and fading. */

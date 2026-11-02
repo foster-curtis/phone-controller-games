@@ -1,12 +1,13 @@
-// Warden clips (SPEC §2.4): heavy, slow cadence. Attack and super clips arrive with FF8.
-import type { Clip } from '../../../themes/types';
+// Warden clips (SPEC §2.4): heavy, slow cadence with a deeper step. Attack and super clips arrive
+// with FF8.
+import rig from '../../../../art/neon-knights/rigs/warden.json';
+import type { Clip, RigDef } from '../../../themes/types';
 import { knightClips, type KnightParts } from '../clipKit';
 
 const parts: KnightParts = {
   root: 'torso',
   legBack: ['backleg'],
   legFront: ['frontleg'],
-  legsBoth: ['legs'],
   arms: ['gauntlet'],
   glows: [
     'torso-glow',
@@ -33,4 +34,10 @@ const parts: KnightParts = {
   ],
 };
 
-export const clips: Record<string, Clip> = knightClips(parts, 760, 14);
+export const clips: Record<string, Clip> = knightClips(
+  rig as unknown as RigDef,
+  parts,
+  760,
+  14,
+  3.2,
+);

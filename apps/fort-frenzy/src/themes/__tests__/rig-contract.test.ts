@@ -1,6 +1,7 @@
 // The rig contract the renderer relies on (SPEC §2.4, §15.2; art README): views and poses per rig,
 // optional groups, attach names, and the clips each rig ships with.
 import { describe, expect, it } from 'vitest';
+import { splitPartNames } from '../../host/render/split';
 import { neonKnightsHost } from '../neon-knights/host';
 import { isPosed, type RigView, type ViewId } from '../types';
 
@@ -179,13 +180,21 @@ describe('rig contract (neon knights)', () => {
       for (const c of ['hit', 'down', 'respawn'])
         expect(clips[`${k}/${c}`], `${k}/${c}`).toBeDefined();
     }
+    // Every enemy and the Colossus: hit and death (C1 notes 2, 4).
+    for (const e of SIDE_ONLY.filter((r) => r !== 'mortar')) {
+      for (const c of ['hit', 'death']) {
+        expect(clips[`${e}/${c}`], `${e}/${c}`).toBeDefined();
+        expect(clips[`${e}/${c}`]!.loop, `${e}/${c}`).toBe(false);
+      }
+    }
     expect(clips['colossus/walk']!.tracks.torso!.some((k) => k.order)).toBe(true);
   });
 
   it('clip tracks only name parts the rig has', () => {
     for (const [key, clip] of Object.entries(clips)) {
       const rig = rigs[key.split('/')[0]!]!;
-      const parts = new Set<string>();
+      // Render-side split halves (`legs.l`, …, render/split.ts) count as parts.
+      const parts = new Set<string>(splitPartNames(rig.id));
       for (const v of Object.values(rig.views)) {
         for (const rv of isPosed(v!) ? Object.values(v.poses) : [v!])
           Object.keys(rv.parts).forEach((p) => parts.add(p));
