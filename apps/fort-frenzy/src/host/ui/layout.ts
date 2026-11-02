@@ -38,6 +38,10 @@ export const BANDS = {
   bottomMargin: box(0, 984, CANVAS.w, CANVAS.h),
 } as const;
 
+/** Next-wave card (build phase): taller than the bottom band so the enemy icons read from the couch,
+ *  so it overlays the playfield's last rows; its bottom edge stays on the 984 safe line. */
+export const PREVIEW_CARD: Box = box(600, 828, 1760, 984);
+
 /** Citadel footprint is cols 16–19, so the base bar centers on x = 96 + 18 · 48 = 960. */
 export const CITADEL_CENTER_X = SAFE + 18 * TILE_W;
 

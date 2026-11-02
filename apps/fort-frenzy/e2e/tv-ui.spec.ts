@@ -96,3 +96,20 @@ test('lobby: a slot number arms, the second press removes', async ({ page }) => 
   await page.keyboard.press('2');
   await expect(page.locator('#tv-ui .slot:not(.open)')).toHaveCount(3);
 });
+
+test('C1 notes: lobby QR is right-aligned; next-wave card and icons are bigger', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.route(/fonts\.(googleapis|gstatic)\.com/, (route) => route.abort());
+  await page.goto('/?ui=lobby');
+  const qr = await page.locator('#tv-ui .lobby .qrbox').boundingBox();
+  expect(Math.abs(qr!.x + qr!.width - 1824)).toBeLessThanOrEqual(1);
+  await page.goto('/?ui=build');
+  const card = await page.locator('#tv-ui .hud-preview').boundingBox();
+  expect(card!.height).toBeGreaterThanOrEqual(120); // was 77
+  expect(card!.width).toBeGreaterThanOrEqual(1000); // was 720
+  const tile = await page.locator('#tv-ui .eny .tile').first().boundingBox();
+  expect(tile!.width).toBeGreaterThanOrEqual(100); // was 52
+  expect(tile!.height).toBeGreaterThanOrEqual(76); // was 38
+});

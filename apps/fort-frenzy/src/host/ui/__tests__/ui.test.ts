@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { createPadNav, keyToNav, stepHome, type NavKey, type PadLike } from '../homeNav';
-import { BANDS, CITADEL_CENTER_X, SAFE_BOX, fitScale, insideSafe, laneBand } from '../layout';
+import {
+  BANDS,
+  PREVIEW_CARD,
+  CITADEL_CENTER_X,
+  SAFE_BOX,
+  fitScale,
+  insideSafe,
+  laneBand,
+} from '../layout';
 import { ARM_MS, createRemoveArm } from '../removeArm';
 import type { HomeRow } from '../types';
 
@@ -14,6 +22,11 @@ describe('band geometry (SPEC §15.2 table)', () => {
     expect([BANDS.bottomMargin.y, BANDS.bottomMargin.y + BANDS.bottomMargin.h]).toEqual([
       984, 1080,
     ]);
+  });
+  it('next-wave card is taller than the bottom band, ends on its bottom edge, inside the safe margin', () => {
+    expect(insideSafe(PREVIEW_CARD)).toBe(true);
+    expect(PREVIEW_CARD.y + PREVIEW_CARD.h).toBe(BANDS.bottomHud.y + BANDS.bottomHud.h);
+    expect(PREVIEW_CARD.h).toBe(156);
   });
   it('keeps every band inside the 96 px safe margin, playfield x 96–1824', () => {
     for (const b of [BANDS.topHud, BANDS.headroom, BANDS.playfield, BANDS.bottomHud]) {

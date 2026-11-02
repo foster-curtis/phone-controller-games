@@ -1031,6 +1031,9 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
 - [FF5] decision: the HUD's wave and phase share one line ("WAVE 10 / 15 · COMBAT", "BUILD · 38 S") to fit
   the 40 px top band (§15.2); the next-wave preview is 77 px tall (bottom band), headlined with the enemy
   total or "Boss wave" (`TvView` carries no wave name), new types get a violet frame and a "NEW" tag.
+- [FF5-fix-1] decision: C1 notes: lobby QR and "Scan to join" right-aligned (right edge x 1824); next-wave card grown to
+  1160 × 156 (y 828–984, was 720 × 77) with 120 × 88 enemy tiles (was 52 × 38), 30 px counts; it overlays the
+  playfield's bottom rows during build, SPEC §15.2 table and `PREVIEW_CARD` in `ui/layout.ts` updated.
 - [FF5] decision: `index.html?ui=<screen>` screens: loading home lobby countdown combat low-hp boss build
   victory defeat summary restoring outdated; on in dev or with `?debug=1`.
 - [FF4] decision: no `themes/<id>/shared.ts` exists yet (FF3), so `src/controller/copy.ts` holds the phone's

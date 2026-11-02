@@ -1402,7 +1402,7 @@ Everything sits inside the brand's 96 px TV-safe margin (`--space-tv-safe`) on a
 | Top HUD | 96–136 | wave and phase (left), base HP bar centered directly above the Citadel, team coins (right); "Citadel under attack" under the bar at low HP |
 | Headroom | 136–216 | the Citadel's keep, core and smoke plumes rise into it (§3.6) |
 | Playfield | 216–907 | 36 × 24 sim tiles, x 96–1824; during the build phase, ready status and the wishlist overlay its right side |
-| Bottom HUD | 907–984 | boss bar (boss waves) or the next-wave preview (build phase); purchase announcements stack bottom-left |
+| Bottom HUD | 907–984 | boss bar (boss waves); purchase announcements stack bottom-left. The build phase's next-wave card is 156 px tall (828–984, x 600–1760, clear of the announcements): it ends on the bottom edge and overlays the playfield's last rows so enemy icons (120 × 88) read from the couch (C1) |
 | Bottom margin | 984–1080 | nothing (TV-safe) |
 
 - **Map v1** (config, §15.4): 36 × 24 tiles. Citadel footprint cols 16–19, rows 0–1; repair zone cols
