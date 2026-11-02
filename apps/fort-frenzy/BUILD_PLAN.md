@@ -806,12 +806,12 @@ Rules:
   - [x] Combat + build HUD, alarms, lane bands
   - [x] `?ui=` dev page + e2e safe-margin checks
   - [x] Merged to `main`
-- [ ] **User approved C1** (gallery, perf stress, phones, TV UI)
+- [x] **User approved C1** (gallery, perf stress, phones, TV UI): notes fixed in FF2-fix-1, FF3-fix-1, FF4-fix-2, FF5-fix-1; feel and visual notes re-judged at C2
 - FF6 Sim core
   - [x] World, step order, movement, economy loop, building, phases
   - [x] Engineer + pulse turret + Grunt + waves 1–2 content
   - [x] Recorder, replay script, autopilot, determinism + scenario tests, bench
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
 - FF7 Vertical slice
   - [ ] Host net + party bridge + input staleness + state sync
   - [ ] World scene + TV UI hookup + run flow
