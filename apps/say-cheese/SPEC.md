@@ -48,7 +48,7 @@ Camera / photo booth: the shutter, the flash, a "Say cheese!" moment. Visual bra
 
 ### 6.1 Scope
 
-- **Players:** 3–8. (2 players means one dodger, which isn't a game; above 8 the room gets too crowded to scramble around in.) No bots.
+- **Players:** 3–8. (2 players means one dodger, which isn't a game; above 8 the room gets too crowded to scramble around in.) No bots. The cap counts **players, not phones**: players can share a phone (§6.3.1), down to one phone for all 8.
 - **Words:** the players who aren't the photographer are **dodgers**, and the countdown phase is **scatter**. Player-facing text never says "hide": the fun is scrambling when the camera turns your way, not camping behind the couch (§6.2.1).
 - **Match:** every player is photographer **exactly once**, in a random order shuffled at match start. Turn order isn't shown in advance; the TV reveals each photographer at the start of their round.
 - **Round:** scatter countdown **10 s** → shoot for **20 s or 15 shots, whichever comes first** → review → round results.
@@ -60,6 +60,7 @@ Camera / photo booth: the shutter, the flash, a "Say cheese!" moment. Visual bra
 
 Phases: `announce → scatter → shoot → upload → review → results`, preceded once per room by the rules overview (§6.2.1). Each is a state in the match state machine (§8).
 
+0. **Pass the phone** (only if the photographer shares a phone, §6.3.1). The TV and that phone show "Pass the phone to {name}"; the phone has a big **I'm {name}** button that leads to Announce.
 1. **Announce.** The TV shows "📸 {name} is the photographer!" The photographer's phone shows a camera preview so they can check it works, and a big **I'm ready** button. Everyone else's phone says "Get ready to dodge!" Tapping **I'm ready** unlocks audio on the phone and starts the scatter phase.
 2. **Scatter (10 s).** The photographer closes their eyes or puts on a blindfold. Their phone goes dark with "Eyes closed! Starting in…". The TV shows "Scatter!" and counts down out loud (beeps on the last 3 s). Dodgers' phones show "Scatter! Pocket your phone and keep moving." Staying in the open is a house rule from the rules overview (§6.2.1), not enforced.
 3. **Shoot (20 s or 15 shots).** A start buzz plays on the TV. The photographer's **whole screen is the shutter**: any tap takes a shot (0.4 s cooldown so one tap isn't two shots). Each shot plays a click on the phone, and a click plus a white flash and the shot count ("📸 7 / 15") on the TV. The TV shows only the timer and the count, never the photos (that would tell dodgers where the camera is pointing). An end buzz plays when time runs out or shot 15 is taken.
@@ -81,6 +82,8 @@ Phases: `announce → scatter → shoot → upload → review → results`, prec
 
 ### 6.3 Match flow
 
+_In this section and the rest of the spec, "player" means a person (a seat), and "phone" or "device" means a connected controller. Usually they're the same; §6.3.1 covers when they aren't._
+
 - **Lobby:** players join with the room code or QR, enter a **name** (~10 chars, prefilled from last time via `localStorage`), get an auto-assigned **color** (used for their tag circles), and tap **Enable camera**, which triggers the permission prompt now, while everyone can still see. Then they tap **Ready**. The leader taps **Start** once ≥3 players are connected and every connected player is Ready.
   - **Camera denied or unavailable:** the player can still play and be caught, but they're **skipped as photographer**. Their phone and the TV lobby show a "no camera" badge with a hint to allow camera access in the browser settings and tap Enable camera again.
 - **Mid-match joiners** spectate (emoji only, §6.6) and can't be tagged. They join in the next match.
@@ -92,6 +95,23 @@ Phases: `announce → scatter → shoot → upload → review → results`, prec
 - **Late rejoin** (after the relay's reconnect window): matched by **player key**, which restores name, color, score and turn, as in Sunny Side.
 - **Leave game** = full removal (same as Sunny Side's C3 rule): gone from the roster, standings and turn queue. Tags already scored on them stay in the photographer's score. A later join with the same key is a new player who spectates.
 - **Host refresh mid-match:** roster, scores, turn queue and the current round number are restored from `sessionStorage`. Photos aren't (memory only), so a round that was in progress is **replayed** with the same photographer.
+
+### 6.3.1 Shared devices
+
+So kids (or anyone without a smartphone) can play, several players can share one phone, all the way down to the whole game on a single phone.
+
+- **Model:** the relay sees one connection per phone, as always (no relay or protocol change). The host splits each connection into **seats**: each seat is a full player with its own name, color, score, turn as photographer and player key. Only the host and the controller know about seats.
+- **Adding players (lobby):** under the phone's own player, the lobby shows **Players on this phone** (name + color chips, ✕ to remove) and a **+ Add another player on this phone** button, which opens the same name step. It's disabled once the room has 8 players.
+  - A collapsible **Why share a phone?** hint below it: *"No phone? No problem. Add kids or anyone without a phone here. You'll just pass this phone to them when it's their turn to take photos."*
+  - On the TV lobby, shared seats are grouped under their phone's first player (a small 📱 marker) so it's obvious who's sharing.
+- **Ready and camera are per phone:** one **Ready** tap covers every seat on the phone; the camera permission belongs to the phone, so "no camera" skips every seat on it as photographer.
+- **Pass screens:** a phone only needs one person holding it when that person has something to do on it, which in this game is **only the photographer**. When a seat on a shared phone becomes the photographer, step 0 of the round (§6.2) shows "Pass the phone to {name}" on the TV and the phone before the camera preview appears. During the rest of the round, a shared phone shows the dodger screens with every one of its seats listed ("Ana, Leo, Mia: scatter!"). Single-seat phones never see a pass screen.
+  - **Watch out for:** after a review, the phone stays with the photographer who just finished; results and the next pass screen take it from there. No "pass it back" step.
+- **Leader:** leadership belongs to a phone (its first seat's name is shown as the leader). In a one-phone game, that phone has every control. The host's own controls work as always.
+- **Disconnects:** a phone's seats share its connection, so the disconnect rules (§6.3) apply to all of them together. Late rejoin restores every seat: the phone keeps one player key per seat in `localStorage` (scoped as usual), and the host matches them all.
+- **Leaving:** the ✕ on a seat chip (lobby) or **Remove a player** on that phone (any time, a list of its seats) removes one seat with the usual Leave rules. **Leave game** on the phone removes all of its seats. The leader/host removal works per seat.
+- **Order:** shared seats go into the random turn queue like everyone else; seats on the same phone aren't kept together or apart.
+- **Platform note:** this "seats on a device + pass screen" pattern is game-agnostic and will matter more for games with private info on the phone. It's built in `src/shared/` + `src/controller/` extraction-ready, as a candidate for `controller-kit` once a second game uses it. Extracting it is a separate decision.
 
 ### 6.4 Review & tagging
 
@@ -126,7 +146,8 @@ The photographer, not the leader, drives their own **I'm ready** and the review.
 
 ### 6.7 Phone UI states
 
-- **Joining** → **Lobby** (name, Enable camera, Ready; leader sees Start and How to play).
+- **Joining** → **Lobby** (name, Players on this phone + Add another player + Why share a phone?, Enable camera, Ready; leader sees Start and How to play).
+- **Pass the phone** (shared phones only, §6.3.1): "Pass the phone to {name}" + a big **I'm {name}** button.
 - **Rules overview:** leader sees **Next** / **Skip** (Next becomes **Let's play!** on the last card); everyone else sees "Watch the TV".
 - **Photographer:** announce (preview + I'm ready) → scatter ("Eyes closed!", dark) → shoot (dark full-screen shutter with a big faint shot counter) → review (photo, tag sheet, Prev/Next/Finish).
 - **Dodger:** announce ("Get ready to dodge!") → scatter/shoot ("Scatter! Pocket your phone and keep moving.") → review ("Photo 4 / 15. Watch the TV!" + emoji bar).
@@ -145,7 +166,7 @@ The photographer, not the leader, drives their own **I'm ready** and the review.
 
 Relay SPEC §3, unchanged. Say Cheese uses:
 
-- Game ID `say-cheese`; rooms created with `maxPlayers` 10 (8 players + 2 spectators).
+- Game ID `say-cheese`; rooms created with `maxPlayers` 10 (8 players + 2 spectators). `maxPlayers` counts phones; the host enforces the 8-**player** (seat) cap itself (§6.3.1).
 - The room never locks (mid-match joiners spectate).
 - `peer` events feed the disconnect rules (§6.3); late rejoins are matched by player key.
 - **No relay change.** Photos go through the existing 16 KB limit as chunks (§7.4).
@@ -159,7 +180,10 @@ No continuous input. Every phone→host message is a discrete JSON event (§7.3)
 Phone → host:
 
 ```ts
-{ t: "profile", name }                      // lobby
+{ t: "profile", seat, name }                // lobby; seat = phone-local index, 0 = the phone's first player
+{ t: "addSeat", name, seatKey }             // lobby: add a player on this phone (§6.3.1)
+{ t: "removeSeat", seat }                   // remove one player on this phone
+{ t: "seatConfirm", seat }                  // "I'm {name}" on the pass screen
 { t: "camera", ok: boolean }                // lobby, after the permission attempt
 { t: "ready", ready: boolean }              // lobby
 { t: "leader", action: "start" | "next" | "skipReview" | "rematch" | "lobby" }
@@ -176,7 +200,7 @@ Phone → host:
 { t: "leave" }
 ```
 
-Host → phone: `{ t: "screen", screen, ...data }` per phone or broadcast (the host drives each phone's state, as in Sunny Side), plus `{ t: "photoAck", photo }` (§7.4). Every screen carries `leaderName`. The host is authoritative for tags too: it validates them (photo exists, player is in the match, one tag per player per photo) and echoes the photo's tag list in the review screen, so a reconnecting photographer's phone redraws correctly.
+Host → phone: `{ t: "screen", screen, ...data }` per phone or broadcast (the host drives each phone's state, as in Sunny Side), plus `{ t: "photoAck", photo }` (§7.4). Every screen carries `leaderName` and the phone's `seats` (`{ seat, name, color }[]`). Host-side, a player's id is the relay `playerId` plus the seat (e.g. `p3#1`); messages that only the photographer can send (shot, tag, review) don't need a seat because the host knows which seat is shooting. The host is authoritative for tags too: it validates them (photo exists, player is in the match, one tag per player per photo) and echoes the photo's tag list in the review screen, so a reconnecting photographer's phone redraws correctly.
 
 _Shapes are indicative; exact fields finalized at implementation in `src/shared/messages.ts`._
 
@@ -219,3 +243,4 @@ _Shapes are indicative; exact fields finalized at implementation in `src/shared/
 | 12 | 2026-11-02 | Rules overview | 5 TV cards before the room's first match; leader taps Next / Skip; skipped on Rematch; reopenable from the lobby | Teaches the game without anyone reading rules aloud, and sets the house rules (stay in the open, no furniture hiding) that keep the scramble fun. |
 | 13 | 2026-11-02 | Wording | Never say "hide": non-photographers are **dodgers**, the countdown is **scatter** | Foster: "hide" invites camping behind a couch all round; the fun is scrambling when the camera turns your way. |
 | 14 | 2026-11-02 | Who tags | Photographer only (host rejects tag messages from other phones); every tag shows live on the TV | Clarifies #4: one person decides, the whole room watches and argues. |
+| 15 | 2026-11-02 | Shared devices | Seats per phone, host-side only (no relay change); Add another player on this phone + Why share a phone? hint in the lobby; Ready and camera per phone; a Pass the phone screen only before a shared seat's photographer turn; 8-player cap counts seats | Foster: lets kids and people without smartphones play, down to one phone for the whole game. Only the photographer uses a phone during a round, so one pass screen per turn covers it. |
