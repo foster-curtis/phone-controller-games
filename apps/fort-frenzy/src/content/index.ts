@@ -2,7 +2,7 @@
 // `satisfies` against ./types. Append-only registry (BUILD_PLAN §3): add entries at the end, never
 // reorder or delete.
 import { base, rules } from './base';
-import { engineer } from './characters';
+import { commander, engineer, quartermaster } from './characters';
 import { difficulties, scaling } from './difficulty';
 import { grunt } from './enemies';
 import { mapV1 } from './map';
@@ -39,7 +39,7 @@ export interface Content {
 }
 
 export const content: Content = {
-  characters: [engineer],
+  characters: [engineer, quartermaster, commander],
   enemies: [grunt],
   structures: [arrowTower],
   cards: [],

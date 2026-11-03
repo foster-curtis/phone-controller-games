@@ -3,7 +3,7 @@
 // Plain TS: no Phaser, no net-client, no themes, no DOM (lint, §15.1). Units: tiles, ticks (60 Hz
 // steps); config times in ms are converted to ticks at load.
 // Frozen at FF1 (BUILD_PLAN §3): additive changes only (new optional fields, new union members).
-// FF6 added `Unit.push` and `BaseState.stage`.
+// FF6 added `Unit.push` and `BaseState.stage`; FF9 added `ThrownCrate` and `World.thrown`.
 import type { Rng } from '@pcg/game-kit';
 import type {
   EffectApply,
@@ -207,6 +207,26 @@ export interface CratePile {
   lockedUntil: number;
 }
 
+/**
+ * A crate a Quartermaster threw (§6, §10.1 row 6; FF9). It flies from the launch point to the
+ * receiver, following them, and lands at `landsAt`: caught if they're still up with room, otherwise
+ * dropped where it lands.
+ */
+export interface ThrownCrate {
+  id: EntityId;
+  /** Thrower's and receiver's slots. */
+  from: number;
+  to: number;
+  /** Launch point (tiles). */
+  x0: number;
+  y0: number;
+  /** Landing point: the receiver's position, followed each step in flight. */
+  x: number;
+  y: number;
+  launchedAt: number;
+  landsAt: number;
+}
+
 /** A telegraphed attack (boss wind-ups): shape, position, when it lands, what it does (§9.2). */
 export interface DangerMarker {
   id: EntityId;
@@ -316,6 +336,8 @@ export interface World {
   structures: StructureEnt[];
   projectiles: ProjectileEnt[];
   cratePiles: CratePile[];
+  /** Crates in flight (FF9; the sim always sets it). */
+  thrown?: ThrownCrate[];
   /** Telegraphs: shape, position, landsAt, payload. */
   markers: DangerMarker[];
   spawns: PendingSpawn[];

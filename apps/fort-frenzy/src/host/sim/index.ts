@@ -3,6 +3,10 @@
 export { createSim, type Sim, type SimOptions, type StepObserver } from './sim';
 export { stateHash } from './hash';
 export { placementValid, tileAt } from './building';
+export { throwTarget } from './classes/quartermaster';
+export { inSector, type Sector } from './classes/sector';
+export { squadSize } from './squad';
+export { fieldMedicRadius } from './modules/fieldMedic';
 export {
   AutopilotInputSource,
   FreshInputSource,

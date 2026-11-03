@@ -13,7 +13,7 @@ import {
   type TeamView,
 } from '../../shared/messages';
 import type { Member, Party } from '../party';
-import { placementValid, tileAt } from '../sim';
+import { placementValid, throwTarget, tileAt } from '../sim';
 import { STEP_MS, type PlayerEnt, type RunSettings, type World } from '../sim/types';
 
 export type FfParty = Party<PlayerColorId, ClassId>;
@@ -143,10 +143,15 @@ export function actionFor(content: Content, w: World, p: PlayerEnt): MeAction {
     if (pile) return 'pickup';
   }
   const kind = tileKind(w, p.x, p.y);
-  if (p.crates > 0 && kind === 'repair' && w.base.hp > 0 && w.base.hp < w.base.maxHp)
-    return 'deliver';
+  const hurt = w.base.hp > 0 && w.base.hp < w.base.maxHp;
+  if (p.crates > 0 && kind === 'repair' && hurt) return 'deliver';
+  if (p.classId === 'quartermaster' && p.kits > 0 && kind === 'repair' && hurt) return 'kit';
   if (kind === 'armory' && p.crates < cap) return 'buy';
-  if (w.phase === 'combat' && def.build.length > 0 && p.crates > 0) return 'place';
+  if (w.phase !== 'combat') return 'none';
+  if (def.build.length > 0 && p.crates > 0) return 'place';
+  const capOf = (q: PlayerEnt) => content.characters.find((c) => c.id === q.classId)?.carryCap ?? 0;
+  if (throwTarget(w, p, capOf)) return 'throw';
+  if (p.classId === 'commander') return p.flag ? 'recall' : 'flag';
   return 'none';
 }
 
@@ -240,15 +245,14 @@ export function meView(ctx: ViewCtx, m: FfMember | null, full = false): MeView {
     action: actionFor(content, w, p),
     kits: p.kits,
     give: giveFor(content, w, p),
-    arc:
-      kit.length > 0
-        ? {
-            slots,
-            enabled: slots.map((s) =>
-              s === null ? false : s === 'give' ? p.crates > 0 : costOf(s) <= p.crates,
-            ),
-          }
-        : null,
+    // Classes with no structures get Give alone, so holding the action button gives directly and
+    // repeats every ~0.3 s (§10.1; the kit's radial never opens with a single slot).
+    arc: {
+      slots,
+      enabled: slots.map((s) =>
+        s === null ? false : s === 'give' ? p.crates > 0 : costOf(s) <= p.crates,
+      ),
+    },
     buildKit: kit,
     respawnMs: dead ? Math.max(0, Math.round((p.respawnAt! - w.tick) * STEP_MS)) : null,
     cards: NO_CARDS,

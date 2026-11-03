@@ -200,7 +200,7 @@ export function createSession(deps: SessionDeps): Session {
       case 'name':
         return res(party.setName(from, i.name));
       case 'class':
-        // The slice ships the Engineer only; the other kits arrive with FF8/FF9.
+        // Only classes in content (the Warden arrives with FF8).
         if (!content.characters.some((c) => c.id === i.classId)) return ack(from, seq, 'invalid');
         return res(party.setClass(from, i.classId));
       case 'color':

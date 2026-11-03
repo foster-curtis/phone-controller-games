@@ -2,7 +2,8 @@
 // `satisfies` against these. Units: distances in tiles, speeds in tiles/s, times in ms (the sim
 // converts to steps at load), damage and HP as plain numbers. Presentation never lives here (§2.1).
 // Frozen at FF1 (BUILD_PLAN §3): additive changes only. Tuning values in src/content/ are not frozen.
-// FF6 added `BaseDef` and `RulesDef`.
+// FF6 added `BaseDef` and `RulesDef`. FF9 added the `buff` shape, `CharacterDef.super.selfEffects` and
+// `CharacterDef.supply`.
 import type {
   CardId,
   ClassId,
@@ -82,7 +83,11 @@ export interface EffectApply {
 // ---- attacks and units --------------------------------------------------------------------------
 
 export interface AttackDef {
-  shape: 'projectile' | 'arc' | 'cone' | 'circle';
+  /**
+   * `buff` (FF9) hits nothing: the super's `effects` go on the attacker and its squad, and its
+   * `selfEffects` on the attacker only (the Commander's morale).
+   */
+  shape: 'projectile' | 'arc' | 'cone' | 'circle' | 'buff';
   damage: number;
   range: number;
   cooldownMs: number;
@@ -112,7 +117,12 @@ export interface CharacterDef {
   moveSpeed: number;
   radius: number;
   main: AttackDef;
-  super: AttackDef & { effects?: EffectApply[]; heal?: number };
+  /**
+   * `effects` go to what the super helps: towers in a cone (Quartermaster), the squad and the
+   * attacker for `buff` (Commander); `heal` heals players in a cone; `selfEffects` (FF9) go on the
+   * attacker only.
+   */
+  super: AttackDef & { effects?: EffectApply[]; heal?: number; selfEffects?: EffectApply[] };
   /** §10.1 table. */
   input: { main: 'aimed' | 'tap'; super: 'aimed' | 'tap' };
   superChargeRate: number;
@@ -124,6 +134,11 @@ export interface CharacterDef {
   carrySlowdown: number[];
   /** `size` per stage (start, after wave 5 boss, after wave 10 boss). */
   squad?: { size: number[]; soldier: UnitStats; followRadius: number };
+  /**
+   * Supply perks (§6, Quartermaster; FF9): crate price discount (fraction), crate throw reach
+   * (tiles) and flight speed (tiles/s), and the HP an emergency repair kit restores (§3.4).
+   */
+  supply?: { crateDiscount: number; throwRange: number; throwSpeed: number; kitRepair: number };
 }
 
 export interface EnemyDef {

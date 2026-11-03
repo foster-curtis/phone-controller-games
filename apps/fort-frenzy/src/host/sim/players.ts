@@ -13,6 +13,9 @@ import {
   inZone,
   pickUp,
 } from './crates';
+import { toggleFlag } from './classes/commander';
+import { canUseKit, throwCrate, throwTarget, useKit } from './classes/quartermaster';
+import { attackShapes } from './classes/shapes';
 import { cleanVec } from './geometry';
 import type { SlotInput } from './internal';
 import type { FullState } from './state';
@@ -147,6 +150,12 @@ function fire(
     circle(s, p, a, slot, damage, atk);
     return;
   }
+  // Arcs, cones and buffs (FF9: classes/shapes.ts).
+  const shaped = attackShapes[a.shape];
+  if (shaped) {
+    shaped(s, p, a, slot, damage, atk);
+    return;
+  }
   const speed = s.attackStat(p, a.speed ?? 20, 'projectileSpeed', slot);
   const spread = (atk.spreadDeg * Math.PI) / 180;
   for (let i = 0; i < atk.count; i++) {
@@ -218,15 +227,28 @@ function action(s: FullState, p: PlayerEnt) {
     deliver(s, p);
     return;
   }
-  // Row 3 (Quartermaster's emergency kit) arrives with the Quartermaster (FF9).
+  // Row 3: the Quartermaster's emergency kit (FF9).
+  if (canUseKit(s, p)) {
+    useKit(s, p);
+    return;
+  }
   if (inZone(s, p, 'armory') && p.crates < cap) {
     buyCrate(s, p);
     return;
   }
   const kit = s.cat.character(p.classId).build;
-  if (s.world.phase === 'combat' && kit.length > 0 && p.crates > 0) {
+  if (s.world.phase !== 'combat') return;
+  if (kit.length > 0 && p.crates > 0) {
     buildAtFeet(s, p, p.lastBuilt ?? kit[0]!);
+    return;
   }
+  // Row 6: a Quartermaster throws a crate; row 7: the Commander's rally flag (FF9).
+  const to = throwTarget(s.world, p, (q) => carryCap(s, q));
+  if (to) {
+    throwCrate(s, p, to);
+    return;
+  }
+  if (p.classId === 'commander') toggleFlag(s, p);
 }
 
 /** A build-arc commit: left/up/right build that structure (combat), down (3) gives a crate. */

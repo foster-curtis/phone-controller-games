@@ -6,6 +6,7 @@ import { generateWave, playerScale, waveRng } from '../systems/waves';
 import { dropAll } from './crates';
 import { releaseAll, respawn } from './players';
 import { effects as effectDefs } from './registry';
+import { fillSquads } from './squad';
 import type { FullState } from './state';
 import { refreshStats } from './stats';
 import type { EnemyEnt, Phase, PlayerEnt, Unit } from './types';
@@ -110,11 +111,18 @@ export function stepDeaths(s: FullState): void {
   }
   w.structures.length = write;
 
-  // Soldiers arrive with the Commander (FF9); remove the fallen.
+  // Soldiers (FF9): the fallen collapse and return at the next build phase (squad/fillSquads).
   write = 0;
   for (const u of w.soldiers) {
-    if (u.hp > 0) w.soldiers[write++] = u;
-    else s.removeUnit(u.id);
+    if (u.hp > 0) {
+      w.soldiers[write++] = u;
+      continue;
+    }
+    const killerId = s.killers.get(u.id) ?? null;
+    s.emit({ e: 'death', id: u.id, what: 'soldier', killer: killerId, x: u.x, y: u.y });
+    const killer = killerId === null ? null : (s.units.get(killerId) ?? null);
+    for (const f of s.hooks(u, 'onDeath')) f(s, u, killer);
+    s.removeUnit(u.id);
   }
   w.soldiers.length = write;
 
@@ -193,6 +201,8 @@ export function startBuild(s: FullState, n: number): void {
     p.ready = false;
     if (p.respawnAt !== null) respawn(s, p);
   }
+  // Dead soldiers return at the base, and squads grow after boss waves (§8, FF9).
+  fillSquads(s);
   setPhase(s, 'build', s.cat.steps(s.cat.rules.buildCapMs));
 }
 

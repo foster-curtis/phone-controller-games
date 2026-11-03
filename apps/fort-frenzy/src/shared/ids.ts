@@ -107,6 +107,8 @@ export const EFFECT_IDS = [
   'aura_bodyguard',
   'aura_lead_from_the_front',
   'aura_vanguard',
+  // FF9: the Commander's morale movement boost (his super's `selfEffects`).
+  'haste',
 ] as const;
 export type EffectId = (typeof EFFECT_IDS)[number];
 

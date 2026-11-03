@@ -4,6 +4,8 @@
 import { content as defaultContent, type Content } from '../../content';
 import type { EnemyId, StructureId } from '../../shared/ids';
 import { createCatalog } from './catalog';
+import { stepThrown } from './classes/quartermaster';
+import { stepSquads } from './squad';
 import { stepArchers, stepMarkers, stepProjectiles, stepStructures } from './combat';
 import { applyCommands } from './commands';
 import { stepDeaths, stepEffects, stepPhases, stepSpawner } from './lifecycle';
@@ -125,11 +127,14 @@ export function createSim(start: RunStart, opts: SimOptions = {}): Sim {
       stepStructures(s);
       stepArchers(s);
     }
+    // The Commanders' squads (FF9): follow or hold the flag in both phases, fight in combat.
+    if (w.phase === 'combat' || w.phase === 'build') stepSquads(s);
     // 5. integrate movement, soft separation, structure collision
     stepMovement(s);
     // 6. projectiles and area attacks
     stepProjectiles(s);
     stepMarkers(s);
+    stepThrown(s);
     // 7. status effects, onTick hooks
     stepEffects(s);
     // 8. deaths: hooks, coins, crate drops; destroyed blockers rebuild the flow fields

@@ -97,7 +97,8 @@ export interface StateExtras {
   readonly rebuildFields: () => void;
   readonly removeUnit: (id: EntityId) => void;
   readonly respawnPoint: (slot: number) => { x: number; y: number };
-  readonly addSoldier: (owner: number, x: number, y: number) => SoldierEnt;
+  /** A Commander's soldier (his class's `squad.soldier` stats); `index` defaults to the next free. */
+  readonly addSoldier: (owner: number, x: number, y: number, index?: number) => SoldierEnt;
   readonly isBlocker: (kind: StructureId) => boolean;
 }
 
@@ -188,6 +189,7 @@ export function createState(start: RunStart, cat: Catalog): FullState {
     structures: [],
     projectiles: [],
     cratePiles: [],
+    thrown: [],
     markers: [],
     spawns: [],
     grid: { cols, rows, kinds, occupant },
@@ -244,6 +246,10 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       radius: def.radius,
       attackSpeed: 1,
       carrySlowdown: 1,
+      // Supply perks (Quartermaster, FF9): stats, so cards can change them.
+      crateDiscount: def.supply?.crateDiscount ?? 0,
+      throwRange: def.supply?.throwRange ?? 0,
+      throwSpeed: def.supply?.throwSpeed ?? 0,
     });
     const passive = modules[def.passive.module];
     const p: PlayerEnt = {
@@ -463,24 +469,33 @@ export function createState(start: RunStart, cat: Catalog): FullState {
     fieldsDirty() {
       world.fields.dirty = true;
     },
-    addSoldier(owner, x, y) {
-      const stats = statBlock({ maxHp: 100, moveSpeed: 3, radius: 0.28, attackSpeed: 1 });
+    addSoldier(owner, x, y, index) {
+      const lead = world.players.find((p) => p.slot === owner);
+      const def = lead ? cat.character(lead.classId).squad?.soldier : undefined;
+      const hp = def?.hp ?? 100;
+      const r = def?.radius ?? 0.28;
+      const stats = statBlock({
+        maxHp: hp,
+        moveSpeed: def?.moveSpeed ?? 3,
+        radius: r,
+        attackSpeed: 1,
+      });
       const s: SoldierEnt = {
         id: world.nextId++,
         x,
         y,
         vx: 0,
         vy: 0,
-        r: 0.28,
-        hp: 100,
-        maxHp: 100,
+        r,
+        hp,
+        maxHp: hp,
         facing: Math.PI / 2,
         mods: [],
         effects: [],
         stats: { ...stats },
         push: null,
         owner,
-        index: world.soldiers.filter((x) => x.owner === owner).length,
+        index: index ?? world.soldiers.filter((x) => x.owner === owner).length,
         veterans: 0,
         mode: 'follow',
         target: null,

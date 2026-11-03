@@ -7,6 +7,9 @@ import type { EnemyDef } from '../../content/types';
 import type { EffectId, StructureId } from '../../shared/ids';
 import { pathAi } from './ai/path';
 import { steadyAim } from './modules/steadyAim';
+import { fieldMedic } from './modules/fieldMedic';
+import { leadFromTheFront } from './modules/leadFromTheFront';
+import { haste, leadAura, morale, towerDefense } from './modules/supportEffects';
 import { turretTick } from './structures/turret';
 import type {
   BossBehavior,
@@ -26,10 +29,17 @@ export function defineModule<P>(id: string, make: (params: P) => Modifier): Modu
 /** Passive, card and shop modules, by module id. */
 export const modules: Record<string, ModuleDef> = {
   steady_aim: steadyAim, // FF6
+  field_medic: fieldMedic, // FF9
+  lead_from_the_front: leadFromTheFront, // FF9
 };
 
 /** Status effect definitions (§15.3). */
-export const effects: Partial<Record<EffectId, EffectDef>> = {};
+export const effects: Partial<Record<EffectId, EffectDef>> = {
+  morale, // FF9
+  haste, // FF9
+  tower_defense: towerDefense, // FF9
+  aura_lead_from_the_front: leadAura, // FF9
+};
 
 /** Boss behaviors, by id ('colossus'). */
 export const bosses: Record<string, BossBehavior> = {};
