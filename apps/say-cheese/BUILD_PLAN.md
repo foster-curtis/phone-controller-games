@@ -467,7 +467,7 @@ Rules:
   - [x] App shell + router + dev mode
   - [x] Lobby, rules, photographer, dodger, results screens
   - [x] Review + tag sheet + shutter helpers + tests
-  - [ ] Merged to `say-cheese` and pushed
+  - [x] Merged to `say-cheese` and pushed
 - **SC4**
   - [x] TV views for every phase + tests
   - [x] Host controls (buttons + keyboard) + gallery
