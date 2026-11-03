@@ -796,6 +796,7 @@ Rules:
   - [x] Gallery + stress mode + asset/rig tests + gallery e2e
   - [x] Merged to `main`
   - [x] FF3-fix-1: C1 gallery notes (gauge, enemy hit/death, walks, down pile, respawn, twin flash, smoke, collapse, speeds, glints, stun idle, slow)
+  - [ ] FF3-fix-2: C3 floor contrast (lighter arena floor, checked against enemies, effects, player colors)
 - FF4 Controller
   - [x] Client wiring, sender, `layoutCombat` + tests
   - [x] All screens + components + dev mode
@@ -818,6 +819,7 @@ Rules:
   - [x] Debug panel + `__pcg` + smoke/reconnect e2e
   - [x] Merged to `main`
   - [x] FF7-fix-1: C2 notes (Ranger bow draw/release, bolt leaves from the bow, super-ready amber ring pulse replaces the head badge)
+  - [ ] FF7-fix-2: C3 aim previews shaped like every aimed attack and super (Warden cone fill, Artificer filled cone), Warden narrower + longer slam and super, Ranger super range up
 - [x] **User approved C2** (slice on real phones and TV): notes fixed in FF7-fix-1; Citadel collapse deferred to v2; feel and visual notes re-judged at C3
 - FF8 Warden + structures
   - [x] Warden kit + clips
@@ -827,12 +829,14 @@ Rules:
   - [x] Artificer kit + gauge + throw + kit use
   - [x] Commander + squad + flag
   - [x] Merged to `main`
+  - [ ] FF9-fix-1: C3 Commander passive as drifting amber motes (no link lines), super flashes affected units' amber parts + rings
 - FF10 Enemies
   - [x] Six new AIs + leash + Flyer substitution
   - [x] Enemy clips + status visuals
   - [x] Waves 1–15 content
   - [x] Merged to `main`
-- [ ] **User approved C3** (class kits and enemies)
+  - [ ] FF10-fix-1: C3 Wasp jitter, Hunter tower-avoiding path + player-color foot flash, diagonal flow field to the Citadel
+- [x] **User approved C3** (class kits and enemies): notes fixed in FF3-fix-2, FF7-fix-2, FF9-fix-1, FF10-fix-1, run in parallel with FF11–FF13 at the user's request; feel and visual notes re-judged at C4
 - FF11 Colossus
   - [ ] Boss module (forms, attacks, stagger, rewards)
   - [ ] Colossus render + clips + boss bar
@@ -1370,6 +1374,14 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   Warden's impact shockwave is `scene/wardenFx.ts`. Per frame it changes alpha, crop and scale only; the wall and
   net fields rebuild only when their tiles or states change (the FF7-fix-1 frame-cost rule). Charged walls draw
   once `spiked_walls` is owned and strike back at an attacking enemy (the damage is FF12's).
+- [C3] decision: C3 notes routed by owner: floor color → FF3-fix-2 (map render/theme); aim previews for all
+  knights plus Warden and Ranger range numbers → FF7-fix-2 (aim lines are FF7 world UI; one owner avoids
+  parallel edits to the same aim code); Commander passive/super visuals → FF9-fix-1; Wasp motion, Hunter
+  pathing/indicator and the flow-field shape → FF10-fix-1 (the FF2 flowfield change rides with the Hunter field
+  work). Fixes run in parallel with FF11–FF13 at the user's request; rebase conflicts per §2.
+- [C3] v2 note: Hunter v2 behavior (user, C3): walks in and finds a spot no tower can hit; targets and attacks
+  any player within the Ranger's range; otherwise waits until a player drops below 50% HP (always targeted) or a
+  Brute spawns, then walks slowly behind the Brute as a shield until close to a player.
 
 ## 9. Final handoff
 
