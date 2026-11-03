@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount, sampleScreen } from './helpers';
-import { sampleBreakdown } from '../dev';
+import { sampleBreakdown } from '../samples';
 import type { RoundBreakdown, Screen } from '../../shared/messages';
 
 beforeEach(() => vi.useFakeTimers());

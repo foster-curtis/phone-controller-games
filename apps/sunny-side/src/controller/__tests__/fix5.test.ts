@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mount, pointer, sampleScreen } from './helpers';
-import { sampleBreakdown } from '../dev';
+import { sampleBreakdown } from '../samples';
 import type { RoundBreakdown, Screen } from '../../shared/messages';
 
 type WithBd = Extract<Screen, { kind: 'results' | 'matchEnd' }>;

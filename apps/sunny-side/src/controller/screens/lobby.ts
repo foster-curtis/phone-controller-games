@@ -1,7 +1,7 @@
 // Lobby (SPEC §6.3, §6.7): a quick name step first, then color + Ready; the leader also sees the
 // difficulty picker and Start (enabled once every other player is ready). A pencil button opens a
 // rename popup.
-import { el } from '../dom';
+import { el } from '@pcg/controller-kit';
 import { fitAboveKeyboard } from '../keyboard';
 import {
   DIFFICULTIES,

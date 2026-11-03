@@ -1,0 +1,22 @@
+{
+  "name": "@pcg/controller-kit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@pcg/net-client": "workspace:*"
+  },
+  "devDependencies": {
+    "jsdom": "30.1.3",
+    "typescript": "5.9.3",
+    "vitest": "5.0.5"
+  }
+}

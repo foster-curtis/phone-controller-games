@@ -1,5 +1,5 @@
 // Per-round points breakdown for the results / matchEnd screens (SPEC §6.7, C2 note).
-import { el } from '../dom';
+import { el } from '@pcg/controller-kit';
 import type { RoundBreakdown, RoundBreakdownEntry, RoundPointItem } from '../../shared/messages';
 import { colorOnVar, colorVar } from './common';
 

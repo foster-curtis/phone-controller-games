@@ -1,11 +1,18 @@
 // Host (TV) entry: creates the room, wires HostClient ↔ match ↔ sim (game.ts), and shows the scene
 // for the current match phase. Phaser only renders; its Matter plugin is never enabled.
+import {
+  createHostWakeLock,
+  hostUrl,
+  installDebug,
+  isLoopbackHost,
+  joinUrl,
+  watchVisibility,
+} from '@pcg/game-kit';
 import * as Phaser from 'phaser';
 import { theme } from '../shared/theme';
 import '../styles/brand.css';
-import { debugEnabled, installDebug } from './debug';
+import { debugEnabled, type PcgDebugApi } from './debug';
 import { createGameRuntime } from './game';
-import { hostUrl, isLoopbackHost, joinUrl } from './lan';
 import { STORAGE_KEY } from './match/config';
 import { RemoveArm } from './render/remove';
 import { BootScene } from './scenes/Boot';
@@ -22,8 +29,6 @@ import {
   type HostContext,
   type SceneKey,
 } from './scenes/ui';
-import { watchVisibility } from './visibility';
-import { createHostWakeLock } from './wakeLock';
 
 const debug = debugEnabled();
 
@@ -109,7 +114,7 @@ runtime.start().catch((e: unknown) => {
 });
 
 if (debug) {
-  installDebug({
+  installDebug<PcgDebugApi>({
     phase: () => runtime.view().phase,
     players: () => runtime.view().players,
     view: () => runtime.view(),

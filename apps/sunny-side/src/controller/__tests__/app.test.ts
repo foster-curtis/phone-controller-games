@@ -9,7 +9,7 @@ const css = readFileSync(
   'utf8',
 );
 import { SCREEN_KINDS } from '../screens';
-import { createWakeLock } from '../wakeLock';
+import { createWakeLock } from '@pcg/controller-kit';
 import { mount, pointer, sampleScreen } from './helpers';
 
 beforeEach(() => {

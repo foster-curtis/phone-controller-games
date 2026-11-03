@@ -193,9 +193,12 @@ Applies to every theme pack. Theme packs change the drawings, not these rules.
   only while they carry at least one. The pips stay put while the ring's notch turns. They're drawn by
   code from two frames, not in the character art. The Artificer keeps the backpack gauge as well
   (Foster, 2026-10-28).
-- **Shared animations:** hit (white flash, small lean), down (kneel, emissive dims to gray, respawn
-  countdown where the name was) and respawn (assemble in a column of amber light at the base) are the
-  same for every class.
+- **Shared animations:** hit (white flash, small lean), down (the emissive dims to gray, then every
+  piece of armor falls to the ground into a pile with some scrap and stays there for the down timer;
+  respawn countdown where the name was) and respawn (assemble, unhurried, in a column of amber light at
+  the base) are the same for every class (down changed at C1, 2026-11-02, §15.11 #35). Walks swing each
+  leg on its own in every view: side legs bend on the forward swing, front and back legs step toward
+  and away from the camera and trade which one is drawn in front each step.
 - **Healing visuals:** all healing is amber (it's ours), marked with small white "+" glints. Never
   green, since jade and forest are player colors.
 
@@ -422,8 +425,8 @@ Crates therefore have two uses: building or repairing.
   sentries, ramparts, window, window sentry, then the damage overlays.
 - **Damage stages (§3.3), cumulative:** 66% cracks (each crack drawn individually, with its own length,
   angle and branches, never one shape repeated; broken glow seams, a fallen merlon, rubble at the wall
-  base); 33% adds fire (flames on the keep and walls); 10% adds heavy smoke (tall plumes, dimmed core and
-  gate). Stages reverse as HP is repaired back over each threshold.
+  base); 33% adds fire (flames on the keep and walls); 10% adds heavy smoke (tall plumes that pour
+  upward and flicker, dimmed core and gate). Stages reverse as HP is repaired back over each threshold.
 - **Animations:** hit (core flickers, keep shakes, HP bar flashes); siege shells (red landing marker on
   the footprint first); repair delivery (amber pulse climbs the keep to the core); shop repair and the
   emergency kit (an amber wave over the whole Citadel, brighter and faster for the kit); low HP at 25%
@@ -520,7 +523,8 @@ Crates therefore have two uses: building or repairing.
   - **Burn:** amber flames on the body. **Poison:** amber nanite corrosion. Every burn or poison
     damage tick flashes the whole body white for about 60 ms, like a hit.
   - **Stun:** the enemy's glow goes dark (its unlit frames, §15.10), and amber chevrons orbit above it.
-  - **Slow:** arcs crawl up the legs (§7.2).
+    A stunned enemy always plays its idle clip, never its walk, even while it slides (§15.11 #36).
+  - **Slow:** arcs crawl up the legs, climbing and flickering (§7.2), and the walk plays slower.
   - **Overflow shield:** the `overflow-shield` icon beside that player's HP bar; no world sprite.
   - **Tower defense bonus** (the Artificer's super): amber shield pips on the front edge of the tower's
     plate.
@@ -949,6 +953,9 @@ Enabled on the TV build with a URL flag and never shown to players. It can:
   with top faces, mirrored left/right, vector cut-out rigs, ink outline, alignment and layering.
   Enemy glow sits inside each part (`class="glow"` groups), so it moves with the part.
 - Every attack has a visible wind-up tell (listed per enemy). Every ground marker is a 0.6 ellipse.
+- Every enemy and the Colossus has a hit (a recoil lean with the white flash) and a death: the glow
+  cuts out, the parts collapse into a pile on the ground with `scrap-theirs`, then fade (§15.11 #35).
+  Big walkers (Brute, Colossus) stomp: the body drops hard on each footfall.
 
 **Drone (Grunt):** a little shorter than a knight, reaching about the Warden's shoulders. A short torso
 leaning hard forward on short legs with normal knees, spikes along the spine, no neck (the head sits on
@@ -1072,6 +1079,11 @@ viewport. Sizes are fixed in px, with the minimums listed.
 
 **Firing:** every attack fires **on release**, once per release.
 - Holding an aimed button only shows the aim line on the TV until release.
+- **Aimed buttons are semi-floating joysticks** (C1, FF4-fix-2). They draw as a joystick: the icon in the
+  center, a circle around it, and an outer ring for the range. A finger landing anywhere on the right half
+  picks the button whose edge is nearest (the bounds between the buttons; farther than 56 px from every
+  button's edge picks none), and the joystick's center becomes where the finger landed. Tap and radial
+  buttons keep their fixed circles.
 - Holding a tap-type button does nothing; it fires when released.
 - Holding never repeats. A release during the attack's cooldown fires as soon as the cooldown ends.
 
@@ -1167,9 +1179,14 @@ from Sunny Side Slam. Everything else in this section is Fort Frenzy game logic 
 ### 11.1 Lobby
 1. **TV creates a room** and shows the room code plus a QR code linking to the join URL with the code
    filled in.
-2. **A phone joins,** enters a name and is assigned a color.
-3. **Class select on the phone:** swipeable character cards, each showing name, role, and one line each
-   for the main attack and the super. The TV shows the lineup live. Duplicate classes are allowed.
+2. **A phone joins,** enters a name and is assigned a color. In the lobby it can pick another of the six
+   colors (`color` intent, §15.6); colors other players hold show as unavailable. Colors stay unique: a
+   color another player holds (connected or not) is refused, never swapped, and a player keeps their
+   color through reconnects, leader handoff and the run. Once Ready, the Ready
+   button and every other lobby action darken until the player taps Ready again to un-ready.
+3. **Class select on the phone:** swipeable character cards, each showing name, role, what the main attack
+   and the super do (tap or aim), the passive, and the build kit (§8). One swipe moves exactly one card,
+   however long. The TV shows the lineup live. Duplicate classes are allowed.
 4. **Start:**
    - When every player is Ready, a 3-second countdown starts the run.
    - The first player to join is the **party leader**. They can force-start once at least 2 players are
@@ -1402,7 +1419,7 @@ Everything sits inside the brand's 96 px TV-safe margin (`--space-tv-safe`) on a
 | Top HUD | 96–136 | wave and phase (left), base HP bar centered directly above the Citadel, team coins (right); "Citadel under attack" under the bar at low HP |
 | Headroom | 136–216 | the Citadel's keep, core and smoke plumes rise into it (§3.6) |
 | Playfield | 216–907 | 36 × 24 sim tiles, x 96–1824; during the build phase, ready status and the wishlist overlay its right side |
-| Bottom HUD | 907–984 | boss bar (boss waves) or the next-wave preview (build phase); purchase announcements stack bottom-left |
+| Bottom HUD | 907–984 | boss bar (boss waves); purchase announcements stack bottom-left. The build phase's next-wave card is 156 px tall (828–984, x 600–1760, clear of the announcements): it ends on the bottom edge and overlays the playfield's last rows so enemy icons (120 × 88) read from the couch (C1) |
 | Bottom margin | 984–1080 | nothing (TV-safe) |
 
 - **Map v1** (config, §15.4): 36 × 24 tiles. Citadel footprint cols 16–19, rows 0–1; repair zone cols
@@ -1535,7 +1552,14 @@ interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: num
 - **Composing a rig:** walk the view's `order`, skip parts whose `optional` group is off, and rotate
   each part about its pivot, chained through its parents. Glow pieces are normal frames whose alpha or
   glow code may raise. The Colossus swaps its legs' draw order mid-stride with `Keyframe.order`. A
-  knight's `badge` point may sit above the rig's viewBox, over the helm.
+  knight's `badge` point may sit above the rig's viewBox, over the helm. The knights' one-piece
+  front/back `legs` (and `legs-glow`) are drawn as two halves cropped at the crotch, `legs.l`/`legs.r`
+  (back view `legs.bl`/`legs.br`), so clips move each leg on its own (§15.11 #37). A clip may be solved
+  per view as `<clip>@<view>` (the down pile); the rig plays the variant for its current view.
+- **Renderer API additions** (FF3-fix-1, `src/host/render/types.ts`, additive): `RigInstance.clipMs(clip)`
+  and `clipDone` (remove a dead enemy once its death clip ends); `EffectSpawner.burst(…, delayMs?)`,
+  `bodyBurst(kind, footSx, footSy, heightPx)` (3–5 heal glints or nanite motes spread over a body) and
+  `scrap(…, holdMs?)` (a downed knight's pile holds for the down timer).
 - **Pooling:** render-side only. Phaser objects for projectiles, effects, damage numbers and Swarm units
   come from per-kind pools; sim entities are plain objects, not pooled.
 - **Interpolation:** the renderer draws positions lerped between the last two sim steps (as in Sunny
@@ -1565,7 +1589,9 @@ interface Unit extends Body {
   mods: Modifier[];                          // cards, passives (attach order)
   effects: StatusEffect[];
   stats: StatBlock;                          // recomputed when mods/effects change
+  push?: Vec2 | null;                        // knockback velocity, decays each step (FF6)
 }
+// BaseState also keeps its visual damage stage (§3.3) as `stage?: 0 | 1 | 2 | 3` (FF6).
 interface World {
   tick: number; phase: Phase; wave: number;
   players: PlayerEnt[]; soldiers: SoldierEnt[]; enemies: EnemyEnt[];
@@ -1727,6 +1753,13 @@ interface ScalingDef { base: 0.5; perPlayer: 0.25 }                   // §9.4
 interface MapDef { id: string; cols: number; rows: number; tiles: string[];  // ASCII rows
   legend: Record<string, TileKind>; lanes: Record<LaneId, { entry: Tile[]; spawn: Vec2 }> }
 type ModuleRef = { module: string; params?: Record<string, number | string | boolean> };
+// FF6: the Citadel and the run-wide rules and timings
+interface BaseDef { hp: number; repairPerCrate: number; stages: number[]; alarmAt: number;   // §3.3–§3.5
+  archers: { count: number; at: Vec2[]; attack: AttackDef } }
+interface RulesDef { startCoins: number; countdownMs: number; buildCapMs: number; respawnMs: number;
+  victoryMs: number; defeatMs: number; spawnWarningMs: number; inputStaleMs: number; dropLockMs: number;
+  pickupRadius: number; giveRadius: number; respawn: Vec2[]; statCaps: Partial<Record<StatId, StatCap>>;
+  breakerWallCost: number; separation: number; knockbackDecay: number }
 ```
 
 - **Generic system signatures** (extraction-ready, §15.1; Fort Frenzy passes its content in):
@@ -1848,6 +1881,7 @@ export type Intent =
   | { k: 'name'; name: string }                       // ≤ 10 chars; color is auto-assigned
   | { k: 'class'; classId: ClassId }
   | { k: 'ready'; ready: boolean }
+  | { k: 'color'; color: PlayerColorId }                // lobby only; host validates, swaps, acks (`taken`)
   | { k: 'leader'; action: 'start' | 'resume' | 'newRun' }
   | { k: 'leader'; action: 'theme'; theme: ThemeId }
   | { k: 'leader'; action: 'difficulty'; difficulty: DifficultyId }
@@ -1907,7 +1941,9 @@ interface MeView {
 ```
 
 - **Lobby and presence** (`party/`): colors auto-assigned in brand order (cobalt, jade, sky, bone, rose,
-  forest; §2.3); first joiner leads, with handoff per §11.1. Relay `peer left` → a `presence` command
+  forest; §2.3), skipping colors already chosen; first joiner leads, with handoff per §11.1. The `color`
+  intent maps to `party.setColor`: lobby only and not while that player is ready (ack `phase`), a color
+  another member holds acks `taken` (no swap), an unknown player or color acks `invalid`. Relay `peer left` → a `presence` command
   makes the character dazed (§11.3); `rejoined` or a key match restores it. A phone joining during combat
   gets `waiting` and becomes a late join at the next build phase.
 - **Versioning:** `PROTOCOL_VERSION` bumps on any breaking change to `messages.ts`; additive fields don't
@@ -2095,3 +2131,6 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 32 | 2026-10-29 | Emergency kit | Bought in the build phase, one held at a time by the Quartermaster, used with the action button in the repair zone (new §10.1 row 3) in either phase; `MeView.action` gains `'kit'` and `kits` | §3.4 asked for a mid-combat kit, but combat has no menus (Foster) |
 | 33 | 2026-10-29 | Build-phase action button | The Build and Shop tabs keep an action button for pick up, deliver, kit and Armory buy (§10.2) | §6 lets players carry, deliver and buy cells in both phases, and the build tabs had no way to do it (Foster) |
 | 34 | 2026-10-29 | Sound effects | Kenney CC0 packs supplied in `audio/kenney/`, picked and converted to `.mp3` in `audio/neon-knights/` (§14 #4) | Commercially clear, already downloaded (Foster) |
+| 35 | 2026-11-02 | Down and death | A downed knight dims, then falls apart into a pile of armor with scrap that stays for the down timer (was a kneel); every enemy and the Colossus gets a hit and a death (collapse into a pile, `scrap-theirs`, fade) | C1 gallery notes (Foster) |
+| 36 | 2026-11-02 | Stunned units | Always idle, never walking (a render rule) | A stunned enemy that walks reads as not stunned (Foster, C1) |
+| 37 | 2026-11-02 | Knight legs, front and back | The renderer draws the one-piece `legs` frame twice, cropped into left and right halves, so each leg steps on its own | The art has one legs part per view; a split keeps the art as is (Foster, C1) |

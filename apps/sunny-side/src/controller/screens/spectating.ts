@@ -1,5 +1,5 @@
 // Spectating: scores, round number, and the 5-emoji hotbar with a 0.5 s local cooldown (SPEC §6.7).
-import { el } from '../dom';
+import { el } from '@pcg/controller-kit';
 import { EMOJI, type EmojiIndex, type Screen } from '../../shared/messages';
 import { heading, roundLine, standingsList, type ScreenCtx, type ScreenView } from './common';
 

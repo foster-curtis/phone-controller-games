@@ -1,32 +1,27 @@
-// Controller app: owns the current screen view, the phone-local overlays, and the client wiring.
-import type { ControllerClient, StorageLike } from '@pcg/net-client';
+// Controller app: owns the current screen view, the phone-local overlays, and the client wiring. The
+// kit's app shell turns the phone platform on (fullscreen on tap, Wake Lock, landscape lock, rotate
+// overlay) and drives the reconnecting / host-away overlays; the screen router reuses a view within a
+// screen group.
+import {
+  createAppShell,
+  createScreenRouter,
+  defaultStorage,
+  el,
+  type ShellClient,
+} from '@pcg/controller-kit';
+import type { StorageLike } from '@pcg/net-client';
 import type { ControllerMsg, Screen } from '../shared/messages';
 import { createBanner } from './banner';
-import { el } from './dom';
-import { createInputSender, type InputSender } from './input/sender';
-import { fullscreenOnTap } from './fullscreen';
-import { watchOrientation } from './orientation';
+import { createInputSender, type InputSender } from './input/tuple';
 import { GROUP_OF, SCREEN_KINDS, createView, type ViewGroup } from './screens';
-import type { ScreenCtx, ScreenView } from './screens/common';
+import type { ScreenCtx } from './screens/common';
 import { createJoining, createRemoved } from './screens/simple';
-import { defaultStorage } from './storage';
 import { GAME_ID } from '../shared/messages';
 
 export type OverlayName = 'selfPaused' | 'reconnecting' | 'hostAway' | 'rotate';
 export const OVERLAY_NAMES: OverlayName[] = ['selfPaused', 'reconnecting', 'hostAway', 'rotate'];
 
-export type ClientLike = Pick<
-  ControllerClient,
-  | 'status'
-  | 'send'
-  | 'connect'
-  | 'close'
-  | 'onMessage'
-  | 'onStatus'
-  | 'onHostStatus'
-  | 'onKicked'
-  | 'onError'
->;
+export type ClientLike = ShellClient;
 
 export interface AppOptions {
   root: HTMLElement;
@@ -82,19 +77,39 @@ export function createApp(opts: AppOptions): App {
   };
   const sender = createInputSender((t) => sent(t));
 
-  const screenHost = el('div', { class: 'screen-host' });
-  const overlayHost = el('div', { class: 'overlay-host' });
   const banner = createBanner();
   banner.setConnected(client.status === 'open');
-  root.replaceChildren(banner.el, screenHost, overlayHost);
 
-  let joinError: string | null = null;
-  const joining = createJoining((c) => opts.onCode?.(c));
-  let group: ViewGroup | 'joining' | 'removed' = 'joining';
-  let view: ScreenView | null = null;
-  let kind: Screen['kind'] | 'joining' | 'removed' = 'joining';
-  const active = new Set<OverlayName>();
-  const overlayEls = new Map<OverlayName, HTMLElement>();
+  const resumeActions = () => {
+    const resume = el('button', {
+      type: 'button',
+      class: 'btn btn-accent label',
+      text: 'Resume',
+    });
+    resume.addEventListener('click', () => {
+      sent({ t: 'resume' } satisfies ControllerMsg);
+      setOverlay('selfPaused', false);
+      if (router.group() === 'controller') sender.start();
+    });
+    const leave = el('button', { type: 'button', class: 'btn label', text: 'Leave game' });
+    leave.addEventListener('click', () => {
+      sent({ t: 'leave' } satisfies ControllerMsg);
+      setOverlay('selfPaused', false);
+    });
+    return el('div', { class: 'actions' }, resume, leave);
+  };
+
+  const shell = createAppShell<OverlayName>({
+    root,
+    client,
+    header: banner.el,
+    overlays: OVERLAY_NAMES,
+    text: OVERLAY_TEXT,
+    overlayClasses: { title: 'h2 sticker-heading', body: 'body' },
+    overlayExtra: (name) => (name === 'selfPaused' ? resumeActions() : null),
+    platform: { rotate: opts.watchOrientation !== false },
+  });
+  const setOverlay = (name: OverlayName, on: boolean) => shell.setOverlay(name, on);
 
   const ctx: ScreenCtx = {
     send: (m: ControllerMsg) => sent(m),
@@ -103,15 +118,21 @@ export function createApp(opts: AppOptions): App {
     onPause: () => selfPause(),
     pauseSlot: banner.slot,
   };
+  const router = createScreenRouter<Screen, ViewGroup>({
+    host: shell.screenHost,
+    groupOf: (screen) => GROUP_OF[screen.kind],
+    create: (screen) => createView(screen, ctx),
+  });
+
+  let joinError: string | null = null;
+  const joining = createJoining((c) => opts.onCode?.(c));
+  let kind: Screen['kind'] | 'joining' | 'removed' = 'joining';
 
   const showJoining = () => {
-    view?.destroy();
-    view = null;
-    group = 'joining';
     kind = 'joining';
     banner.setProfile(null, null);
     joining.set({ code: opts.code ?? null, error: joinError });
-    screenHost.replaceChildren(joining.el);
+    router.showLocal('joining', joining.el);
   };
 
   const joinAgain = () => {
@@ -128,76 +149,17 @@ export function createApp(opts: AppOptions): App {
   const showRemoved = () => {
     sender.neutral();
     sender.stop();
-    view?.destroy();
-    view = createRemoved(joinAgain);
-    group = 'removed';
     kind = 'removed';
     banner.setProfile(null, null);
-    screenHost.replaceChildren(view.el);
+    const view = createRemoved(joinAgain);
+    router.showLocal('removed', view.el, view);
   };
 
   const setScreen = (screen: Screen) => {
     banner.setProfile(screen.name, screen.color);
-    const g = GROUP_OF[screen.kind];
     kind = screen.kind;
-    if (g === group && view) {
-      view.update(screen);
-      return;
-    }
-    view?.destroy();
-    view = createView(screen, ctx);
-    group = g;
-    screenHost.replaceChildren(view.el);
+    router.show(screen);
   };
-
-  const renderOverlays = () => {
-    for (const name of OVERLAY_NAMES) {
-      const present = overlayEls.get(name);
-      if (active.has(name) && !present) {
-        const o = overlayFor(name);
-        overlayEls.set(name, o);
-        overlayHost.append(o);
-      } else if (!active.has(name) && present) {
-        present.remove();
-        overlayEls.delete(name);
-      }
-    }
-  };
-
-  const overlayFor = (name: OverlayName): HTMLElement => {
-    const t = OVERLAY_TEXT[name];
-    const card = el(
-      'div',
-      { class: 'overlay-card' },
-      el('h1', { class: 'h2 sticker-heading', text: t.title }),
-      el('p', { class: 'body', text: t.body }),
-    );
-    if (name === 'selfPaused') {
-      const resume = el('button', {
-        type: 'button',
-        class: 'btn btn-accent label',
-        text: 'Resume',
-      });
-      resume.addEventListener('click', () => {
-        sent({ t: 'resume' } satisfies ControllerMsg);
-        setOverlay('selfPaused', false);
-        if (group === 'controller') sender.start();
-      });
-      const leave = el('button', { type: 'button', class: 'btn label', text: 'Leave game' });
-      leave.addEventListener('click', () => {
-        sent({ t: 'leave' } satisfies ControllerMsg);
-        setOverlay('selfPaused', false);
-      });
-      card.append(el('div', { class: 'actions' }, resume, leave));
-    }
-    return el('div', { class: 'overlay', 'data-overlay': name }, card);
-  };
-
-  function setOverlay(name: OverlayName, on: boolean) {
-    if (on) active.add(name);
-    else active.delete(name);
-    renderOverlays();
-  }
 
   function selfPause() {
     sender.neutral();
@@ -206,7 +168,7 @@ export function createApp(opts: AppOptions): App {
     setOverlay('selfPaused', true);
   }
 
-  const offs: Array<() => void> = [fullscreenOnTap(root)];
+  const offs: Array<() => void> = [];
   offs.push(
     client.onMessage((data) => {
       const m = data as { t?: unknown; screen?: Screen } | null;
@@ -216,33 +178,26 @@ export function createApp(opts: AppOptions): App {
     }),
     client.onStatus((s) => {
       banner.setConnected(s === 'open');
-      setOverlay('reconnecting', s === 'reconnecting');
-      if (s === 'closed' && group === 'joining') showJoining();
+      if (s === 'closed' && router.group() === 'joining') showJoining();
     }),
-    client.onHostStatus((s) => setOverlay('hostAway', s === 'away')),
     client.onKicked(() => {
-      active.delete('selfPaused');
-      renderOverlays();
+      setOverlay('selfPaused', false);
       // The host sends a `left` screen first when the player chose to leave; otherwise this is a removal.
       if (kind !== 'left') showRemoved();
     }),
     client.onError((e) => {
       joinError = ERROR_TEXT[e.code] ?? e.message;
-      if (group === 'joining') showJoining();
+      if (router.group() === 'joining') showJoining();
     }),
   );
-  if (opts.watchOrientation !== false) {
-    offs.push(watchOrientation((portrait) => setOverlay('rotate', portrait)));
-  }
 
   showJoining();
-  if (client.status === 'reconnecting') setOverlay('reconnecting', true);
 
   return {
     sender,
     setScreen,
     setOverlay,
-    overlays: () => OVERLAY_NAMES.filter((n) => active.has(n)),
+    overlays: () => shell.overlays(),
     currentKind: () => kind,
     showRemoved,
     async start() {
@@ -252,13 +207,14 @@ export function createApp(opts: AppOptions): App {
         const code = (e as { code?: string }).code;
         joinError =
           (code && ERROR_TEXT[code]) || (e instanceof Error ? e.message : 'Could not connect.');
-        if (group === 'joining') showJoining();
+        if (router.group() === 'joining') showJoining();
       }
     },
     destroy() {
       sender.stop();
       for (const off of offs) off();
-      view?.destroy();
+      shell.destroy();
+      router.destroy();
     },
   };
 }

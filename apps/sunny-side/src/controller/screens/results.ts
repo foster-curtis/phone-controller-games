@@ -1,5 +1,5 @@
 // Round results and match end: standings; the leader gets Next round / Rematch / Back to lobby.
-import { el } from '../dom';
+import { el } from '@pcg/controller-kit';
 import type { Screen } from '../../shared/messages';
 import { breakdownSection } from './breakdown';
 import {

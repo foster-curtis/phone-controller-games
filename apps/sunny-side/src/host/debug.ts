@@ -4,13 +4,14 @@
 import type { InputTuple } from '../shared/messages';
 import type { MatchPhase, MatchView, PlayerView } from './match';
 import type { Sim, SimPlayerId } from './sim';
+import { debugEnabled as kitDebugEnabled } from '@pcg/game-kit';
 import { BUTTON_SLAM, STICK_MAX } from '../shared/messages';
 
 export function debugEnabled(
   dev: boolean = import.meta.env.DEV,
   search: string = globalThis.location?.search ?? '',
 ): boolean {
-  return dev || new URLSearchParams(search).get('debug') === '1';
+  return kitDebugEnabled(dev, search);
 }
 
 export interface DebugSim extends Sim {
@@ -179,8 +180,4 @@ declare global {
   interface Window {
     __pcg?: PcgDebugApi;
   }
-}
-
-export function installDebug(api: PcgDebugApi, target: Window = window): void {
-  target.__pcg = api;
 }

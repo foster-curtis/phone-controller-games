@@ -772,45 +772,46 @@ Rules:
 
 ## 6. Progress checklist
 
-- [ ] Pre-flight passed (S1)
+- [x] Pre-flight passed (S1)
 - FF0 Shared kits
-  - [ ] `@pcg/game-kit` (loop, lerp, RNG, host helpers, `/vite`) with tests
-  - [ ] `@pcg/controller-kit` (platform, shell, router, widgets, gestures, sender, dev harness) with tests
-  - [ ] Sunny Side on the kits, its copies deleted, its checks and e2e green
-  - [ ] Dockerfile + `.prettierignore` + package tables updated
-  - [ ] Merged to `main`
+  - [x] `@pcg/game-kit` (loop, lerp, RNG, host helpers, `/vite`) with tests
+  - [x] `@pcg/controller-kit` (platform, shell, router, widgets, gestures, sender, dev harness) with tests
+  - [x] Sunny Side on the kits, its copies deleted, its checks and e2e green
+  - [x] Dockerfile + `.prettierignore` + package tables updated
+  - [x] Merged to `main`
 - FF1 Scaffold + contracts
-  - [ ] App scaffold, deps, entries, configs, `check:fort-frenzy` green
-  - [ ] Frozen contracts (7 files) + guards + theme parity
-  - [ ] Asset manifest, icon sprite, portraits, LICENSES + test
-  - [ ] Root wiring (scripts, ESLint boundaries, bundle limit, Dockerfile, doc tables)
-  - [ ] Merged to `main`
+  - [x] App scaffold, deps, entries, configs, `check:fort-frenzy` green
+  - [x] Frozen contracts (7 files) + guards + theme parity
+  - [x] Asset manifest, icon sprite, portraits, LICENSES + test
+  - [x] Root wiring (scripts, ESLint boundaries, bundle limit, Dockerfile, doc tables)
+  - [x] Merged to `main`
 - FF2 Systems + party
-  - [ ] modifiers, effects, damage with tests
-  - [ ] cards, waves, flowfield with tests
-  - [ ] party with tests
-  - [ ] Merged to `main`
+  - [x] modifiers, effects, damage with tests
+  - [x] cards, waves, flowfield with tests
+  - [x] party with tests
+  - [x] Merged to `main`
 - FF3 Art in engine
-  - [ ] Atlases 1×/2×, unlit variants, rig validation
-  - [ ] Theme pack + render core (camera, layers, rigs, clips, autotiles, Citadel, towers, bloom)
-  - [ ] Gallery + stress mode + asset/rig tests + gallery e2e
-  - [ ] Merged to `main`
+  - [x] Atlases 1×/2×, unlit variants, rig validation
+  - [x] Theme pack + render core (camera, layers, rigs, clips, autotiles, Citadel, towers, bloom)
+  - [x] Gallery + stress mode + asset/rig tests + gallery e2e
+  - [x] Merged to `main`
+  - [x] FF3-fix-1: C1 gallery notes (gauge, enemy hit/death, walks, down pile, respawn, twin flash, smoke, collapse, speeds, glints, stun idle, slow)
 - FF4 Controller
-  - [ ] Client wiring, sender, `layoutCombat` + tests
-  - [ ] All screens + components + dev mode
-  - [ ] Controller e2e screenshots, bundle ≤ 100 KB
-  - [ ] Merged to `main`
+  - [x] Client wiring, sender, `layoutCombat` + tests
+  - [x] All screens + components + dev mode
+  - [x] Controller e2e screenshots, bundle ≤ 100 KB
+  - [x] Merged to `main`
 - FF5 TV UI
-  - [ ] Home, lobby, summary screens
-  - [ ] Combat + build HUD, alarms, lane bands
-  - [ ] `?ui=` dev page + e2e safe-margin checks
-  - [ ] Merged to `main`
-- [ ] **User approved C1** (gallery, perf stress, phones, TV UI)
+  - [x] Home, lobby, summary screens
+  - [x] Combat + build HUD, alarms, lane bands
+  - [x] `?ui=` dev page + e2e safe-margin checks
+  - [x] Merged to `main`
+- [x] **User approved C1** (gallery, perf stress, phones, TV UI): notes fixed in FF2-fix-1, FF3-fix-1, FF4-fix-2, FF5-fix-1; feel and visual notes re-judged at C2
 - FF6 Sim core
-  - [ ] World, step order, movement, economy loop, building, phases
-  - [ ] Engineer + pulse turret + Grunt + waves 1–2 content
-  - [ ] Recorder, replay script, autopilot, determinism + scenario tests, bench
-  - [ ] Merged to `main`
+  - [x] World, step order, movement, economy loop, building, phases
+  - [x] Engineer + pulse turret + Grunt + waves 1–2 content
+  - [x] Recorder, replay script, autopilot, determinism + scenario tests, bench
+  - [x] Merged to `main`
 - FF7 Vertical slice
   - [ ] Host net + party bridge + input staleness + state sync
   - [ ] World scene + TV UI hookup + run flow
@@ -916,6 +917,288 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
 - [plan] decision: SPEC updated before the build (2026-10-29, §15.11 #32–#34): emergency kit held and used
   with the action button (new §10.1 row 3, `MeView.action` `'kit'`, `kits`); build-phase action button;
   Kenney SFX from `audio/kenney/`.
+- [FF0] decision: Sunny Side already had fullscreen on every tap, so it is not a behavior change. The kit
+  shell now takes Wake Lock and the landscape lock on the first touch of the app root (was a `window`
+  listener in `main.ts`, non-dev only; `?dev=1` now gets them too), rewrites the viewport meta (Sunny
+  Side's is already identical) and blocks iOS `gesturestart` pinch zoom (the one new behavior).
+- [FF0] decision: kept in Sunny Side as thin wrappers over the kits: `input/tuple.ts` (its tuple schema on
+  the kit sender, keeping `setStick`/`setButton` so its tests run unchanged), `input/holdToPause.ts`,
+  `storage.ts` (name key), `debug.ts` (`createDebugSim`, `PcgDebugApi`). `dev.ts` became `samples.ts`
+  (sample screens) + `devMode.ts` (kit harness); snapshot interpolation moved to `src/host/interpolate.ts`.
+  Sunny Side's loop/lan/visibility/wake-lock tests moved to `@pcg/game-kit` with the code.
+- [FF0] decision: extraction candidates left in Sunny Side (brand-coupled, one consumer): the SLAM charge
+  arc (`input/buttons.ts`, brand colors), the top banner (`banner.ts`) and the joining/removed screens.
+- [FF0] decision: the kits ship no CSS: games style the class hooks (`.screen-host`, `.overlay-host`,
+  `.overlay`, `.overlay-card`, `.stick-base`, `.pressed`, `.holding`, `.dev-*`) with their own tokens;
+  overlay copy and title/body classes are parameters.
+- [FF0] decision: both kits are `sideEffects: false`, so `play.html` doesn't bundle `qrcode` (the QR
+  helper's dependency) just because the controller imports `relayUrl` from `@pcg/game-kit`.
+- [FF0] decision: `@pcg/game-kit` has one core entry (no separate host entry): its DOM-facing helpers read
+  `document`/`navigator`/`location` lazily or as parameters, so a sim can import the RNG in Node.
+  `relayUrl(envUrl)` and `debugEnabled(dev)` take the env value; the kit reads no `import.meta.env`.
+- [FF0] decision: `@pcg/game-kit/vite` imports `./lan.ts` with the extension, because Vite loads a
+  workspace config dependency through Node's type stripping (no bundling); apps that typecheck their
+  `vite.config.ts` need `allowImportingTsExtensions` (Sunny Side has it).
+- [FF0] decision: `qrcode` stays a Sunny Side devDependency (its smoke e2e decodes the lobby QR).
+- [FF0] decision: RNG: `int(lo, hi)` is inclusive at both ends; the state is four FNV-1a hashes of
+  `${seed}\0${label}` (one offset per word) and 12 warm-up rounds; the first values are pinned in a test.
+- [FF0] decision: gestures (SPEC §15.7 leaves these open): the aimed and radial dead zones default to 12%
+  of the 70 px aim radius (8.4 px, the stick's rule); an aimed press held past 150 ms that never left the
+  dead zone cancels; a radial release after Give repeats only ends (no extra commit); with a single slot
+  the arc never opens and a dimmed single slot does nothing on hold; a radial release after 150 ms that
+  never opened cancels.
+- [FF0] decision: fixed-rate sender periods are `round(1000 / Hz)` (33 ms, 200 ms); edges and a change of
+  touched state send at once and restart the clock; controls report touch with `touch(id, on)`.
+- [FF1] decision: dependencies: `maxrects-packer` 3.0.0 (2.7.4 is deprecated upstream as broken),
+  `@resvg/resvg-js` 2.6.2 (prebuilt binary installs on Windows), `tsx` 4.23.15; the rest match Sunny
+  Side. `e2e` also runs `pnpm assets` first; `bench` is a stub until FF6 adds scenarios.
+- [FF1] decision: internal ids not named in SPEC: structures `arrow_tower bomb_tower wall snare fortify`;
+  shop `crate repair archer_damage archer_range archer_third squad_stats arrow_rate bomb_radius tower_hp
+  wall_hp snare_charges spiked_walls base_armor emergency_kit`; cards are snake_case card names (the 8
+  commons are shared, `perClass` tunes them: 40 ids, 64 cards); effects add `aura_mason`; SFX ids are
+  FF13's cue list; theme id `neon-knights`.
+- [FF1] decision: intent acks run through the sim: `SimCommand` carries an optional `ref`, and the sim
+  answers with a `command` SimEvent (ok or an `AckReason`); host/net maps it back to the phone's `seq`.
+- [FF1] decision: the base is a unit with the reserved `BASE_ID` 0 (entities start at 1), and structures
+  are units too (`damageable: false` for snares), so base armor and the tower defense bonus use the one
+  modifier/damage path; Fortify is a flag on the tower (`fortified`), matching the snapshot.
+- [FF1] decision: theme packs map internal ids themselves: `ThemeShared.iconFor` (class, main, super,
+  structure, shop, card icons) and `ThemeHost.rigFor` (class, enemy, soldier, structure rigs); fixed icon
+  ids (`act-*`, `coins`, …) need no mapping.
+- [FF1] decision: the asset manifest's types live in `src/themes/types.ts` (`AssetManifest`,
+  `ThemeAssets`, `FrameMeta`) and `generated/manifest.ts` exports `manifest`. Rig-part frames take the
+  rig's viewBox, the view's `foot` as anchor, layer `world`, `tint: 'player'` as `tint`, and the view's
+  attach points riding on that part; every frame records `glow` (has `class="glow"`, so FF3 packs
+  `@unlit`). The icon sprite is `generated/<theme>/icons.svg` with `<symbol id="icon-<id>">` (badge
+  tiles included).
+- [FF1] decision: portraits are made for every rig with a `class-<rig>` icon, front view, default pose,
+  optional groups off (the Commander's banner too), as SVG: `<rig>-body.svg` draws color parts white
+  (`currentColor`), `<rig>-mask.svg` is the color parts minus every part drawn after them (helm over
+  plume), for CSS `mask-image` + multiply.
+- [FF1] decision: `RunStats`/`RunSummary` live in `messages.ts` (phones show the summary); a summary
+  award names the `RunStats` key it celebrates.
+- [FF1] decision: lint: "no DOM" bans browser-only globals plus `localStorage`, `sessionStorage`,
+  `Storage`, `navigator`, `fetch`, `WebSocket` (Node has them too); `systems/<name>` may import only
+  packages and sibling systems (no `../../`), `party/` only packages and its own folder (no `../`).
+  Fixtures in `src/host/{sim,systems,party}/__fixtures__/bad.ts` are lint-ignored and
+  `src/host/__tests__/boundaries.test.ts` asserts every rule fires on them.
+- [FF1] decision: `check-bundle` limits gzipped `play.html` JS per app (`PLAY_JS_LIMIT_KB`): Fort Frenzy
+  100 KB; Sunny Side 18 KB (15.0 KB measured at FF1 + 20%). Its host-bundle Phaser sanity check now runs
+  only once an app's `src` imports Phaser (Fort Frenzy's host is blank until FF3/FF7).
+- [FF1] decision: `vercel.json` `ignoreCommand` is `git diff --quiet HEAD^ HEAD -- . ../../packages
+  ../../pnpm-lock.yaml` (Vercel runs it in the project root, `apps/fort-frenzy`).
+- [FF1] decision: `assets/LICENSES.json` entries take a `path` glob (relative to the app) or a `font`
+  family; the test also fails on stale path entries, and checks the fonts against `brand/head.html`.
+- [FF1] decision: Fort Frenzy tests live in `__tests__/` (theme parity at `src/shared/__tests__/`), and
+  a Playwright smoke checks both entries load until the real smoke lands.
+- [FF2] decision: systems declare their own structural types (`StatMod`, `TimedEffect`, `DamageCalcOf`/
+  `DamageResultOf`, `FlowField`, `CardLike`) shaped like `sim/types.ts` and `content/types.ts`, since lint
+  forbids importing those; ids are generics, so the sim passes its own values unchanged.
+- [FF2] decision: stats: `StatCap` bounds Σ `addPct` (`pctMin`/`pctMax`) and also Σ `add` (`addMin`/
+  `addMax`); scoped mods count only for their scope, unscoped ones always.
+- [FF2] decision: effects stacking: `refresh` keeps one instance, longer timer, stronger strength;
+  `strongest`: stronger replaces (its own duration), equal extends, weaker is ignored; `stack`: +1 stack up
+  to `maxStacks`, longer timer, stronger strength, effective strength = strength × stacks. Periodic ticks
+  fire every `tickEvery` steps from the apply, the last one included; times are steps (`msToSteps`, ≥ 1).
+- [FF2] decision: damage: `applyDamage(calc, stages)` takes caller-supplied stage callbacks and fixes
+  their order; the amount clamps at ≥ 0 after stage 4; `hpStage` reports `killed` only on the killing hit.
+- [FF2] decision: cards: cards with `requires` (combos) are unique even if unmarked; ownership is an
+  `owners` list (class + `'common'`); the rare roll is always drawn first; an offer short of commons fills
+  with one rare; an offer shrinks when too few cards are eligible.
+- [FF2] decision: waves: `cost` is per group of `groupSize` units; `guaranteed.count` counts groups paid
+  from the budget, with optional `cost`/`groupSize` for ids outside the pool (boss; default 0 and 1);
+  substituted types leave the pool and guaranteed ones become a random pool replacement (dropped if
+  none); groups are shuffled, one per equal slice of the duration, unpinned ones dealt round-robin over
+  the open lanes; a guaranteed lane that isn't open is ignored. ±1 of budget needs a cost ≤ 1 type.
+- [FF2] decision: flow field: 4-neighbor Dijkstra; entering a tile costs `cost(tile)` (> 0, `Infinity` =
+  impassable); `next` −1 = goal or unreachable (`dist` Infinity); optional `into` rebuilds in place.
+- [FF2] decision: party: stages `lobby`/`build`/`combat` (combat = any non-build run phase); a device-ID
+  match takes the new relay key (new room), other matches keep known ids; with nobody connected the
+  leader stays, then the first back leads; ready needs name + class; auto-start = every connected player
+  ready and ≥ 2; `startRun` slots everyone with a name and class (ready or not), the rest late-join;
+  late slots are max + 1; name/class lock once slotted.
+- [FF2] decision: the party test is co-located (`src/host/party/party.test.ts`): the party lint rule
+  forbids any `../` import, so a `__tests__/` file couldn't import `../index`.
+- [FF5] decision: the overlay (`src/host/ui/overlay.ts`) renders `TvView` into independent sections
+  (HTML strings, cached per section), on a 1920 × 1080 root scaled by a CSS transform (FIT), integer font
+  sizes. Host wiring (FF7) calls `createTvOverlay(el, { onHome, onRemovePlayer }).update(view)`; home focus
+  and ◂ ▸ changes come back as `HomeIntent`s (the host owns `TvView.home`).
+- [FF5] decision: until FF3's theme pack lands, `ui/labels.ts` carries the neon-knights names and icon ids
+  the overlay needs (class, enemy, shop); FF7 may swap them for the pack's maps.
+- [FF5] decision: enemy tiles in the next-wave preview stack the rig's side-view part SVGs from
+  `art/neon-knights/enemies/` in rig order (no enemy portrait files are generated; only classes have them).
+- [FF5] decision: TV remove in the lobby is keyboard: press a slot's number (1–6), then again within 4 s;
+  Esc or another slot cancels. The gamepad (d-pad or stick, A) drives the home screen only.
+- [FF5] decision: the HUD's wave and phase share one line ("WAVE 10 / 15 · COMBAT", "BUILD · 38 S") to fit
+  the 40 px top band (§15.2); the next-wave preview is 77 px tall (bottom band), headlined with the enemy
+  total or "Boss wave" (`TvView` carries no wave name), new types get a violet frame and a "NEW" tag.
+- [FF5-fix-1] decision: C1 notes: lobby QR and "Scan to join" right-aligned (right edge x 1824); next-wave card grown to
+  1160 × 156 (y 828–984, was 720 × 77) with 120 × 88 enemy tiles (was 52 × 38), 30 px counts; it overlays the
+  playfield's bottom rows during build, SPEC §15.2 table and `PREVIEW_CARD` in `ui/layout.ts` updated.
+- [FF5] decision: `index.html?ui=<screen>` screens: loading home lobby countdown combat low-hp boss build
+  victory defeat summary restoring outdated; on in dev or with `?debug=1`.
+- [FF4] decision: no `themes/<id>/shared.ts` exists yet (FF3), so `src/controller/copy.ts` holds the phone's
+  names, icon ids, structure costs (placeholders: 2/3/1/1/2 until playtesting) and card text; FF3 should absorb it.
+- [FF4] decision: sprite and portraits load via `?url`/`import.meta.glob` (`assets.ts`); the sprite is fetched and
+  inlined at boot. Dev samples sit in a dynamic chunk (`?dev=1`, `?screen=<id>` picks one).
+- [FF4] decision: revs reset on reconnect/host return (a reloaded host restarts its counters); `outdated` with a
+  higher proto reloads once (sessionStorage guard), lower shows "Refresh the TV".
+- [FF4] decision: `wishlist[].by` is read as a relay playerId (name fallback); class select lives in the lobby view
+  ("Change class"); the name screen is the join screen (code + name + button) once connected.
+- [FF4] decision: extraction candidate: `fitAboveKeyboard` (copied from Sunny Side into `screens/common.ts`).
+- [FF4-fix-1] decision: the full-screen `.dev-panel` (z 22) covered `.dev-toggle` (z 21), so the picker
+  could not be closed; the toggle now sits above it (z 23, panel bottom padding clears it). CSS only, the
+  kit is unchanged; picking a screen still leaves the picker open.
+- [FF3] decision: atlases rasterize at 0.6 px per sprite unit × scale (one 80-unit tile = 48 px at 1×),
+  icons at 1 px per unit × scale (frames `icons/<id>`); frames are alpha-trimmed into Phaser JSON-hash
+  atlases (`generated/atlases/<theme>@<s>x-<i>`), split into more bins only past 4096² (today one per
+  scale: 873×880 and 1674×1667); a small built-in PNG encoder (no new dependency).
+- [FF3] decision: frames are rasterized with root `color="#ffffff"` so grayscale `currentColor` tint
+  parts multiply to the player color (resvg's default is black).
+- [FF3] decision: `@unlit` recolors every color inside `class="glow"` groups (nested included, ink kept)
+  to its side's dark shade: violet-hued (b > r, g) → `#2a2340`, everything else → `#3c4452`. Knights'
+  separate `-glow` parts have no glow groups, so unlit/down dims them in code (fill tint `#4a5362`).
+- [FF3] decision: rig validation checks each view/pose on its own (`order` = its parts exactly once,
+  frame names, parents exist and form a tree, attach parts exist, default pose exists) and that every
+  optional-group part exists in some view; poses may differ in parts (Ranger `ready` has no
+  `paul-l`/`paul-r` in front, no `hands` in back), so no cross-pose part check.
+- [FF3] decision: dev-only fallback shapes: `pnpm assets` is strict (build, test, typecheck fail on any
+  error); `tsx scripts/build-atlases.ts --watch` rebuilds on art changes and only warns, and the renderer
+  draws a labeled magenta box for any frame missing from the atlas (counted in `__pcgGallery.fallbacks`).
+  `dev` still runs the strict one-shot `pnpm assets` (package.json is frozen for FF3), so watch is opt-in.
+- [FF3] decision: typed keys: the script also writes `generated/keys.ts` (`FrameName`/`IconName` unions,
+  atlas list); render code names frames only through `fk('…')`, `ik('…')` or the builders in
+  `render/keys.ts`, so a wrong key fails the typecheck; asset-keys.test.ts also bans bare frame strings.
+- [FF3] decision: clip units: `rot` in degrees (clockwise on screen), `dx`/`dy` in sprite units;
+  fields interpolate linearly between the keys that set them; one-shots hold their last frame. A per-key
+  `order` reorders the named parts within the slots they hold (a full list replaces the order); the
+  Colossus walk passes full orders, swapping at the legs' crossings (u = 0.25, 0.75) with a 1.04 scale-up.
+- [FF3] decision: the mortar is a structure: `mortar/idle` only, no walk; its tube aim is a code
+  override on the rig (`RigSprite.override`), not a clip.
+- [FF3] decision: aim snapping and facing use the world-ground angle (heads are modeled in 3D and turn
+  about the vertical axis); sentry targets up-screen clamp to `l`/`r`.
+- [FF3] decision: bloom is a custom hue-selective select pass (amber 25–54° and violet 238–280°, bright
+  and saturated; never gunmetal, violet-iron, player colors or danger red) that renders at half size,
+  then Phaser's Blur, in a ParallelFilters added with ADD on the world camera (layers 1–4). World UI and
+  the HUD render through a second camera without filters. `BloomSelect.divisor = 4` is the quarter-res
+  fallback if C1 finds it slow (Phaser 4 has no bloom filter: custom render node, §15.2 risk).
+- [FF3] decision: shadow sizes in §2.5 (knight 22 × 13, Colossus 60 × 36) are read as radii in sprite
+  units; the knight ring is 0.68 tiles (54.4 units, as in `review/carry-pips.svg`). Gallery hitbox and
+  body sizes live in `render/gallery/rigInfo.ts` until content supplies them (FF6).
+- [FF3] decision: the gallery is one Phaser scene per page (`rigs`, `turrets`, `citadel`, `autotiles`,
+  `effects`, `icons`, `map`), state in the URL (`page`, `color`, `unlit`, `clip`, `hitbox`, `bloom`,
+  `banner`, `gauge`, `carry`, `colossus`, `tier`, `lane-*`, `panel=0` hides the controls, `atlas=1|2`
+  forces a scale); `main.ts` lazy-loads it, so the gallery chunk (Phaser) is split from the host stub.
+- [FF3] decision: stress mode measures frame delta (mean, p95), CPU render submit (PRE_RENDER →
+  POST_RENDER) and bloom via `EXT_disjoint_timer_query_webgl2` around the ParallelFilters pass, else
+  alternates bloom on/off every 90 frames and reports the frame-delta difference. Headless Chromium has no
+  timer query, so the bloom number is only meaningful on the C1 laptop.
+- [FF3] note for C1: knight pivots (SPEC §14 #7) looked right in the gallery walk/hit/down clips at
+  TV scale; judge them in motion at C1. Art notes worked around: the Commander's back view swings
+  `swordtip` on `gauntlets`, footman side swings its blade hand only, Ranger back views move no strap.
+- [FF4-fix-2] contract+: `src/shared/messages.ts` `Intent` gains `{ k: 'color'; color: PlayerColorId }`
+  (lobby only; `isIntent` checks the id; SPEC §15.6 lists it). The phone only sends it and renders the
+  color from `team`/`me`; the host rule (validate, swap, ack `taken`) is FF2-fix-1.
+- [FF4-fix-2] decision: the kit's `bindGesture` is one element per machine with a fixed origin, so the
+  floating aimed joysticks compose `aimedGesture` in `src/controller/aimZones.ts` (one zone over the
+  right half, `pickZone` in `layout.ts`). Extraction candidate: a kit `bindZonedGestures`. `layoutCombat`
+  is unchanged; its gap/edge/size rules still apply to the resting circles, and the zones are the
+  nearest-edge partition of them (reach 56 px), so the rules hold for the floating buttons' rest state.
+- [FF4-fix-2] decision: class select moves by transform, not native scroll-snap (momentum can pass cards);
+  `swipeTarget` in `src/controller/swipe.ts` clamps any drag to one card (36 px or a fast flick).
+- [FF4-fix-2] decision: Ready dims by disabling Change class, difficulty, Start, remove and the color
+  swatches (Ready itself stays live to un-ready); the label is always READY. Dev mode applies a picked
+  color locally (no host rule).
+- [FF6] contract+: `src/content/types.ts` `BaseDef` (HP, repair per crate, damage stages, alarm, archers)
+  and `RulesDef` (run timings, reaches, respawn points, stat caps, separation, knockback decay), with
+  `Content.base`/`Content.rules`; `src/host/sim/types.ts` `Unit.push?` (knockback velocity) and
+  `BaseState.stage?` (§3.3 damage stage as state). SPEC §15.3/§15.4 sketches updated.
+- [FF6] decision: projectile speed: the Engineer's bolt, the pulse turret and the base archers fly at
+  24 tiles/s (a 9-tile longbow shot lands in ~0.4 s); FF3-fix-1's speed line wasn't on `main` yet.
+- [FF6] decision: slice content: the Engineer's build list is `['arrow_tower']` (bomb tower with FF8), waves
+  1–2 are Grunts only (Runners join wave 2 with FF10), the shop holds only `crate` (2 coins, the depot price).
+  Starting values: base 1000 HP, 100 HP per crate, 6 coins; kill coins = round(budget × coinIncome).
+- [FF6] decision: run flow: 3 s countdown → build (45 s cap or every connected player ready) → combat →
+  clear → build of the next wave; clearing the last wave in content is the victory (wave 15's boss once
+  FF11 lands); victory 5 s / defeat 4 s, then summary. Every group spawns 3 s after its lane warning, so
+  the first group arrives 3 s into combat. Projectiles and markers clear at each build phase.
+- [FF6] decision: building at your feet ignores the builder's own body (§7's "no player on the tile" would
+  forbid it); structure collision pushes the builder off. Flyers don't block placement.
+- [FF6] decision: crates: a pickup takes as many as fit; a full-HP base takes no crate (row 2 falls through
+  to rows 4–5); drops within 0.3 tiles merge into one pile; a dazed or dead player's crates drop unlocked.
+- [FF6] decision: supers fire on release only when full (no queue), and a super's own damage doesn't charge
+  the super. Steady Aim: `onTick` turns it on after 600 ms with the stick released; while on, a scoped
+  `range` +20% mod, and main shots fired get a `steady` tag that `modifyOutgoing` boosts by 25%.
+- [FF6] decision: melee wind-ups root the enemy and are called off if the player target goes dazed or
+  down; path enemies attack the Citadel whenever its footprint is in reach; a knockback faster than
+  1 tile/s overrides walking. Leash distance is measured from where the enemy left its path.
+- [FF6] decision: §11.4 staleness lives in `FreshInputSource` (sim/sources.ts), counted in steps: the host
+  pushes each phone sample with the tick it arrived at (FF7's PhoneInputSource can wrap it).
+- [FF6] decision: commands `join`, `request` and `card` refuse with `invalid` until FF14/FF12; `buy` takes
+  only `crate` (build phase). `Sim.spawnEnemy/place/addSoldier` are test/bench helpers that bypass the
+  command log (not replayable); the host and debug panel use commands.
+- [FF6] decision: replay file = JSON `{ v, build, start, steps, inputs: [tick, slot, input][] (changes only),
+  commands: [tick, cmd][], hashes: [tick, hash][] (every 60 steps) }`, gzip optional;
+  `tsx scripts/replay.ts --record <file> [--seed N] [--players N]` records an invincible autopilot run.
+  The state hash skips derived state (spatial hash, flow fields, tile kinds) and the step's events.
+- [FF6] decision: registered behaviors (`ai/`, `modules/`, `structures/`) import only types,
+  `internal.ts`, `geometry.ts` and leaf helpers, never the registry, so `registry.ts` has no import cycle.
+- [FF6] decision: perf: the bench's first profile spent ~40% in spatial-hash queries, mostly the turrets'
+  nearest-enemy searches over 7-tile ranges; `nearestEnemy` now scans the enemy array (id order) and
+  hash results use an insertion sort. Bench (Node, this machine): peak mean ≈ 0.6 ms, p99 ≈ 1.5 ms.
+- [FF2-fix-1] contract+: `src/host/party/index.ts` `Party.setColor(playerId, color): ColorResult`, with
+  `ColorRefusal = 'phase' | 'invalid' | 'taken'` and `ColorResult`; SPEC §11.1/§15.6 state the rule.
+- [FF2-fix-1] decision: `setColor` reasons are already `AckReason` names, so FF7 acks them as-is: outside
+  the lobby → `phase`; that player ready → `phase` (Ready locks lobby choices, like the dimmed swatches);
+  another member (connected or not) holds it → `taken`; unknown player or color → `invalid`; own color →
+  ok. "Swaps" in the `color` intent comment means the player's own color changes; two players never trade.
+- [FF2-fix-1] decision: auto-assignment needed no change: it already takes the lowest brand-order color no
+  member holds, chosen colors included; late joiners waiting mid-run can't pick (lobby only).
+
+- [FF3-fix-1] decision: Artificer gauge fills from the bottom cell up (C1 note 1). The art numbers cells
+  top-down (`core1` is the top cell), so cell k from the bottom is `core(4 − k)`: 1 crate = `core3-half`,
+  2 = `core3-full`, 3 = + `core2-half` … (`render/gauge.ts`, `GAUGE_CELLS_BOTTOM_UP`). This overrides the art
+  README's "cell N full at ≥ 2N"; FF9's gauge test must follow this order.
+- [FF3-fix-1] decision: straight-shot speeds (C1 note 9), tiles/s: bolt 26, nanite-bolt 20, wasp-shot 16
+  (`render/effectsMath.ts` `PROJECTILE_SPEEDS`). FF7 (Ranger bolt), FF9 (nanite bolts) and FF10 (Wasp shot)
+  set `projectileSpeed` to these.
+- [FF3-fix-1] decision: a stunned unit always plays idle, never walk (C1 note 11): wiring picks the clip
+  with `locomotionClip(moving, looks)` (or `StatusSprites.locomotion`) every frame, and slowed units walk at
+  `locomotionSpeed(looks)` (0.55). FF10 follows this.
+- [FF3-fix-1] decision: Citadel destroyed transition API (C1 note 8): `Citadel.collapse(fx?)` plays it and
+  returns its length (`CITADEL_COLLAPSE_MS`, 2400 ms), `collapsing` reports it, and the Citadel ends in
+  `setDestroyed(true)` (rubble). Core implodes (0–380 ms), glow cuts out and frames go unlit, the keep sinks
+  into its footprint while the rubble fades in, with sparks. FF7/FF14 call it on defeat.
+- [FF3-fix-1] decision: down and death (C1 note 4) are solved collapse clips (`render/fall.ts`): each loose
+  part's joint lands on the ground (riders: glow, color parts, add-ons on the same joint stay on their host).
+  Knights' piles are per view (`down@side|front|back`, picked by `RigSprite` for its view; `down` is the
+  side one); a downed Ranger should be in his `stand` pose. Wiring (FF7 knights): `play('down')`,
+  `setUnlit(true)` at `KNIGHT_DOWN.dimMs`, `spawnPile(fx, 'ours', …, { holdMs })` at `clipLandedMs(clip)` for
+  the down timer, then `play('respawn')` and `setUnlit(false)`. Enemies (FF10/FF11): `play('death')`,
+  `setUnlit(true)`, `flash()`, `spawnPile(fx, 'theirs', …, { big })` at `clipLandedMs`, remove the rig when
+  `clipDone`. The respawn is 1100 ms (was 700).
+- [FF3-fix-1] contract+: `render/types.ts` `RigInstance.clipMs(clip)`, `RigInstance.clipDone`,
+  `EffectSpawner.burst(…, delayMs?)`, `EffectSpawner.bodyBurst(kind, footSx, footSy, heightPx)`,
+  `EffectSpawner.scrap(…, holdMs?)` (SPEC §15.2).
+- [FF3-fix-1] decision: knight front/back legs move independently (C1 note 3) through a render-side split
+  (`render/split.ts`): the one-piece `legs`/`legs-glow` frame is drawn twice, cropped at the hip pivot's x
+  (1-unit overlap), as `legs.l`/`legs.r` (back view `legs.bl`/`legs.br`, whose step lifts the leg moving
+  away from the camera); the near leg drops lower, grows and is drawn in front, swapping each step.
+- [FF3-fix-1] decision: Scrap-mite scatter (C1 note 3) is `render/swarm.ts`: each mite of a pack follows a
+  seeded wander around its slot with stops and clamped heading wobble; mites are separate rigs y-sorted by
+  their own foot, so they re-layer as they pass (no per-key `order` needed inside a mite). FF10 places mites
+  at pack center + `mitePose(m, t)`.
+- [FF3-fix-1] decision: heal glints and nanite motes use `fx.bodyBurst` (3–5 seeded points over the body in
+  separate lanes, staggered); turret muzzle flashes use `PulseTurret.fire(fx, rot)` (both barrels from II).
+- [FF3-fix-1] decision: the Citadel's heavy smoke breathes (base alpha) and two copies of its plumes,
+  cropped above y = 160 so the gate dimmer stays put, rise, swell and fade half a period apart (2.6 s).
+- [FF3-fix-1] art note for C2: knights' side legs are one part (no knee): the forward swing shortens the leg
+  (sy) and leads with the foot to read as a knee bend; a knee joint needs new art.
+- [FF3-fix-1] art note for C2: the Bombard's foot pads are baked into its legs (no ankle joint) and its middle
+  legs overlap: legs translate instead of rotating so pads stay flat, and the middle pair is pushed 5 units
+  apart and steps half a cycle apart; separate pads and middle legs need new art.
+- [FF3-fix-1] art note for C2: the Brute's and Colossus's legs are single parts (no knee or foot): the stomp
+  is lift, slide and body drop; knees and feet would need new art.
 
 ## 9. Final handoff
 

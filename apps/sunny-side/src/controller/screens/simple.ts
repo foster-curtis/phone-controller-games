@@ -1,5 +1,5 @@
 // Small screens: joining (phone-local), game paused, left.
-import { el } from '../dom';
+import { el } from '@pcg/controller-kit';
 import type { Screen } from '../../shared/messages';
 import { heading, markImg, stickerButton, type ScreenCtx, type ScreenView } from './common';
 

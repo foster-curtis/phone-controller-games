@@ -14,6 +14,34 @@ const netClient = {
   message: 'sim/match are plain TS: no networking imports (M6 wires them).',
 };
 
+const noNet = {
+  ...netClient,
+  message: 'Plain TS: no networking imports; src/host/net wires it (SPEC §15.1).',
+};
+const themes = {
+  regex: '(^|/)themes(/|$)',
+  message:
+    'Theme packs are presentation only: the sim and the systems never see them (SPEC §15.1).',
+};
+const content = {
+  regex: '(^|/)content(/|$)',
+  message:
+    'Extraction-ready code takes game data as parameters, never from src/content (SPEC §15.1).',
+};
+const simFolder = {
+  regex: '(^|/)sim(/|$)',
+  message: 'Extraction-ready code must not import the game sim (SPEC §15.1).',
+};
+
+// DOM globals (browser globals Node doesn't also have, plus browser storage and I/O Node now has
+// too): the sim, systems and party run headless.
+const domGlobals = [
+  ...Object.keys(globals.browser).filter(
+    (name) => !(name in globals.node) && !(name in globals.builtin),
+  ),
+  ...['localStorage', 'sessionStorage', 'Storage', 'navigator', 'fetch', 'WebSocket'],
+].map((name) => ({ name, message: 'No DOM here: plain TS that runs headless (SPEC §15.1).' }));
+
 // Package names of everything under apps/ (games and the relay), read from their package.json so a
 // new game is covered without editing this file.
 const appsDir = join(import.meta.dirname, 'apps');
@@ -34,6 +62,9 @@ export default defineConfig(
       'apps/*/e2e/__screens__/**',
       'apps/*/public/**',
       'apps/*/brand/**',
+      'apps/*/generated/**',
+      // Lint fixtures break the boundary rules on purpose; `eslint --no-ignore <file>` checks them.
+      'apps/*/src/**/__fixtures__/**',
     ],
   },
   js.configs.recommended,
@@ -57,6 +88,82 @@ export default defineConfig(
     files: ['apps/*/src/host/sim/**', 'apps/*/src/host/match/**'],
     rules: {
       'no-restricted-imports': ['error', { patterns: [phaser, netClient] }],
+    },
+  },
+  // Fort Frenzy layout (SPEC §15.1): the deterministic sim and the extraction-ready systems/party.
+  // A later block replaces an earlier one's options for the same rule, so each lists every pattern.
+  {
+    files: ['apps/*/src/host/sim/**', 'apps/*/src/host/systems/**', 'apps/*/src/host/party/**'],
+    rules: {
+      'no-restricted-imports': ['error', { patterns: [phaser, noNet, themes] }],
+      'no-restricted-globals': ['error', ...domGlobals],
+    },
+  },
+  {
+    files: ['apps/*/src/host/sim/**', 'apps/*/src/host/systems/**'],
+    rules: {
+      'no-restricted-properties': [
+        'error',
+        ...[
+          ['Math', 'random'],
+          ['Date', 'now'],
+          ['performance', 'now'],
+        ].map(([object, property]) => ({
+          object,
+          property,
+          message: 'Determinism: use the seeded RNG streams and step counts (SPEC §15.3).',
+        })),
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "NewExpression[callee.name='Date'], CallExpression[callee.name='Date']",
+          message: 'Determinism: no wall clock in the sim (SPEC §15.3).',
+        },
+      ],
+    },
+  },
+  {
+    files: ['apps/*/src/host/systems/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            phaser,
+            noNet,
+            themes,
+            content,
+            simFolder,
+            {
+              regex: `^(\\.\\./){2,}|^(${appPackages.join('|')})(/|$)`,
+              message:
+                'systems/<name> imports only @pcg/game-kit and sibling systems (SPEC §15.1).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['apps/*/src/host/party/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            phaser,
+            noNet,
+            themes,
+            content,
+            simFolder,
+            {
+              regex: `^\\.\\./|^(${appPackages.join('|')})(/|$)`,
+              message: 'party/ imports only packages and its own files (SPEC §15.1).',
+            },
+          ],
+        },
+      ],
     },
   },
   {
