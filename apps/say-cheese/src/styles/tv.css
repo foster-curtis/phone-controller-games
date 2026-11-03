@@ -1,0 +1,298 @@
+/* TV layout (SPEC §6.6): everything sized from brand.css tokens; readable from across the room. */
+#tv {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-tv-safe);
+  overflow: hidden;
+}
+
+.view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  text-align: center;
+}
+
+.view p {
+  margin: 0;
+}
+.view h1 {
+  margin: 0;
+}
+.view ul,
+.view ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.chip {
+  display: inline-block;
+  padding: var(--space-1) var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--pc, var(--surface-strong));
+  color: var(--pc-on, var(--foreground));
+  font: 600 28px/1.2 var(--font-sans);
+}
+.chip.huge {
+  font: 400 96px/1.1 var(--font-display);
+  padding: var(--space-3) var(--space-8);
+}
+.dim {
+  opacity: 0.45;
+}
+
+.btn {
+  min-height: 64px;
+  padding: 0 var(--space-6);
+  border: 2px solid var(--border-control);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+  font: 400 28px/1 var(--font-display);
+  cursor: pointer;
+}
+.btn.primary {
+  background: var(--accent);
+  color: var(--accent-on);
+  border-color: var(--accent);
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.btn:focus-visible {
+  outline: var(--stroke-select) solid var(--select);
+  outline-offset: 3px;
+}
+.key {
+  margin-left: var(--space-3);
+  font: 600 16px/1 var(--font-mono);
+  opacity: 0.7;
+}
+.btn.x {
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  font-size: 18px;
+}
+.host-controls {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+  min-height: 64px;
+}
+
+/* Lobby */
+.lobby {
+  flex-direction: row;
+  gap: var(--space-12);
+  text-align: left;
+}
+.lobby .join {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+.qr {
+  width: 320px;
+  height: 320px;
+  border-radius: var(--radius);
+}
+.roster {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.players {
+  display: grid;
+  gap: var(--space-3);
+}
+.player {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.badge {
+  padding: var(--space-1) var(--space-3);
+  border: 2px solid var(--border-control);
+  border-radius: var(--radius-pill);
+  font: 600 20px/1.2 var(--font-sans);
+  color: var(--muted);
+}
+.badge.ok {
+  border-color: var(--success);
+  color: var(--success);
+}
+.badge.warn {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* Rules */
+.rule-art {
+  font-size: 160px;
+  line-height: 1;
+}
+.rule-text {
+  max-width: 24em;
+  font: 400 40px/1.35 var(--font-sans);
+}
+.dots {
+  display: flex;
+  gap: var(--space-3);
+}
+.dot {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-round);
+  background: var(--presence-off);
+}
+.dot.on {
+  background: var(--accent);
+}
+
+/* Round views */
+.countdown {
+  font-size: 320px;
+}
+.count {
+  font-size: 200px;
+}
+.shots {
+  font-size: 120px;
+}
+.shoot .flash {
+  position: fixed;
+  inset: 0;
+  background: var(--flash);
+  opacity: 0;
+  pointer-events: none;
+}
+.shoot .flash.on {
+  opacity: 1;
+}
+
+/* Review: the box is sized to the photo's aspect and fits the stage; tags are relative to the box. */
+.review .stage {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  container-type: size;
+}
+.photo-box {
+  position: relative;
+  aspect-ratio: var(--aspect);
+  width: min(100cqw, 100cqh * var(--aspect));
+  background: var(--print-image-empty);
+  border-radius: var(--radius-print);
+  box-shadow: var(--shadow-pop);
+}
+.photo-box .photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  border-radius: var(--radius-print);
+}
+.photo-box .empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  font: 400 40px/1 var(--font-marker);
+  color: var(--muted);
+}
+.tag {
+  position: absolute;
+  width: calc(var(--tag-size) * var(--short-frac));
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: var(--radius-round);
+  border: var(--tag-stroke) solid var(--pc);
+  outline: var(--tag-keyline) solid var(--brand-ink);
+  box-shadow: 0 0 0 var(--tag-keyline) var(--brand-ink);
+}
+.tag .tag-name {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-mark);
+  background: var(--pc);
+  color: var(--pc-on);
+  font: 400 28px/1 var(--font-marker);
+  white-space: nowrap;
+}
+.tag.unknown {
+  border-color: var(--tag-unknown);
+}
+.tag .q {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--tag-unknown);
+  font: 400 40px/1 var(--font-display);
+}
+.caught {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+/* Results, match end */
+.results {
+  flex-direction: row;
+  gap: var(--space-12);
+}
+.standings {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 480px;
+}
+.standing {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.standing .rank {
+  width: 2.2em;
+  text-align: right;
+}
+.standing .pts {
+  margin-left: auto;
+}
+.winners {
+  display: flex;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.podium {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-4);
+}
+.podium .step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-6);
+  background: var(--surface-strong);
+  border-radius: var(--radius);
+}
+.podium .step[data-rank='1'] {
+  padding-top: var(--space-12);
+}

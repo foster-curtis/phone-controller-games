@@ -469,8 +469,8 @@ Rules:
   - [ ] Review + tag sheet + shutter helpers + tests
   - [ ] Merged to `say-cheese` and pushed
 - **SC4**
-  - [ ] TV views for every phase + tests
-  - [ ] Host controls (buttons + keyboard) + gallery
+  - [x] TV views for every phase + tests
+  - [x] Host controls (buttons + keyboard) + gallery
   - [ ] Merged to `say-cheese` and pushed
 - **SC5**
   - [ ] Host wiring (client, match, receiver, timers, debug)
@@ -539,6 +539,10 @@ Format: `- [SC#] decision: one line, with the reason.`
 - [SC0] decision: `seats/types.ts` types `Seat.color` as a plain string and adds `seatId`/`parseSeatId`/`seatKeysStorageKey(code)`, because the folder stays free of game imports (extraction-ready); `messages.ts` narrows colors to `PLAYER_COLOR_IDS` (brand.css order, lilac instead of rose).
 - [SC0] decision: `config.ts` adds `RULES_CARDS = 5`, `setTimeScale()` and `scaled(ms)` beside `timeScale`, because SC2 and SC5 both need the card count and one place to apply `?timeScale=`.
 - [SC0] decision: the match is a reducer `(state, event) → (state, effects)`; `MatchEvent` adds `photo` (receiver finished a photo) and `room` (code), `Effect` adds `releasePhotos` (revoke object URLs), because photo arrival and the room code feed the upload count and the TV lobby.
+- [SC4] decision: `renderTv(root, view, {emit, sfx, origin})` takes the join origin as a control field, because `TvView.lobby` carries the code but not the URL the QR encodes.
+- [SC4] decision: the QR is an inline SVG path (not canvas), because it renders in jsdom tests and scales crisply on a TV.
+- [SC4] decision: view tests opt into jsdom with a `// @vitest-environment jsdom` docblock, because `vitest.config.ts` is root-owned by SC0 and only maps `src/controller/**` to jsdom.
+- [SC4] decision: the lobby shows a per-player remove button (emits `remove`) and Enter/→ never Starts while `canStart` is false, because SPEC §6.5 gives the host remove and the match would reject it anyway.
 
 ## 9. Final handoff (and early setup)
 
