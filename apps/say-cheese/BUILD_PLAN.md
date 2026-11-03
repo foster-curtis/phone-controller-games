@@ -456,7 +456,7 @@ Rules:
   - [x] Blob transfer module + tests (incl. 16 KB envelope test)
   - [x] Camera module + tests
   - [x] Spike page + spike e2e
-  - [ ] Merged to `say-cheese` and pushed
+  - [x] Merged to `say-cheese` and pushed
   - [ ] User approved C1 (camera spike on iPhone + Android)
 - **SC2**
   - [ ] Seats module + tests
