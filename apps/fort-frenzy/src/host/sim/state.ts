@@ -586,7 +586,11 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       const u = units.get(targetId);
       const def = effectDefs[effect.effect];
       if (!u || !def) return false;
-      const ev = { ...effect, source, target: targetId };
+      let strength = effect.strength;
+      // Brutes and the Colossus take slows at half strength (§7.1, `slowResist`).
+      if (effect.effect === 'slow' && unitKinds.get(targetId) === 'enemy')
+        strength *= 1 - (cat.enemy((u as EnemyEnt).kind).slowResist ?? 0);
+      const ev = { ...effect, strength, source, target: targetId };
       for (const f of ctx.hooks(u, 'beforeEffect')) if (!f(ctx, u, ev)) return false;
       applyEffectTo(
         u.effects,
@@ -597,7 +601,7 @@ export function createState(start: RunStart, cat: Catalog): FullState {
         },
         {
           def: effect.effect,
-          strength: effect.strength,
+          strength: ev.strength,
           duration: cat.steps(effect.durationMs),
           source,
         },

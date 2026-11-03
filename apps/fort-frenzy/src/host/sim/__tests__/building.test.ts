@@ -115,7 +115,7 @@ describe('combat building: action button and build arc', () => {
     h.run(1);
     expect(h.sim.world.structures).toHaveLength(0);
     h.p(0).crates = 4;
-    h.pads[0]!.tap('radialCommits', { radialSlot: 1 }); // no structure in that slot
+    h.pads[0]!.tap('radialCommits', { radialSlot: 2 }); // no structure in that slot
     h.run(1);
     expect(h.sim.world.structures).toHaveLength(0);
     h.pads[0]!.tap('radialCommits', { radialSlot: 0 });

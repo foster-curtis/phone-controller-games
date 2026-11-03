@@ -13,7 +13,7 @@ import {
   type TeamView,
 } from '../../shared/messages';
 import type { Member, Party } from '../party';
-import { placementValid, throwTarget, tileAt } from '../sim';
+import { buildTile, placementValid, throwTarget } from '../sim';
 import { STEP_MS, type PlayerEnt, type RunSettings, type World } from '../sim/types';
 
 export type FfParty = Party<PlayerColorId, ClassId>;
@@ -260,7 +260,10 @@ export function meView(ctx: ViewCtx, m: FfMember | null, full = false): MeView {
       w.phase === 'build'
         ? {
             selected: p.ghost,
-            valid: p.ghost === null ? null : placementValid(w, p.ghost, tileAt(p.x, p.y), p.slot),
+            valid:
+              p.ghost === null
+                ? null
+                : placementValid(w, p.ghost, buildTile(w, p.ghost, p), p.slot),
           }
         : null,
   };

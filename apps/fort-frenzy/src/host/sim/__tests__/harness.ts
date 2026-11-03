@@ -1,5 +1,6 @@
 // Scenario harness for headless sim tests (SPEC §15.9): a run with scripted phones, and helpers to
 // reach a phase, move players and step until something happens.
+import type { Content } from '../../../content';
 import type { ClassId, PlayerColorId } from '../../../shared/ids';
 import { PLAYER_COLOR_IDS } from '../../../shared/ids';
 import { createSim, ScriptedInputSource, type Sim } from '../index';
@@ -41,10 +42,19 @@ export function startOf(players: number, seed = 1, classId: ClassId = 'engineer'
   };
 }
 
-export function harness(players = 1, seed = 1): Harness {
+export interface HarnessOptions {
+  /** Class per slot (default: every slot the Engineer). */
+  classes?: ClassId[];
+  /** Content override (custom enemies for a scenario). */
+  content?: Content;
+}
+
+export function harness(players = 1, seed = 1, opts: HarnessOptions = {}): Harness {
   const pads = Array.from({ length: players }, () => new ScriptedInputSource());
   const sources = new Map(pads.map((pad, i) => [i, pad] as const));
-  const sim = createSim(startOf(players, seed), { sources });
+  const start = startOf(players, seed);
+  start.slots.forEach((sl, i) => (sl.classId = opts.classes?.[i] ?? sl.classId));
+  const sim = createSim(start, { sources, content: opts.content });
   const h: Harness = {
     sim,
     pads,

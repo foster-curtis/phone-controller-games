@@ -2,6 +2,7 @@
 // as a bolt (the Ranger's longbow, the pulse turret, the base sentries) flies at PROJECTILE_SPEEDS.bolt.
 import { describe, expect, it } from 'vitest';
 import { content } from '../../content';
+import { SLAM_IMPACT_MS, STOMP_IMPACT_MS } from '../render/clips/warden';
 import { PROJECTILE_SPEEDS } from '../render/effectsMath';
 
 describe('projectile speeds', () => {
@@ -11,5 +12,13 @@ describe('projectile speeds', () => {
     expect(engineer.main.speed).toBe(PROJECTILE_SPEEDS.bolt);
     expect(tower.attack!.speed).toBe(PROJECTILE_SPEEDS.bolt);
     expect(content.base!.archers.attack.speed).toBe(PROJECTILE_SPEEDS.bolt);
+  });
+});
+
+describe('Warden wind-ups (FF8)', () => {
+  it('the slam and the stomp land on their clips’ impact frames', () => {
+    const warden = content.characters.find((c) => c.id === 'warden')!;
+    expect(warden.main.windupMs).toBe(SLAM_IMPACT_MS);
+    expect(warden.super.windupMs).toBe(STOMP_IMPACT_MS);
   });
 });

@@ -108,6 +108,12 @@ export function stepDeaths(s: FullState): void {
   // Structures: a destroyed blocker rebuilds the flow fields this step.
   write = 0;
   for (const st of w.structures) {
+    // A snare whose last discharge is used fizzles out and frees its tile (§7.1): no `destroyed`
+    // event (its `snareDischarge` with 0 left says so) and no flow-field rebuild (not a blocker).
+    if (!st.damageable && st.discharges !== null && st.discharges <= 0) {
+      s.removeUnit(st.id);
+      continue;
+    }
     if (!st.damageable || st.hp > 0) {
       w.structures[write++] = st;
       continue;

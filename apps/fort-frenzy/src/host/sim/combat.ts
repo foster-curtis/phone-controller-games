@@ -2,6 +2,7 @@
 // (SPEC §3.5, §7, §15.3). Every hit goes through `applyDamage`.
 import { rectDist } from './geometry';
 import { structureBehaviors } from './registry';
+import { shellAt } from './structures/mortar';
 import type { FullState } from './state';
 import {
   BASE_ID,
@@ -94,7 +95,12 @@ export function stepProjectiles(s: FullState): void {
   for (let i = 0; i < w.projectiles.length; i++) {
     const p = w.projectiles[i]!;
     let alive = true;
-    // Arcing shells (Siege, FF10) fly over everything; their danger marker does the damage on landing.
+    // Arcing shells: ours (the mortar, FF8) burst where they land; theirs (Siege, FF10) fly over
+    // everything and their danger marker does the damage on landing.
+    if (p.arc && p.side === 'ours') {
+      if (stepShell(s, p)) w.projectiles[write++] = p;
+      continue;
+    }
     if (p.arc) {
       const a = p.arc;
       const u = Math.min(1, (t + 1 - a.launchedAt) / Math.max(1, a.landsAt - a.launchedAt));
@@ -169,6 +175,32 @@ export function stepProjectiles(s: FullState): void {
     if (alive) w.projectiles[write++] = p;
   }
   w.projectiles.length = write;
+}
+
+/**
+ * One step of an arcing shell (FF8): it follows `shellAt` and, on its landing step, hits everything
+ * its side can hit within the blast radius (ground only unless it hits Flyers). False = gone.
+ */
+function stepShell(s: FullState, p: ProjectileEnt): boolean {
+  const arc = p.arc!;
+  const t = s.world.tick + 1;
+  const span = Math.max(1, arc.landsAt - arc.launchedAt);
+  const at = shellAt(arc, (t - arc.launchedAt) / span);
+  p.x = at.x;
+  p.y = at.y;
+  p.z = at.z;
+  if (t < arc.landsAt) return true;
+  const ids = s.world.spatial.query(arc.to.x, arc.to.y, arc.radius + 1, s.scratch).slice();
+  for (const id of ids) {
+    const u = hittable(s, p, id);
+    if (!u) continue;
+    const dx = u.x - arc.to.x;
+    const dy = u.y - arc.to.y;
+    if (Math.sqrt(dx * dx + dy * dy) - u.r > arc.radius) continue;
+    s.damage({ source: p.source, target: u.id, amount: p.damage, kind: p.kind, tags: [...p.tags] });
+    for (const fx of p.effects) s.applyEffect(u.id, fx, p.source);
+  }
+  return false;
 }
 
 function insideMarker(m: DangerMarker, u: Unit): boolean {

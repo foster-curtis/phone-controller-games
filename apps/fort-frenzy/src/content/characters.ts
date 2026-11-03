@@ -1,5 +1,5 @@
 // Characters (SPEC §8, §10.1 input table, §6 carry). Starting values for playtesting (§14).
-// FF6: the Engineer; FF9: the Quartermaster and Commander; the Warden arrives in FF8.
+// FF6: the Engineer; FF9: the Quartermaster and Commander; FF8: the Warden.
 import type { CharacterDef } from './types';
 
 export const engineer = {
@@ -31,8 +31,8 @@ export const engineer = {
   /** Super charge per point of damage dealt (200 damage fills it). */
   superChargeRate: 0.005,
   passive: { module: 'steady_aim', params: { stillMs: 600, damagePct: 0.25, rangePct: 0.2 } },
-  // Arc order left, up, right. The bomb tower joins with FF8's structures.
-  build: ['arrow_tower'],
+  // Arc order left, up, right.
+  build: ['arrow_tower', 'bomb_tower'],
   carryCap: 4,
   // Faster than linear (§6): one crate is barely noticeable, a full load is a real slowdown.
   carrySlowdown: [0, 0.04, 0.1, 0.2, 0.32],
@@ -134,4 +134,45 @@ export const commander = {
   },
 } satisfies CharacterDef;
 
-export const characters: CharacterDef[] = [engineer, quartermaster, commander];
+/**
+ * Warden (tank, §8): a ground slam in a short arc in front (tap: auto-aims), a longer aimed stomp
+ * whose arc stuns, and Mason (walls near him repair, combat only). Both attacks wind up, so the
+ * hammer and the foot land on the TV when the damage does (`windupMs` = the clips' impact times,
+ * render/clips/warden.ts; src/host/__tests__/speeds.test.ts keeps them equal).
+ */
+export const warden = {
+  id: 'warden',
+  hp: 170,
+  moveSpeed: 3.8,
+  radius: 0.36,
+  main: {
+    shape: 'arc',
+    damage: 30,
+    range: 1.5,
+    arcDeg: 120,
+    cooldownMs: 800,
+    windupMs: 200,
+    knockback: 0.5,
+    hitsFlyers: false,
+  },
+  super: {
+    shape: 'arc',
+    damage: 45,
+    range: 3.2,
+    arcDeg: 100,
+    cooldownMs: 600,
+    windupMs: 320,
+    hitsFlyers: false,
+    effects: [{ effect: 'stun', strength: 1, durationMs: 1400 }],
+  },
+  input: { main: 'tap', super: 'aimed' },
+  /** 160 damage fills it: the slam hits groups, so the stomp comes round often. */
+  superChargeRate: 0.00625,
+  passive: { module: 'mason', params: { radius: 2.5, hpPerSec: 10 } },
+  // Arc order left, up, right.
+  build: ['wall', 'snare', 'fortify'],
+  carryCap: 4,
+  carrySlowdown: [0, 0.03, 0.08, 0.16, 0.26],
+} satisfies CharacterDef;
+
+export const characters: CharacterDef[] = [engineer, quartermaster, commander, warden];

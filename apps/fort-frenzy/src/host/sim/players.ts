@@ -1,8 +1,9 @@
 // Step 3 (SPEC §15.3): players — respawn, movement with carry slowdown, attacks and supers (fire on
 // release, a release during the cooldown fires when it ends), the action button (§10.1 rows 1–5), the
 // build arc and Give.
-import type { AttackDef } from '../../content/types';
+import type { AttackDef, EffectApply } from '../../content/types';
 import { buildAtFeet } from './building';
+import { landArc, windupSteps } from './classes/warden';
 import {
   buyCrate,
   canDeliver,
@@ -33,12 +34,19 @@ export function respawn(s: FullState, p: PlayerEnt): void {
   s.emit({ e: 'respawn', slot: p.slot });
 }
 
+/** Drops queued shots and wind-ups (a wind-up cut short never lands). */
+function releaseAttacks(p: PlayerEnt): void {
+  p.main.queued = p.super.queued = false;
+  p.main.windupEndsAt = p.super.windupEndsAt = null;
+  p.main.windupAim = p.super.windupAim = null;
+}
+
 /** Clears held gestures and queued shots (death, dazed, phase changes). */
 export function releaseAll(p: PlayerEnt): void {
   p.mainAim = p.superAim = null;
   p.radialOpen = false;
   p.radialSlot = -1;
-  p.main.queued = p.super.queued = false;
+  releaseAttacks(p);
   p.vx = p.vy = 0;
 }
 
@@ -65,7 +73,7 @@ export function stepPlayers(s: FullState): void {
     p.radialSlot = inp.input.radialOpen ? inp.input.radialSlot : -1;
 
     if (fighting) attacks(s, p, inp);
-    else p.main.queued = p.super.queued = false;
+    else releaseAttacks(p);
     if (!acting) continue;
     if (inp.action) action(s, p);
     if (inp.radial) radial(s, p, inp.input.radialSlot);
@@ -92,6 +100,11 @@ function attacks(s: FullState, p: PlayerEnt, inp: SlotInput) {
     p.main.queued = true;
     p.main.aim = cleanVec(inp.input.mainAim.x, inp.input.mainAim.y);
   }
+  // A wind-up in progress roots the player until it lands; a super released meanwhile is lost.
+  if (landWindups(s, p)) {
+    p.vx = p.vy = 0;
+    return;
+  }
   if (p.main.queued && t >= p.main.readyAt) {
     p.main.queued = false;
     fire(s, p, 'main', def.main, p.main.aim);
@@ -106,13 +119,33 @@ function attacks(s: FullState, p: PlayerEnt, inp: SlotInput) {
   }
 }
 
-/** One attack from a player's button: `projectile` (aimed or auto-aimed) or `circle` around them. */
+/** Lands the wind-ups that end this step; true while one is still winding. */
+function landWindups(s: FullState, p: PlayerEnt): boolean {
+  const def = s.cat.character(p.classId);
+  for (const slot of ['main', 'super'] as const) {
+    const st = p[slot];
+    if (st.windupEndsAt === null) continue;
+    if (s.world.tick < st.windupEndsAt) return true;
+    st.windupEndsAt = null;
+    const aim = st.windupAim ?? st.aim;
+    st.windupAim = null;
+    fire(s, p, slot, def[slot], aim, true);
+  }
+  return false;
+}
+
+/**
+ * One attack from a player's button: `projectile` (aimed or auto-aimed), `circle` around them, or
+ * `arc` in front of them (FF8).
+ */
 function fire(
   s: FullState,
   p: PlayerEnt,
   slot: 'main' | 'super',
   a: AttackDef,
   aim: { x: number; y: number },
+  /** A wound-up attack landing: no new event, no new wind-up. */
+  landing = false,
 ) {
   const range = s.attackStat(p, a.range, 'range', slot);
   let dx = aim.x;
@@ -131,6 +164,17 @@ function fire(
   const l = Math.sqrt(dx * dx + dy * dy) || 1;
   dx /= l;
   dy /= l;
+  // Wound-up arcs (the Warden's slam and stomp, FF8): the attack event goes out now so the clip
+  // starts; the hit lands when the wind-up ends (`landWindups`), in this direction.
+  const st = slot === 'main' ? p.main : p.super;
+  const wind = a.shape === 'arc' ? windupSteps(a) : 0;
+  if (wind > 0 && !landing) {
+    p.facing = Math.atan2(dy, dx);
+    s.emit({ e: 'attack', source: p.id, slot, x: p.x, y: p.y, angle: p.facing });
+    st.windupEndsAt = s.world.tick + wind;
+    st.windupAim = { x: dx, y: dy };
+    return;
+  }
   const atk: AttackEvent = {
     attacker: p.id,
     slot,
@@ -143,11 +187,26 @@ function fire(
   };
   for (const f of s.hooks(p, 'onAttack')) f(s, p, atk);
   p.facing = Math.atan2(dy, dx);
-  s.emit({ e: 'attack', source: p.id, slot, x: p.x, y: p.y, angle: p.facing });
+  if (!landing) s.emit({ e: 'attack', source: p.id, slot, x: p.x, y: p.y, angle: p.facing });
   const damage = s.attackStat(p, a.damage, 'damage', slot);
 
   if (a.shape === 'circle') {
     circle(s, p, a, slot, damage, atk);
+    return;
+  }
+  // A wound-up arc landing (the Warden's slam and stomp, FF8): its effects (stun) and knockback.
+  if (a.shape === 'arc' && landing) {
+    const extra = (a as { effects?: readonly EffectApply[] }).effects ?? [];
+    landArc(s, p, {
+      attack: a,
+      slot,
+      dx,
+      dy,
+      damage,
+      kind: slot === 'main' ? 'melee' : 'area',
+      tags: atk.tags,
+      effects: [...atk.effects, ...extra],
+    });
     return;
   }
   // Arcs, cones and buffs (FF9: classes/shapes.ts).

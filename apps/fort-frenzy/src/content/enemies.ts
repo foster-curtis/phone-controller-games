@@ -84,6 +84,8 @@ export const brute = {
   },
   vsStructure: { wall: 2 },
   aggro: { radius: 2.5, leash: 4 },
+  // Snares slow it at half strength (§7.1, FF8: `slowResist` in the effect pipeline).
+  slowResist: 0.5,
 } satisfies EnemyDef;
 
 /** Wasp drone: flies over walls and shoots its stinger (render's wasp-shot speed, 16 tiles/s). */

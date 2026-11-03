@@ -205,6 +205,47 @@ export class Effects implements EffectSpawner {
     );
   }
 
+  arcWave(
+    side: ScrapSide,
+    x: number,
+    y: number,
+    r: number,
+    angleRad: number,
+    arcDeg: number,
+    ms = 380,
+  ) {
+    const g = this.gfxPool.get();
+    const cam = this.ctx.camera;
+    const color = side === 'ours' ? theme.color.amber.num : theme.color.hostile.num;
+    const core = side === 'ours' ? theme.color.ember.num : theme.color.hostileCore.num;
+    const half = (arcDeg * Math.PI) / 360;
+    const n = Math.max(6, Math.round(arcDeg / 8));
+    const pts = (rad: number) =>
+      Array.from({ length: n + 1 }, (_, i) => {
+        const a = angleRad - half + (2 * half * i) / n;
+        return cam.worldToScreen(x + Math.cos(a) * rad, y + Math.sin(a) * rad);
+      });
+    this.add(
+      g,
+      ms,
+      () => this.gfxPool.release(g),
+      (u) => {
+        // The front rolls out fast and eases; a thinner hot core trails it.
+        const front = r * (0.25 + 0.75 * (1 - (1 - u) * (1 - u)));
+        g.clear();
+        for (const [rad, w, c, a] of [
+          [front, 5, color, 1 - u],
+          [front * 0.92, 2, core, (1 - u) * 0.9],
+        ] as const) {
+          const p = pts(rad);
+          g.lineStyle(w, c, a).beginPath().moveTo(p[0]!.sx, p[0]!.sy);
+          for (const q of p.slice(1)) g.lineTo(q.sx, q.sy);
+          g.strokePath();
+        }
+      },
+    );
+  }
+
   /** A pooled projectile; `release()` returns it. */
   projectile(kind: ProjectileKind): ProjectileSprite {
     const pool = this.pool(PROJECTILE_FRAMES[kind], 'world');

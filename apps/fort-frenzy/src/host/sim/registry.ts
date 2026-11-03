@@ -12,10 +12,13 @@ import { pathAi } from './ai/path';
 import { runnerAi } from './ai/runner';
 import { siegeAi } from './ai/siege';
 import { swarmAi } from './ai/swarm';
+import { mason, stunEffect } from './classes/warden';
 import { steadyAim } from './modules/steadyAim';
 import { fieldMedic } from './modules/fieldMedic';
 import { leadFromTheFront } from './modules/leadFromTheFront';
 import { haste, leadAura, morale, towerDefense } from './modules/supportEffects';
+import { mortarTick } from './structures/mortar';
+import { slowEffect, snareTick } from './structures/snare';
 import { turretTick } from './structures/turret';
 import type {
   BossBehavior,
@@ -37,6 +40,7 @@ export const modules: Record<string, ModuleDef> = {
   steady_aim: steadyAim, // FF6
   field_medic: fieldMedic, // FF9
   lead_from_the_front: leadFromTheFront, // FF9
+  mason: mason, // FF8
 };
 
 /** Status effect definitions (§15.3). */
@@ -45,6 +49,8 @@ export const effects: Partial<Record<EffectId, EffectDef>> = {
   haste, // FF9
   tower_defense: towerDefense, // FF9
   aura_lead_from_the_front: leadAura, // FF9
+  slow: slowEffect, // FF8
+  stun: stunEffect, // FF8
 };
 
 /** Boss behaviors, by id ('colossus'). */
@@ -66,4 +72,6 @@ export const aiKinds: Partial<Record<EnemyDef['ai'], AiTick>> = {
 export type StructureTick = (ctx: SimCtx, structure: StructureEnt) => void;
 export const structureBehaviors: Partial<Record<StructureId, StructureTick>> = {
   arrow_tower: turretTick, // FF6
+  bomb_tower: mortarTick, // FF8
+  snare: snareTick, // FF8
 };

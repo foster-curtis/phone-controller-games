@@ -50,7 +50,8 @@ test('gallery rigs unlit, Colossus final, Mk III mortar', async ({ page }) => {
 });
 
 // FF3-fix-1 (C1 notes): enemy hit and death, the knights' down pile and respawn; FF7: the Ranger's
-// shot, super and build kneel and the Drone's slash.
+// shot, super and build kneel and the Drone's slash; FF8: the Warden's slam (attack), stomp (super)
+// and kneel-and-tap (build) per view with their shockwaves, and the mortar's fire recoil (attack).
 for (const clip of ['hit', 'death', 'down', 'respawn', 'attack', 'super', 'build'] as const) {
   test(`gallery rigs ${clip}`, async ({ page }) => {
     const errors = watchErrors(page);
@@ -62,6 +63,18 @@ for (const clip of ['hit', 'death', 'down', 'respawn', 'attack', 'super', 'build
     expect(errors).toEqual([]);
   });
 }
+
+// FF8: the autotiles page's structure states (net discharges, build sketch and fill, destroyed
+// collapse, charged and damaged walls, Mason sparks) run their loops with no fallback shapes.
+test('gallery autotiles states over a loop', async ({ page }) => {
+  const errors = watchErrors(page);
+  await open(page, 'page=autotiles&panel=0');
+  await page.waitForTimeout(2000);
+  const probe = await page.evaluate(() => window.__pcgGallery!);
+  expect(probe.fallbacks).toBe(0);
+  await page.screenshot({ path: 'e2e/__screens__/gallery-autotiles-states.png' });
+  expect(errors).toEqual([]);
+});
 
 test('gallery stress', async ({ page }) => {
   const errors = watchErrors(page);

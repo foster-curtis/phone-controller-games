@@ -1,6 +1,8 @@
 // Content validation (SPEC §15.4): every referenced id exists, structure costs fit the carry cap, build
 // lists fit the build arc, wave budgets cover their guaranteed spawns, and the map is well formed.
 import { describe, expect, it } from 'vitest';
+import { STRUCTURE_INFO } from '../../controller/copy';
+import { FORTIFIABLE } from '../../host/sim/building';
 import { modules } from '../../host/sim/registry';
 import { aiKinds, structureBehaviors } from '../../host/sim/registry';
 import { generateWave, groupsCost, playerScale, waveRng } from '../../host/systems/waves';
@@ -110,6 +112,21 @@ describe('content rules', () => {
       if (ch.id === 'quartermaster') continue;
       expect(ch.carryCap).toBeGreaterThanOrEqual(maxCost);
     }
+  });
+
+  it('structures (FF8): snares never block and are the cheapest; Fortify attaches to the towers', () => {
+    const by = (id: string) => c.structures.find((s) => s.id === id)!;
+    const snare = by('snare');
+    expect(snare.pathCost).toBe(1);
+    expect(snare.hp).toBeNull();
+    expect(snare.discharges).toBeGreaterThan(0);
+    expect(snare.slow?.effect).toBe('slow');
+    for (const s of c.structures) expect(s.cost).toBeGreaterThanOrEqual(snare.cost);
+    expect(by('wall').pathCost).toBeGreaterThan(c.rules!.breakerWallCost);
+    expect(by('fortify').attachesTo).toEqual([...FORTIFIABLE]);
+    expect(by('fortify').hp).toBeNull();
+    // The phone's build tab shows its own copy of the costs (controller/copy.ts).
+    for (const s of c.structures) expect(STRUCTURE_INFO[s.id].cost).toBe(s.cost);
   });
 
   it('every build list fits the build arc (at most 3)', () => {

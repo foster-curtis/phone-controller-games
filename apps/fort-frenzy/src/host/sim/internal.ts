@@ -78,7 +78,7 @@ export interface SimState extends SimCtx {
   tick(): number;
   modifiers(u: Unit): readonly Modifier[];
   hooks<K extends keyof Hooks>(u: Unit, key: K): NonNullable<Hooks[K]>[];
-  attackStat(u: Unit, base: number, stat: StatId, scope?: 'main' | 'super'): number;
+  attackStat(u: Unit, base: number, stat: StatId, scope?: 'main' | 'super' | 'passive'): number;
   player(slot: number): PlayerEnt | undefined;
   /** Alive, connected (not dazed) players are the only ones enemies can target (§11.3). */
   targetable(p: PlayerEnt): boolean;

@@ -4,7 +4,7 @@
 // steps); config times in ms are converted to ticks at load.
 // Frozen at FF1 (BUILD_PLAN §3): additive changes only (new optional fields, new union members).
 // FF6 added `Unit.push` and `BaseState.stage`; FF9 added `ThrownCrate` and `World.thrown`; FF10 added
-// `EnemyEnt.wander`.
+// `EnemyEnt.wander`; FF8 added `AttackState.windupAim`.
 import type { Rng } from '@pcg/game-kit';
 import type {
   EffectApply,
@@ -94,6 +94,8 @@ export interface AttackState {
   aim: Vec2;
   /** Wind-up in progress: lands at this tick (null = none). */
   windupEndsAt: number | null;
+  /** A player's wound-up attack lands in this direction (FF8; `aim` keeps queueing presses). */
+  windupAim?: Vec2 | null;
 }
 
 export interface PlayerEnt extends Unit {

@@ -3,7 +3,7 @@
 // converts to steps at load), damage and HP as plain numbers. Presentation never lives here (§2.1).
 // Frozen at FF1 (BUILD_PLAN §3): additive changes only. Tuning values in src/content/ are not frozen.
 // FF6 added `BaseDef` and `RulesDef`. FF9 added the `buff` shape, `CharacterDef.super.selfEffects` and
-// `CharacterDef.supply`. FF10 added the `swarm` and `brute` AI kinds.
+// `CharacterDef.supply`. FF10 added the `swarm` and `brute` AI kinds. FF8 added `StructureDef.defense`.
 import type {
   CardId,
   ClassId,
@@ -156,6 +156,7 @@ export interface EnemyDef {
   /** Damage multipliers vs structures (Brute 2× walls, Colossus 3×). */
   vsStructure?: Partial<Record<StructureId | 'base', number>>;
   aggro?: { radius: number; leash: number };
+  /** Fraction of any slow resisted: Brutes and the Colossus take slows at half strength (0.5, §7.1). */
   slowResist?: number;
   boss?: ModuleRef;
 }
@@ -173,6 +174,8 @@ export interface StructureDef {
   discharges?: number;
   rearmMs?: number;
   slow?: EffectApply;
+  /** Fortify (§8, FF8): damage reduction (0..1) the tower it attaches to gains. */
+  defense?: number;
 }
 
 // ---- cards and shop -----------------------------------------------------------------------------

@@ -1564,7 +1564,9 @@ interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: num
 - **Renderer API additions** (FF3-fix-1, `src/host/render/types.ts`, additive): `RigInstance.clipMs(clip)`
   and `clipDone` (remove a dead enemy once its death clip ends); `EffectSpawner.burst(…, delayMs?)`,
   `bodyBurst(kind, footSx, footSy, heightPx)` (3–5 heal glints or nanite motes spread over a body) and
-  `scrap(…, holdMs?)` (a downed knight's pile holds for the down timer).
+  `scrap(…, holdMs?)` (a downed knight's pile holds for the down timer). FF8 adds the optional
+  `EffectSpawner.arcWave?(side, x, y, r, angleRad, arcDeg, ms?)`: a ground shockwave rolling out across a
+  sector, drawn as a 0.6 band of the sim's hit arc (the Warden's slam and stomp).
 - **Pooling:** render-side only. Phaser objects for projectiles, effects, damage numbers and Swarm units
   come from per-kind pools; sim entities are plain objects, not pooled.
 - **Interpolation:** the renderer draws positions lerped between the last two sim steps (as in Sunny
@@ -1597,6 +1599,8 @@ interface Unit extends Body {
   push?: Vec2 | null;                        // knockback velocity, decays each step (FF6)
 }
 // BaseState also keeps its visual damage stage (§3.3) as `stage?: 0 | 1 | 2 | 3` (FF6).
+// AttackState keeps a player's wound-up attack direction as `windupAim?: Vec2 | null` (FF8: the
+// Warden's slam and stomp land when their wind-up ends; `aim` keeps queueing presses meanwhile).
 interface World {
   tick: number; phase: Phase; wave: number;
   players: PlayerEnt[]; soldiers: SoldierEnt[]; enemies: EnemyEnt[];
@@ -1748,7 +1752,8 @@ interface EnemyDef { id: EnemyId; hp: number; speed: number; radius: number; fly
   aggro?: { radius: number; leash: number }; slowResist?: number; boss?: ModuleRef }
 interface StructureDef { id: StructureId; cost: number; hp: number | null; pathCost: number;
   blocksProjectiles: boolean; attack?: AttackDef; attachesTo?: StructureId[];
-  discharges?: number; rearmMs?: number; slow?: EffectApply }         // snare
+  discharges?: number; rearmMs?: number; slow?: EffectApply;          // snare
+  defense?: number }                                                  // Fortify's damage reduction (FF8)
 interface CardDef { id: CardId; owner: ClassId | 'common'; tier: 'common' | 'rare' | 'combo';
   unique?: boolean; requires?: [CardId, CardId]; favoredEnemy?: EnemyId; requiresClass?: ClassId;
   stats?: StatMod[]; module?: ModuleRef; perClass?: Partial<Record<ClassId, StatMod[]>> }

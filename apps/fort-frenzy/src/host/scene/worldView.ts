@@ -20,6 +20,7 @@ import { drawBowString } from '../render/bowString';
 import { pickFacing, enemyMirror, type Facing } from '../render/aim';
 import { KNIGHT_DOWN } from '../render/clipKit';
 import { ATTACK_MS, BUILD_PLACE_MS } from '../render/clips/ranger';
+import { BUILD_TAP_MS } from '../render/clips/warden';
 import { placeFrame } from '../render/context';
 import { clipLandedMs, spawnPile } from '../render/fall';
 import { RIG_INFO, type RigInfo } from '../render/gallery/rigInfo';
@@ -29,10 +30,10 @@ import { MapView } from '../render/map';
 import { mitePack } from '../render/swarm';
 import type { RigSprite } from '../render/rig';
 import { locomotionClip, locomotionSpeed, StatusSprites } from '../render/status';
-import { Citadel, frameAt, PulseTurret, type SentryId } from '../render/structures';
+import { Citadel, frameAt, type SentryId } from '../render/structures';
 import type { IconKey, ProjectileKind, ProjectileSprite, StatusLook } from '../render/types';
 import type { RenderWorld } from '../render/world';
-import { placementValid } from '../sim';
+import { buildTile, placementValid } from '../sim';
 import {
   BASE_ID,
   STEP_MS,
@@ -54,8 +55,10 @@ import {
 import { anchorToWorld, shotPos, shotTiming, type Launch, type Pos } from './shot';
 import { shotAnchor } from './support';
 import { SupportView } from './supportView';
+import { StructuresView } from './structuresView';
 import { superPulse } from './superPulse';
 import { syncTag, type TagState } from './tag';
+import { wardenAttack } from './wardenFx';
 
 export type { Pos } from './shot';
 
@@ -154,7 +157,7 @@ export class WorldView {
   private readonly citadel: Citadel;
   private readonly knights = new Map<number, Knight>();
   private readonly enemies = new Map<EntityId, Enemy>();
-  private readonly turrets = new Map<EntityId, PulseTurret>();
+  private readonly structs: StructuresView;
   private readonly shots = new Map<EntityId, ProjectileSprite>();
   private readonly launches = new Map<EntityId, Launch>();
   private readonly launchers = new Map<EntityId, Knight>();
@@ -176,6 +179,7 @@ export class WorldView {
     this.map = new MapView(w, w.theme.map);
     this.citadel = new Citadel(w, CITADEL_AT.x, CITADEL_AT.y);
     this.support = new SupportView(w, content, (slot) => this.knights.get(slot) ?? null);
+    this.structs = new StructuresView(w, content);
     frameAt(w, fk('armory/pad'), 'ground', ARMORY_AT.x, ARMORY_AT.y);
     frameAt(w, fk('armory/kiosk'), 'world', ARMORY_AT.x, ARMORY_AT.y);
     const gfx = (layer: 'groundOverlay' | 'worldUi' | 'effects', depth: number) => {
@@ -223,8 +227,11 @@ export class WorldView {
     this.syncLanes(w);
     this.syncKnights(w);
     this.syncEnemies(w);
-    this.syncStructures(w);
-    for (const e of f.events) this.event(e, w);
+    this.structs.sync(w, f.events);
+    for (const e of f.events) {
+      this.event(e, w);
+      this.structs.event(e, w);
+    }
     this.ground.clear();
     this.ui.clear();
     this.debug.clear();
@@ -233,6 +240,7 @@ export class WorldView {
     this.drawCitadel(w, f.dtMs);
     this.drawKnights(w, f);
     this.support.update(f);
+    this.structs.update(w, f.dtMs, (p) => this.knights.get(p.slot)?.rig.attach('hammer') ?? null);
     this.drawEnemies(w, f);
     this.drawProjectiles(w, f);
     this.drawPiles(w);
@@ -364,30 +372,6 @@ export class WorldView {
     this.enemies.delete(id);
   }
 
-  private syncStructures(w: World) {
-    const live = new Set<EntityId>();
-    const tier = Math.min(3, w.team.shop.arrow_rate ?? 0) as 0 | 1 | 2 | 3;
-    for (const st of w.structures) {
-      live.add(st.id);
-      let t = this.turrets.get(st.id);
-      if (!t && st.kind === 'arrow_tower') {
-        t = new PulseTurret(this.w, st.tile[0] + 0.5, st.tile[1] + 0.5);
-        this.turrets.set(st.id, t);
-      }
-      if (!t) continue;
-      t.setTier(tier);
-      t.setDamaged(st.hp < st.maxHp * 0.5);
-      t.setFortify(st.fortified);
-      t.setDefenseBonus(st.effects.some((x) => x.def === 'tower_defense'));
-    }
-    for (const [id, t] of this.turrets) {
-      if (live.has(id)) continue;
-      this.w.fx.scrap('ours', 4, t.sx, t.sy);
-      t.destroy();
-      this.turrets.delete(id);
-    }
-  }
-
   // ---- events -------------------------------------------------------------------------------------
 
   private knightById(id: EntityId): Knight | null {
@@ -473,8 +457,12 @@ export class WorldView {
         const k = this.knights.get(e.slot);
         if (k && !k.down) k.rig.play('build', { restart: true, fadeMs: 60 });
         const [c, r] = e.tile;
+        // The structure sketches and fills once the builder's hands reach the ground (FF8).
+        const ranger = k?.rig.rigId === 'ranger';
+        this.structs.built(e, !k ? 0 : ranger ? BUILD_PLACE_MS : BUILD_TAP_MS);
+        if (!ranger) return;
         // The deploy beacon lands as he reaches the ground; the turret unfolds over it (§2.4).
-        this.later(k ? BUILD_PLACE_MS : 0, () => {
+        this.later(BUILD_PLACE_MS, () => {
           const b = frameAt(this.w, fk('deploy-beacon'), 'world', c + 0.5, r + 0.55);
           this.w.fx.ring('ours', c + 0.5, r + 0.5, 0.7);
           this.later(500, () => b.img.setAlpha(0.5));
@@ -503,12 +491,7 @@ export class WorldView {
       fx.burst('muzzle-ours', m.sx, m.sy - 8, screenRot(e.angle));
       return;
     }
-    const turret = this.turrets.get(e.source);
-    if (turret) {
-      turret.aimAt(e.angle);
-      turret.fire(fx, screenRot(e.angle));
-      return;
-    }
+    if (this.structs.attack(e)) return;
     const en = this.enemies.get(e.source);
     if (en && !en.dying) {
       en.mirror = enemyMirror(Math.cos(e.angle), en.mirror);
@@ -534,6 +517,13 @@ export class WorldView {
     k.facing = pickFacing(Math.cos(e.angle), Math.sin(e.angle), k.facing);
     k.rig.setView(k.facing.view, k.facing.mirror);
     if (this.support.attack(e, p, k)) return;
+    if (p.classId === 'warden') {
+      // The slam and the stomp land on their clips' impact frames (FF8, wardenFx.ts).
+      k.shotDelay = 0;
+      const def = this.content.characters.find((c) => c.id === p.classId);
+      if (def) wardenAttack(this.w, k.rig, e, def, (ms, fn) => this.later(ms, fn));
+      return;
+    }
     if (e.slot === 'main') {
       // Aiming or in Steady Aim he is already at full draw and only holds; otherwise he draws first.
       // Firing without Steady Aim snaps to `ready` for the shot (§15.2 poses).
@@ -721,8 +711,8 @@ export class WorldView {
     const ghost = w.phase === 'build' && p.ghost !== null && p.respawnAt === null;
     k.ghost.img.setVisible(ghost);
     if (ghost) {
-      const c = Math.floor(at.x);
-      const r = Math.floor(at.y);
+      // Fortify's ghost sits on the tower it would attach to (FF8).
+      const [c, r] = buildTile(w, p.ghost!, p);
       const valid = placementValid(w, p.ghost!, [c, r], p.slot);
       this.w.lib.setFrame(k.ghost, valid ? fk('build-ghost/valid') : fk('build-ghost/blocked'));
       const s = this.w.camera.worldToScreen(c + 0.5, r + 0.5);
@@ -893,7 +883,9 @@ export class WorldView {
       if (!launch) {
         const k = pr.side === 'ours' ? this.knightById(pr.source) : null;
         const delayMs = k && pr.slot === 'main' ? k.shotDelay : 0;
-        launch = { bornMs: this.t, delayMs, origin: null };
+        // Mortar shells leave from the barrel (FF8).
+        const origin = pr.arc ? this.structs.shellOrigin(pr) : null;
+        launch = { bornMs: this.t, delayMs, origin };
         this.launches.set(pr.id, launch);
         if (k) this.launchers.set(pr.id, k);
       }
@@ -1054,11 +1046,10 @@ export class WorldView {
       k.tag.destroy();
     }
     for (const [id, en] of this.enemies) this.dropEnemy(id, en);
-    for (const t of this.turrets.values()) t.destroy();
+    this.structs.destroy();
     for (const s of this.shots.values()) s.release();
     this.support.destroy();
     this.knights.clear();
-    this.turrets.clear();
     this.shots.clear();
     this.launches.clear();
     this.launchers.clear();
@@ -1075,11 +1066,15 @@ function looksOf(effects: readonly { def: EffectId }[]): StatusLook[] {
   return out;
 }
 
-/** Straight shots are bolts; the Quartermaster's are nanite bolts (FF9), enemies' their own (FF10). */
+/**
+ * Straight shots are bolts; the Quartermaster's are nanite bolts (FF9), enemies' their own (FF10);
+ * mortars lob shells (FF8).
+ */
 function projectileKind(from: string): ProjectileKind {
   if (from === 'quartermaster') return 'nanite-bolt';
   if (from === 'flyer') return 'wasp-shot';
   if (from === 'siege') return 'bombard-shell';
+  if (from === 'bomb_tower') return 'mortar-shell';
   return 'bolt';
 }
 

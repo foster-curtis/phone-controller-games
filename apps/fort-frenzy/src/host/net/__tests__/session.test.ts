@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { content } from '../../../content';
+import { CLASS_IDS } from '../../../shared/ids';
 import {
   isMeView,
   PROTOCOL_VERSION,
@@ -196,8 +198,8 @@ describe('session: run', () => {
     expect(me.screen).toBe('build');
     expect(me.classId).toBe('engineer');
     expect(me.slot).toBe(0);
-    expect(me.buildKit).toEqual(['arrow_tower']);
-    expect(me.arc!.slots).toEqual(['arrow_tower', null, null, 'give']);
+    expect(me.buildKit).toEqual(['arrow_tower', 'bomb_tower']);
+    expect(me.arc!.slots).toEqual(['arrow_tower', 'bomb_tower', null, 'give']);
     expect(me.action).toBe('none');
     expect(isMeView(me)).toBe(true);
     sim.step();
@@ -205,10 +207,15 @@ describe('session: run', () => {
     expect(lastMe(sent, 'a2').screen).toBe('build');
   });
 
-  it('only the content classes can be picked in the slice', () => {
+  it('only the content classes can be picked', () => {
     const { s, sent } = setup();
     join(s, 'a', 'Ann');
-    s.handleMessage('a', { t: 'intent', seq: 901, intent: { k: 'class', classId: 'warden' } });
+    // FF8: the Warden is content now; a class without content (until FF9) is refused.
+    s.handleMessage('a', { t: 'intent', seq: 900, intent: { k: 'class', classId: 'warden' } });
+    expect(ackOf(sent, 900)).toMatchObject({ ok: true });
+    const missing = CLASS_IDS.find((id) => !content.characters.some((c) => c.id === id));
+    if (!missing) return;
+    s.handleMessage('a', { t: 'intent', seq: 901, intent: { k: 'class', classId: missing } });
     expect(ackOf(sent, 901)).toMatchObject({ ok: false, reason: 'invalid' });
   });
 });

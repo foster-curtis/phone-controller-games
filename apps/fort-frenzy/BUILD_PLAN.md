@@ -820,8 +820,8 @@ Rules:
   - [x] FF7-fix-1: C2 notes (Ranger bow draw/release, bolt leaves from the bow, super-ready amber ring pulse replaces the head badge)
 - [x] **User approved C2** (slice on real phones and TV): notes fixed in FF7-fix-1; Citadel collapse deferred to v2; feel and visual notes re-judged at C3
 - FF8 Warden + structures
-  - [ ] Warden kit + clips
-  - [ ] Walls, nets, Fortify, mortar (sim + render)
+  - [x] Warden kit + clips
+  - [x] Walls, nets, Fortify, mortar (sim + render)
   - [ ] Merged to `main`
 - FF9 Support classes
   - [x] Artificer kit + gauge + throw + kit use
@@ -1335,6 +1335,41 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   SupportView's two graphics are now made on first use and cleared only after drawing (`scene/support.ts`
   `Scratch`), so a run without support classes adds no per-frame GPU work over FF7-fix-1. The early steps
   (page creation 7.6 s, home 8.7 s) were slow too, so machine load may be part of it.
+- [FF8] contract+: `src/content/types.ts` `StructureDef.defense?` (Fortify's damage reduction, 0.35) and a doc
+  comment on `EnemyDef.slowResist` (fraction resisted; Brute/Colossus 0.5); `src/host/sim/types.ts`
+  `AttackState.windupAim?` (a wound-up player attack's direction); `src/host/render/types.ts` optional
+  `EffectSpawner.arcWave?` (sector shockwave). SPEC §15.2–§15.4 sketches updated.
+- [FF8] decision: player `arc` attacks wind up in the sim (`windupMs`): the `attack` event goes out at the press,
+  the hit lands when the wind-up ends, and the player is rooted meanwhile; a super released during a wind-up is lost
+  (no queue, as before). Slam 200 ms, stomp 320 ms = the clips' impact frames (`speeds.test.ts`). Dying or the
+  phase ending calls a wind-up off. A landing wind-up goes through `classes/warden.ts` `landArc` (its stun and
+  knockback) on FF9's `inSector` test; arcs without a wind-up (the Commander's slash) stay on FF9's shapes.
+- [FF8] decision: stun skips the enemy's AI (no walking, no swings; a swing winding up is lost) and zeroes move
+  speed; slow is a `moveSpeed` −strength mod, `strongest` stacking. `slowResist` scales any slow in
+  `applyEffect` (FF8 set the Brute's to 0.5 after FF10 landed; FF11 sets the Colossus's).
+- [FF8] decision: a net discharges when a ground enemy's inner half (radius × 0.5) overlaps its tile, slowing every
+  such enemy; it rearms after 0.5 s and keeps discharging while enemies stand on it. A fizzled net is removed in
+  the deaths pass with no `destroyed` event (its `snareDischarge` with `left: 0` says so) and no rebuild.
+- [FF8] decision: Fortify isn't a tile of its own: it attaches to the nearest unfortified tower whose tile is within
+  0.75 tiles of the builder (you can't stand on a tower), as the `fortified` flag plus a `damageReduction` mod; the
+  `built` event carries the tower's id and tile. The build ghost and the phone's `build.valid` use the same target
+  (`buildTile`). Towers it attaches to: `FORTIFIABLE` (= content `attachesTo`, tested).
+- [FF8] decision: Mason repairs walls within 2.5 tiles at 10 HP/s (`auraRadius`/`repairRate` stats, scope
+  `passive`, so Master Mason can raise them) in combat only, while the Warden is up and connected; repairs are not
+  heals (no events, no healing stat). The TV draws its sparks from the hammer to each damaged wall in reach.
+- [FF8] decision: the mortar lobs at the nearest ground enemy's position (no lead) at 6 tiles/s ground speed, at
+  least 700 ms of flight, starting at muzzle height (0.8 tiles) with a 1.4 + 0.3·d apex (`shellAt`, shared by sim
+  and render); it bursts on its landing step over its radius (1.3). The TV eases the shell off the barrel tip
+  (`shellOrigin`, the FF7-fix-1 launch path) and draws a blast ring sized to the radius where it lands.
+- [FF8] decision: starting values: Warden 170 HP, 3.8 t/s; slam 30 dmg, 1.5 tiles, 120°, 800 ms, knockback 0.5;
+  stomp 45 dmg, 3.2 tiles, 100°, stun 1.4 s; super fills at 160 damage. Wall 300 HP; mortar 220 HP, 32 dmg, 4.5
+  range, 2 s. Costs match the phone's copy (turret 2, mortar 3, wall 1, net 1, Fortify 2; the net ties the wall
+  as cheapest), checked by content.test. The Engineer's build list is now turret, mortar.
+- [FF8] decision: structure drawing moved out of `worldView.ts` into `scene/structuresView.ts` (turrets, mortars,
+  wall and net fields, build sketch/fill and collapse from `render/buildFx.ts`, shells, Mason sparks); the
+  Warden's impact shockwave is `scene/wardenFx.ts`. Per frame it changes alpha, crop and scale only; the wall and
+  net fields rebuild only when their tiles or states change (the FF7-fix-1 frame-cost rule). Charged walls draw
+  once `spiked_walls` is owned and strike back at an attacking enemy (the damage is FF12's).
 
 ## 9. Final handoff
 
