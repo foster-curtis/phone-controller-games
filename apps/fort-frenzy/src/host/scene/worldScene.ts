@@ -15,7 +15,8 @@ import { WorldView, type FrameInput } from './worldView';
 export interface SceneHost {
   readonly runId: number;
   readonly content: Content;
-  frame(deltaMs: number): FrameInput | null;
+  /** What to draw this render frame (the runtime advances the sim on its own timer). */
+  frame(renderMs: number): FrameInput | null;
   /** Atlas progress 0..1; null when ready. */
   onLoading(progress: number | null): void;
   /** After every frame (the DOM overlay refresh). */
@@ -71,8 +72,11 @@ export class WorldScene extends Phaser.Scene {
   }
 }
 
-/** The TV's Phaser game: 1920 × 1080, no Phaser scaling (the shared CSS fit transform scales it). */
-export function createWorldGame(parent: HTMLElement, host: SceneHost): Phaser.Game {
+/**
+ * The TV's Phaser game: 1920 × 1080, no Phaser scaling (the shared CSS fit transform scales it).
+ * `fps` caps the render rate (e2e under software GL; the sim runs on its own timer either way).
+ */
+export function createWorldGame(parent: HTMLElement, host: SceneHost, fps?: number): Phaser.Game {
   return new Phaser.Game({
     type: Phaser.WEBGL,
     parent,
@@ -81,5 +85,6 @@ export function createWorldGame(parent: HTMLElement, host: SceneHost): Phaser.Ga
     backgroundColor: theme.color.background.hex,
     scale: { mode: Phaser.Scale.NONE },
     scene: [new WorldScene(host)],
+    ...(fps ? { fps: { limit: fps } } : {}),
   });
 }

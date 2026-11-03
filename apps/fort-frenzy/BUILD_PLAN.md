@@ -1228,6 +1228,10 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   combat start from the players connected then); knights' labels flip below the sprite above world row 4.
 - [FF7] decision: world drawing and world UI live in `src/host/scene/` (`worldView.ts`), which the asset-keys test
   now scans too; rig sizes still come from `render/gallery/rigInfo.ts`.
+- [FF7] decision: the TV advances the sim and syncs phones on its own 60 Hz timer (`Runtime.tick`), not on
+  Phaser frames, so a starved GPU slows the picture, never the run; `frame()` only hands over what to draw.
+  e2e freezes wall-clock sim time (`__pcg.speed(0)`) and steps it with `__pcg.advance` inside the TV page,
+  runs the TV with `?bloom=0&fps=15` (software GL shared with the phone pages) and uses absolute URLs.
 
 ## 9. Final handoff
 

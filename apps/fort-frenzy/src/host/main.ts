@@ -49,18 +49,24 @@ async function startTv() {
     overlay.update(view);
   }
 
-  const game = createWorldGame(tv, {
-    get runId() {
-      return runtime.runId;
+  // `?fps=N` caps the TV's render rate (dev or debug only: e2e under software GL).
+  const fps = debug ? Number(params.get('fps')) || undefined : undefined;
+  const game = createWorldGame(
+    tv,
+    {
+      get runId() {
+        return runtime.runId;
+      },
+      content: runtime.session.content,
+      frame: (dt) => runtime.frame(dt),
+      onLoading: (p) => {
+        runtime.loading = p;
+        refresh(true);
+      },
+      afterFrame: () => refresh(),
     },
-    content: runtime.session.content,
-    frame: (dt) => runtime.frame(dt),
-    onLoading: (p) => {
-      runtime.loading = p;
-      refresh(true);
-    },
-    afterFrame: () => refresh(),
-  });
+    fps,
+  );
   game.events.once('ready', () => {
     const c = game.canvas;
     c.style.position = 'fixed';
@@ -71,6 +77,14 @@ async function startTv() {
   });
   refresh(true);
 
+  // The sim and phone sync run on a timer, not on render frames: a starved GPU slows the picture,
+  // never the run (the fixed-step accumulator catches up from wall time, §15.3).
+  let last = performance.now();
+  setInterval(() => {
+    const t = performance.now();
+    runtime.tick(t - last);
+    last = t;
+  }, 1000 / 60);
   watchVisibility((visible) => runtime.setVisible(visible));
   void createHostWakeLock().request();
 

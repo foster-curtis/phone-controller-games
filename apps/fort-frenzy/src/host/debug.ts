@@ -48,8 +48,10 @@ export interface FfDebugApi {
   };
   /** Creates the room (the home screen's Create row). */
   create(): Promise<void>;
-  /** Sim speed multiplier (1–8). */
+  /** Sim speed multiplier (0–8; 0 = only `advance` steps the sim). */
   speed(n: number): void;
+  /** Runs `steps` sim steps now, then syncs the phones (e2e: sim time without wall time). */
+  advance(steps: number): void;
   /** A TV-side debug command (`c: 'debug'`, slot −1), logged in the replay. */
   command(cmd: SimCommand): void;
   seed(): number | null;
@@ -106,8 +108,10 @@ export function installFfDebug(rt: Runtime, fallbacks: () => number): void {
     },
     create: () => rt.createRoom(),
     speed: (n) => {
-      rt.speed = Math.max(0.25, Math.min(8, n));
+      // 0 freezes wall-clock sim time: only `advance` steps it (e2e).
+      rt.speed = Math.max(0, Math.min(8, n));
     },
+    advance: (steps) => rt.advance(Math.max(0, Math.min(36_000, Math.floor(steps)))),
     command: (cmd) => rt.session.command(cmd),
     seed: () => rt.session.start?.seed ?? rt.nextSeed,
     replay: () => rt.session.recorder?.recording() ?? null,

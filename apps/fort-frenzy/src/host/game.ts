@@ -63,8 +63,15 @@ export interface Runtime {
   loading: number | null;
   createRoom(): Promise<void>;
   onHome(intent: HomeIntent): void;
-  /** One render frame: runs the owed steps and returns what to draw (null with no run). */
-  frame(deltaMs: number): FrameInput | null;
+  /**
+   * Advances the sim by wall time (the runtime's own timer, not render frames, so a slow GPU never
+   * slows the run) and sends phone state.
+   */
+  tick(elapsedMs: number): void;
+  /** Runs `steps` sim steps at once (e2e and the debug tools; never wall time). */
+  advance(steps: number): void;
+  /** What to draw this render frame (null with no run); hands over the events since the last one. */
+  frame(renderMs: number): FrameInput | null;
   setVisible(visible: boolean): void;
   tvView(): TvView;
   readonly world: World | null;
@@ -105,7 +112,6 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
   });
   const prev = new Map<EntityId, Pos>();
   let events: SimEvent[] = [];
-  let alpha = 0;
   let visible = true;
   let pausedAll = false;
 
@@ -134,6 +140,8 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
     stats.steps++;
     session.afterStep();
     const w = sim.world;
+    // Events wait for the next render frame; a stalled renderer keeps only the latest ones.
+    if (events.length > 4000) events = events.slice(-2000);
     for (const e of w.events) {
       events.push(e);
       if (e.e === 'laneWarning') laneWarnings.set(e.lane, e.spawnsAtTick);
@@ -215,25 +223,35 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
       }
     },
 
-    frame(deltaMs) {
+    tick(elapsedMs) {
       const sim = session.sim;
-      const dt = visible ? Math.min(Math.max(0, deltaMs), MAX_FRAME_MS) : 0;
+      const dt = visible ? Math.min(Math.max(0, elapsedMs), MAX_FRAME_MS) : 0;
       if (sim) {
         // Everyone in the run dropped at once: hold the sim until someone is back (§11.3).
         pausedAll = session.connectedInRun() === 0;
-        if (!pausedAll) alpha = loop.advance(dt * runtime.speed, step).alpha;
+        if (!pausedAll) loop.advance(dt * runtime.speed, step);
       }
       session.flush();
       const t = now();
       if (announcements.length > 0)
         announcements = announcements.filter((x) => t - x.at < ANNOUNCE_MS);
+    },
+
+    advance(steps) {
+      for (let i = 0; i < steps && session.sim; i++) step();
+      session.flush();
+    },
+
+    frame(renderMs) {
+      const sim = session.sim;
       if (!sim) return null;
       const out: FrameInput = {
         world: sim.world,
         prev,
-        alpha,
+        // Render interpolation: how far into the next step the loop's clock is.
+        alpha: Math.min(0.999, loop.accumulator / STEP_MS),
         events,
-        dtMs: dt,
+        dtMs: visible ? Math.min(Math.max(0, renderMs), MAX_FRAME_MS) : 0,
         overlays: runtime.overlays,
       };
       events = [];
