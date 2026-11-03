@@ -7,14 +7,15 @@ import * as Phaser from 'phaser';
 import {
   isPosed,
   type Clip,
+  type Point,
   type RigDef,
   type RigPart,
   type RigView,
   type ViewId,
 } from '../../themes/types';
 import type { ArtImage, ArtLibrary } from './atlas';
-import { applyOrder, blendSamples, REST, sampleClip, type ClipSample } from './clip';
-import { apply, composeView, decompose, type Mat } from './rigMath';
+import { applyOrder, blendSamples, clipTime, REST, sampleClip, type ClipSample } from './clip';
+import { attachPoint, composeView, decompose, partPoint, type Mat } from './rigMath';
 import { splitView, type CropX } from './split';
 import type { PlayOptions, RigInstance, RigOptions, ScreenPoint } from './types';
 
@@ -69,6 +70,7 @@ export class RigSprite implements RigInstance {
   private _mirror: boolean;
   private _pose: string | null = null;
   private readonly extra: number;
+  private extras: Phaser.GameObjects.Graphics | null = null;
 
   constructor(
     private readonly lib: ArtLibrary,
@@ -235,14 +237,42 @@ export class RigSprite implements RigInstance {
 
   attach(name: string): ScreenPoint | null {
     const set = this.sets[this.sets.length - 1];
-    const a = set?.rv.attach?.[name];
-    if (!set || !a) return null;
-    const m = set.mats.get(a.part);
-    const [ux, uy] = m ? apply(m, a.at[0], a.at[1]) : a.at;
+    const u = set ? attachPoint(set.rv, set.mats, name) : null;
+    if (!set || !u) return null;
     return {
-      sx: this.sx + (ux - set.rv.foot[0]) * this.root.scaleX,
-      sy: this.sy + (uy - set.rv.foot[1]) * this.root.scaleY,
+      sx: this.sx + (u[0] - set.rv.foot[0]) * this.root.scaleX,
+      sy: this.sy + (u[1] - set.rv.foot[1]) * this.root.scaleY,
     };
+  }
+
+  /** A point on a part of the current view and pose, in the root's space (rig units, foot at 0, 0). */
+  partPoint(part: string, at: Point): Point | null {
+    const set = this.sets[this.sets.length - 1];
+    const u = set ? partPoint(set.rv, set.mats, part, at) : null;
+    if (!set || !u) return null;
+    return [u[0] - set.rv.foot[0], u[1] - set.rv.foot[1]];
+  }
+
+  /** Playhead of the current clip, ms (one-shots clamp at their end). */
+  get clipT(): number {
+    const c = this.cur;
+    return c ? clipTime(c.clip, c.t) : 0;
+  }
+
+  /**
+   * A graphics layer over the parts, in the root's space (rig units, foot at 0, 0), for code-drawn
+   * extras that move with the rig (the Ranger's slack string); made on first use.
+   */
+  overlay(): Phaser.GameObjects.Graphics {
+    if (!this.extras) {
+      this.extras = this.root.scene.make.graphics({}, false);
+      this.root.add(this.extras);
+    }
+    return this.extras;
+  }
+
+  get hasOverlay(): boolean {
+    return this.extras !== null;
   }
 
   update(dtMs: number) {
@@ -321,6 +351,8 @@ export class RigSprite implements RigInstance {
     const scene = this.root.scene;
     const container = scene.make.container({ x: 0, y: 0 }, false);
     this.root.add(container);
+    // Code-drawn extras stay over every part set.
+    if (this.extras) this.root.bringToTop(this.extras);
     const groupsOf = new Map<string, string[]>();
     for (const [g, parts] of Object.entries(this.def.optional ?? {})) {
       for (const part of parts) groupsOf.set(part, [...(groupsOf.get(part) ?? []), g]);

@@ -219,7 +219,9 @@ amber knee; quiver bolts glow at the tips.
 straight, draw arm at his side) and ready (Steady Aim and firing: string drawn to the hand, bolt nocked;
 from the front the bow is aimed at the camera, from the back the draw elbow rises past the cloak).
 Animations: idle, walk (quicker, lighter cadence than the Warden), Steady Aim (blends from standing to
-ready), main (longbow shot with an amber tracer), super (pulse ring sized exactly to the hit circle),
+ready), main (longbow shot: he draws the string back, holds, and lets go with a string snap; the bolt
+leaves from the bow at the release, with an amber tracer; §15.11 #39), super (pulse ring sized exactly
+to the hit circle),
 build (kneel and place a deploy beacon; turrets unfold).
 
 **Commander (neon knights):** medium build; armet helm with an amber circlet across the brow (the only
@@ -336,8 +338,8 @@ corner, T-junction, cross), chosen from the four neighboring tiles.
 - **TV screens:** home (keyboard and gamepad: the focused row is lit amber, ◂ ▸ change theme and
   difficulty, "Resume wave N" only when a snapshot exists); lobby (URL, large mono room code, QR, six
   slots showing each knight's front view in the player's color with a name band, class and ready state;
-  open slots dashed); combat HUD (see above; the Stalker's target thread and the super-ready badge over a
-  knight are world UI); low-HP alarm (red vignette and "Citadel under attack" under the base bar);
+  open slots dashed); combat HUD (see above; the Stalker's target thread is world UI, and a ready super
+  shows as an amber pulse on the knight's ring, §10.1); low-HP alarm (red vignette and "Citadel under attack" under the base bar);
   build-phase HUD (the phase timer replaces COMBAT; the next-wave preview takes the boss bar's place at
   the bottom with enemy portraits and counts, a newly introduced type framed in violet; ready status and
   wishlist on the right; build ghosts dashed amber when valid, red with an X when blocked); victory and
@@ -1092,7 +1094,10 @@ viewport. Sizes are fixed in px, with the minimums listed.
 - **When full:**
   - The button flashes once, brightening for 150 ms.
   - It then pulses continuously: the ring scales 1.0→1.12 and back at 1.2 Hz until the super is used.
-  - The same full state is also shown above the player's character on the TV.
+  - The same full state also shows on the TV as an amber pulse on the player's ring: an amber ring
+    (the theme's amber, so the bloom catches it) just outside their colored ring, pulsing at the same
+    rate and scale. The colored ring stays drawn on top, so the player color still reads. No badge over
+    the head (C2, §15.11 #38).
 
 **Status strip** (top center, small): HP and crates carried. Players watch the TV, so the phone shows
 only glanceable information.
@@ -1446,14 +1451,14 @@ interface Camera {
 - **Layers**, bottom to top:
   1. ground: map tiles, Citadel plate, Armory pad, repair zone
   2. ground overlays: red danger markers, shock nets, structure base plates, wall rails, build-ghost
-     footprints, the rally-flag ring, player rings, Field Medic circle, range previews, AoE rings (all
-     0.6 ellipses of sim circles)
+     footprints, the rally-flag ring, player rings (with the amber super-ready pulse, §10.1), Field
+     Medic circle, range previews, AoE rings (all 0.6 ellipses of sim circles)
   3. **world**, one y-sorted layer: structures, the Citadel, the Armory kiosk, units, flyers and arcing
      projectiles. Sort key = foot point; flyers and arcing projectiles sort by their shadow; multi-tile
      structures by their footprint's front edge.
   4. effects: hit sparks, tracers, muzzle flashes, plumes
   5. world UI: nametags and HP bars (flipping below near the top edge, §2.1), aim lines, the build arc,
-     the super-ready badge, the Stalker target thread
+     the Stalker target thread
   6. HUD (screen space)
 - **Ground, world or effects:** each non-rig frame's `layer` in `sprites.json` is one of:
   - `ground` (layers 1–2): anything flat on the ground, as its own frame.
@@ -1798,7 +1803,7 @@ interface ThemeHost {                            // TV only
 - **Icons** (`art/<theme>/icons/`, 24-unit SVG glyphs with `.glyph`, ink and `.glow` layers; usage rules
   in its `README.md`): phones get them as one inline SVG sprite (a `<symbol>` per icon, built at build
   time), so `.glow` takes the CSS `drop-shadow` and badge tiles stay crisp. The TV's DOM HUD (§15.2)
-  uses the same sprite; world UI that Phaser draws (the build arc, the super-ready badge) uses the same
+  uses the same sprite; world UI that Phaser draws (the build arc) uses the same
   files rasterized into the TV atlas, where the bloom picks up the amber. Theme packs replace the files
   under the same names. A missing icon falls back to a text label.
 - **Class portraits:** phones never load the TV atlases, but class select and the lineup show each
@@ -2134,3 +2139,5 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 35 | 2026-11-02 | Down and death | A downed knight dims, then falls apart into a pile of armor with scrap that stays for the down timer (was a kneel); every enemy and the Colossus gets a hit and a death (collapse into a pile, `scrap-theirs`, fade) | C1 gallery notes (Foster) |
 | 36 | 2026-11-02 | Stunned units | Always idle, never walking (a render rule) | A stunned enemy that walks reads as not stunned (Foster, C1) |
 | 37 | 2026-11-02 | Knight legs, front and back | The renderer draws the one-piece `legs` frame twice, cropped into left and right halves, so each leg steps on its own | The art has one legs part per view; a split keeps the art as is (Foster, C1) |
+| 38 | 2026-11-03 | Super ready on the TV | The player's ring pulses with amber light (an amber ring just outside the colored ring, at the phone ring's 1.2 Hz and 1.0→1.12 scale); the badge over the head is gone | C2 note (Foster); the ring already marks the player, and amber reads as ours and blooms |
+| 39 | 2026-11-03 | Ranger shot | The main shot draws, holds and releases; the TV holds the bolt on the bow until the clip's release (100 ms, or 30 ms when already at full draw while aiming or in Steady Aim), then launches it from the rig's `bolt` point at bow height and eases it onto the sim's path. Render only: the sim still fires from the feet at once | The shot read as a twitch and the bolt left from the feet (Foster, C2); the sim's timing and hit geometry stay as tested |

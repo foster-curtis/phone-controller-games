@@ -20,7 +20,9 @@ import {
 } from '../keys';
 import { MapView } from '../map';
 import type { RigSprite } from '../rig';
+import { drawBowString } from '../bowString';
 import { CITADEL_COLLAPSE_MS } from '../citadelFx';
+import { RELEASE_MS } from '../clips/ranger';
 import { KNIGHT_DOWN } from '../clipKit';
 import { PROJECTILE_SPEEDS } from '../effectsMath';
 import { clipLandedMs, spawnPile } from '../fall';
@@ -129,12 +131,17 @@ function addRig(
         rig.play(clip, { restart: true, fadeMs: 0 });
         if (clip === 'hit') rig.flash(60);
         if (clip === 'super') k.world.fx.ring('ours', ...worldAt(k, sx, sy), 3);
-        if (clip === 'attack' && rigId === 'ranger') {
-          const m = rig.attach('bolt');
-          if (m) k.world.fx.burst('muzzle-ours', m.sx, m.sy, rig.mirrored ? Math.PI : 0, 40);
-        }
       }
     });
+    if (clip === 'attack' && rigId === 'ranger') {
+      // Draw, hold, release: the flash leaves the bow on the release, and the slack string is drawn
+      // by code while the art string is dark (C2).
+      every(k, period, RELEASE_MS, () => {
+        const m = rig.attach('bolt');
+        if (m) k.world.fx.burst('muzzle-ours', m.sx, m.sy, rig.mirrored ? Math.PI : 0, 40);
+      });
+      k.tick(() => drawBowString(rig));
+    }
   }
   const unit: Unit = {
     rig,

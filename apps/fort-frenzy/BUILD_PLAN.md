@@ -817,7 +817,7 @@ Rules:
   - [x] World scene + TV UI hookup + run flow
   - [x] Debug panel + `__pcg` + smoke/reconnect e2e
   - [x] Merged to `main`
-  - [ ] FF7-fix-1: C2 notes (Ranger bow draw/release, bolt leaves from the bow, super-ready amber ring pulse replaces the head badge)
+  - [x] FF7-fix-1: C2 notes (Ranger bow draw/release, bolt leaves from the bow, super-ready amber ring pulse replaces the head badge)
 - [x] **User approved C2** (slice on real phones and TV): notes fixed in FF7-fix-1; Citadel collapse deferred to v2; feel and visual notes re-judged at C3
 - FF8 Warden + structures
   - [ ] Warden kit + clips
@@ -1234,6 +1234,28 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   e2e freezes wall-clock sim time (`__pcg.speed(0)`) and steps it with `__pcg.advance` inside the TV page,
   runs the TV with `?bloom=0&fps=15` (software GL shared with the phone pages) and uses absolute URLs.
 - [C2] v2 note: the Citadel collapse needs work (user, C2); the current one ships in v1, rework it in v2.
+- [FF7-fix-1] decision: the Ranger's attack clip is draw (0–70 ms, the draw hand reaching from the bow to the
+  anchor) → hold (to 100 ms, rails charging) → release at 100 ms (string snaps past straight and shivers, draw
+  hand flies back past the ear, bow kicks, body rocks) → next bolt nocked and drawn back to the `ready` rest by
+  440 ms; a shot already at full draw (`ready` pose, no one-shot playing: aiming or Steady Aim) starts at 70 ms.
+  The Ranger keeps the shot's facing and pose for the whole clip. The super clip doesn't share the shot pose and
+  is unchanged.
+- [FF7-fix-1] decision: the `ready` bow-glow bakes the drawn string, nocked bolt and rails into one piece (no
+  separate string part), so the clip darkens it during the draw and after the release and the slack/snapping
+  string is code-drawn between the bow tips (`render/bowString.ts`, in the rig's overlay graphics, theme amber at
+  the art's weight); the rails go dark with it until the next bolt is nocked. Art note: a separate string piece
+  would keep the rails lit.
+- [FF7-fix-1] decision: the bolt origin is render-only (`scene/shot.ts`), no sim change: a knight's main-shot
+  projectile stays hidden until the clip's release (100 ms, or 30 ms from full draw), then launches from the
+  rig's `bolt` attach point (the README's shot origin) at bow height and eases onto the sim position over 150 ms;
+  super projectiles launch from the bow at once. The muzzle flash and tracer play at the bow on the release. A
+  shot that hits within about 2.6 tiles lands before the release shows.
+- [FF7-fix-1] decision: super ready is an amber ring (`theme.color.amber`, so the bloom picks it up) just outside
+  the player's ring with a soft halo, pulsing 1.0→1.12 at 1.2 Hz like the phone's ring (§10.1) and drawn under
+  the colored ring (`scene/superPulse.ts`, `GroundMarks.superRing`); the head badge is gone. SPEC §2.6, §10.1,
+  §15.2, §15.4 and §15.11 #38–#39 updated.
+- [FF7-fix-1] decision: `RigSprite` gains `partPoint`, `clipT` and `overlay()` (the class only, not the frozen
+  `RigInstance`), and `rigMath` gains `attachPoint`/`partPoint`, which `attach()` now uses.
 
 ## 9. Final handoff
 

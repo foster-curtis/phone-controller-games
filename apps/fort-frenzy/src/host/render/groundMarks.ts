@@ -1,5 +1,6 @@
 // Ground marks on layer 2 (SPEC §2.1, §2.4, §2.5): shadows, player rings (a thin outline in the
-// player's color, never filled, with a notch toward the aim), carried-cell pips and hitbox overlays.
+// player's color, never filled, with a notch toward the aim; an amber pulse around it while the
+// super is ready), carried-cell pips and hitbox overlays.
 // Immediate mode: callers draw every frame between begin() and end(); pips come from a pool.
 import type * as Phaser from 'phaser';
 import { theme } from '../../shared/theme';
@@ -62,6 +63,19 @@ export class GroundMarks {
       const r = ellipsePoint(sx, sy, rx, ry, aimRad + 0.22);
       this.rings.fillStyle(color, 1).fillTriangle(tip.x, tip.y, l.x, l.y, r.x, r.y);
     }
+  }
+
+  /**
+   * Super ready (§10.1, C2): an amber ring just outside the player's ring, scaled by the pulse, with
+   * a soft halo for the bloom. Draw it before `ring` so the player color stays on top.
+   */
+  superRing(sx: number, sy: number, rTiles: number, color: number, scale: number, alpha: number) {
+    const w = theme.stroke.ring;
+    const { rx, ry } = this.ctx.camera.groundEllipse(rTiles * scale);
+    const gx = (rx + w + 2) * 2;
+    const gy = (ry + (w + 2) * 0.6) * 2;
+    this.rings.lineStyle(w * 3, color, 0.3 * alpha).strokeEllipse(sx, sy, gx, gy);
+    this.rings.lineStyle(w, color, alpha).strokeEllipse(sx, sy, gx, gy);
   }
 
   /** Carried cells: one slot per point of the cap, filled left to right, only while carrying (§2.4). */

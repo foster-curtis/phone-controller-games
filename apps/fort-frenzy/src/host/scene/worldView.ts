@@ -1,10 +1,11 @@
 // The run drawn from sim state (SPEC §15.2) through the renderer in render/: the map and lanes, the
 // Citadel with sentries and damage stages, the Armory, knights (rings with the aim notch, carry pips,
-// nametags and HP bars that flip below near the top, the super-ready badge, aim lines, the build
-// ghost and arc, the Ranger's shot, super and build kneel with the deploy beacon, down piles and
-// respawns), enemies (walk, attack, hit and death clips; stun forces idle), pulse turrets (aim and
-// muzzle flashes), projectiles, crate piles, danger markers and the debug overlays. Positions are
-// lerped between the last two sim steps; the sim is read, never written.
+// the amber super-ready pulse, nametags and HP bars that flip below near the top, aim lines, the
+// build ghost and arc, the Ranger's shot (draw, hold, release; the bolt leaves from the bow), super
+// and build kneel with the deploy beacon, down piles and respawns), enemies (walk, attack, hit and
+// death clips; stun forces idle), pulse turrets (aim and muzzle flashes), projectiles, crate piles,
+// danger markers and the debug overlays. Positions are lerped between the last two sim steps; the
+// sim is read, never written.
 import { lerp } from '@pcg/game-kit';
 import type * as Phaser from 'phaser';
 import type { Content } from '../../content';
@@ -13,9 +14,10 @@ import { LANE_IDS } from '../../shared/ids';
 import { theme } from '../../shared/theme';
 import { neonKnightsShared } from '../../themes/neon-knights/shared';
 import type { ArtImage } from '../render/atlas';
+import { drawBowString } from '../render/bowString';
 import { pickFacing, enemyMirror, type Facing } from '../render/aim';
 import { KNIGHT_DOWN } from '../render/clipKit';
-import { BUILD_PLACE_MS } from '../render/clips/ranger';
+import { ATTACK_MS, BUILD_PLACE_MS } from '../render/clips/ranger';
 import { placeFrame } from '../render/context';
 import { clipLandedMs, spawnPile } from '../render/fall';
 import { RIG_INFO, type RigInfo } from '../render/gallery/rigInfo';
@@ -36,12 +38,10 @@ import {
   type SimEvent,
   type World,
 } from '../sim/types';
+import { anchorToWorld, shotPos, shotTiming, type Launch, type Pos } from './shot';
+import { superPulse } from './superPulse';
 
-export interface Pos {
-  x: number;
-  y: number;
-  z: number;
-}
+export type { Pos } from './shot';
 
 export interface Overlays {
   hitbox: boolean;
@@ -68,11 +68,10 @@ const FLIP_BELOW_Y = 4;
 /** A jump longer than this between two steps (respawn, debug) snaps instead of lerping. */
 const SNAP_TILES = 2;
 const ONE_SHOTS = new Set(['attack', 'super', 'build', 'hit', 'respawn']);
-/** How long a shot keeps the Ranger facing and in his `ready` pose, ms. */
-const SHOT_HOLD_MS = 360;
+/** How long a shot keeps the Ranger facing and in his `ready` pose, ms: the whole attack clip. */
+const SHOT_HOLD_MS = ATTACK_MS + 20;
 /** Steady Aim turns on after 600 ms with the stick released (content passive, FF6). */
 const STEADY_TICKS = 36;
-const BADGE_HZ = 1.2;
 
 const LOOK_OF: Partial<Record<EffectId, StatusLook>> = {
   burn: 'burn',
@@ -93,13 +92,16 @@ interface Knight {
   facing: Facing | null;
   shotUntil: number;
   shotAngle: number;
+  /** The main shot's bolt waits this long for the clip's release, ms (shot.ts). */
+  shotDelay: number;
   sx: number;
   sy: number;
+  /** Interpolated world position (the shot origin's feet). */
+  wx: number;
+  wy: number;
   down: { t: number; landed: number; holdMs: number; dimmed: boolean; piled: boolean } | null;
   tag: Phaser.GameObjects.Text;
   reconnect: ArtImage;
-  badgeTile: ArtImage;
-  badge: ArtImage;
   ghost: ArtImage;
   arc: { tile: ArtImage; glyph: ArtImage }[];
 }
@@ -126,6 +128,8 @@ export class WorldView {
   private readonly enemies = new Map<EntityId, Enemy>();
   private readonly turrets = new Map<EntityId, PulseTurret>();
   private readonly shots = new Map<EntityId, ProjectileSprite>();
+  private readonly launches = new Map<EntityId, Launch>();
+  private readonly launchers = new Map<EntityId, Knight>();
   private readonly piles = new Map<EntityId, ArtImage[]>();
   private readonly ui: Phaser.GameObjects.Graphics;
   private readonly ground: Phaser.GameObjects.Graphics;
@@ -200,6 +204,7 @@ export class WorldView {
     this.drawMarkers(w);
     if (f.overlays.hitbox || f.overlays.range || f.overlays.flow) this.drawOverlays(w, f);
     this.w.update(f.dtMs);
+    for (const k of this.knights.values()) drawBowString(k.rig);
   }
 
   // ---- entity lifecycles ----------------------------------------------------------------------------
@@ -269,13 +274,14 @@ export class WorldView {
         facing: null,
         shotUntil: 0,
         shotAngle: 0,
+        shotDelay: 0,
         sx: 0,
         sy: 0,
+        wx: p.x,
+        wy: p.y,
         down: null,
         tag,
         reconnect: this.icon('reconnecting'),
-        badgeTile: this.tile(true),
-        badge: this.icon(neonKnightsShared.iconFor.super[p.classId]),
         ghost,
         arc,
       });
@@ -466,11 +472,17 @@ export class WorldView {
     k.facing = pickFacing(Math.cos(e.angle), Math.sin(e.angle), k.facing);
     k.rig.setView(k.facing.view, k.facing.mirror);
     if (e.slot === 'main') {
+      // Aiming or in Steady Aim he is already at full draw and only holds; otherwise he draws first.
       // Firing without Steady Aim snaps to `ready` for the shot (§15.2 poses).
+      const drawn = k.rig.pose === 'ready' && !playing(k.rig);
+      const timing = shotTiming(k.rig.rigId, drawn);
+      k.shotDelay = timing.delayMs;
       k.rig.setPose('ready', 0);
-      k.rig.play('attack', { restart: true, fadeMs: 40 });
-      const m = k.rig.attach('bolt');
-      if (m) {
+      k.rig.play('attack', { restart: true, fadeMs: drawn ? 40 : 0, offsetMs: timing.offsetMs });
+      // Muzzle flash and tracer at the bow on the release (C2 note 2).
+      const release = () => {
+        const m = k.down ? null : k.rig.attach('bolt');
+        if (!m) return;
         const rot = screenRot(e.angle);
         fx.burst('muzzle-ours', m.sx, m.sy, rot);
         const len = 56;
@@ -480,8 +492,11 @@ export class WorldView {
           { sx: m.sx + Math.cos(rot) * len, sy: m.sy + Math.sin(rot) * len },
           90,
         );
-      }
+      };
+      if (timing.delayMs > 0) this.later(timing.delayMs, release);
+      else release();
     } else {
+      k.shotDelay = 0;
       k.rig.setPose('ready', 0);
       k.rig.play('super', { restart: true, fadeMs: 40 });
       // The pulse ring is sized exactly to the hit circle (§2.4).
@@ -520,6 +535,8 @@ export class WorldView {
       const at = this.screen(p.id, p.x, p.y, 0, f);
       k.sx = at.sx;
       k.sy = at.sy;
+      k.wx = at.x;
+      k.wy = at.y;
       const rig = k.rig;
       rig.setPosition(at.sx, at.sy);
       const def = this.content.characters.find((c) => c.id === p.classId);
@@ -564,10 +581,13 @@ export class WorldView {
         rig.setAlpha(p.connected ? 1 : 0.45);
       }
 
-      // Ground: shadow, ring with the aim notch, carried-cell pips (§2.4).
+      // Ground: shadow, ring with the aim notch, carried-cell pips (§2.4). Super ready pulses the
+      // ring with amber light (§10.1, C2), under the colored ring so the player color stays on top.
       const ring = k.info.ring ?? 0.68;
       marks.shadow(at.sx, at.sy, k.info.shadow[0] * 2, k.info.shadow[1] * 2);
       if (!k.down) {
+        const pulse = superPulse(p, this.t);
+        if (pulse) marks.superRing(at.sx, at.sy, ring, pulse.color, pulse.scale, pulse.alpha);
         marks.ring(at.sx, at.sy, ring, color, this.aimOf(p, k) ?? p.facing);
         if (p.crates > 0) marks.carry(at.sx, at.sy, ring, p.crates, def?.carryCap ?? 4);
       }
@@ -618,16 +638,6 @@ export class WorldView {
         bw * f,
         bh,
       );
-    }
-    // Super-ready badge over the knight (§10.1), pulsing like the phone's ring.
-    const ready = p.superCharge >= 1 && p.respawnAt === null;
-    const badge = k.rig.attach('badge') ?? head;
-    const pulse = 1 + 0.06 * (1 - Math.cos(this.t * 0.001 * BADGE_HZ * Math.PI * 2));
-    const by = below ? at.sy + 80 : tagY - 34;
-    for (const a of [k.badgeTile, k.badge]) a.img.setVisible(ready).setPosition(badge.sx, by);
-    if (ready) {
-      this.w.lib.setUnitScale(k.badgeTile, 0.8 * pulse);
-      this.w.lib.setUnitScale(k.badge, 0.8 * 1.6 * pulse);
     }
     // Aim line while the main button is held (§10.1: drawn on the TV, not the phone).
     if (p.mainAim && p.respawnAt === null && (p.mainAim.x !== 0 || p.mainAim.y !== 0)) {
@@ -754,22 +764,49 @@ export class WorldView {
     }
   }
 
+  /**
+   * Projectiles. A knight's shot waits on the bow for the attack clip's release, then leaves from
+   * the rig's shot origin (`bolt`) at bow height and eases onto the sim's path (shot.ts, C2 note 2).
+   */
   private drawProjectiles(w: World, f: FrameInput) {
     const live = new Set<EntityId>();
     for (const pr of w.projectiles) {
       live.add(pr.id);
+      let launch = this.launches.get(pr.id);
+      if (!launch) {
+        const k = pr.side === 'ours' ? this.knightById(pr.source) : null;
+        const delayMs = k && pr.slot === 'main' ? k.shotDelay : 0;
+        launch = { bornMs: this.t, delayMs, origin: null };
+        this.launches.set(pr.id, launch);
+        if (k) this.launchers.set(pr.id, k);
+      }
+      if (this.t - launch.bornMs < launch.delayMs) continue;
+      // The release: read the origin off the bow once.
+      const k = this.launchers.get(pr.id);
+      if (k) {
+        this.launchers.delete(pr.id);
+        const m = k.down ? null : k.rig.attach('bolt');
+        if (m) launch.origin = anchorToWorld(m, { x: k.wx, y: k.wy }, this.w.camera);
+      }
+      const at = this.screen(pr.id, pr.x, pr.y, pr.z ?? 0, f);
+      const pos = shotPos(launch, this.t, at);
+      if (!pos) continue;
       let s = this.shots.get(pr.id);
       if (!s) {
         s = this.w.fx.projectile(projectileKind(pr.from));
         this.shots.set(pr.id, s);
       }
-      const at = this.screen(pr.id, pr.x, pr.y, pr.z ?? 0, f);
-      s.set(at.x, at.y, at.z, Math.atan2(pr.vy, pr.vx));
+      s.set(pos.x, pos.y, pos.z, Math.atan2(pr.vy, pr.vx));
     }
     for (const [id, s] of this.shots) {
       if (live.has(id)) continue;
       s.release();
       this.shots.delete(id);
+    }
+    for (const id of this.launches.keys()) {
+      if (live.has(id)) continue;
+      this.launches.delete(id);
+      this.launchers.delete(id);
     }
   }
 
@@ -879,6 +916,8 @@ export class WorldView {
     this.knights.clear();
     this.turrets.clear();
     this.shots.clear();
+    this.launches.clear();
+    this.launchers.clear();
   }
 }
 
