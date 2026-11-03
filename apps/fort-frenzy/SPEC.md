@@ -1601,6 +1601,7 @@ interface World {
   tick: number; phase: Phase; wave: number;
   players: PlayerEnt[]; soldiers: SoldierEnt[]; enemies: EnemyEnt[];
   structures: StructureEnt[]; projectiles: ProjectileEnt[]; cratePiles: CratePile[];
+  thrown?: ThrownCrate[];                    // FF9: Quartermaster throws in flight (from, to, landsAt)
   markers: DangerMarker[];                   // telegraphs: shape, position, landsAtTick, payload
   grid: TileGrid; fields: FlowFields; spatial: SpatialHash;
   base: BaseState; team: TeamState;          // coins, shop tiers, wishlist, scaling
@@ -1685,7 +1686,8 @@ interface EffectDef { id: EffectId; stacking: 'refresh' | 'strongest' | 'stack';
   tickEveryMs?: number; modifier: (strength: number) => Modifier }
 interface StatusEffect { def: EffectId; strength: number; remaining: number; stacks: number;
   source: EntityId | null }
-// v1 effects: burn, poison, stun, slow (strongest), morale, tower_defense, shield, aura_* (refresh)
+// v1 effects: burn, poison, stun, slow (strongest), morale, tower_defense, shield, aura_* (refresh),
+// haste (FF9: the Commander's morale movement boost)
 ```
 
 - **Damage pipeline:** every hit goes through one function (§13 crits).
@@ -1725,14 +1727,16 @@ interface BossBehavior {
 ```ts
 interface CharacterDef {
   id: ClassId; hp: number; moveSpeed: number; radius: number;
-  main: AttackDef; super: AttackDef & { effects?: EffectApply[]; heal?: number };
+  main: AttackDef;
+  super: AttackDef & { effects?: EffectApply[]; heal?: number; selfEffects?: EffectApply[] }; // FF9: self only
   input: { main: 'aimed' | 'tap'; super: 'aimed' | 'tap' };          // §10.1 table
   superChargeRate: number; passive: ModuleRef;
   build: StructureId[];                                               // arc order: left, up, right
   carryCap: number; carrySlowdown: number[];                          // slowdown per crate count
   squad?: { size: number[]; soldier: UnitStats; followRadius: number };
+  supply?: { crateDiscount: number; throwRange: number; throwSpeed: number; kitRepair: number }; // FF9, §6
 }
-interface AttackDef { shape: 'projectile' | 'arc' | 'cone' | 'circle'; damage: number; range: number;
+interface AttackDef { shape: 'projectile' | 'arc' | 'cone' | 'circle' | 'buff'; damage: number; range: number;
   cooldownMs: number; windupMs?: number; arcDeg?: number; count?: number; spreadDeg?: number;
   speed?: number; hitsFlyers: boolean; blockedBy?: ('wall' | 'tower')[]; knockback?: number }
 interface EnemyDef { id: EnemyId; hp: number; speed: number; radius: number; flying: boolean;

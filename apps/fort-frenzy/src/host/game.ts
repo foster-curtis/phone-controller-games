@@ -129,6 +129,7 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
     prev.clear();
     for (const u of w.players) prev.set(u.id, { x: u.x, y: u.y, z: 0 });
     for (const u of w.enemies) prev.set(u.id, { x: u.x, y: u.y, z: u.z ?? 0 });
+    for (const u of w.soldiers) prev.set(u.id, { x: u.x, y: u.y, z: 0 });
     for (const u of w.projectiles) prev.set(u.id, { x: u.x, y: u.y, z: u.z ?? 0 });
   };
 

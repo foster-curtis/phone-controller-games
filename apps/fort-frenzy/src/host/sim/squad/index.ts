@@ -24,7 +24,11 @@ const FOLLOW_SPREAD = 0.6;
 type SquadDef = NonNullable<CharacterDef['squad']>;
 
 /** Squad size before wave `wave`: one step per boss wave already cleared (waves before it). */
-export function squadSize(waves: readonly WaveDef[], sizes: readonly number[], wave: number): number {
+export function squadSize(
+  waves: readonly WaveDef[],
+  sizes: readonly number[],
+  wave: number,
+): number {
   const bosses = waves.filter((w) => w.boss !== undefined && w.n < wave).length;
   return sizes[Math.min(bosses, sizes.length - 1)] ?? 0;
 }

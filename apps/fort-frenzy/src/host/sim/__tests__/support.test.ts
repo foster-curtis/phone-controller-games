@@ -355,7 +355,12 @@ describe('Commander (§8)', () => {
     // Clear the wave: back to build, the fallen soldier returns at the base.
     h.sim.world.spawns.length = 0;
     h.until(() => h.sim.world.phase === 'build', 10);
-    expect(h.squad(0).map((u) => u.index).sort()).toEqual([0, 1, 2]);
+    expect(
+      h
+        .squad(0)
+        .map((u) => u.index)
+        .sort(),
+    ).toEqual([0, 1, 2]);
     const back = h.squad(0).find((u) => u.index === 1)!;
     expect(back.y).toBeLessThan(5);
     expect(back.hp).toBe(commander.squad.soldier.hp);
@@ -396,7 +401,12 @@ describe('Commander (§8)', () => {
     h.p(0).superCharge = 1;
     h.pads[0]!.tap('superFires');
     h.run(2);
-    expect(h.p(0).effects.map((e) => e.def).sort()).toEqual(['haste', 'morale']);
+    expect(
+      h
+        .p(0)
+        .effects.map((e) => e.def)
+        .sort(),
+    ).toEqual(['haste', 'morale']);
     for (const u of h.squad(0)) expect(u.effects.map((e) => e.def)).toContain('morale');
     expect(h.p(0).stats.moveSpeed).toBeCloseTo(speed0 * 1.25, 6);
     // Morale runs out.

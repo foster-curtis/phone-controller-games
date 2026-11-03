@@ -39,6 +39,8 @@ import {
   type World,
 } from '../sim/types';
 import { anchorToWorld, shotPos, shotTiming, type Launch, type Pos } from './shot';
+import { shotAnchor } from './support';
+import { SupportView } from './supportView';
 import { superPulse } from './superPulse';
 import { syncTag, type TagState } from './tag';
 
@@ -68,7 +70,7 @@ const ARMORY_AT = { x: 22.5, y: 1.5 };
 const FLIP_BELOW_Y = 4;
 /** A jump longer than this between two steps (respawn, debug) snaps instead of lerping. */
 const SNAP_TILES = 2;
-const ONE_SHOTS = new Set(['attack', 'super', 'build', 'hit', 'respawn']);
+const ONE_SHOTS = new Set(['attack', 'super', 'build', 'hit', 'respawn', 'throw', 'plant']);
 /** How long a shot keeps the Ranger facing and in his `ready` pose, ms: the whole attack clip. */
 const SHOT_HOLD_MS = ATTACK_MS + 20;
 /** Steady Aim turns on after 600 ms with the stick released (content passive, FF6). */
@@ -125,6 +127,8 @@ interface Timer {
 
 export class WorldView {
   private readonly map: MapView;
+  /** The Artificer, the Commander and his squad (FF9). */
+  private readonly support: SupportView;
   private readonly citadel: Citadel;
   private readonly knights = new Map<number, Knight>();
   private readonly enemies = new Map<EntityId, Enemy>();
@@ -146,6 +150,7 @@ export class WorldView {
   ) {
     this.map = new MapView(w, w.theme.map);
     this.citadel = new Citadel(w, CITADEL_AT.x, CITADEL_AT.y);
+    this.support = new SupportView(w, content, (slot) => this.knights.get(slot) ?? null);
     frameAt(w, fk('armory/pad'), 'ground', ARMORY_AT.x, ARMORY_AT.y);
     frameAt(w, fk('armory/kiosk'), 'world', ARMORY_AT.x, ARMORY_AT.y);
     const gfx = (layer: 'groundOverlay' | 'worldUi', depth: number) => {
@@ -200,6 +205,7 @@ export class WorldView {
     this.w.marks.begin();
     this.drawCitadel(w, f.dtMs);
     this.drawKnights(w, f);
+    this.support.update(f);
     this.drawEnemies(w, f);
     this.drawProjectiles(w, f);
     this.drawPiles(w);
@@ -337,6 +343,7 @@ export class WorldView {
       t.setTier(tier);
       t.setDamaged(st.hp < st.maxHp * 0.5);
       t.setFortify(st.fortified);
+      t.setDefenseBonus(st.effects.some((x) => x.def === 'tower_defense'));
     }
     for (const [id, t] of this.turrets) {
       if (live.has(id)) continue;
@@ -354,6 +361,7 @@ export class WorldView {
   }
 
   private event(e: SimEvent, w: World) {
+    this.support.event(e, w);
     switch (e.e) {
       case 'attack':
         return this.attack(e, w);
@@ -474,6 +482,7 @@ export class WorldView {
     k.shotAngle = e.angle;
     k.facing = pickFacing(Math.cos(e.angle), Math.sin(e.angle), k.facing);
     k.rig.setView(k.facing.view, k.facing.mirror);
+    if (this.support.attack(e, p, k)) return;
     if (e.slot === 'main') {
       // Aiming or in Steady Aim he is already at full draw and only holds; otherwise he draws first.
       // Firing without Steady Aim snaps to `ready` for the shot (§15.2 poses).
@@ -484,7 +493,7 @@ export class WorldView {
       k.rig.play('attack', { restart: true, fadeMs: drawn ? 40 : 0, offsetMs: timing.offsetMs });
       // Muzzle flash and tracer at the bow on the release (C2 note 2).
       const release = () => {
-        const m = k.down ? null : k.rig.attach('bolt');
+        const m = k.down ? null : k.rig.attach(shotAnchor(k.rig.rigId));
         if (!m) return;
         const rot = screenRot(e.angle);
         fx.burst('muzzle-ours', m.sx, m.sy, rot);
@@ -789,7 +798,7 @@ export class WorldView {
       const k = this.launchers.get(pr.id);
       if (k) {
         this.launchers.delete(pr.id);
-        const m = k.down ? null : k.rig.attach('bolt');
+        const m = k.down ? null : k.rig.attach(shotAnchor(k.rig.rigId));
         if (m) launch.origin = anchorToWorld(m, { x: k.wx, y: k.wy }, this.w.camera);
       }
       const at = this.screen(pr.id, pr.x, pr.y, pr.z ?? 0, f);
@@ -917,6 +926,7 @@ export class WorldView {
     for (const [id, en] of this.enemies) this.dropEnemy(id, en);
     for (const t of this.turrets.values()) t.destroy();
     for (const s of this.shots.values()) s.release();
+    this.support.destroy();
     this.knights.clear();
     this.turrets.clear();
     this.shots.clear();
@@ -935,6 +945,6 @@ function looksOf(effects: readonly { def: EffectId }[]): StatusLook[] {
 }
 
 /** Straight shots are bolts until FF9/FF10 add nanite bolts, Wasp shots and shells. */
-function projectileKind(_from: string): ProjectileKind {
-  return 'bolt';
+function projectileKind(from: string): ProjectileKind {
+  return from === 'quartermaster' ? 'nanite-bolt' : 'bolt';
 }

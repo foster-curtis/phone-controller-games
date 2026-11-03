@@ -824,8 +824,8 @@ Rules:
   - [ ] Walls, nets, Fortify, mortar (sim + render)
   - [ ] Merged to `main`
 - FF9 Support classes
-  - [ ] Artificer kit + gauge + throw + kit use
-  - [ ] Commander + squad + flag
+  - [x] Artificer kit + gauge + throw + kit use
+  - [x] Commander + squad + flag
   - [ ] Merged to `main`
 - FF10 Enemies
   - [ ] Six new AIs + leash + Flyer substitution
@@ -1262,6 +1262,36 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   browser. Nametags now change only when their text or color does (`scene/tag.ts`), and the Ranger's string overlay
   is made on the first shot and cleared once after it; `scene/__tests__/frame-cost.test.ts` counts redraws across
   frames. The e2e specs are unchanged.
+- [FF9] contract+: `src/content/types.ts` `AttackDef.shape` gains `'buff'` (hits nothing; the super's `effects` go
+  on the attacker and his squad), `CharacterDef.super.selfEffects?` (attacker only) and `CharacterDef.supply?`
+  (`crateDiscount`, `throwRange`, `throwSpeed`, `kitRepair`); `src/shared/ids.ts` `EFFECT_IDS` appends `haste`;
+  `src/host/sim/types.ts` adds `ThrownCrate` and `World.thrown?`. SPEC §15.3/§15.4 sketches updated.
+- [FF9] decision: squad steering is a straight line to the soldier's slot (a fan behind the Commander, or a ring
+  around the planted flag) with the usual structure collision; no flow field was needed (risk fallback). Soldiers
+  engage enemies within 3 tiles of themselves and 5 of their post; with the Commander down or dazed and no flag
+  they hold. Their damage doesn't charge his super.
+- [FF9] decision: squad size counts the boss waves (wave data `boss`) before the current wave; every build start
+  fills each Commander's missing indexes at the base (the dead return, earned ones appear).
+- [FF9] decision: a throw targets the nearest up, connected Engineer or Warden with room within `throwRange` (8);
+  it flies at 12 tiles/s (at least 0.25 s), follows the receiver and lands on them; a receiver down or full on
+  landing drops it there. No target: row 6 doesn't apply and the button falls through (none).
+- [FF9] decision: starting values: crate discount 50% (rounded, at least 1: price 1); kit restores 250 HP and a
+  full base takes none (like crates); Field Medic heals 3 HP/s within 2.5 tiles (himself included), combat only,
+  charging 0.002 per HP (damage: 0.006 per point); only the Field Medic module charges from heals, so the super's
+  healing never does.
+- [FF9] decision: Quartermaster main is 4 bolts over 16° (blocked by walls and towers, the projectile rule); the
+  super cone (110°, 8 tiles, nothing blocks it) heals other players 40 HP and gives towers `tower_defense` (+0.3
+  damage reduction, 6 s, `PulseTurret.setDefenseBonus`) and deals no damage.
+- [FF9] decision: Commander main is a 110° slash (1.4 tiles); morale (`buff`) puts morale (+35% damage and attack
+  speed, 6 s) on him and his living soldiers and haste (+25% move) on him; Lead from the Front gives his soldiers
+  within 3 tiles +25% damage (a 200 ms aura refreshed each step).
+- [FF9] decision: the Quartermaster's and Commander's phone arc is Give alone (`[null, null, null, 'give']`), so
+  the kit's single-slot radial gives on a 0.4 s hold and repeats every 300 ms (FF0); the TV arc never opens.
+- [FF9] decision: render: the Artificer's bolts (via FF7-fix-1's launch path) and thrown cells leave from the
+  `lens` point on the projector arm (C2: from the hand; the README's `pack` throw origin is not used). Support
+  drawing lives in `scene/supportView.ts`, hooked into WorldView by a few lines; soldiers now lerp (game.ts
+  captures them). Ring-adjacent marks stay unlike the amber super-ready stroke: the morale aura is a soft fill,
+  the Field Medic circle is dots, the flag ring is its art.
 
 ## 9. Final handoff
 
