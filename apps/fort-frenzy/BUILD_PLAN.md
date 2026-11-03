@@ -1330,6 +1330,11 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   in the summary); a new test replays a minute of wave 14 (every AI) twice; the replay test records 3 minutes
   (`maxSteps`), not the whole 15-wave run, to stay inside Vitest's timeout. The bench's peak crowd is the mixed
   roster with unbreakable towers and footmen (peak mean ≈ 0.38 ms, p99 ≈ 1.0 ms on this machine).
+- [FF9] decision (reconnect e2e after the FF9 merge): the rejoin `me` snapshot is unchanged and valid (a session
+  test now pins it), so the suspect is frame cost: the trace shows every page starving once the run starts.
+  SupportView's two graphics are now made on first use and cleared only after drawing (`scene/support.ts`
+  `Scratch`), so a run without support classes adds no per-frame GPU work over FF7-fix-1. The early steps
+  (page creation 7.6 s, home 8.7 s) were slow too, so machine load may be part of it.
 
 ## 9. Final handoff
 

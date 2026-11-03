@@ -33,6 +33,7 @@ import {
 } from '../sim/types';
 import {
   dottedAngles,
+  Scratch,
   MIN_PEAK_PX,
   moraleAlpha,
   PEAK_PX_PER_TILE,
@@ -93,8 +94,9 @@ const playing = (rig: RigSprite) =>
   rig.clip !== null && rig.clip !== 'idle' && rig.clip !== 'walk' && !rig.clipDone;
 
 export class SupportView {
-  private readonly ground: Phaser.GameObjects.Graphics;
-  private readonly lines: Phaser.GameObjects.Graphics;
+  /** Made on first use and cleared only after drawing (no per-frame cost for other classes). */
+  private readonly ground: Scratch<Phaser.GameObjects.Graphics>;
+  private readonly lines: Scratch<Phaser.GameObjects.Graphics>;
   private readonly soldiers = new Map<EntityId, Soldier>();
   private readonly flags = new Map<number, Flag>();
   private readonly cells = new Map<EntityId, Cell>();
@@ -112,10 +114,16 @@ export class SupportView {
     private readonly content: Content,
     private readonly knight: (slot: number) => KnightRef | null,
   ) {
-    this.ground = w.scene.make.graphics({}, false).setDepth(-4e5);
-    w.layers.groundOverlay.add(this.ground);
-    this.lines = w.scene.make.graphics({}, false);
-    w.layers.effects.add(this.lines);
+    this.ground = new Scratch(() => {
+      const g = w.scene.make.graphics({}, false).setDepth(-4e5);
+      w.layers.groundOverlay.add(g);
+      return g;
+    });
+    this.lines = new Scratch(() => {
+      const g = w.scene.make.graphics({}, false);
+      w.layers.effects.add(g);
+      return g;
+    });
   }
 
   private def(p: PlayerEnt) {
@@ -246,8 +254,8 @@ export class SupportView {
   update(f: FrameInput) {
     this.t += f.dtMs;
     const w = f.world;
-    this.ground.clear();
-    this.lines.clear();
+    this.ground.begin();
+    this.lines.begin();
     for (const sec of this.glints) {
       for (const st of w.structures) {
         if (st.kind !== 'arrow_tower' && st.kind !== 'bomb_tower') continue;
@@ -306,7 +314,7 @@ export class SupportView {
       const def = this.def(p);
       const r = fieldMedicRadius(def?.passive.params);
       const { rx, ry } = this.w.camera.groundEllipse(r);
-      const g = this.ground;
+      const g = this.ground.draw();
       g.fillStyle(theme.color.amber.num, 0.35);
       for (const a of dottedAngles(FIELD_DOTS, this.t))
         g.fillCircle(k.sx + Math.cos(a) * rx, k.sy + Math.sin(a) * ry, 2.2);
@@ -344,14 +352,14 @@ export class SupportView {
       } else s.rig.setGlow(1);
       if (!u.effects.some((e) => e.def === 'aura_lead_from_the_front')) continue;
       const body = s.sy - this.footInfo.bodyH * this.w.unitPx * 0.55;
-      this.lines.lineStyle(2, color, 0.5).lineBetween(chest.sx, chest.sy, s.sx, body);
+      this.lines.draw().lineStyle(2, color, 0.5).lineBetween(chest.sx, chest.sy, s.sx, body);
     }
   }
 
   /** A soft amber glow on the ground (no stroke, so never read as the super-ready ring). */
   private aura(sx: number, sy: number, rTiles: number, alpha: number) {
     const { rx, ry } = this.w.camera.groundEllipse(rTiles);
-    const g = this.ground;
+    const g = this.ground.draw();
     g.fillStyle(theme.color.amber.num, alpha * 0.5).fillEllipse(sx, sy, rx * 2.4, ry * 2.4);
     g.fillStyle(theme.color.amber.num, alpha).fillEllipse(sx, sy, rx * 1.6, ry * 1.6);
   }
@@ -499,7 +507,6 @@ export class SupportView {
   /** The nanite cone (filled, fading) and the sword trail sweeping the hit arc. */
   private drawSwipes(dtMs: number) {
     const cam = this.w.camera;
-    const g = this.lines;
     const keep: Swipe[] = [];
     for (const sw of this.swipes) {
       sw.age += dtMs;
@@ -507,6 +514,7 @@ export class SupportView {
       if (t > sw.ttl) continue;
       keep.push(sw);
       if (t < 0) continue;
+      const g = this.lines.draw();
       const u = t / sw.ttl;
       const N = 18;
       const pt = (a: number, r: number) =>

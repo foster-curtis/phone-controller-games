@@ -1,6 +1,8 @@
 // FF9 render rules for the support classes (SPEC §2.4): the backpack gauge for 0–8 crates, the thrown
 // cell landing on the receiver's carry point, shots leaving from the weapon, the morale aura's fade,
 // the Field Medic circle drawn as dots, and the new clips.
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { content } from '../../../content';
 import { neonKnightsHost } from '../../../themes/neon-knights/host';
@@ -10,7 +12,37 @@ import { SLASH_CUT } from '../../render/clips/commander';
 import { THROW_RELEASE_MS } from '../../render/clips/artificer';
 import { GAUGE_GROUPS, gaugeGroups } from '../../render/gauge';
 import { PROJECTILE_SPEEDS } from '../../render/effectsMath';
-import { dottedAngles, moraleAlpha, shotAnchor, throwArc, throwProgress } from '../support';
+import {
+  dottedAngles,
+  moraleAlpha,
+  Scratch,
+  shotAnchor,
+  throwArc,
+  throwProgress,
+} from '../support';
+
+describe('no per-frame cost while unused (FF7-fix-1 rule; reconnect e2e)', () => {
+  it('Scratch makes its graphics on the first draw and clears only after drawing', () => {
+    const counts = { make: 0, clear: 0 };
+    const s = new Scratch(() => {
+      counts.make++;
+      return { clear: () => counts.clear++, destroy: () => {} };
+    });
+    for (let i = 0; i < 300; i++) s.begin();
+    expect(counts).toEqual({ make: 0, clear: 0 });
+    s.draw();
+    s.begin(); // clears what it drew
+    for (let i = 0; i < 300; i++) s.begin();
+    expect(counts).toEqual({ make: 1, clear: 1 });
+  });
+
+  it('SupportView draws only through Scratch (no graphics made or cleared up front)', () => {
+    const src = readFileSync(join(import.meta.dirname, '..', 'supportView.ts'), 'utf8');
+    expect(src).not.toMatch(/\b(ground|lines|g)\.clear\(\)/);
+    expect(src.match(/make\.graphics\(/g)).toHaveLength(2);
+    expect(src).toMatch(/new Scratch\(/);
+  });
+});
 
 const { rigs, clips } = neonKnightsHost;
 

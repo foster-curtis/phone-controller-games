@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  isMeView,
   PROTOCOL_VERSION,
   type HostMsg,
   type MeView,
@@ -172,6 +173,36 @@ describe('session: run', () => {
     expect(p.connected).toBe(true);
     expect(p.color).toBe('sky');
     expect(s.party.member('a2')!.slot).toBe(0);
+  });
+
+  it('a phone rejoining mid-build gets a full build-screen `me` at once (reconnect e2e, FF9)', () => {
+    const { s, sent } = setup();
+    join(s, 'a', 'Ann');
+    join(s, 'b', 'Bob');
+    s.handleMessage('a', { t: 'intent', seq: 811, intent: { k: 'ready', ready: true } });
+    s.handleMessage('b', { t: 'intent', seq: 812, intent: { k: 'ready', ready: true } });
+    const sim = s.sim!;
+    while (sim.world.phase !== 'build') {
+      sim.step();
+      s.afterStep();
+    }
+    s.handlePeer({ event: 'left', playerId: 'a', playerKey: 'key-a' });
+    sim.step();
+    s.afterStep();
+    s.handlePeer({ event: 'joined', playerId: 'a2', playerKey: 'key-a' });
+    s.handleMessage('a2', { t: 'hello', proto: PROTOCOL_VERSION, deviceId: 'dev-a' });
+    // The hello's own snapshot, before any step: the build screen with the Engineer's kit.
+    const me = lastMe(sent, 'a2');
+    expect(me.screen).toBe('build');
+    expect(me.classId).toBe('engineer');
+    expect(me.slot).toBe(0);
+    expect(me.buildKit).toEqual(['arrow_tower']);
+    expect(me.arc!.slots).toEqual(['arrow_tower', null, null, 'give']);
+    expect(me.action).toBe('none');
+    expect(isMeView(me)).toBe(true);
+    sim.step();
+    s.afterStep();
+    expect(lastMe(sent, 'a2').screen).toBe('build');
   });
 
   it('only the content classes can be picked in the slice', () => {

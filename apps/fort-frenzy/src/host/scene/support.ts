@@ -3,6 +3,36 @@
 // aura's fade, and the Field Medic circle's dots.
 import type { ScreenPoint } from '../render/types';
 
+/**
+ * Immediate-mode drawing that costs nothing while unused (FF7-fix-1's rule: no per-frame GPU work
+ * while nothing changes): the graphics object is made on the first draw, and cleared at the next
+ * frame's `begin` only if something was drawn since.
+ */
+export class Scratch<G extends { clear(): unknown; destroy(): void }> {
+  private g: G | null = null;
+  private dirty = false;
+
+  constructor(private readonly make: () => G) {}
+
+  /** Starts a frame: clears what the last frame drew. */
+  begin(): void {
+    if (this.dirty) this.g!.clear();
+    this.dirty = false;
+  }
+
+  /** The graphics to draw on this frame. */
+  draw(): G {
+    this.g ??= this.make();
+    this.dirty = true;
+    return this.g;
+  }
+
+  destroy(): void {
+    this.g?.destroy();
+    this.g = null;
+  }
+}
+
 /** The rig attach point a knight's projectiles leave from (C2: from the weapon, never the feet). */
 export function shotAnchor(rigId: string): string {
   return rigId === 'artificer' ? 'lens' : 'bolt';
