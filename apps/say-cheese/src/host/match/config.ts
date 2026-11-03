@@ -1,4 +1,5 @@
-// Match tuning (SPEC §6.1, §6.2, §6.4, §6.3). Names frozen at SC0 (BUILD_PLAN §3); values are tuning.
+// Match tuning (SPEC §6.1, §6.2, §6.4, §6.3). Frozen at SC0 (BUILD_PLAN §3): names are additive only;
+// values are tuning and change freely.
 
 /** Scatter countdown. */
 export const SCATTER_MS = 10_000;

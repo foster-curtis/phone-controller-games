@@ -4,6 +4,7 @@
 import { type Ack, type Chunk, isAck, isChunk } from './blob-transfer/types';
 import type { SeatId } from './seats/types';
 
+/** Relay namespace, game ID "say-cheese" (SPEC §4, §7.1). */
 export const GAME_ID = 'say-cheese';
 
 /** Relay `maxPlayers`: phones, incl. spectators (SPEC §7.1). */

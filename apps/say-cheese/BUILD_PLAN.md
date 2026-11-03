@@ -445,12 +445,12 @@ Rules:
 
 - [ ] Pre-flight green (S1)
 - **SC0**
-  - [ ] `origin/main` merged; kits available; tables resolved
-  - [ ] Brand kit unpacked, zip removed
-  - [ ] App scaffold, Vite/Vercel/Playwright configs, smoke e2e
-  - [ ] Contracts: messages, match types + config, blob-transfer types, seats types, camera + sfx interfaces
-  - [ ] Root wiring: scripts, lockfile, Dockerfile, check-bundle limit, .prettierignore, tables; SPEC §8/§9/§10 updated
-  - [ ] Full gate green
+  - [x] `origin/main` merged; kits available; tables resolved
+  - [x] Brand kit unpacked, zip removed
+  - [x] App scaffold, Vite/Vercel/Playwright configs, smoke e2e
+  - [x] Contracts: messages, match types + config, blob-transfer types, seats types, camera + sfx interfaces
+  - [x] Root wiring: scripts, lockfile, Dockerfile, check-bundle limit, .prettierignore, tables; SPEC §8/§9/§10 updated
+  - [x] Full gate green
   - [ ] Merged to `say-cheese` and pushed
 - **SC1**
   - [ ] Blob transfer module + tests (incl. 16 KB envelope test)
@@ -533,6 +533,12 @@ Format: `- [SC#] decision: one line, with the reason.`
 - [plan] e2e speed: debug `?timeScale=` scales scatter/shoot/upload timers; e2e runs at 0.1.
 - [plan] Sandbox Playwright: the preinstalled Chromium is linked to the version `@playwright/test` 1.64.1 expects (pre-flight); the CDN is blocked.
 - [plan] Docker is unavailable in the sandbox: SC0 checks that every workspace `package.json` is COPYed in `apps/relay/Dockerfile` instead of building the image.
+- [SC0] decision: `git merge origin/main` was a fast-forward (`main` already held `say-cheese` via PR #1, kits included), so there is no merge commit and no table conflicts; the Say Cheese table rows move to "In build" in the SC0 commit, because there was nothing to merge.
+- [SC0] decision: `shot` carries the frame's `aspect` (width / height) and the host copies it into `Round.photos` and the review screens, because the frozen `Chunk` has no room for it and the phone knows the size at capture.
+- [SC0] decision: host → phone is `{t:'screen', screen}` with `screen.kind` as the discriminator and the `data-screen` value, plus `isHostMsg` (a shallow guard) for the phone, because it matches Sunny Side and e2e `screen(page, kind)`.
+- [SC0] decision: `seats/types.ts` types `Seat.color` as a plain string and adds `seatId`/`parseSeatId`/`seatKeysStorageKey(code)`, because the folder stays free of game imports (extraction-ready); `messages.ts` narrows colors to `PLAYER_COLOR_IDS` (brand.css order, lilac instead of rose).
+- [SC0] decision: `config.ts` adds `RULES_CARDS = 5`, `setTimeScale()` and `scaled(ms)` beside `timeScale`, because SC2 and SC5 both need the card count and one place to apply `?timeScale=`.
+- [SC0] decision: the match is a reducer `(state, event) → (state, effects)`; `MatchEvent` adds `photo` (receiver finished a photo) and `room` (code), `Effect` adds `releasePhotos` (revoke object URLs), because photo arrival and the room code feed the upload count and the TV lobby.
 
 ## 9. Final handoff (and early setup)
 
