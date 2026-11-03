@@ -1256,6 +1256,12 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   §15.2, §15.4 and §15.11 #38–#39 updated.
 - [FF7-fix-1] decision: `RigSprite` gains `partPoint`, `clipT` and `overlay()` (the class only, not the frozen
   `RigInstance`), and `rigMath` gains `attachPoint`/`partPoint`, which `attach()` now uses.
+- [FF7-fix-1] decision: root cause of the flaky/slow smoke and reconnect e2e (FF7 bug, also failing on `main`): the
+  World scene called `setColor` on every knight's nametag every frame; each Phaser Text set redraws its canvas and
+  re-uploads the texture, a GPU readback stall under software GL that starved the TV page and the phones sharing the
+  browser. Nametags now change only when their text or color does (`scene/tag.ts`), and the Ranger's string overlay
+  is made on the first shot and cleared once after it; `scene/__tests__/frame-cost.test.ts` counts redraws across
+  frames. The e2e specs are unchanged.
 
 ## 9. Final handoff
 

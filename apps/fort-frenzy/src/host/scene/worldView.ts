@@ -40,6 +40,7 @@ import {
 } from '../sim/types';
 import { anchorToWorld, shotPos, shotTiming, type Launch, type Pos } from './shot';
 import { superPulse } from './superPulse';
+import { syncTag, type TagState } from './tag';
 
 export type { Pos } from './shot';
 
@@ -101,6 +102,7 @@ interface Knight {
   wy: number;
   down: { t: number; landed: number; holdMs: number; dimmed: boolean; piled: boolean } | null;
   tag: Phaser.GameObjects.Text;
+  tagState: TagState;
   reconnect: ArtImage;
   ghost: ArtImage;
   arc: { tile: ArtImage; glyph: ArtImage }[];
@@ -281,6 +283,7 @@ export class WorldView {
         wy: p.y,
         down: null,
         tag,
+        tagState: { color: theme.color.foreground.hex },
         reconnect: this.icon('reconnecting'),
         ghost,
         arc,
@@ -612,9 +615,10 @@ export class WorldView {
       p.respawnAt !== null
         ? String(Math.max(1, Math.ceil(((p.respawnAt - w.tick) * STEP_MS) / 1000)))
         : p.name;
-    if (k.tag.text !== label) k.tag.setText(label);
     k.tag.setPosition(at.sx, tagY).setOrigin(0.5, below ? 0 : 1);
-    k.tag.setColor(p.respawnAt !== null ? theme.color.muted.hex : theme.color.foreground.hex);
+    // Only on change: a Text redraw re-uploads its texture (scene/tag.ts).
+    const tagColor = p.respawnAt !== null ? theme.color.muted.hex : theme.color.foreground.hex;
+    syncTag(k.tag, k.tagState, label, tagColor);
     k.tag.setAlpha(p.connected ? 1 : 0.7);
     // Reconnecting icon on the nametag (§11.3).
     k.reconnect.img

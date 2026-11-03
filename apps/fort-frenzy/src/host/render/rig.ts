@@ -271,10 +271,6 @@ export class RigSprite implements RigInstance {
     return this.extras;
   }
 
-  get hasOverlay(): boolean {
-    return this.extras !== null;
-  }
-
   update(dtMs: number) {
     // Clips.
     let sample: ClipSample = { parts: new Map(), order: null };
