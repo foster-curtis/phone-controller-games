@@ -462,7 +462,7 @@ Rules:
   - [x] Seats module + tests
   - [x] Match state machine (phases, rules, rounds, matchEnd, rematch) + transition tests
   - [x] Scoring, tags, turn queue, leader, persist + tests
-  - [ ] Merged to `say-cheese` and pushed
+  - [x] Merged to `say-cheese` and pushed
 - **SC3**
   - [x] App shell + router + dev mode
   - [x] Lobby, rules, photographer, dodger, results screens
