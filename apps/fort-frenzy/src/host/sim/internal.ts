@@ -9,6 +9,7 @@ import type {
   EffectApply,
   EnemyEnt,
   EntityId,
+  FlowField,
   Hooks,
   Modifier,
   PlayerEnt,
@@ -90,6 +91,12 @@ export interface SimState extends SimCtx {
   placeStructure(kind: StructureId, col: number, row: number, owner: number): StructureEnt;
   /** Marks the flow fields for a rebuild (a blocker placed or destroyed). */
   fieldsDirty(): void;
+  /**
+   * The ground field toward the player in `slot` (Hunters, §15.5), kept in `world.fields.hunted`:
+   * built on first use, rebuilt when that player moves to a new tile or the fields rebuild. Null if
+   * there's no such player.
+   */
+  huntField(slot: number): FlowField | null;
 }
 
 /** The registered behaviors receive the frozen `SimCtx`; the sim always passes its `SimState`. */

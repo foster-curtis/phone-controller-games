@@ -94,6 +94,12 @@ function sampleInputs(s: FullState, sources: Map<number, InputSource>, obs?: Ste
 function stepEnemies(s: FullState) {
   for (const e of s.world.enemies) {
     if (e.hp <= 0) continue;
+    // A stunned enemy stands still and loses any wind-up in progress (§9.6: the Warden's window).
+    if (e.effects.some((x) => x.def === 'stun')) {
+      e.vx = e.vy = 0;
+      e.attack.windupEndsAt = null;
+      continue;
+    }
     const def = s.cat.enemy(e.kind);
     aiKinds[def.ai]?.(s, e);
   }

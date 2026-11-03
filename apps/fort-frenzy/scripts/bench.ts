@@ -13,6 +13,21 @@ import { PLAYER_COLOR_IDS } from '../src/shared/ids';
 
 const BUDGET_MS = 2;
 const PEAK = { knights: 6, footmen: 30, enemies: 150, projectiles: 100, structures: 60 };
+/** Peak crowd mix: mostly walkers, with packs and every special AI (Grunts weighted ×3, mites ×4). */
+const ROSTER = [
+  'grunt',
+  'grunt',
+  'grunt',
+  'swarm',
+  'swarm',
+  'swarm',
+  'swarm',
+  'runner',
+  'brute',
+  'flyer',
+  'siege',
+  'hunter',
+] as const;
 
 function startOf(players: number, seed: number): RunStart {
   return {
@@ -60,16 +75,22 @@ function peak(): { times: number[]; counts: string } {
   for (let row = 6; row < 22 && placed < PEAK.structures; row += 3) {
     for (let col = 2; col < 34 && placed < PEAK.structures; col += 3) {
       if (w.grid.kinds[row * w.grid.cols + col] !== 'open') continue;
-      sim.place('arrow_tower', col, row, placed % PEAK.knights);
+      // Unbreakable, so the counts hold at peak while the crowd attacks and shells them.
+      const st = sim.place('arrow_tower', col, row, placed % PEAK.knights);
+      st.hp = st.maxHp = 1e12;
       placed++;
     }
   }
-  for (let i = 0; i < PEAK.footmen; i++)
-    sim.addSoldier(0, 4 + rng.next() * 28, 5 + rng.next() * 16);
+  for (let i = 0; i < PEAK.footmen; i++) {
+    const u = sim.addSoldier(0, 4 + rng.next() * 28, 5 + rng.next() * 16);
+    u.hp = u.maxHp = 1e12;
+  }
 
   const topUp = () => {
     while (w.enemies.length < PEAK.enemies) {
-      const e = sim.spawnEnemy('grunt', 1 + rng.next() * 34, 8 + rng.next() * 15);
+      // The whole roster (FF10): every AI kind, hunted fields, Siege shells and mite packs.
+      const kind = ROSTER[w.nextId % ROSTER.length]!;
+      const e = sim.spawnEnemy(kind, 1 + rng.next() * 34, 8 + rng.next() * 15);
       e.hp = e.maxHp = 1e9;
     }
     while (w.projectiles.length < PEAK.projectiles) {

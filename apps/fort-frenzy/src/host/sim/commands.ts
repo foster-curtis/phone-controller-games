@@ -75,7 +75,9 @@ function debug(s: FullState, cmd: Extract<SimCommand, { c: 'debug' }>): AckReaso
       w.team.coins = Math.max(0, w.team.coins + cmd.amount);
       return null;
     case 'spawn':
-      spawnGroup(s, cmd.enemy, cmd.lane, 1);
+      // One group: a Swarm spawns its whole pack (§9.1). The Colossus has no content until FF11.
+      if (!s.cat.content.enemies.some((e) => e.id === cmd.enemy)) return 'invalid';
+      spawnGroup(s, cmd.enemy, cmd.lane, s.cat.enemy(cmd.enemy).groupSize ?? 1);
       return null;
     case 'jumpWave': {
       const last = s.cat.waves[s.cat.waves.length - 1]?.n ?? 1;

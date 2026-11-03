@@ -828,9 +828,9 @@ Rules:
   - [x] Commander + squad + flag
   - [ ] Merged to `main`
 - FF10 Enemies
-  - [ ] Six new AIs + leash + Flyer substitution
-  - [ ] Enemy clips + status visuals
-  - [ ] Waves 1–15 content
+  - [x] Six new AIs + leash + Flyer substitution
+  - [x] Enemy clips + status visuals
+  - [x] Waves 1–15 content
   - [ ] Merged to `main`
 - [ ] **User approved C3** (class kits and enemies)
 - FF11 Colossus
@@ -1292,6 +1292,44 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   drawing lives in `scene/supportView.ts`, hooked into WorldView by a few lines; soldiers now lerp (game.ts
   captures them). Ring-adjacent marks stay unlike the amber super-ready stroke: the morale aura is a soft fill,
   the Field Medic circle is dots, the flag ring is its art.
+- [FF10] contract+: `src/content/types.ts` `EnemyDef.ai` gains `'swarm' | 'brute'` (the deliverable's
+  `ai/swarm.ts` and `ai/brute.ts` need their own registry ids); `src/host/sim/types.ts` `EnemyEnt.wander?`
+  (a mite's in-sim jitter: drift, pace, re-roll tick). SPEC §15.3, §15.4 and §15.5 updated.
+- [FF10] decision: `SimState.huntField(slot)` (internal, not frozen) builds the per-hunted-player ground field
+  into `world.fields.hunted[slot]` on demand, rebuilt when that player's tile changes or the fields rebuild.
+  A Hunter hunts the nearest targetable player (ties by slot), retargets the same way on down or daze, runs
+  straight at its quarry within 1.5 tiles, and with nobody up walks the ground field and attacks the base.
+- [FF10] decision: a Runner's burst kills it with itself as the killer: no coins (§9.1 pays kills) and the
+  `death` event carries `killer: null`. A damageable blocker on its next tile (wall, tower) takes the burst
+  instead of the base (walls answer Runners, §9). Players never stop or take a burst.
+- [FF10] decision: melee can't hit Flyers is enforced in the damage pipeline (`melee` damage to a flying enemy
+  deals 0, no event), so FF8/FF9 melee needs no per-attack check.
+- [FF10] decision: enemy straight shots (`side: 'theirs'`) also hit the Citadel when they reach its footprint;
+  they never hit structures (the Wasp flies over them). Siege shells are an arcing projectile (drawn, apex
+  2.5 tiles, 6 tiles/s, ≥ 0.6 s) plus a `circle` danger marker created at the shot (the damage, landing on
+  players, soldiers, structures and the Citadel); the muzzle charge during the 700 ms wind-up is the tell.
+  Siege targets the nearest tower (arrow or bomb) in range, else the Citadel, and shells a blocker on its path.
+- [FF10] decision: a Brute is a `path` walker on the breaker field; while chasing or walking back it smashes a
+  wall it walks into (2×), then the leash check sends it back to its path (its target was the wall).
+- [FF10] decision: a stunned enemy (any `stun` effect) stands still and loses its wind-up in `stepEnemies`;
+  FF8 supplies the `stun` effect itself.
+- [FF10] decision: a Swarm group spawns scattered in a 0.9-tile disc (combat stream); a group pays once even if
+  several mites die in the same step. The debug panel's spawn sends a whole group (8 mites) and refuses ids
+  without content (the Colossus until FF11).
+- [FF10] decision: enemy parts aren't emissive, so tell flares (Brute furnace, Bombard and Wasp muzzle, Stalker
+  eyes) and the Skitter core throb (0.8 Hz far → 5 Hz at the base, by distance) are violet glows drawn at the
+  rig's attach points on the effects layer (`scene/enemyFx.ts`); the Skitter's walk keeps its pace. Enemy shots
+  leave from the rig's `muzzle` (FF7-fix-1's `anchorToWorld`) with a `muzzle-theirs` flash, the offset fading
+  over the flight. Wasps draw at `WASP_HOVER_TILES` over their ground point (the sim's `z` isn't drawn), the
+  shadow 0.75× on the ground. Mites take `mitePack` size, pace and phase per entity (jitter is in the sim).
+- [FF10] decision: waves (budgets for 2 players at Normal): 8, 12, 16, 22, 12 (boss), 26, 30, 34, 40, 28 (boss),
+  46, 58, 54, 68, 34 (boss); 30–90 s each (~16 min of combat). Every pool holds the Grunt (cost 1) so spend
+  lands within ±1. Boss waves carry `boss: { id: 'colossus', mk }` with escorts per §9.2; until FF11 the boss
+  doesn't spawn and the content test only checks the id is a known `EnemyId`.
+- [FF10] decision: the determinism test's two-wave runs use the first two waves of content (so they still end
+  in the summary); a new test replays a minute of wave 14 (every AI) twice; the replay test records 3 minutes
+  (`maxSteps`), not the whole 15-wave run, to stay inside Vitest's timeout. The bench's peak crowd is the mixed
+  roster with unbreakable towers and footmen (peak mean ≈ 0.38 ms, p99 ≈ 1.0 ms on this machine).
 
 ## 9. Final handoff
 

@@ -1,8 +1,10 @@
 // Skitter (Runner) clips (SPEC §9.6): a fast low scuttle; the core pulses slowly (C1 note 3: one
-// pulse per four strides), and faster near the base (code raises the playback speed).
+// pulse per four strides); near the base code adds a faster violet throb on the core, by distance
+// (scene/enemyFx.ts), so the legs keep their pace. Attack (FF10): the burst, the core swelling as
+// the body lunges (the Runner dies the same step, so the death clip takes over at once).
 import rig from '../../../../art/neon-knights/rigs/skitter.json';
 import type { Clip, Keyframe, RigDef } from '../../../themes/types';
-import { cos, each, enemyDeath, enemyHit, loop, sin, wave } from '../clipKit';
+import { cos, each, enemyDeath, enemyHit, loop, once, sin, wave } from '../clipKit';
 
 const pulse = (ms: number): Keyframe[] =>
   wave(ms, 16, (u) => ({ sx: 1 + 0.08 * sin(u), sy: 1 + 0.08 * sin(u) }));
@@ -30,4 +32,16 @@ export const clips: Record<string, Clip> = {
   ),
   hit: enemyHit(['body'], 8, 3),
   death: enemyDeath(rig as unknown as RigDef),
+  attack: once(220, {
+    core: [
+      { t: 0, sx: 1, sy: 1 },
+      { t: 120, sx: 1.5, sy: 1.5 },
+      { t: 220, sx: 1, sy: 1 },
+    ],
+    body: [
+      { t: 0, dx: 0, dy: 0 },
+      { t: 120, dx: 4, dy: 1.5 },
+      { t: 220, dx: 0, dy: 0 },
+    ],
+  }),
 };

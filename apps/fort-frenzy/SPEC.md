@@ -1627,7 +1627,8 @@ type Phase = 'countdown' | 'build' | 'combat' | 'victory' | 'defeat' | 'summary'
   (FNV-1a over a canonical serialization of `World`) checks determinism in tests and replays.
 - **RNG** (`@pcg/game-kit`): a small seeded PRNG plus named streams derived from (seed, label), so one
   stream's use never shifts another's. Streams: `waves:<n>`, `cards:<wave>:<slot>`, `combat:<wave>` (all
-  in-combat randomness, including Scrap-mite jitter, which runs in the sim so hitboxes match the art).
+  in-combat randomness, including Scrap-mite jitter, which runs in the sim so hitboxes match the art;
+  FF10 keeps each mite's drift, pace and re-roll tick in `EnemyEnt.wander?: { side; pace; until }`).
 
 ```ts
 interface Rng { next(): number; int(lo: number, hi: number): number; pick<T>(xs: readonly T[]): T }
@@ -1740,7 +1741,8 @@ interface AttackDef { shape: 'projectile' | 'arc' | 'cone' | 'circle' | 'buff'; 
   cooldownMs: number; windupMs?: number; arcDeg?: number; count?: number; spreadDeg?: number;
   speed?: number; hitsFlyers: boolean; blockedBy?: ('wall' | 'tower')[]; knockback?: number }
 interface EnemyDef { id: EnemyId; hp: number; speed: number; radius: number; flying: boolean;
-  budget: number; groupSize?: number; ai: 'path' | 'runner' | 'siege' | 'hunter' | 'flyer' | 'boss';
+  budget: number; groupSize?: number;
+  ai: 'path' | 'runner' | 'siege' | 'hunter' | 'flyer' | 'boss' | 'swarm' | 'brute';   // FF10: swarm, brute
   field: 'ground' | 'breaker' | 'none'; attack: AttackDef;
   vsStructure?: Partial<Record<StructureId | 'base', number>>;        // Brute 2× walls, Colossus 3×
   aggro?: { radius: number; leash: number }; slowResist?: number; boss?: ModuleRef }
@@ -1833,7 +1835,9 @@ interface ThemeHost {                            // TV only
 - **Behavior per `ai`:** `path` follows its field and attacks whatever blocks it or the base; `runner`
   bursts on base contact; `siege` stops once the base or a tower is in range and shells it; `hunter`
   follows its target's field; `flyer` flies straight; aggro-leash enemies (§9) leave the path for a
-  player in aggro radius and return past the leash.
+  player in aggro radius and return past the leash. FF10 adds `swarm` (a `path` walker with the
+  in-sim mite jitter) and `brute` (a `path` walker on the `breaker` field that also smashes a wall it
+  walks into while chasing or returning).
 
 ```ts
 interface FlowField { cols: number; rows: number; dist: Float32Array; next: Int16Array } // −1 = goal

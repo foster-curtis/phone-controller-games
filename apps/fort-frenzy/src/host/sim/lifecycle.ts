@@ -56,9 +56,13 @@ export function stepEffects(s: FullState): void {
 
 // ---- step 8: deaths -------------------------------------------------------------------------------
 
-function coinsFor(s: FullState, e: EnemyEnt): number {
+function coinsFor(s: FullState, e: EnemyEnt, paid: Set<number>): number {
+  // A Runner's burst is not a kill (FF10): it is its own killer and pays nothing.
+  if (s.killers.get(e.id) === e.id) return 0;
   const groupLeft = s.world.enemies.some((o) => o !== e && o.group === e.group && o.hp > 0);
-  if (groupLeft) return 0; // a group pays when its last unit dies (§9.1)
+  // A group pays once, when its last unit dies (§9.1), even if several die in the same step.
+  if (groupLeft || paid.has(e.group)) return 0;
+  paid.add(e.group);
   return Math.round(s.cat.enemy(e.kind).budget * s.cat.difficulty.coinIncome);
 }
 
@@ -67,14 +71,16 @@ export function stepDeaths(s: FullState): void {
   const t = w.tick;
   // Enemies.
   let write = 0;
+  const paid = new Set<number>();
   for (const e of w.enemies) {
     if (e.hp > 0) {
       w.enemies[write++] = e;
       continue;
     }
-    const killerId = s.killers.get(e.id) ?? null;
+    w.team.coins += coinsFor(s, e, paid);
+    let killerId = s.killers.get(e.id) ?? null;
+    if (killerId === e.id) killerId = null; // a Runner's burst
     const killer = killerId === null ? null : (s.units.get(killerId) ?? null);
-    w.team.coins += coinsFor(s, e);
     if (killer && s.kinds.get(killer.id) === 'player') (killer as PlayerEnt).run.kills++;
     s.emit({ e: 'death', id: e.id, what: 'enemy', killer: killerId, x: e.x, y: e.y });
     for (const f of s.hooks(e, 'onDeath')) f(s, e, killer);
@@ -174,10 +180,23 @@ export function spawnGroup(
   px /= pl;
   py /= pl;
   const rng = s.rng(`combat:${s.world.wave}`);
+  // A pack (Swarm, groups of 8) scatters unevenly around the spawn point, never in rows (§9.6).
+  const pack = (s.cat.enemy(enemy).groupSize ?? 1) > 1;
   let group: number | undefined;
   for (let i = 0; i < count; i++) {
-    const off = (i - (count - 1) / 2) * 0.7 + (rng.next() - 0.5) * 0.3;
-    const e = s.spawnEnemy(enemy, L.spawn.x + px * off, L.spawn.y + py * off, lane, group);
+    let x: number;
+    let y: number;
+    if (pack) {
+      const a = rng.next() * Math.PI * 2;
+      const d = 0.9 * Math.sqrt(rng.next());
+      x = L.spawn.x + Math.cos(a) * d;
+      y = L.spawn.y + Math.sin(a) * d;
+    } else {
+      const off = (i - (count - 1) / 2) * 0.7 + (rng.next() - 0.5) * 0.3;
+      x = L.spawn.x + px * off;
+      y = L.spawn.y + py * off;
+    }
+    const e = s.spawnEnemy(enemy, x, y, lane, group);
     group ??= e.id;
   }
 }

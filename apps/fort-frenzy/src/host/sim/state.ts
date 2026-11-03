@@ -218,9 +218,12 @@ export function createState(start: RunStart, cat: Catalog): FullState {
   };
   const groundCost = tileCost(false);
   const breakerCost = tileCost(true);
+  /** The tile each hunted field was built toward (−1 = stale), by slot. */
+  const huntedAt: number[] = [];
   const rebuildFields = () => {
     buildField(world.grid, groundCost, goals, world.fields.ground);
     buildField(world.grid, breakerCost, goals, world.fields.breaker);
+    huntedAt.fill(-1);
     world.fields.dirty = false;
   };
 
@@ -469,6 +472,21 @@ export function createState(start: RunStart, cat: Catalog): FullState {
     fieldsDirty() {
       world.fields.dirty = true;
     },
+    huntField(slot) {
+      const p = world.players.find((q) => q.slot === slot);
+      if (!p) return null;
+      const col = Math.min(cols - 1, Math.max(0, Math.floor(p.x)));
+      const row = Math.min(rows - 1, Math.max(0, Math.floor(p.y)));
+      const t = row * cols + col;
+      const hunted = world.fields.hunted;
+      while (hunted.length <= slot) hunted.push(null);
+      while (huntedAt.length <= slot) huntedAt.push(-1);
+      const f = hunted[slot] ?? undefined;
+      if (f && huntedAt[slot] === t) return f;
+      hunted[slot] = buildField(world.grid, groundCost, [t], f);
+      huntedAt[slot] = t;
+      return hunted[slot];
+    },
     addSoldier(owner, x, y, index) {
       const lead = world.players.find((p) => p.slot === owner);
       const def = lead ? cat.character(lead.classId).squad?.soldier : undefined;
@@ -526,6 +544,10 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       }
       const src = calc.source === null ? null : (units.get(calc.source) ?? null);
       const tkind = unitKinds.get(target.id);
+      // Melee can't reach a Flyer (§9): hammers, blades and fists swing under it.
+      if (calc.kind === 'melee' && tkind === 'enemy' && (target as EnemyEnt).flying) {
+        return { ...calc, amount: 0, absorbed: 0, dealt: 0, killed: false };
+      }
       return applyDamage<EntityId, DamageKind>(calc, {
         outgoing: src
           ? (c) => {

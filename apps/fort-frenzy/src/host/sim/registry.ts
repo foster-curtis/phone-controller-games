@@ -5,7 +5,13 @@
 // so the registry has no import cycles.
 import type { EnemyDef } from '../../content/types';
 import type { EffectId, StructureId } from '../../shared/ids';
+import { bruteAi } from './ai/brute';
+import { flyerAi } from './ai/flyer';
+import { hunterAi } from './ai/hunter';
 import { pathAi } from './ai/path';
+import { runnerAi } from './ai/runner';
+import { siegeAi } from './ai/siege';
+import { swarmAi } from './ai/swarm';
 import { steadyAim } from './modules/steadyAim';
 import { fieldMedic } from './modules/fieldMedic';
 import { leadFromTheFront } from './modules/leadFromTheFront';
@@ -48,6 +54,12 @@ export const bosses: Record<string, BossBehavior> = {};
 export type AiTick = (ctx: SimCtx, enemy: EnemyEnt) => void;
 export const aiKinds: Partial<Record<EnemyDef['ai'], AiTick>> = {
   path: pathAi, // FF6
+  runner: runnerAi, // FF10
+  swarm: swarmAi, // FF10
+  brute: bruteAi, // FF10
+  flyer: flyerAi, // FF10
+  siege: siegeAi, // FF10
+  hunter: hunterAi, // FF10
 };
 
 /** One structure's behavior for a step (attacks, snare discharges, Fortify). */

@@ -3,7 +3,8 @@
 // Plain TS: no Phaser, no net-client, no themes, no DOM (lint, §15.1). Units: tiles, ticks (60 Hz
 // steps); config times in ms are converted to ticks at load.
 // Frozen at FF1 (BUILD_PLAN §3): additive changes only (new optional fields, new union members).
-// FF6 added `Unit.push` and `BaseState.stage`; FF9 added `ThrownCrate` and `World.thrown`.
+// FF6 added `Unit.push` and `BaseState.stage`; FF9 added `ThrownCrate` and `World.thrown`; FF10 added
+// `EnemyEnt.wander`.
 import type { Rng } from '@pcg/game-kit';
 import type {
   EffectApply,
@@ -154,6 +155,11 @@ export interface EnemyEnt extends Unit {
   /** Hunter's quarry (slot). */
   hunting: number | null;
   attack: AttackState;
+  /**
+   * Scrap-mite jitter (FF10; §15.3: in the sim, combat stream): sideways drift (−1..1), pace factor
+   * (0 = a short stop) and the tick it re-rolls. Absent for other enemies.
+   */
+  wander?: { side: number; pace: number; until: number };
   /** Boss only: stagger meter 0..1 and Mk tier. */
   boss?: { mk: 1 | 2 | 3; stagger: number; staggeredUntil: number | null; finalPhase: boolean };
 }

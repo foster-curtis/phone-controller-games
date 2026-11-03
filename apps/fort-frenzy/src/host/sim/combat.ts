@@ -1,10 +1,20 @@
 // Structures and base archers (step 4, after the enemy AI), projectiles and danger markers (step 6)
 // (SPEC §3.5, §7, §15.3). Every hit goes through `applyDamage`.
+import { rectDist } from './geometry';
 import { structureBehaviors } from './registry';
 import type { FullState } from './state';
-import type { DangerMarker, EnemyEnt, PlayerEnt, ProjectileEnt, Unit } from './types';
+import {
+  BASE_ID,
+  type DangerMarker,
+  type EnemyEnt,
+  type PlayerEnt,
+  type ProjectileEnt,
+  type Unit,
+} from './types';
 
 const TOWERS = new Set(['arrow_tower', 'bomb_tower']);
+/** Peak height of an arcing shell, tiles. */
+export const ARC_APEX = 2.5;
 
 export function stepStructures(s: FullState): void {
   for (const st of s.world.structures) {
@@ -84,7 +94,16 @@ export function stepProjectiles(s: FullState): void {
   for (let i = 0; i < w.projectiles.length; i++) {
     const p = w.projectiles[i]!;
     let alive = true;
-    // Arcing shells (mortar, Siege) land with FF8/FF10; straight shots only for now.
+    // Arcing shells (Siege, FF10) fly over everything; their danger marker does the damage on landing.
+    if (p.arc) {
+      const a = p.arc;
+      const u = Math.min(1, (t + 1 - a.launchedAt) / Math.max(1, a.landsAt - a.launchedAt));
+      p.x = a.from.x + (a.to.x - a.from.x) * u;
+      p.y = a.from.y + (a.to.y - a.from.y) * u;
+      p.z = ARC_APEX * 4 * u * (1 - u);
+      if (t + 1 < a.landsAt) w.projectiles[write++] = p;
+      continue;
+    }
     const x0 = p.x;
     const y0 = p.y;
     const sx = p.vx / 60;
@@ -138,6 +157,10 @@ export function stepProjectiles(s: FullState): void {
         p.hit.push(best.id);
         if (p.pierce > 0) p.pierce--;
         else alive = false;
+      } else if (p.side === 'theirs' && rectDist(x1, y1, s.baseRect) <= p.r) {
+        // Enemy shots (the Wasp's stinger) also hit the Citadel (FF10).
+        s.damage({ source: p.source, target: BASE_ID, amount: p.damage, kind: p.kind, tags: [] });
+        alive = false;
       }
     }
     p.x = x1;
@@ -188,6 +211,8 @@ export function stepMarkers(s: FullState): void {
     if (m.payload.hitsStructures) {
       for (const st of w.structures)
         if (st.damageable && st.hp > 0 && insideMarker(m, st)) victims.push(st);
+      // The Citadel too (Siege shells, FF10), when the marker reaches its footprint.
+      if (w.base.hp > 0 && rectDist(m.x, m.y, s.baseRect) <= m.r) victims.push(w.base);
     }
     for (const u of victims) {
       hit(u);

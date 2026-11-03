@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { modules } from '../../host/sim/registry';
 import { aiKinds, structureBehaviors } from '../../host/sim/registry';
+import { generateWave, groupsCost, playerScale, waveRng } from '../../host/systems/waves';
 import {
   CARD_IDS,
   CLASS_IDS,
@@ -96,7 +97,8 @@ describe('content ids', () => {
         cost += g.count * c.enemies.find((e) => e.id === g.enemy)!.budget;
       }
       expect(w.budget).toBeGreaterThanOrEqual(cost);
-      if (w.boss) expect(enemyIds).toContain(w.boss.id);
+      // The Colossus's def arrives with FF11; until then a boss ref only needs a known id.
+      if (w.boss) expect(ENEMY_IDS).toContain(w.boss.id);
     }
   });
 });
@@ -149,5 +151,74 @@ describe('content rules', () => {
     expect(c.rules!.buildCapMs).toBe(45_000);
     expect(c.rules!.inputStaleMs).toBe(250);
     expect(c.scaling).toEqual({ base: 0.5, perPlayer: 0.25 });
+  });
+});
+
+describe('waves 1–15 (SPEC §9.3, §9.4)', () => {
+  const byId = new Map(c.enemies.map((e) => [e.id, e]));
+  const lanesAt = (n: number) => (n <= 2 ? 1 : n <= 7 ? 2 : 3);
+
+  it('are hand-authored for 1–15 with §9.4’s lanes, introductions and boss waves', () => {
+    expect(c.waves.map((w) => w.n)).toEqual(Array.from({ length: 15 }, (_, i) => i + 1));
+    for (const w of c.waves) expect(w.lanes).toHaveLength(lanesAt(w.n));
+    const intro: Record<number, string> = {
+      2: 'runner',
+      3: 'swarm',
+      4: 'brute',
+      6: 'flyer',
+      7: 'siege',
+      8: 'hunter',
+    };
+    const seen = new Set<string>(['grunt']);
+    for (const w of c.waves) {
+      const fresh = w.allowed.filter((id) => !seen.has(id));
+      if (intro[w.n]) {
+        expect(fresh).toEqual([intro[w.n]]);
+        expect(w.guaranteed.map((g) => g.enemy)).toContain(intro[w.n]);
+      } else expect(fresh).toEqual([]);
+      for (const id of w.allowed) seen.add(id);
+      expect(w.boss?.id).toBe([5, 10, 15].includes(w.n) ? 'colossus' : undefined);
+      expect(w.durationMs).toBeGreaterThanOrEqual(30_000);
+      expect(w.durationMs).toBeLessThanOrEqual(90_000);
+    }
+    expect(c.waves.map((w) => w.boss?.mk).filter(Boolean)).toEqual([1, 2, 3]);
+  });
+
+  it('the generator spends every wave to within ±1 of its budget (players, difficulty, Flyers)', () => {
+    for (const w of c.waves) {
+      const pool = w.allowed.map((id) => ({
+        id,
+        cost: byId.get(id)!.budget,
+        groupSize: byId.get(id)!.groupSize,
+      }));
+      const ground = w.allowed.filter((id) => !byId.get(id)!.flying);
+      for (const d of c.difficulties) {
+        for (let players = 1; players <= 6; players++) {
+          for (const flyers of [true, false]) {
+            for (const seed of [1, 2, 3]) {
+              const budget = w.budget * playerScale(players, c.scaling!) * d.budget;
+              const groups = generateWave({
+                budget,
+                pool,
+                guaranteed: w.guaranteed.map((g) => ({
+                  id: g.enemy,
+                  count: g.count,
+                  lane: g.lane,
+                })),
+                lanes: w.lanes,
+                durationMs: w.durationMs,
+                substitute: flyers ? undefined : { flyer: ground },
+                rng: waveRng(seed, w.n),
+              });
+              const spent = groupsCost(groups, pool);
+              expect(Math.abs(spent - budget), `wave ${w.n}`).toBeLessThanOrEqual(1);
+              if (!flyers) expect(groups.some((g) => g.id === 'flyer')).toBe(false);
+              for (const g of groups) expect(w.lanes).toContain(g.lane);
+              for (const g of groups) expect(g.count).toBe(byId.get(g.id)!.groupSize ?? 1);
+            }
+          }
+        }
+      }
+    }
   });
 });

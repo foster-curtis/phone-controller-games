@@ -3,7 +3,9 @@
 // the amber super-ready pulse, nametags and HP bars that flip below near the top, aim lines, the
 // build ghost and arc, the Ranger's shot (draw, hold, release; the bolt leaves from the bow), super
 // and build kneel with the deploy beacon, down piles and respawns), enemies (walk, attack, hit and
-// death clips; stun forces idle), pulse turrets (aim and muzzle flashes), projectiles, crate piles,
+// death clips; stun forces idle; FF10: tell glows, the Skitter's core throb, the Stalker's target
+// thread, Wasp hover over its shadow, mites at their own sizes and paces, shots from the weapon,
+// burn/poison tick flashes), pulse turrets (aim and muzzle flashes), projectiles, crate piles,
 // danger markers and the debug overlays. Positions are lerped between the last two sim steps; the
 // sim is read, never written.
 import { lerp } from '@pcg/game-kit';
@@ -22,7 +24,9 @@ import { placeFrame } from '../render/context';
 import { clipLandedMs, spawnPile } from '../render/fall';
 import { RIG_INFO, type RigInfo } from '../render/gallery/rigInfo';
 import { fk, iconFrame } from '../render/keys';
+import { TILE_W } from '../render/camera';
 import { MapView } from '../render/map';
+import { mitePack } from '../render/swarm';
 import type { RigSprite } from '../render/rig';
 import { locomotionClip, locomotionSpeed, StatusSprites } from '../render/status';
 import { Citadel, frameAt, PulseTurret, type SentryId } from '../render/structures';
@@ -38,6 +42,15 @@ import {
   type SimEvent,
   type World,
 } from '../sim/types';
+import {
+  chargeLevel,
+  drawGlow,
+  enemyShotPos,
+  pulseHz,
+  pulseLevel,
+  TELL_GLOW,
+  type EnemyShot,
+} from './enemyFx';
 import { anchorToWorld, shotPos, shotTiming, type Launch, type Pos } from './shot';
 import { shotAnchor } from './support';
 import { SupportView } from './supportView';
@@ -118,6 +131,15 @@ interface Enemy {
   dying: { t: number; landed: number; holdMs: number; piled: boolean } | null;
   sx: number;
   sy: number;
+  /** Interpolated world position (shot origins). */
+  wx: number;
+  wy: number;
+  /** A wind-up tell in progress (FF10): when it started and how long it is, ms. */
+  tell: { t0: number; ms: number } | null;
+  /** Skitter core throb phase, cycles. */
+  pulse: number;
+  /** Locomotion playback rate (each mite its own). */
+  clipSpeed: number;
 }
 
 interface Timer {
@@ -136,10 +158,13 @@ export class WorldView {
   private readonly shots = new Map<EntityId, ProjectileSprite>();
   private readonly launches = new Map<EntityId, Launch>();
   private readonly launchers = new Map<EntityId, Knight>();
+  private readonly enemyShots = new Map<EntityId, EnemyShot>();
   private readonly piles = new Map<EntityId, ArtImage[]>();
   private readonly ui: Phaser.GameObjects.Graphics;
   private readonly ground: Phaser.GameObjects.Graphics;
   private readonly debug: Phaser.GameObjects.Graphics;
+  /** Enemy tells and the Skitter core throb (effects layer, so the bloom takes them). */
+  private readonly glow: Phaser.GameObjects.Graphics;
   private timers: Timer[] = [];
   private t = 0;
   private openLanes = new Set<LaneId>();
@@ -153,7 +178,7 @@ export class WorldView {
     this.support = new SupportView(w, content, (slot) => this.knights.get(slot) ?? null);
     frameAt(w, fk('armory/pad'), 'ground', ARMORY_AT.x, ARMORY_AT.y);
     frameAt(w, fk('armory/kiosk'), 'world', ARMORY_AT.x, ARMORY_AT.y);
-    const gfx = (layer: 'groundOverlay' | 'worldUi', depth: number) => {
+    const gfx = (layer: 'groundOverlay' | 'worldUi' | 'effects', depth: number) => {
       const g = w.scene.make.graphics({}, false).setDepth(depth);
       w.layers[layer].add(g);
       return g;
@@ -161,6 +186,7 @@ export class WorldView {
     this.ground = gfx('groundOverlay', -5e5);
     this.ui = gfx('worldUi', -1);
     this.debug = gfx('worldUi', 1e6);
+    this.glow = gfx('effects', 1e6);
     for (const l of LANE_IDS) this.map.setLane(l, 'sealed');
   }
 
@@ -202,6 +228,7 @@ export class WorldView {
     this.ground.clear();
     this.ui.clear();
     this.debug.clear();
+    this.glow.clear();
     this.w.marks.begin();
     this.drawCitadel(w, f.dtMs);
     this.drawKnights(w, f);
@@ -304,8 +331,11 @@ export class WorldView {
       if (this.enemies.has(e.id)) continue;
       const rigId = this.w.theme.rigFor.enemy[e.kind];
       const info = RIG_INFO[rigId] ?? RIG_INFO.drone!;
-      const rig = this.w.rig(rigId, { view: 'side', clip: 'walk' });
-      rig.play('walk', { offsetMs: (e.id * 97) % 500, fadeMs: 0 });
+      // Scrap mites: mixed sizes, each at its own pace and phase, never in step (§9.6); the
+      // jitter itself runs in the sim.
+      const mite = e.kind === 'swarm' ? mitePack(e.id, 1)[0]! : null;
+      const rig = this.w.rig(rigId, { view: 'side', clip: 'walk', scale: mite?.scale });
+      rig.play('walk', { offsetMs: mite?.offsetMs ?? (e.id * 97) % 500, fadeMs: 0 });
       this.enemies.set(e.id, {
         rig,
         info,
@@ -314,6 +344,11 @@ export class WorldView {
         dying: null,
         sx: 0,
         sy: 0,
+        wx: e.x,
+        wy: e.y,
+        tell: null,
+        pulse: 0,
+        clipSpeed: mite?.speed ?? 1,
       });
     }
     // Gone without a death event (a debug wave jump): remove at once.
@@ -368,6 +403,11 @@ export class WorldView {
       case 'damage': {
         const en = this.enemies.get(e.target);
         if (en && !en.dying) {
+          // A burn or poison tick is only the white flash (art README: status effects).
+          if (e.kind === 'dot') {
+            en.rig.flash(60);
+            return;
+          }
           if (!playing(en.rig) || en.rig.clip === 'hit')
             en.rig.play('hit', { restart: true, fadeMs: 0 });
           en.rig.flash(60);
@@ -473,6 +513,17 @@ export class WorldView {
     if (en && !en.dying) {
       en.mirror = enemyMirror(Math.cos(e.angle), en.mirror);
       en.rig.play('attack', { restart: true, fadeMs: 60 });
+      // The wind-up is the tell (§9.6): its glow runs for the content's wind-up.
+      const kind = w.enemies.find((x) => x.id === e.source)?.kind;
+      const windupMs = this.content.enemies.find((d) => d.id === kind)?.attack.windupMs ?? 0;
+      en.tell = windupMs > 0 ? { t0: this.t, ms: windupMs } : null;
+      if (en.rig.rigId === 'skitter') {
+        // The Runner's burst: a violet blast from its core.
+        const c = en.rig.attach('core') ?? { sx: en.sx, sy: en.sy };
+        fx.burst('spark-theirs', c.sx, c.sy);
+        fx.burst('spark-theirs', c.sx + 8, c.sy - 6, 0, 40);
+        fx.ring('theirs', e.x, e.y, 0.9, 380);
+      }
       return;
     }
     const k = this.knightById(e.source);
@@ -757,10 +808,14 @@ export class WorldView {
         continue;
       }
       if (!e) continue;
-      const at = this.screen(id, e.x, e.y, e.z ?? 0, f);
+      // On the ground: a Wasp hovers at its fixed height above its ground point, where its shadow
+      // stays (§2.5 height, §9.6), so the sim's z isn't drawn.
+      const at = this.screen(id, e.x, e.y, 0, f);
       en.sx = at.sx;
       en.sy = at.sy;
-      const fly = (en.info.fly ?? 0) * 48;
+      en.wx = at.x;
+      en.wy = at.y;
+      const fly = (en.info.fly ?? 0) * TILE_W;
       en.rig.setPosition(at.sx, at.sy - fly, at.sy);
       const moving = Math.hypot(e.vx, e.vy) > 0.05;
       en.mirror = enemyMirror(moving ? e.vx : Math.cos(e.facing), en.mirror);
@@ -769,12 +824,61 @@ export class WorldView {
       if (looks.length > 0 && !en.status)
         en.status = new StatusSprites(this.w, en.rig, en.info.bodyH, en.info.legH, id);
       en.status?.set(looks);
+      const stunned = looks.includes('stun');
+      if (stunned) en.tell = null;
       // Stunned units always idle (C1 note 11); slowed ones walk sluggishly.
-      if (!playing(en.rig) || looks.includes('stun'))
-        en.rig.play(locomotionClip(moving, looks), { speed: locomotionSpeed(looks) });
+      if (!playing(en.rig) || stunned)
+        en.rig.play(locomotionClip(moving, looks), {
+          speed: locomotionSpeed(looks) * en.clipSpeed,
+        });
       en.status?.update(f.dtMs, at.sx, at.sy - fly);
-      this.w.marks.shadow(at.sx, at.sy, en.info.shadow[0] * 2, en.info.shadow[1] * 2);
+      const k = fly > 0 ? 0.75 : 1; // the shadow far below reads smaller
+      this.w.marks.shadow(at.sx, at.sy, en.info.shadow[0] * 2 * k, en.info.shadow[1] * 2 * k);
+      if (!stunned) this.drawEnemyLooks(w, e, en, f.dtMs);
     }
+  }
+
+  /** Tell glows, the Skitter's core throb and the Stalker's target thread (FF10, §9.6). */
+  private drawEnemyLooks(w: World, e: EnemyEnt, en: Enemy, dtMs: number) {
+    const k1 = this.w.unitPx;
+    const rigId = en.rig.rigId;
+    if (en.tell) {
+      const age = this.t - en.tell.t0;
+      const level = chargeLevel(age, en.tell.ms);
+      if (age > en.tell.ms + 100) en.tell = null;
+      const spec = TELL_GLOW[rigId];
+      const p = spec && this.tellPoint(en, spec.at);
+      if (spec && p) drawGlow(this.glow, p.sx, p.sy, spec.r * k1, level * 1.2);
+    }
+    if (rigId === 'skitter') {
+      const d = rectDistToBase(w, e.x, e.y);
+      en.pulse += (dtMs / 1000) * pulseHz(d);
+      const c = en.rig.attach('core');
+      if (c) drawGlow(this.glow, c.sx, c.sy, 7 * k1, pulseLevel(en.pulse));
+    }
+    if (rigId === 'stalker' && e.ai === 'hunt' && e.hunting !== null) {
+      const q = this.knights.get(e.hunting);
+      const eyes = en.rig.attach('eyes');
+      if (q && !q.down && eyes) {
+        const to = { sx: q.sx, sy: q.sy - q.info.bodyH * k1 * 0.55 };
+        this.ui
+          .lineStyle(2, theme.color.hostile.num, 0.32)
+          .lineBetween(eyes.sx, eyes.sy, to.sx, to.sy);
+      }
+    }
+  }
+
+  private tellPoint(en: Enemy, at: 'muzzle' | 'chest' | 'eyes') {
+    if (at !== 'chest') return en.rig.attach(at);
+    // The Brute's furnace grille: halfway up its body, a little toward its fist.
+    const top = en.rig.attach('top');
+    const fist = en.rig.attach('fist');
+    if (!top || !fist) return null;
+    const foot = { sx: en.sx, sy: en.sy };
+    return {
+      sx: lerp(foot.sx, top.sx, 0.5) + (fist.sx - foot.sx) * 0.2,
+      sy: lerp(foot.sy, top.sy, 0.5),
+    };
   }
 
   /**
@@ -802,7 +906,7 @@ export class WorldView {
         if (m) launch.origin = anchorToWorld(m, { x: k.wx, y: k.wy }, this.w.camera);
       }
       const at = this.screen(pr.id, pr.x, pr.y, pr.z ?? 0, f);
-      const pos = shotPos(launch, this.t, at);
+      const pos = pr.side === 'theirs' ? this.enemyShot(pr, w, at) : shotPos(launch, this.t, at);
       if (!pos) continue;
       let s = this.shots.get(pr.id);
       if (!s) {
@@ -821,6 +925,32 @@ export class WorldView {
       this.launches.delete(id);
       this.launchers.delete(id);
     }
+    for (const id of this.enemyShots.keys()) if (!live.has(id)) this.enemyShots.delete(id);
+  }
+
+  /**
+   * An enemy shot leaves from its weapon (C2 note 2): the Bombard's barrel, the Wasp's stinger. The
+   * muzzle point is read once, with a muzzle flash, and its offset fades over the flight.
+   */
+  private enemyShot(pr: World['projectiles'][number], w: World, sim: Pos): Pos {
+    let s = this.enemyShots.get(pr.id);
+    if (!s) {
+      const en = this.enemies.get(pr.source);
+      const m = en && !en.dying ? en.rig.attach('muzzle') : null;
+      const arc = pr.arc;
+      const flightMs = (arc ? arc.landsAt - arc.launchedAt : pr.expiresAt - w.tick) * STEP_MS;
+      s = {
+        origin:
+          m && en ? anchorToWorld(m, { x: en.wx, y: en.wy }, this.w.camera) : { ...sim, z: 0 },
+        from: m && en ? { x: en.wx, y: en.wy } : { x: sim.x, y: sim.y },
+        bornMs: this.t,
+        flightMs,
+        endZ: arc ? 0 : 0.5,
+      };
+      this.enemyShots.set(pr.id, s);
+      if (m) this.w.fx.burst('muzzle-theirs', m.sx, m.sy, screenRot(Math.atan2(pr.vy, pr.vx)));
+    }
+    return enemyShotPos(s, this.t, sim);
   }
 
   private drawPiles(w: World) {
@@ -932,6 +1062,7 @@ export class WorldView {
     this.shots.clear();
     this.launches.clear();
     this.launchers.clear();
+    this.enemyShots.clear();
   }
 }
 
@@ -944,7 +1075,16 @@ function looksOf(effects: readonly { def: EffectId }[]): StatusLook[] {
   return out;
 }
 
-/** Straight shots are bolts until FF9/FF10 add nanite bolts, Wasp shots and shells. */
+/** Straight shots are bolts; the Quartermaster's are nanite bolts (FF9), enemies' their own (FF10). */
 function projectileKind(from: string): ProjectileKind {
-  return from === 'quartermaster' ? 'nanite-bolt' : 'bolt';
+  if (from === 'quartermaster') return 'nanite-bolt';
+  if (from === 'flyer') return 'wasp-shot';
+  if (from === 'siege') return 'bombard-shell';
+  return 'bolt';
+}
+
+/** About how far (x, y) is from the Citadel (tiles): its center less half its short side. */
+function rectDistToBase(w: World, x: number, y: number): number {
+  const b = w.base;
+  return Math.max(0, Math.hypot(x - b.x, y - b.y) - b.r);
 }

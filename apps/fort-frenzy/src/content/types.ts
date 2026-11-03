@@ -3,7 +3,7 @@
 // converts to steps at load), damage and HP as plain numbers. Presentation never lives here (§2.1).
 // Frozen at FF1 (BUILD_PLAN §3): additive changes only. Tuning values in src/content/ are not frozen.
 // FF6 added `BaseDef` and `RulesDef`. FF9 added the `buff` shape, `CharacterDef.super.selfEffects` and
-// `CharacterDef.supply`.
+// `CharacterDef.supply`. FF10 added the `swarm` and `brute` AI kinds.
 import type {
   CardId,
   ClassId,
@@ -149,7 +149,8 @@ export interface EnemyDef {
   flying: boolean;
   budget: number;
   groupSize?: number;
-  ai: 'path' | 'runner' | 'siege' | 'hunter' | 'flyer' | 'boss';
+  /** FF10 added `swarm` (path with in-sim jitter) and `brute` (path that smashes walls it meets). */
+  ai: 'path' | 'runner' | 'siege' | 'hunter' | 'flyer' | 'boss' | 'swarm' | 'brute';
   field: 'ground' | 'breaker' | 'none';
   attack: AttackDef;
   /** Damage multipliers vs structures (Brute 2× walls, Colossus 3×). */
