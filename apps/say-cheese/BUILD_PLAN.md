@@ -459,9 +459,9 @@ Rules:
   - [x] Merged to `say-cheese` and pushed
   - [ ] User approved C1 (camera spike on iPhone + Android)
 - **SC2**
-  - [ ] Seats module + tests
-  - [ ] Match state machine (phases, rules, rounds, matchEnd, rematch) + transition tests
-  - [ ] Scoring, tags, turn queue, leader, persist + tests
+  - [x] Seats module + tests
+  - [x] Match state machine (phases, rules, rounds, matchEnd, rematch) + transition tests
+  - [x] Scoring, tags, turn queue, leader, persist + tests
   - [ ] Merged to `say-cheese` and pushed
 - **SC3**
   - [x] App shell + router + dev mode
@@ -551,6 +551,16 @@ Format: `- [SC#] decision: one line, with the reason.`
 - [SC1] decision: the camera captures from its own hidden 1 px `<video>` kept in the DOM; `attach()` only adds previews, because a shot must not depend on which screen's preview is mounted and iOS may stop decoding a detached video.
 - [SC1] decision: the spike's "ms" is measured on the TV from the `shot` message's arrival to the photo's last chunk, because phone and TV clocks aren't synced.
 - [SC1] decision: `spike.html` is Prettier-formatted (it isn't in `.prettierignore`), because only SC0 edits root files and SC5 deletes the page.
+- [SC2] decision: `createMatch({ rng: () => number, now, restored? })` also returns `flush()` (pending screens/snapshot after create or restore) and `phoneIds()`; seatless phones live in a private phone map, not `MatchState`, because the frozen types need no change.
+- [SC2] decision: `turns` = the camera-ok seats queued at match start (no-camera seats never count), because "round 3 / N" must be reachable.
+- [SC2] decision: How to play (from the lobby) doesn't mark the rules seen; only Start does, because the spec ties "first match only" to Start.
+- [SC2] decision: during `pass`, other phones get the dodger `announce` screen; seatless and spectator-only phones get `spectating` from pass to review and the normal results/matchEnd screens, because a spectating leader must still reach Next / Rematch.
+- [SC2] decision: a phone gets a `screen` effect only when its screen changed (ignoring `endsInMs`), and again after any `peer` event for it; `persist` only when the snapshot changed, because it keeps the relay quiet without a timer.
+- [SC2] decision: photos are released when the next round starts, at match end and on Back to lobby, because nothing shows them after results.
+- [SC2] decision: upload completes only once `shootDone` arrived and all its `count` photos did; without `shootDone` the grace timer decides, because the shot count alone may lag the phone.
+- [SC2] decision: removing the photographer between pass and review ends the round unscored and starts the next turn; a removed seat's unscored tags are dropped, because SPEC §6.3 keeps only scored tags.
+- [SC2] decision: `profile` creates only seat 0 (other seats come from `addSeat`, lobby only, or `hello`); renames only in the lobby; Ready is kept across Rematch and Back to lobby, because these are the simplest rules the spec allows.
+- [SC2] decision: `restored` snapshots replay an open round with a new `r` (photographer first in the queue), start the next turn from `results`, and turn `rules` into `lobby`; SC6 refines connection handling.
 
 ## 9. Final handoff (and early setup)
 
