@@ -443,7 +443,7 @@ Rules:
 
 ## 6. Progress checklist
 
-- [ ] Pre-flight green (S1)
+- [x] Pre-flight green (S1)
 - **SC0**
   - [x] `origin/main` merged; kits available; tables resolved
   - [x] Brand kit unpacked, zip removed
@@ -451,7 +451,7 @@ Rules:
   - [x] Contracts: messages, match types + config, blob-transfer types, seats types, camera + sfx interfaces
   - [x] Root wiring: scripts, lockfile, Dockerfile, check-bundle limit, .prettierignore, tables; SPEC §8/§9/§10 updated
   - [x] Full gate green
-  - [ ] Merged to `say-cheese` and pushed
+  - [x] Merged to `say-cheese` and pushed
 - **SC1**
   - [ ] Blob transfer module + tests (incl. 16 KB envelope test)
   - [ ] Camera module + tests
