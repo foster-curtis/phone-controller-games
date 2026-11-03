@@ -471,7 +471,7 @@ Rules:
 - **SC4**
   - [x] TV views for every phase + tests
   - [x] Host controls (buttons + keyboard) + gallery
-  - [ ] Merged to `say-cheese` and pushed
+  - [x] Merged to `say-cheese` and pushed
 - **SC5**
   - [ ] Host wiring (client, match, receiver, timers, debug)
   - [ ] Phone wiring (client, camera, photos, sender)
