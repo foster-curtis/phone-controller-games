@@ -1852,7 +1852,7 @@ export const PROTOCOL_VERSION = 1;
 /** Phone → host input (§10.1, §11.4). Sticks and aims are ints −100..100, dead zone applied on the phone. */
 export type InputTuple = [
   moveX: number, moveY: number,
-  mainX: number, mainY: number,       // aim at the last release; 0,0 with a fire = tap = auto-aim
+  mainX: number, mainY: number,       // live aim while aiming (FF7), the release aim with a fire; 0,0 = tap = auto-aim
   superX: number, superY: number,
   flags: number,                      // 1 main aiming (TV aim line), 2 super aiming, 4 radial open
   mainFires: number, superFires: number, actionTaps: number, radialCommits: number, // counters

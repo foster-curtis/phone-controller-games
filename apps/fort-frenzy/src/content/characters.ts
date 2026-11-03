@@ -7,13 +7,14 @@ export const engineer = {
   hp: 100,
   moveSpeed: 4.5,
   radius: 0.32,
-  // Longbow: the longest range in the game (§8). Fast bolts (BUILD_PLAN §8: brisk projectiles).
+  // Longbow: the longest range in the game (§8). Bolts fly at render PROJECTILE_SPEEDS.bolt (26 t/s,
+  // FF3-fix-1; BUILD_PLAN §8 FF7).
   main: {
     shape: 'projectile',
     damage: 34,
     range: 9,
     cooldownMs: 600,
-    speed: 24,
+    speed: 26,
     hitsFlyers: true,
   },
   // A wide circle around the Engineer: light area damage and knockback (§8).

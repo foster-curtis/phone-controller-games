@@ -6,6 +6,7 @@ import {
   CITADEL_CENTER_X,
   SAFE_BOX,
   fitScale,
+  fitTransform,
   insideSafe,
   laneBand,
 } from '../layout';
@@ -47,6 +48,16 @@ describe('band geometry (SPEC §15.2 table)', () => {
     expect(f.scale).toBeCloseTo(1000 / 1920);
     expect(f.x).toBeCloseTo(0);
     expect(f.y).toBeGreaterThan(0);
+  });
+  it('the canvas and the DOM overlay share one transform (FF7)', () => {
+    expect(fitTransform(1280, 720)).toBe('translate(0px, 0px) scale(' + 2 / 3 + ')');
+    // Letterboxed: centered, and a 1920-wide element lands exactly on the window edges.
+    const t = fitTransform(2000, 900);
+    const m = /translate\((.+)px, (.+)px\) scale\((.+)\)/.exec(t)!;
+    const [x, y, s] = [Number(m[1]), Number(m[2]), Number(m[3])];
+    expect(y).toBe(0);
+    expect(s).toBeCloseTo(900 / 1080);
+    expect(x * 2 + 1920 * s).toBeCloseTo(2000);
   });
 });
 

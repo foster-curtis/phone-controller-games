@@ -15,7 +15,7 @@ export const arrowTower = {
     damage: 14,
     range: 6,
     cooldownMs: 700,
-    speed: 24,
+    speed: 26,
     hitsFlyers: true,
   },
 } satisfies StructureDef;

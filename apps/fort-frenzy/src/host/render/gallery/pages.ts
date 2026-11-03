@@ -66,6 +66,22 @@ export interface PageKit {
 
 const KNIGHTS = new Set(['warden', 'ranger', 'commander', 'artificer']);
 
+/** One-shot clips replayed on a loop: period, ms. */
+const ONE_SHOTS: Partial<Record<string, number>> = {
+  hit: 1600,
+  respawn: 2000,
+  attack: 1200,
+  super: 1600,
+  build: 1600,
+};
+
+/** World tiles under a screen point (the fixed camera's inverse; ground only). */
+function worldAt(k: PageKit, sx: number, sy: number): [number, number] {
+  const o = k.world.camera.worldToScreen(0, 0);
+  const one = k.world.camera.worldToScreen(1, 1);
+  return [(sx - o.sx) / (one.sx - o.sx), (sy - o.sy) / (one.sy - o.sy)];
+}
+
 function addRig(
   k: PageKit,
   rigId: string,
@@ -103,12 +119,20 @@ function addRig(
   if (!rig.play(clip, { fadeMs: 0 })) rig.play('idle', { fadeMs: 0 });
   else if (clip === 'down') downCycle(k, rig, sx, sy);
   else if (clip === 'death') deathCycle(k, rig, sx, sy);
-  else if (clip === 'hit' || clip === 'respawn') {
-    const period = clip === 'hit' ? 1600 : 2000;
+  else if (ONE_SHOTS[clip] !== undefined) {
+    const period = ONE_SHOTS[clip];
+    // The Ranger shoots and pulses from his `ready` pose (FF7 wiring snaps to it for the shot).
+    if (rigId === 'ranger' && (clip === 'attack' || clip === 'super') && !pose)
+      rig.setPose('ready', 0);
     k.tick((_dt, t) => {
       if (Math.floor(t / period) !== Math.floor((t - _dt) / period)) {
         rig.play(clip, { restart: true, fadeMs: 0 });
         if (clip === 'hit') rig.flash(60);
+        if (clip === 'super') k.world.fx.ring('ours', ...worldAt(k, sx, sy), 3);
+        if (clip === 'attack' && rigId === 'ranger') {
+          const m = rig.attach('bolt');
+          if (m) k.world.fx.burst('muzzle-ours', m.sx, m.sy, rig.mirrored ? Math.PI : 0, 40);
+        }
       }
     });
   }

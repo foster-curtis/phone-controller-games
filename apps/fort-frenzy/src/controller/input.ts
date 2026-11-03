@@ -63,7 +63,15 @@ const ATTACK = {
 
 /** Aimed press state → the aiming flag (the TV draws the aim line while it is set). */
 export function encodeAimedState(sender: PhoneSender, key: AttackKey, state: AimedState): void {
-  sender.setButton(ATTACK[key].flag, isAiming(state));
+  const aiming = isAiming(state);
+  sender.setButton(ATTACK[key].flag, aiming);
+  // The live aim rides along while aiming, so the TV's line follows the thumb (FF7: the sim reads
+  // `mainAim` as the held aim; the release still sends its final aim with the fire).
+  if (aiming) {
+    const a = ATTACK[key];
+    const [x, y] = aimToStick(state.x, state.y, AIM_MAX_PX);
+    sender.update({ [a.x]: x, [a.y]: y });
+  }
 }
 
 /** An aimed outcome: tap = fire with aim 0,0 (auto-aim), fire = the aim, cancel = nothing. */

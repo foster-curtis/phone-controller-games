@@ -13,8 +13,22 @@ export const PAGES = [
 ] as const;
 export type PageId = (typeof PAGES)[number];
 
-/** `death` plays on enemies and the Colossus, `down`/`respawn` on knights; a rig without the clip idles. */
-export const CLIP_NAMES = ['idle', 'walk', 'hit', 'down', 'respawn', 'death'] as const;
+/**
+ * `death` plays on enemies and the Colossus, `down`/`respawn` on knights; `attack` on the Ranger
+ * (main shot) and the Drone (slash), `super` and `build` on the Ranger (FF7). A rig without the clip
+ * idles.
+ */
+export const CLIP_NAMES = [
+  'idle',
+  'walk',
+  'hit',
+  'down',
+  'respawn',
+  'death',
+  'attack',
+  'super',
+  'build',
+] as const;
 
 export interface GalleryState {
   page: PageId;

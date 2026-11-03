@@ -2,7 +2,7 @@
 // fed a sample TvView. Home is live (keyboard and gamepad), the lobby arms/removes on its number keys.
 import { DIFFICULTY_IDS, THEME_IDS } from '../../shared/ids';
 import { createTvOverlay } from './overlay';
-import { fitScale } from './layout';
+import { fitToWindow } from './layout';
 import { UI_SCREENS, sampleView, type UiScreenName } from './samples';
 import type { HomeRow, TvView } from './types';
 
@@ -19,12 +19,7 @@ export function mountUiDev(host: HTMLElement, name: UiScreenName): void {
   bg.innerHTML = '<div class="frame"><div class="safe"></div></div>';
   host.append(bg);
   const frame = bg.querySelector<HTMLElement>('.frame')!;
-  const fit = () => {
-    const { scale, x, y } = fitScale(window.innerWidth, window.innerHeight);
-    frame.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
-  };
-  fit();
-  window.addEventListener('resize', fit);
+  fitToWindow(frame);
 
   let view: TvView = sampleView(name);
   const overlay = createTvOverlay(host, {

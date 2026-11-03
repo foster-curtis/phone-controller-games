@@ -49,8 +49,9 @@ test('gallery rigs unlit, Colossus final, Mk III mortar', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-// FF3-fix-1 (C1 notes): enemy hit and death, the knights' down pile and respawn.
-for (const clip of ['hit', 'death', 'down', 'respawn'] as const) {
+// FF3-fix-1 (C1 notes): enemy hit and death, the knights' down pile and respawn; FF7: the Ranger's
+// shot, super and build kneel and the Drone's slash.
+for (const clip of ['hit', 'death', 'down', 'respawn', 'attack', 'super', 'build'] as const) {
   test(`gallery rigs ${clip}`, async ({ page }) => {
     const errors = watchErrors(page);
     await open(page, `page=rigs&panel=0&clip=${clip}`);

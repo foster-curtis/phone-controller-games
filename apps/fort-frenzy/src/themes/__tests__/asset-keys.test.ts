@@ -31,7 +31,11 @@ const code = (f: string) =>
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/(^|[^:])\/\/.*$/gm, '$1');
 
-const files = [...sources(join(src, 'themes')), ...sources(join(src, 'host', 'render'))];
+const files = [
+  ...sources(join(src, 'themes')),
+  ...sources(join(src, 'host', 'render')),
+  ...sources(join(src, 'host', 'scene')),
+];
 
 describe('asset keys', () => {
   it('scans the theme pack and the renderer', () => {

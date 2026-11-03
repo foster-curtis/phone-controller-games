@@ -45,7 +45,7 @@ export const INPUT_FLAG_RADIAL_OPEN = 4;
 export type InputTuple = [
   moveX: number,
   moveY: number,
-  /** Aim at the last release; 0,0 with a fire = tap = auto-aim. */
+  /** Live aim while aiming (FF7), the release aim with a fire; 0,0 with a fire = tap = auto-aim. */
   mainX: number,
   mainY: number,
   superX: number,

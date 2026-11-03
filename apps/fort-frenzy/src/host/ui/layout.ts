@@ -85,3 +85,23 @@ export const insideSafe = (b: Box, eps = 0.5): boolean =>
   b.y >= SAFE_BOX.y - eps &&
   b.x + b.w <= SAFE_BOX.x + SAFE_BOX.w + eps &&
   b.y + b.h <= SAFE_BOX.y + SAFE_BOX.h + eps;
+
+/**
+ * The one CSS transform (origin 0 0) that fits a 1920 × 1080 element into the window: the Phaser
+ * canvas and the DOM overlay both use it, so the HUD always sits on the world (§15.2, FF7 risk).
+ */
+export function fitTransform(winW: number, winH: number): string {
+  const { scale, x, y } = fitScale(winW, winH);
+  return `translate(${x}px, ${y}px) scale(${scale})`;
+}
+
+/** Keeps `el` fitted to the window; returns an unsubscribe. */
+export function fitToWindow(el: HTMLElement): () => void {
+  const fit = () => {
+    el.style.transform = fitTransform(window.innerWidth, window.innerHeight);
+  };
+  el.style.transformOrigin = '0 0';
+  fit();
+  window.addEventListener('resize', fit);
+  return () => window.removeEventListener('resize', fit);
+}

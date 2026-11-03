@@ -3,7 +3,7 @@
 // the home screen (§11.1) and the lobby's remove keys. No Phaser here.
 import './ui.css';
 import { ICON_SPRITE } from './art';
-import { CANVAS, fitScale } from './layout';
+import { CANVAS, fitToWindow } from './layout';
 import {
   createPadNav,
   keyToNav,
@@ -45,12 +45,7 @@ export function createTvOverlay(host: HTMLElement, handlers: OverlayHandlers = {
   root.append(layer);
   host.append(root);
 
-  const fit = () => {
-    const { scale, x, y } = fitScale(window.innerWidth, window.innerHeight);
-    root.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
-  };
-  fit();
-  window.addEventListener('resize', fit);
+  const unfit = fitToWindow(root);
 
   const sections = new Map<string, { el: HTMLElement; html: string }>();
   const arm = createRemoveArm();
@@ -165,7 +160,7 @@ export function createTvOverlay(host: HTMLElement, handlers: OverlayHandlers = {
     destroy() {
       cancelAnimationFrame(raf);
       timers.forEach(clearTimeout);
-      window.removeEventListener('resize', fit);
+      unfit();
       window.removeEventListener('keydown', onKey);
       root.remove();
     },

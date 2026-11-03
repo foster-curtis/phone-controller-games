@@ -20,7 +20,7 @@ export const base = {
       damage: 12,
       range: 7,
       cooldownMs: 1100,
-      speed: 24,
+      speed: 26,
       hitsFlyers: true,
     },
   },

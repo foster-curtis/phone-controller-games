@@ -1,21 +1,99 @@
-// TV entry (index.html, SPEC §15.1). FF1 stub: a blank page with the brand styles; host wiring
-// (FF7) mounts the Phaser canvas and the DOM overlay into #tv.
-import { debugEnabled } from '@pcg/game-kit';
+// TV entry (index.html, SPEC §15.1, §15.2): the Phaser canvas (the World scene) and the DOM overlay
+// (home, lobby, HUD, summary) over it, both fitted to the window by one shared transform; the host
+// runtime (relay, party, sim); visibility pause and Wake Lock; and, in dev or with `?debug=1`, the
+// debug panel and `window.__pcg`. `?ui=<screen>` and `?gallery=1` stay dev pages.
+import { createHostWakeLock, debugEnabled, watchVisibility } from '@pcg/game-kit';
 import '../styles/brand.css';
 
 const params = new URLSearchParams(location.search);
+const debug = debugEnabled(import.meta.env.DEV);
+const tv = document.getElementById('tv') ?? document.body;
 
-// TV UI samples (`?ui=<screen>`, BUILD_PLAN FF5): dev or `?debug=1` only.
-const uiScreen = params.get('ui');
-if (uiScreen && debugEnabled(import.meta.env.DEV)) {
-  void import('./ui/dev').then(({ isUiScreen, mountUiDev }) => {
-    if (isUiScreen(uiScreen)) mountUiDev(document.getElementById('tv') ?? document.body, uiScreen);
+async function startTv() {
+  const [{ createRuntime }, { createWorldGame }, { createTvOverlay }, { fitToWindow }] =
+    await Promise.all([
+      import('./game'),
+      import('./scene/worldScene'),
+      import('./ui/index'),
+      import('./ui/layout'),
+    ]);
+  // The QR encodes this page's origin: open the TV on its LAN address for phones (C2 checkpoint).
+  const origin = location.origin;
+  const seed = params.get('seed');
+  const runtime = createRuntime({
+    origin,
+    seed: seed !== null && Number.isFinite(Number(seed)) ? Math.floor(Number(seed)) : null,
+    build: (import.meta.env.VITE_COMMIT as string | undefined) ?? 'dev',
   });
+
+  const overlay = createTvOverlay(tv, {
+    onHome: (intent) => {
+      runtime.onHome(intent);
+      refresh(true);
+    },
+    onRemovePlayer: (id) => runtime.session.removeFromTv(id),
+  });
+  overlay.root.style.zIndex = '1';
+  let lastScreen = '';
+  let lastAt = 0;
+  /** The overlay re-renders at 10 Hz, and at once when the screen changes. */
+  function refresh(force = false) {
+    const t = performance.now();
+    if (!force && t - lastAt < 100) {
+      const s = runtime.tvView().screen;
+      if (s === lastScreen) return;
+    }
+    const view = runtime.tvView();
+    lastScreen = view.screen;
+    lastAt = t;
+    overlay.update(view);
+  }
+
+  const game = createWorldGame(tv, {
+    get runId() {
+      return runtime.runId;
+    },
+    content: runtime.session.content,
+    frame: (dt) => runtime.frame(dt),
+    onLoading: (p) => {
+      runtime.loading = p;
+      refresh(true);
+    },
+    afterFrame: () => refresh(),
+  });
+  game.events.once('ready', () => {
+    const c = game.canvas;
+    c.style.position = 'fixed';
+    c.style.left = '0';
+    c.style.top = '0';
+    c.style.zIndex = '0';
+    fitToWindow(c);
+  });
+  refresh(true);
+
+  watchVisibility((visible) => runtime.setVisible(visible));
+  void createHostWakeLock().request();
+
+  if (debug) {
+    const [{ installFfDebug, mountDebugPanel }] = await Promise.all([import('./debug')]);
+    const scene = () => game.scene.getScene('world') as unknown as { fallbacks: number } | null;
+    installFfDebug(runtime, () => scene()?.fallbacks ?? 0);
+    const panel = mountDebugPanel(runtime);
+    if (params.get('panel') === '0') document.getElementById('ff-debug')?.classList.add('min');
+    window.addEventListener('error', (e) => panel.offerReplay(e.message));
+    window.addEventListener('unhandledrejection', (e) => panel.offerReplay(String(e.reason)));
+  }
 }
 
-// The art gallery (`?gallery=1`, BUILD_PLAN FF3): dev or `?debug=1` only.
-if (params.get('gallery') === '1' && debugEnabled(import.meta.env.DEV)) {
-  void import('./render/gallery/index').then(({ startGallery }) =>
-    startGallery(document.getElementById('tv')!),
-  );
+const uiScreen = params.get('ui');
+if (uiScreen && debug) {
+  // TV UI samples (`?ui=<screen>`, BUILD_PLAN FF5): dev or `?debug=1` only.
+  void import('./ui/dev').then(({ isUiScreen, mountUiDev }) => {
+    if (isUiScreen(uiScreen)) mountUiDev(tv, uiScreen);
+  });
+} else if (params.get('gallery') === '1' && debug) {
+  // The art gallery (`?gallery=1`, BUILD_PLAN FF3): dev or `?debug=1` only.
+  void import('./render/gallery/index').then(({ startGallery }) => startGallery(tv));
+} else {
+  void startTv();
 }

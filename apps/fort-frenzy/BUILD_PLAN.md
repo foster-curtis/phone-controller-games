@@ -813,9 +813,9 @@ Rules:
   - [x] Recorder, replay script, autopilot, determinism + scenario tests, bench
   - [x] Merged to `main`
 - FF7 Vertical slice
-  - [ ] Host net + party bridge + input staleness + state sync
-  - [ ] World scene + TV UI hookup + run flow
-  - [ ] Debug panel + `__pcg` + smoke/reconnect e2e
+  - [x] Host net + party bridge + input staleness + state sync
+  - [x] World scene + TV UI hookup + run flow
+  - [x] Debug panel + `__pcg` + smoke/reconnect e2e
   - [ ] Merged to `main`
 - [ ] **User approved C2** (slice on real phones and TV)
 - FF8 Warden + structures
@@ -1199,6 +1199,35 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   apart and steps half a cycle apart; separate pads and middle legs need new art.
 - [FF3-fix-1] art note for C2: the Brute's and Colossus's legs are single parts (no knee or foot): the stomp
   is lift, slide and body drop; knees and feet would need new art.
+- [FF7] decision: projectile speeds: FF6's 24 tiles/s differed from FF3-fix-1's bolt 26; content now uses 26 for
+  the Engineer's bolt, the pulse turret and the base sentries (all drawn as bolts), and
+  `src/host/__tests__/speeds.test.ts` keeps content equal to render's `PROJECTILE_SPEEDS.bolt`.
+- [FF7] decision: the phone sends the live aim in `mainX/mainY` (`superX/superY`) while aiming, not only with the
+  fire: the TV aim line needs a direction and the sim already reads `mainAim` as the held aim. Field meaning only
+  (no shape change, no proto bump); the `messages.ts` doc comment and the SPEC §15.6 tuple comment say so.
+- [FF7] decision: `PhoneInputSource` (`src/host/net/input.ts`) is its own wall-clock source (receive time,
+  injectable clock), not a wrap of FF6's step-counted `FreshInputSource`, per §15.6 "receive time".
+- [FF7] decision: the session (`src/host/net/session.ts`) connects a phone into the party on `hello` (key from the
+  relay peer event, device ID from hello); `team`/`me` are compared as JSON and sent on change at most every
+  200/100 ms, plus in full to a phone on every hello; `team` and `me` share one increasing rev counter.
+- [FF7] decision: the slice's class intent accepts only content classes (the Engineer); others ack `invalid`
+  until FF8/FF9. The leader's `end` intent (any option) returns to the lobby until FF14; `resume`, `newRun` and
+  `claim` ack `invalid`. The sim's 3 s countdown is the lobby countdown (phones stay on the lobby screen).
+- [FF7] decision: the TV canvas uses Phaser `Scale.NONE` and the same CSS transform as the DOM overlay
+  (`ui/layout.ts` `fitTransform`/`fitToWindow`, tested; the smoke e2e checks the two boxes match).
+- [FF7] decision: the join URL and QR use the TV page's own origin (open the TV on its LAN address); no LAN
+  banner in the slice.
+- [FF7] decision: home rows are Create, theme, difficulty (focus on Create, so Enter or A creates the room);
+  Resume and New run join with FF14.
+- [FF7] decision: the World scene restarts on every run start/end and draws nothing between runs; the overlay
+  re-renders at 10 Hz or on a screen change; the debug speed-up tops out at 8×, with the catch-up cap sized for it.
+- [FF7] decision: every run records a replay (`RunRecorder`); the download (gzip via `CompressionStream`, plain
+  JSON otherwise) and the uncaught-error offer are debug-only (dev or `?debug=1`); `?seed=N` or the panel sets
+  the next run's seed.
+- [FF7] decision: next-wave preview counts are an estimate from the wave budget (the exact groups are rolled at
+  combat start from the players connected then); knights' labels flip below the sprite above world row 4.
+- [FF7] decision: world drawing and world UI live in `src/host/scene/` (`worldView.ts`), which the asset-keys test
+  now scans too; rig sizes still come from `render/gallery/rigInfo.ts`.
 
 ## 9. Final handoff
 
