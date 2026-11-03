@@ -816,7 +816,7 @@ Rules:
   - [x] Host net + party bridge + input staleness + state sync
   - [x] World scene + TV UI hookup + run flow
   - [x] Debug panel + `__pcg` + smoke/reconnect e2e
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
 - [ ] **User approved C2** (slice on real phones and TV)
 - FF8 Warden + structures
   - [ ] Warden kit + clips
