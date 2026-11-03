@@ -13,7 +13,7 @@ every message goes through a shared, game-agnostic WebSocket **relay**.
 | `apps/relay`              | `@pcg/relay`          | Done. Node WebSocket server, deployed to Fly.io. No game rules.                      |
 | `apps/sunny-side`         | `@pcg/sunny-side`     | Done. Sunny Side Slam, the first game. Vite multi-page app on Vercel.                |
 | `apps/fort-frenzy`        | `@pcg/fort-frenzy`    | In build (FF1: scaffold, frozen contracts, asset manifest). Plan in `BUILD_PLAN.md`. |
-| `apps/say-cheese`         | (none yet)            | Planning. Spec drafted (`apps/say-cheese/SPEC.md`), no code yet.                     |
+| `apps/say-cheese`         | `@pcg/say-cheese`     | In build (SC0: scaffold, frozen contracts, brand kit). Plan in `BUILD_PLAN.md`.      |
 | `packages/net-client`     | `@pcg/net-client`     | Done. Relay protocol types plus host and controller clients (TS).                    |
 | `packages/controller-kit` | `@pcg/controller-kit` | Done (FF0). Phone platform, app shell, widgets, gestures, input sender, dev harness. |
 | `packages/game-kit`       | `@pcg/game-kit`       | Done (FF0). Fixed-step loop, lerp, seeded RNG, host helpers; `/vite` plugins.        |
@@ -71,7 +71,7 @@ pnpm dev:relay                     # the relay alone
 pnpm check:<game>                  # that game's gate: typecheck, lint, format:check, test, build, check:bundle, check:routes
 pnpm build:<game>                  # that game's Vite build
 pnpm e2e:<game>                    # that game's Playwright suite (Sunny Side: own relay on 8788, Vite on 5174)
-pnpm --filter @pcg/relay test      # one package's tests (also @pcg/net-client, @pcg/controller-kit, @pcg/game-kit, @pcg/sunny-side)
+pnpm --filter @pcg/relay test      # one package's tests (also @pcg/net-client, @pcg/controller-kit, @pcg/game-kit, @pcg/sunny-side, @pcg/say-cheese)
 pnpm check                         # the full gate, every package (CI runs this)
 pnpm e2e                           # every app's Playwright suite, one app at a time
 pnpm format                        # Prettier --write

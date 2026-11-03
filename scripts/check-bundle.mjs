@@ -18,6 +18,8 @@ const PHASER_SIGNATURE = /Phaser v|phaser\.io/;
 // Sunny Side: its size when the limit was added (FF1, 15.0 KB) + 20%.
 const PLAY_JS_LIMIT_KB = {
   'fort-frenzy': 100,
+  // Say Cheese: no Phaser, a DOM controller plus the kits.
+  'say-cheese': 40,
   'sunny-side': 18,
 };
 

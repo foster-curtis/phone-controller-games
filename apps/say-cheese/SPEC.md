@@ -3,7 +3,7 @@
 > Living spec. Only **decided** items go in the body. Open questions live in §9 until we settle them.
 > Repo-wide rules (architecture, phone requirements, hosting, layout): [`PLATFORM.md`](../../PLATFORM.md). Relay protocol: [`apps/relay/SPEC.md`](../relay/SPEC.md).
 > Working title was "Dodge the Photographer". Concept notes: project doc `claude/dodge-the-photographer.md`.
-> Last updated: 2026-11-02 (rev 2)
+> Last updated: 2026-11-03 (rev 3, SC0: brand kit, synth audio, `messages.ts` finalized)
 
 ## 1. Overview
 
@@ -44,7 +44,7 @@ Repo-wide hosting and layout: `PLATFORM.md` §4. Say Cheese specifics:
 
 ### 6.0 Theme
 
-Camera / photo booth: the shutter, the flash, a "Say cheese!" moment. Visual brand not yet decided (§9).
+Camera / photo booth: the shutter, the flash, a "Say cheese!" moment. Brand kit: direction A2 "Flash pop" (`src/styles/brand.css`, `brand/`, `public/`; read-only, decision #16).
 
 ### 6.1 Scope
 
@@ -157,8 +157,8 @@ The photographer, not the leader, drives their own **I'm ready** and the review.
 
 ### 6.8 Branding & audio
 
-- One theme module (CSS custom properties), as in Sunny Side. The brand kit comes later (§9).
-- **Audio is in v1** because the photographer is blind and the dodgers aren't watching a screen: countdown beeps, start/end buzz, a shutter click (TV and phone), a "photo developed" sound per review photo, and a round-results sting. Commercially licensed or self-made sounds only (`PLATFORM.md` launch habits).
+- One theme module (CSS custom properties), as in Sunny Side: the brand kit's `src/styles/brand.css` (decision #16).
+- **Audio is in v1** because the photographer is blind and the dodgers aren't watching a screen: countdown beeps, start/end buzz, a shutter click (TV and phone), a "photo developed" sound per review photo, and a round-results sting. Commercially licensed or self-made sounds only (`PLATFORM.md` launch habits): all synthesized with Web Audio, no sound files (decision #17).
 
 ## 7. Protocols
 
@@ -180,18 +180,19 @@ No continuous input. Every phone→host message is a discrete JSON event (§7.3)
 Phone → host:
 
 ```ts
+{ t: "hello", seats: [{ seat, seatKey, name }] } // every (re)connect: restores extra seats; seat 0's key = relay playerKey
 { t: "profile", seat, name }                // lobby; seat = phone-local index, 0 = the phone's first player
 { t: "addSeat", name, seatKey }             // lobby: add a player on this phone (§6.3.1)
 { t: "removeSeat", seat }                   // remove one player on this phone
 { t: "seatConfirm", seat }                  // "I'm {name}" on the pass screen
 { t: "camera", ok: boolean }                // lobby, after the permission attempt
 { t: "ready", ready: boolean }              // lobby
-{ t: "leader", action: "start" | "next" | "skipReview" | "rematch" | "lobby" }
+{ t: "leader", action: "start" | "howToPlay" | "next" | "skip" | "skipReview" | "rematch" | "lobby" }
 { t: "leader", action: "remove", playerId }
 { t: "shootReady" }                         // photographer: I'm ready
-{ t: "shot", photo, at }                    // photographer: shutter pressed (drives TV flash/count); photo = index 0..14
-{ t: "chunk", photo, i, n, b64 }            // §7.4
-{ t: "shootDone", count }                   // photographer: final shot count
+{ t: "shot", r, photo, at, aspect }         // photographer: shutter pressed (drives TV flash/count); photo = index 0..14; aspect = w/h
+{ t: "chunk", r, photo, i, n, b64 }         // §7.4
+{ t: "shootDone", r, count }                // photographer: final shot count
 { t: "view", photo }                        // review navigation
 { t: "tag", photo, tagId, x, y, playerId }  // add or change; x, y ∈ 0..1; playerId null = Unknown
 { t: "untag", photo, tagId }
@@ -200,9 +201,9 @@ Phone → host:
 { t: "leave" }
 ```
 
-Host → phone: `{ t: "screen", screen, ...data }` per phone or broadcast (the host drives each phone's state, as in Sunny Side), plus `{ t: "photoAck", photo }` (§7.4). Every screen carries `leaderName` and the phone's `seats` (`{ seat, name, color }[]`). Host-side, a player's id is the relay `playerId` plus the seat (e.g. `p3#1`); messages that only the photographer can send (shot, tag, review) don't need a seat because the host knows which seat is shooting. The host is authoritative for tags too: it validates them (photo exists, player is in the match, one tag per player per photo) and echoes the photo's tag list in the review screen, so a reconnecting photographer's phone redraws correctly.
+Host → phone: `{ t: "screen", screen, ...data }` per phone or broadcast (the host drives each phone's state, as in Sunny Side), plus `{ t: "photoAck", r, photo }` (§7.4). Every screen carries `leaderName`, `isLeader`, `canEmoji` and the phone's `seats` (`{ seat, name, color }[]`); timed screens carry `endsInMs` (§8); review screens carry each photo's `aspect`. `r` is the round id: every photo message carries it, so a replayed or cancelled round never mixes photos (decision #18). Host-side, a player's id is the relay `playerId` plus the seat (e.g. `p3#1`); messages that only the photographer can send (shot, tag, review) don't need a seat because the host knows which seat is shooting. The host is authoritative for tags too: it validates them (photo exists, player is in the match, one tag per player per photo) and echoes the photo's tag list in the review screen, so a reconnecting photographer's phone redraws correctly.
 
-_Shapes are indicative; exact fields finalized at implementation in `src/shared/messages.ts`._
+_Exact fields: `src/shared/messages.ts` (frozen at SC0, additive changes only)._
 
 ### 7.4 Photo transfer (chunking)
 
@@ -216,14 +217,14 @@ _Shapes are indicative; exact fields finalized at implementation in `src/shared/
 ## 8. Game flow (no game loop)
 
 - No fixed-step simulation and no render loop. The host is an **event-driven state machine**: `lobby → rules → (announce → scatter → shoot → upload → review → results)×N → matchEnd`. Each transition comes from a phone message, a leader action, or a host timer.
-- **Timers** (scatter 10 s, shoot 20 s, upload grace 10 s) run on the host with `performance.now()`-based deadlines. Phones display the countdown from a `deadline` the host sends (converted using a one-time offset estimate at join, ±100 ms is fine). The phone enforces the 15-shot cap and its own end-of-shoot locally, so it never takes a shot the host would reject.
+- **Timers** (scatter 10 s, shoot 20 s, upload grace 10 s) run on the host with `performance.now()`-based deadlines. Phones display the countdown from `endsInMs` on each timed screen: the phone sets its local deadline on receipt, so the error is the one-way relay latency, well under the ±100 ms needed (no clock-offset handshake; decision #19). The phone enforces the 15-shot cap and its own end-of-shoot locally, so it never takes a shot the host would reject.
 - **Host visibility:** if the host tab is hidden, the TV-side timers pause (scatter/shoot/upload). Request Wake Lock on the host and every phone.
 - Unit tests cover the state machine: phase transitions, scoring, tag validation, turn queue with disconnects/skips, chunk reassembly.
 
 ## 9. Open questions (in order)
 
-1. **Brand look:** palette, logo/wordmark, fonts. v1 can ship on a simple theme module if the kit isn't ready.
-2. **Sound sourcing:** pick a licensed SFX pack or make the sounds (§6.8).
+1. ~~**Brand look:** palette, logo/wordmark, fonts.~~ Settled: brand kit A2 "Flash pop" (decision #16).
+2. ~~**Sound sourcing:** pick a licensed SFX pack or make the sounds (§6.8).~~ Settled: synthesized with Web Audio (decision #17).
 
 ## 10. Decision log
 
@@ -244,3 +245,7 @@ _Shapes are indicative; exact fields finalized at implementation in `src/shared/
 | 13 | 2026-11-02 | Wording | Never say "hide": non-photographers are **dodgers**, the countdown is **scatter** | Foster: "hide" invites camping behind a couch all round; the fun is scrambling when the camera turns your way. |
 | 14 | 2026-11-02 | Who tags | Photographer only (host rejects tag messages from other phones); every tag shows live on the TV | Clarifies #4: one person decides, the whole room watches and argues. |
 | 15 | 2026-11-02 | Shared devices | Seats per phone, host-side only (no relay change); Add another player on this phone + Why share a phone? hint in the lobby; Ready and camera per phone; a Pass the phone screen only before a shared seat's photographer turn; 8-player cap counts seats | Foster: lets kids and people without smartphones play, down to one phone for the whole game. Only the photographer uses a phone during a round, so one pass screen per turn covers it. |
+| 16 | 2026-11-03 | Brand kit | Unpack `say-cheese-brand-kit.zip` (direction A2 "Flash pop": `src/styles/brand.css`, `brand/`, `public/`), read-only like Sunny Side's; zip deleted. Settles §9.1 | User approved (BUILD_PLAN §8). |
+| 17 | 2026-11-03 | Sounds | Synthesized with Web Audio on the TV and the phone, no sound files. Settles §9.2 | User approved; no licensing, nothing to download. |
+| 18 | 2026-11-03 | Message additions (§7.3) | `hello` with the phone's seats on every (re)connect; leader `skip` (rules) and `howToPlay` (lobby); round id `r` on `shot`, `chunk`, `shootDone`, `photoAck`; `shot` carries the frame's `aspect` and review screens carry each photo's `aspect` | Restores extra seats after a reconnect; stale photos from a cancelled/replayed round are dropped; the phone and TV lay out a photo before it has decoded. |
+| 19 | 2026-11-03 | Timers on phones | Screens carry `endsInMs`; the phone sets its deadline on receipt | Simplest equivalent of a clock-offset handshake; error = one-way relay latency. |

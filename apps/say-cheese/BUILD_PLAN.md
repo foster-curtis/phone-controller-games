@@ -443,35 +443,35 @@ Rules:
 
 ## 6. Progress checklist
 
-- [ ] Pre-flight green (S1)
+- [x] Pre-flight green (S1)
 - **SC0**
-  - [ ] `origin/main` merged; kits available; tables resolved
-  - [ ] Brand kit unpacked, zip removed
-  - [ ] App scaffold, Vite/Vercel/Playwright configs, smoke e2e
-  - [ ] Contracts: messages, match types + config, blob-transfer types, seats types, camera + sfx interfaces
-  - [ ] Root wiring: scripts, lockfile, Dockerfile, check-bundle limit, .prettierignore, tables; SPEC §8/§9/§10 updated
-  - [ ] Full gate green
-  - [ ] Merged to `say-cheese` and pushed
+  - [x] `origin/main` merged; kits available; tables resolved
+  - [x] Brand kit unpacked, zip removed
+  - [x] App scaffold, Vite/Vercel/Playwright configs, smoke e2e
+  - [x] Contracts: messages, match types + config, blob-transfer types, seats types, camera + sfx interfaces
+  - [x] Root wiring: scripts, lockfile, Dockerfile, check-bundle limit, .prettierignore, tables; SPEC §8/§9/§10 updated
+  - [x] Full gate green
+  - [x] Merged to `say-cheese` and pushed
 - **SC1**
-  - [ ] Blob transfer module + tests (incl. 16 KB envelope test)
-  - [ ] Camera module + tests
-  - [ ] Spike page + spike e2e
-  - [ ] Merged to `say-cheese` and pushed
+  - [x] Blob transfer module + tests (incl. 16 KB envelope test)
+  - [x] Camera module + tests
+  - [x] Spike page + spike e2e
+  - [x] Merged to `say-cheese` and pushed
   - [ ] User approved C1 (camera spike on iPhone + Android)
 - **SC2**
-  - [ ] Seats module + tests
-  - [ ] Match state machine (phases, rules, rounds, matchEnd, rematch) + transition tests
-  - [ ] Scoring, tags, turn queue, leader, persist + tests
-  - [ ] Merged to `say-cheese` and pushed
+  - [x] Seats module + tests
+  - [x] Match state machine (phases, rules, rounds, matchEnd, rematch) + transition tests
+  - [x] Scoring, tags, turn queue, leader, persist + tests
+  - [x] Merged to `say-cheese` and pushed
 - **SC3**
-  - [ ] App shell + router + dev mode
-  - [ ] Lobby, rules, photographer, dodger, results screens
-  - [ ] Review + tag sheet + shutter helpers + tests
-  - [ ] Merged to `say-cheese` and pushed
+  - [x] App shell + router + dev mode
+  - [x] Lobby, rules, photographer, dodger, results screens
+  - [x] Review + tag sheet + shutter helpers + tests
+  - [x] Merged to `say-cheese` and pushed
 - **SC4**
-  - [ ] TV views for every phase + tests
-  - [ ] Host controls (buttons + keyboard) + gallery
-  - [ ] Merged to `say-cheese` and pushed
+  - [x] TV views for every phase + tests
+  - [x] Host controls (buttons + keyboard) + gallery
+  - [x] Merged to `say-cheese` and pushed
 - **SC5**
   - [ ] Host wiring (client, match, receiver, timers, debug)
   - [ ] Phone wiring (client, camera, photos, sender)
@@ -533,6 +533,34 @@ Format: `- [SC#] decision: one line, with the reason.`
 - [plan] e2e speed: debug `?timeScale=` scales scatter/shoot/upload timers; e2e runs at 0.1.
 - [plan] Sandbox Playwright: the preinstalled Chromium is linked to the version `@playwright/test` 1.64.1 expects (pre-flight); the CDN is blocked.
 - [plan] Docker is unavailable in the sandbox: SC0 checks that every workspace `package.json` is COPYed in `apps/relay/Dockerfile` instead of building the image.
+- [SC0] decision: `git merge origin/main` was a fast-forward (`main` already held `say-cheese` via PR #1, kits included), so there is no merge commit and no table conflicts; the Say Cheese table rows move to "In build" in the SC0 commit, because there was nothing to merge.
+- [SC0] decision: `shot` carries the frame's `aspect` (width / height) and the host copies it into `Round.photos` and the review screens, because the frozen `Chunk` has no room for it and the phone knows the size at capture.
+- [SC0] decision: host → phone is `{t:'screen', screen}` with `screen.kind` as the discriminator and the `data-screen` value, plus `isHostMsg` (a shallow guard) for the phone, because it matches Sunny Side and e2e `screen(page, kind)`.
+- [SC0] decision: `seats/types.ts` types `Seat.color` as a plain string and adds `seatId`/`parseSeatId`/`seatKeysStorageKey(code)`, because the folder stays free of game imports (extraction-ready); `messages.ts` narrows colors to `PLAYER_COLOR_IDS` (brand.css order, lilac instead of rose).
+- [SC0] decision: `config.ts` adds `RULES_CARDS = 5`, `setTimeScale()` and `scaled(ms)` beside `timeScale`, because SC2 and SC5 both need the card count and one place to apply `?timeScale=`.
+- [SC0] decision: the match is a reducer `(state, event) → (state, effects)`; `MatchEvent` adds `photo` (receiver finished a photo) and `room` (code), `Effect` adds `releasePhotos` (revoke object URLs), because photo arrival and the room code feed the upload count and the TV lobby.
+- [SC4] decision: `renderTv(root, view, {emit, sfx, origin})` takes the join origin as a control field, because `TvView.lobby` carries the code but not the URL the QR encodes.
+- [SC4] decision: the QR is an inline SVG path (not canvas), because it renders in jsdom tests and scales crisply on a TV.
+- [SC4] decision: view tests opt into jsdom with a `// @vitest-environment jsdom` docblock, because `vitest.config.ts` is root-owned by SC0 and only maps `src/controller/**` to jsdom.
+- [SC4] decision: the lobby shows a per-player remove button (emits `remove`) and Enter/→ never Starts while `canStart` is false, because SPEC §6.5 gives the host remove and the match would reject it anyway.
+- [SC3] decision: the controller keeps its own `DEFAULT_COOLDOWN_MS = 400` (`controller/ctx.ts`) because `controller/**` can't import `host/match/config`; the cap comes from the screen's `maxShots`.
+- [SC3] decision: `main.ts` outside `?dev=1` mounts the app on a local client with a fake camera (`controller/fakeCamera.ts`) until SC5 wires the relay client and real camera; the `hello` message and `photoAck` handling (`onHostMsg`) are SC5's.
+- [SC3] decision: a failed capture gives the shot back only if it was the latest, because shot indexes must stay contiguous for the host; the photographer's `shootDone` waits for in-flight captures.
+- [SC1] decision: `createBlobSender().add(r, photo, Blob | Uint8Array)` encodes async but sends in `add` order (a promise chain; a failed encode rejects only that photo), because base64 of a `Blob` is async and photos must go in shot order.
+- [SC1] decision: `createBlobReceiver` takes an optional `sendAck(sender, ack)` and re-acks an already complete photo when a resend reaches its last chunk, because a lost ack would otherwise leave the phone resending that photo after every reconnect.
+- [SC1] decision: the camera captures from its own hidden 1 px `<video>` kept in the DOM; `attach()` only adds previews, because a shot must not depend on which screen's preview is mounted and iOS may stop decoding a detached video.
+- [SC1] decision: the spike's "ms" is measured on the TV from the `shot` message's arrival to the photo's last chunk, because phone and TV clocks aren't synced.
+- [SC1] decision: `spike.html` is Prettier-formatted (it isn't in `.prettierignore`), because only SC0 edits root files and SC5 deletes the page.
+- [SC2] decision: `createMatch({ rng: () => number, now, restored? })` also returns `flush()` (pending screens/snapshot after create or restore) and `phoneIds()`; seatless phones live in a private phone map, not `MatchState`, because the frozen types need no change.
+- [SC2] decision: `turns` = the camera-ok seats queued at match start (no-camera seats never count), because "round 3 / N" must be reachable.
+- [SC2] decision: How to play (from the lobby) doesn't mark the rules seen; only Start does, because the spec ties "first match only" to Start.
+- [SC2] decision: during `pass`, other phones get the dodger `announce` screen; seatless and spectator-only phones get `spectating` from pass to review and the normal results/matchEnd screens, because a spectating leader must still reach Next / Rematch.
+- [SC2] decision: a phone gets a `screen` effect only when its screen changed (ignoring `endsInMs`), and again after any `peer` event for it; `persist` only when the snapshot changed, because it keeps the relay quiet without a timer.
+- [SC2] decision: photos are released when the next round starts, at match end and on Back to lobby, because nothing shows them after results.
+- [SC2] decision: upload completes only once `shootDone` arrived and all its `count` photos did; without `shootDone` the grace timer decides, because the shot count alone may lag the phone.
+- [SC2] decision: removing the photographer between pass and review ends the round unscored and starts the next turn; a removed seat's unscored tags are dropped, because SPEC §6.3 keeps only scored tags.
+- [SC2] decision: `profile` creates only seat 0 (other seats come from `addSeat`, lobby only, or `hello`); renames only in the lobby; Ready is kept across Rematch and Back to lobby, because these are the simplest rules the spec allows.
+- [SC2] decision: `restored` snapshots replay an open round with a new `r` (photographer first in the queue), start the next turn from `results`, and turn `rules` into `lobby`; SC6 refines connection handling.
 
 ## 9. Final handoff (and early setup)
 

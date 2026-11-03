@@ -11,11 +11,16 @@ apps/sunny-side/brand/
 apps/fort-frenzy/src/styles/brand.css
 apps/fort-frenzy/public/
 apps/fort-frenzy/brand/
+apps/say-cheese/src/styles/brand.css
+apps/say-cheese/public/
+apps/say-cheese/brand/
 apps/*/art/
 apps/sunny-side/index.html
 apps/sunny-side/play.html
 apps/fort-frenzy/index.html
 apps/fort-frenzy/play.html
+apps/say-cheese/index.html
+apps/say-cheese/play.html
 apps/*/generated/
 PLATFORM.md
 apps/*/SPEC.md
