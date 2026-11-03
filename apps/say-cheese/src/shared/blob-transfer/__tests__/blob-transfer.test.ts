@@ -245,10 +245,9 @@ describe('sender', () => {
 
   it('end to end: sender → receiver → ack', async () => {
     const data = rand(150_000);
-    let rx!: ReturnType<typeof createBlobReceiver>;
     const done: ReceivedPhoto[] = [];
     const s = createBlobSender({ send: (c) => rx.receive('p4', c) });
-    rx = createBlobReceiver({
+    const rx = createBlobReceiver({
       onComplete: (p) => done.push(p),
       sendAck: (_to, a) => s.ack(a),
       createUrl: () => 'blob:x',

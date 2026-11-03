@@ -15,6 +15,8 @@ export default defineConfig({
       input: {
         host: fromRoot('./index.html'),
         controller: fromRoot('./play.html'),
+        // Camera spike (SC1), throwaway: SC5 removes it.
+        spike: fromRoot('./spike.html'),
       },
     },
   },

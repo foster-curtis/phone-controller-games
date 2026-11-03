@@ -453,9 +453,9 @@ Rules:
   - [x] Full gate green
   - [x] Merged to `say-cheese` and pushed
 - **SC1**
-  - [ ] Blob transfer module + tests (incl. 16 KB envelope test)
-  - [ ] Camera module + tests
-  - [ ] Spike page + spike e2e
+  - [x] Blob transfer module + tests (incl. 16 KB envelope test)
+  - [x] Camera module + tests
+  - [x] Spike page + spike e2e
   - [ ] Merged to `say-cheese` and pushed
   - [ ] User approved C1 (camera spike on iPhone + Android)
 - **SC2**
@@ -546,6 +546,11 @@ Format: `- [SC#] decision: one line, with the reason.`
 - [SC3] decision: the controller keeps its own `DEFAULT_COOLDOWN_MS = 400` (`controller/ctx.ts`) because `controller/**` can't import `host/match/config`; the cap comes from the screen's `maxShots`.
 - [SC3] decision: `main.ts` outside `?dev=1` mounts the app on a local client with a fake camera (`controller/fakeCamera.ts`) until SC5 wires the relay client and real camera; the `hello` message and `photoAck` handling (`onHostMsg`) are SC5's.
 - [SC3] decision: a failed capture gives the shot back only if it was the latest, because shot indexes must stay contiguous for the host; the photographer's `shootDone` waits for in-flight captures.
+- [SC1] decision: `createBlobSender().add(r, photo, Blob | Uint8Array)` encodes async but sends in `add` order (a promise chain; a failed encode rejects only that photo), because base64 of a `Blob` is async and photos must go in shot order.
+- [SC1] decision: `createBlobReceiver` takes an optional `sendAck(sender, ack)` and re-acks an already complete photo when a resend reaches its last chunk, because a lost ack would otherwise leave the phone resending that photo after every reconnect.
+- [SC1] decision: the camera captures from its own hidden 1 px `<video>` kept in the DOM; `attach()` only adds previews, because a shot must not depend on which screen's preview is mounted and iOS may stop decoding a detached video.
+- [SC1] decision: the spike's "ms" is measured on the TV from the `shot` message's arrival to the photo's last chunk, because phone and TV clocks aren't synced.
+- [SC1] decision: `spike.html` is Prettier-formatted (it isn't in `.prettierignore`), because only SC0 edits root files and SC5 deletes the page.
 
 ## 9. Final handoff (and early setup)
 

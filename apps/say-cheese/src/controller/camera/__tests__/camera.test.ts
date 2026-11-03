@@ -150,7 +150,7 @@ describe('createCamera', () => {
             drawn = [w, h];
           },
         } as unknown as CanvasRenderingContext2D;
-      } as HTMLCanvasElement['getContext']);
+      } as unknown as HTMLCanvasElement['getContext']);
       vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(function (
         this: HTMLCanvasElement,
         cb: BlobCallback,
