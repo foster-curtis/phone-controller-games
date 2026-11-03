@@ -822,16 +822,16 @@ Rules:
 - FF8 Warden + structures
   - [x] Warden kit + clips
   - [x] Walls, nets, Fortify, mortar (sim + render)
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
 - FF9 Support classes
   - [x] Artificer kit + gauge + throw + kit use
   - [x] Commander + squad + flag
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
 - FF10 Enemies
   - [x] Six new AIs + leash + Flyer substitution
   - [x] Enemy clips + status visuals
   - [x] Waves 1–15 content
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
 - [ ] **User approved C3** (class kits and enemies)
 - FF11 Colossus
   - [ ] Boss module (forms, attacks, stagger, rewards)
