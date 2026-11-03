@@ -464,9 +464,9 @@ Rules:
   - [ ] Scoring, tags, turn queue, leader, persist + tests
   - [ ] Merged to `say-cheese` and pushed
 - **SC3**
-  - [ ] App shell + router + dev mode
-  - [ ] Lobby, rules, photographer, dodger, results screens
-  - [ ] Review + tag sheet + shutter helpers + tests
+  - [x] App shell + router + dev mode
+  - [x] Lobby, rules, photographer, dodger, results screens
+  - [x] Review + tag sheet + shutter helpers + tests
   - [ ] Merged to `say-cheese` and pushed
 - **SC4**
   - [x] TV views for every phase + tests
@@ -543,6 +543,9 @@ Format: `- [SC#] decision: one line, with the reason.`
 - [SC4] decision: the QR is an inline SVG path (not canvas), because it renders in jsdom tests and scales crisply on a TV.
 - [SC4] decision: view tests opt into jsdom with a `// @vitest-environment jsdom` docblock, because `vitest.config.ts` is root-owned by SC0 and only maps `src/controller/**` to jsdom.
 - [SC4] decision: the lobby shows a per-player remove button (emits `remove`) and Enter/→ never Starts while `canStart` is false, because SPEC §6.5 gives the host remove and the match would reject it anyway.
+- [SC3] decision: the controller keeps its own `DEFAULT_COOLDOWN_MS = 400` (`controller/ctx.ts`) because `controller/**` can't import `host/match/config`; the cap comes from the screen's `maxShots`.
+- [SC3] decision: `main.ts` outside `?dev=1` mounts the app on a local client with a fake camera (`controller/fakeCamera.ts`) until SC5 wires the relay client and real camera; the `hello` message and `photoAck` handling (`onHostMsg`) are SC5's.
+- [SC3] decision: a failed capture gives the shot back only if it was the latest, because shot indexes must stay contiguous for the host; the photographer's `shootDone` waits for in-flight captures.
 
 ## 9. Final handoff (and early setup)
 
