@@ -817,7 +817,8 @@ Rules:
   - [x] World scene + TV UI hookup + run flow
   - [x] Debug panel + `__pcg` + smoke/reconnect e2e
   - [x] Merged to `main`
-- [ ] **User approved C2** (slice on real phones and TV)
+  - [ ] FF7-fix-1: C2 notes (Ranger bow draw/release, bolt leaves from the bow, super-ready amber ring pulse replaces the head badge)
+- [x] **User approved C2** (slice on real phones and TV): notes fixed in FF7-fix-1; Citadel collapse deferred to v2; feel and visual notes re-judged at C3
 - FF8 Warden + structures
   - [ ] Warden kit + clips
   - [ ] Walls, nets, Fortify, mortar (sim + render)
@@ -1232,6 +1233,7 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   Phaser frames, so a starved GPU slows the picture, never the run; `frame()` only hands over what to draw.
   e2e freezes wall-clock sim time (`__pcg.speed(0)`) and steps it with `__pcg.advance` inside the TV page,
   runs the TV with `?bloom=0&fps=15` (software GL shared with the phone pages) and uses absolute URLs.
+- [C2] v2 note: the Citadel collapse needs work (user, C2); the current one ships in v1, rework it in v2.
 
 ## 9. Final handoff
 
