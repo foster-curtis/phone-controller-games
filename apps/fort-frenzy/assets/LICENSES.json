@@ -33,6 +33,97 @@
       "commercial": true
     },
     {
+      "path": "audio/neon-knights/base_alarm.mp3",
+      "source": "https://kenney.nl/assets/interface-sounds (error_006.ogg, converted by scripts/pick-sfx.ts)",
+      "author": "Kenney (www.kenney.nl)",
+      "license": "CC0-1.0",
+      "commercial": true
+    },
+    {
+      "path": "audio/neon-knights/base_hit.mp3",
+      "source": "https://kenney.nl/assets/impact-sounds (impactMetal_heavy_000.ogg, converted by scripts/pick-sfx.ts)",
+      "author": "Kenney (www.kenney.nl)",
+      "license": "CC0-1.0",
+      "commercial": true
+    },
+    {
+      "path": "audio/neon-knights/player_hit.mp3",
+      "source": "https://kenney.nl/assets/impact-sounds (impactPunch_medium_000.ogg, converted by scripts/pick-sfx.ts)",
+      "author": "Kenney (www.kenney.nl)",
+      "license": "CC0-1.0",
+      "commercial": true
+    },
+    {
+      "path": "audio/neon-knights/enemy_hit.mp3",
+      "source": "https://kenney.nl/assets/impact-sounds (impactGeneric_light_000.ogg, converted by scripts/pick-sfx.ts)",
+      "author": "Kenney (www.kenney.nl)",
+      "license": "CC0-1.0",
+      "commercial": true
+    },
+    {
+      "path": "audio/neon-knights/enemy_death.mp3",
+      "source": "https://kenney.nl/assets/sci-fi-sounds (explosionCrunch_000.ogg, converted by scripts/pick-sfx.ts)",
+      "author": "Kenney (www.kenney.nl)",
+      "license": "CC0-1.0",
+      "commercial": true
+    },
+    {
+      "path": "audio/neon-knights/structure_placed.mp3",
+      "source": "https://kenney.nl/assets/impact-sounds (impactPlank_medium_000.ogg, converted by scripts/pick-sfx.ts)",
+      "author": "Kenney (www.kenney.nl)",
+      "license": "CC0-1.0",
+      "commercial": true
+    },
+    {
+      "path": "audio/neon-knights/structure_destroyed.mp3",
+      "source": "https://kenney.nl/assets/sci-fi-sounds (lowFrequency_explosion_000.ogg, converted by scripts/pick-sfx.ts)",
+      "author": "Kenney (www.kenney.nl)",
+      "license": "CC0-1.0",
+      "commercial": true
+    },
+    {
+      "path": "audio/neon-knights/boss_windup.mp3",
+      "source": "https://kenney.nl/assets/sci-fi-sounds (spaceEngineLow_000.ogg, converted by scripts/pick-sfx.ts)",
+      "author": "Kenney (www.kenney.nl)",
+      "license": "CC0-1.0",
+      "commercial": true
+    },
+    {
+      "path": "audio/neon-knights/purchase.mp3",
+      "source": "https://kenney.nl/assets/interface-sounds (confirmation_002.ogg, converted by scripts/pick-sfx.ts)",
+      "author": "Kenney (www.kenney.nl)",
+      "license": "CC0-1.0",
+      "commercial": true
+    },
+    {
+      "path": "audio/neon-knights/card_pick.mp3",
+      "source": "https://kenney.nl/assets/interface-sounds (select_004.ogg, converted by scripts/pick-sfx.ts)",
+      "author": "Kenney (www.kenney.nl)",
+      "license": "CC0-1.0",
+      "commercial": true
+    },
+    {
+      "path": "audio/neon-knights/wave_start.mp3",
+      "source": "https://kenney.nl/assets/impact-sounds (impactBell_heavy_000.ogg, converted by scripts/pick-sfx.ts)",
+      "author": "Kenney (www.kenney.nl)",
+      "license": "CC0-1.0",
+      "commercial": true
+    },
+    {
+      "path": "audio/neon-knights/victory.mp3",
+      "source": "https://kenney.nl/assets/interface-sounds (confirmation_004.ogg, converted by scripts/pick-sfx.ts)",
+      "author": "Kenney (www.kenney.nl)",
+      "license": "CC0-1.0",
+      "commercial": true
+    },
+    {
+      "path": "audio/neon-knights/defeat.mp3",
+      "source": "https://kenney.nl/assets/sci-fi-sounds (doorClose_000.ogg, converted by scripts/pick-sfx.ts)",
+      "author": "Kenney (www.kenney.nl)",
+      "license": "CC0-1.0",
+      "commercial": true
+    },
+    {
       "font": "Chakra Petch",
       "source": "https://fonts.google.com/specimen/Chakra+Petch",
       "author": "Cadson Demak",

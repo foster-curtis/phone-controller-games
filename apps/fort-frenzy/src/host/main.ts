@@ -26,6 +26,25 @@ async function startTv() {
     build: (import.meta.env.VITE_COMMIT as string | undefined) ?? 'dev',
   });
 
+  // Sound effects (SPEC §12): preload behind the home loading bar, unlock on the first key.
+  const [{ createSfx, unlockOnFirstKey }, { playCues }, { neonKnightsHost }] = await Promise.all([
+    import('./audio/index'),
+    import('./audio/cues'),
+    import('../themes/neon-knights/host'),
+  ]);
+  const sfx = createSfx(neonKnightsHost.sfx);
+  unlockOnFirstKey(sfx);
+  let atlasLoading: number | null = 0;
+  let audioLoading = 0;
+  const syncLoading = () => {
+    runtime.loading =
+      atlasLoading === null && audioLoading >= 1 ? null : Math.min(atlasLoading ?? 1, audioLoading);
+  };
+  void sfx.preload((p) => {
+    audioLoading = p;
+    syncLoading();
+  });
+
   const overlay = createTvOverlay(tv, {
     onHome: (intent) => {
       runtime.onHome(intent);
@@ -58,9 +77,26 @@ async function startTv() {
         return runtime.runId;
       },
       content: runtime.session.content,
-      frame: (dt) => runtime.frame(dt),
+      frame: (dt) => {
+        const f = runtime.frame(dt);
+        if (f) {
+          const w = f.world;
+          playCues(
+            f.events,
+            (id) => sfx.play(id),
+            (id) =>
+              w.players.some((u) => u.id === id)
+                ? 'player'
+                : w.enemies.some((u) => u.id === id)
+                  ? 'enemy'
+                  : 'other',
+          );
+        }
+        return f;
+      },
       onLoading: (p) => {
-        runtime.loading = p;
+        atlasLoading = p;
+        syncLoading();
         refresh(true);
       },
       afterFrame: () => refresh(),

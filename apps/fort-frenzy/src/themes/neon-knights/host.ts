@@ -23,6 +23,12 @@ const clipModules = import.meta.glob<Record<string, Clip>>('../../host/render/cl
   eager: true,
 });
 
+const sfxUrls = import.meta.glob<string>('../../../audio/neon-knights/*.mp3', {
+  query: '?url',
+  import: 'default',
+  eager: true,
+});
+
 const url = (path: string) => atlasUrls[`../../../generated/${path}`] ?? '';
 
 const atlases: AtlasRef[] = atlasFiles
@@ -58,7 +64,9 @@ export const neonKnightsHost: ThemeHost = {
     // The pulse turret, walls, nets and Fortify are frame stacks, not rigs (render/structures.ts).
     structure: { bomb_tower: 'mortar' },
   },
-  sfx: {},
+  sfx: Object.fromEntries(
+    Object.entries(sfxUrls).map(([p, u]) => [p.slice(p.lastIndexOf('/') + 1, -4), u]),
+  ) as ThemeHost['sfx'],
   map: {
     ground: [fk('ground/1'), fk('ground/2'), fk('ground/3'), fk('ground/4')],
     edges: {

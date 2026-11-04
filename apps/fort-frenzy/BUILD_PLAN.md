@@ -847,8 +847,8 @@ Rules:
   - [ ] Difficulty
   - [ ] Merged to `main`
 - FF13 Audio
-  - [ ] SFX picked and converted + LICENSES
-  - [ ] Player + cues + unlock
+  - [x] SFX picked and converted + LICENSES
+  - [x] Player + cues + unlock
   - [ ] Merged to `main`
 - FF14 Lifecycle + resume
   - [ ] Victory/defeat/summary/end options, late joins
@@ -1383,6 +1383,7 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   any player within the Ranger's range; otherwise waits until a player drops below 50% HP (always targeted) or a
   Brute spawns, then walks slowly behind the Brute as a shield until close to a player.
 
+- [FF13] decision: SFX picks are by name only (not auditioned); swap in `scripts/pick-sfx.ts` `PICKS` and rerun. Cue gate: `Cue.when(e, kindOf)` takes an entity-kind resolver from the world; `marker` is the boss wind-up cue (no new SimEvent added); `purchase`/`cardPicked` already exist. Player: per-cue volume + max-per-window cap in `TUNING`; `createSfx(ThemeHost.sfx)` preloads behind the home bar (min of atlas and audio progress in `main.ts`), unlocks on first key or pointer.
 ## 9. Final handoff
 
 Manual steps, in order. No secrets are needed in v1 (milestones that add one must add a step here).
