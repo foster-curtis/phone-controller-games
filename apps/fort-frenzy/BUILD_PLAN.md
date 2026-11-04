@@ -1534,6 +1534,12 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   picks each real card and probes the aimed reach and edge. Aftershock drops its zone along `atk.aim`, the aim.
 
 - [FF13] decision: SFX picks are by name only (not auditioned); swap in `scripts/pick-sfx.ts` `PICKS` and rerun. Cue gate: `Cue.when(e, kindOf)` takes an entity-kind resolver from the world; `marker` is the boss wind-up cue (no new SimEvent added); `purchase`/`cardPicked` already exist. Player: per-cue volume + max-per-window cap in `TUNING`; `createSfx(ThemeHost.sfx)` preloads behind the home bar (min of atlas and audio progress in `main.ts`), unlocks on first key or pointer.
+- [orch] note for FF15: on main after FF10-fix-1/FF11/FF12 the Sim bench peak runs mean ~0.70 ms but p99
+  2.09–2.28 ms (measured while other agents loaded the machine); FF15's Acceptance needs p99 ≤ 2 ms at peak,
+  so profile the new 8-neighbor flowfield + Hunter tower-cost field, boss and card hooks first.
+- [orch] cleanup for FF15: FF3-fix-2's Stalker-thread color (`THREAD_ALPHA`) and its test are unused since
+  FF10-fix-1 removed the thread; delete both.
+
 ## 9. Final handoff
 
 Manual steps, in order. No secrets are needed in v1 (milestones that add one must add a step here).
