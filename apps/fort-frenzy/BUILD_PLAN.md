@@ -842,9 +842,9 @@ Rules:
   - [x] Colossus render + clips + boss bar
   - [x] Merged to `main`
 - FF12 Economy
-  - [ ] 64 cards + offers
-  - [ ] Team shop + wishlist + announcements + tier visuals
-  - [ ] Difficulty
+  - [x] 64 cards + offers
+  - [x] Team shop + wishlist + announcements + tier visuals
+  - [x] Difficulty
   - [ ] Merged to `main`
 - FF13 Audio
   - [x] SFX picked and converted + LICENSES
@@ -1482,6 +1482,46 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   violet outline rolling on the sim's band; the boulder leaves `fist-near`. No walk ground shake (a camera shake moves
   every world layer; left for C4). Gallery: a `colossus` page (4 tiers × 8 clips) and the
   rigs page's clip list gains `slam`, `throw`, `call`, `stagger`.
+- [FF12] contract+: `src/host/sim/types.ts` `HealCalc` and `Hooks.modifyHeal` (Triage changes a heal before it
+  lands); `src/host/sim/events.ts` appends `{ e: 'faultLine'; slot }` (the TV flashes every wall). SPEC §15.3.
+- [FF12] decision: offers: every build phase deals one (the one before wave 1 too), from `offerRng(seed, wave,
+  slot)` so a recomputed offer matches; combos count as rares (at most one of either per offer); an offer not
+  taken is gone at combat start (cards are free). Flyer eligibility reads connected ranged players, the wave
+  start's substitution rule, so Skyhunter drops out when the only ranged player is disconnected.
+- [FF12] decision: unique cards are Light Load (spec), Unshakable, Overflow, Triage and the combos; every other
+  card stacks, and modules get `stacks` (bonus × N, Volley one shot sooner, Piercing one more pierce).
+- [FF12] decision: stat cards scope to their button so aim previews read effective values: Quick Draw
+  `projectileSpeed` main, Blast Radius `radius` super, Heavy Slam/Bladework `arcDeg` main, Earthshaker `stunMs`
+  super and Rally Cry `durationMs` super (effect durations scale when fired), Deadeye `durationMs` passive (the
+  Steady Aim wait), Master Mason `repairRate`/`auraRadius` passive. New caps: `respawnMs` Σ add ≥ −5000 (5 s
+  floor), `durationMs` Σ pct ≥ −0.8.
+- [FF12] decision: Bulk Buyer is "every 3rd crate the Quartermaster buys is free" (one sooner per stack): coins
+  are whole numbers and the 50% discount already sells at the 1-coin floor, so a bigger `crateDiscount` would
+  change nothing.
+- [FF12] decision: Wildfire and Plague spread from the burn/poison effect's `onDeath` when the effect's source
+  owns the combo (1.6 tiles, 3 s, the dying enemy's strength); burn ticks 3 every 0.5 s (≤ 3 stacks), poison 2
+  every 1 s (≤ 5).
+- [FF12] decision: Overflow is a `shield` effect whose strength is the HP it absorbs (damage stage 5), topped up
+  additively to 40 HP and 6 s; with Overflow, Field Medic heals full-HP players too (as shield).
+- [FF12] decision: squad cards put small `squad:*` modifiers on the Commander's soldiers that read his live
+  stacks; Veterans survivors are the soldiers alive at combat end (+10% max HP and damage per wave, max 5;
+  replacements are new entities); soldiers with modifiers refresh their stats every step.
+- [FF12] decision: shop upgrades are `shop:<item>` modifiers fitted on purchase and on creation (structures,
+  soldiers, the base); a higher max HP comes in full. Charged walls deal 10 back to any non-dot enemy hit
+  (source: the wall). Snare charges add 2 discharges a tier to every net, built ones included.
+- [FF12] decision: shop rules not in the spec: squad stats sell one tier per regular wave cleared, shown only
+  right after a regular wave; hold-to-confirm at a price ≥ 10 (`HOLD_CONFIRM_PRICE`); repair at full HP, sold-out,
+  hidden or (for others) Quartermaster-only items ack `invalid`, a second held kit `cap`; requests only for
+  visible items; phone crate buys aren't announced (personal inventory); a repeatable purchase announces tier 1.
+  Starting prices: repair 4→14 (+2 a buy, 150 HP), sentry damage/range 8, third archer 12, turret rate and
+  mortar radius 6/10/14, tower HP 5/8/12, wall HP and snare charges 4/7/10, charged walls 10, base armor
+  8/12/16 (+0.1 DR a tier), kit 6, squad stats 5 + tier.
+- [FF12] decision: difficulty was already baked at spawn since FF6 (enemy HP and damage, base HP, kill coins,
+  wave budget); FF12 keeps the values and tests the Easy < Normal < Hard order.
+- [FF12] decision: render: every structure of an upgraded type (and every wall on a Fault Line) flashes white
+  for 220 ms with sparks while its new parts are already on; `whiteFlash` lives in `render/rig.ts` (it needs
+  Phaser at runtime, and `render/structures.ts` must stay Node-safe for its tests). The mortar gains the
+  defense-bonus pips; the Overflow icon sits right of the HP bar; the TV wishlist names the next tier.
 
 - [FF13] decision: SFX picks are by name only (not auditioned); swap in `scripts/pick-sfx.ts` `PICKS` and rerun. Cue gate: `Cue.when(e, kindOf)` takes an entity-kind resolver from the world; `marker` is the boss wind-up cue (no new SimEvent added); `purchase`/`cardPicked` already exist. Player: per-cue volume + max-per-window cap in `TUNING`; `createSfx(ThemeHost.sfx)` preloads behind the home bar (min of atlas and audio progress in `main.ts`), unlocks on first key or pointer.
 ## 9. Final handoff

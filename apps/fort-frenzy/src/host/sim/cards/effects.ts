@@ -24,11 +24,20 @@ function spread(ctx: SimCtx, self: Unit, fx: StatusEffect) {
   for (const e of s.world.enemies) {
     if (e === self || e.hp <= 0) continue;
     if (dist(self.x, self.y, e.x, e.y) - e.r > SPREAD_RADIUS) continue;
-    ctx.applyEffect(e.id, { effect: fx.def, strength: fx.strength, durationMs: SPREAD_MS }, fx.source);
+    ctx.applyEffect(
+      e.id,
+      { effect: fx.def, strength: fx.strength, durationMs: SPREAD_MS },
+      fx.source,
+    );
   }
 }
 
-function dotDef(id: 'burn' | 'poison', maxStacks: number, tickEveryMs: number, combo: 'wildfire' | 'plague'): EffectDef {
+function dotDef(
+  id: 'burn' | 'poison',
+  maxStacks: number,
+  tickEveryMs: number,
+  combo: 'wildfire' | 'plague',
+): EffectDef {
   return {
     id,
     stacking: 'stack',

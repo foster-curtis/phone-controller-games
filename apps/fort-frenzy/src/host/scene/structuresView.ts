@@ -4,10 +4,23 @@
 // dimming as its discharges run out and flashing on each one), the build sketch and fill, the
 // destroyed collapse into scrap, mortar shells leaving from the barrel and bursting in a blast ring,
 // and Mason's sparks from the Warden's hammer to the walls he repairs. The sim is read, never written.
+// FF12: the upgrade flash (every structure of a type a purchase upgrades flashes white with sparks;
+// the new tier's parts are already on), the Fault Line wall flash, the mortar's defense-bonus pips
+// and nets' discharge count with Snare charges tiers.
 // Per frame: alpha, crop and scale only; fields rebuild only when their tiles or states change.
 import type { Content } from '../../content';
+import type { ShopItemId, StructureId } from '../../shared/ids';
 import type { ArtImage } from '../render/atlas';
-import { Mortar, NetField, PulseTurret, WallField, type WallTile } from '../render/structures';
+import {
+  Mortar,
+  NetField,
+  PulseTurret,
+  UPGRADE_FLASH_MS,
+  WallField,
+  type WallTile,
+} from '../render/structures';
+import { whiteFlash } from '../render/rig';
+import { extraDischarges } from '../sim/shop';
 import { BuildFill, Collapse } from '../render/buildFx';
 import { structureScrap } from '../render/structureFx';
 import type { ScreenPoint, TowerTier } from '../render/types';
@@ -23,6 +36,16 @@ const WALL_TOP_Z = 0.55;
 
 const screenRot = (a: number) => Math.atan2(Math.sin(a) * 0.6, Math.cos(a));
 const tierOf = (n: number | undefined) => Math.min(3, n ?? 0) as TowerTier;
+
+/** Which structures a shop item upgrades (they flash when it's bought, §7.2 states). */
+const UPGRADES: Partial<Record<ShopItemId, readonly StructureId[]>> = {
+  arrow_rate: ['arrow_tower'],
+  bomb_radius: ['bomb_tower'],
+  tower_hp: ['arrow_tower', 'bomb_tower'],
+  wall_hp: ['wall'],
+  spiked_walls: ['wall'],
+  snare_charges: ['snare'],
+};
 
 interface Known {
   kind: string;
@@ -44,6 +67,8 @@ export class StructuresView {
     { to: { x: number; y: number }; r: number; at: number }
   >();
   private readonly mason = new Map<EntityId, number>();
+  /** Upgrade and Fault Line flashes in progress: the images and ms left. */
+  private flashes: { images: ArtImage[]; left: number }[] = [];
   private t = 0;
 
   constructor(
@@ -93,6 +118,7 @@ export class StructuresView {
         m.setTier(mortarTier);
         m.setDamaged(damaged);
         m.setFortify(st.fortified);
+        m.setDefenseBonus(st.effects.some((x) => x.def === 'tower_defense'));
       } else if (st.kind === 'wall') {
         walls.push({ id: st.id, c, r, damaged, charged });
       } else if (st.kind === 'snare') {
@@ -132,7 +158,9 @@ export class StructuresView {
       this.nets.set(nets);
       this.netSig = netSig;
     }
-    const max = this.content.structures.find((d) => d.id === 'snare')?.discharges ?? 1;
+    const max =
+      (this.content.structures.find((d) => d.id === 'snare')?.discharges ?? 1) +
+      extraDischarges(this.content, world.team);
     for (const st of world.structures) {
       if (st.kind !== 'snare') continue;
       const armed = st.rearmAt === null || world.tick >= st.rearmAt;
@@ -216,8 +244,38 @@ export class StructuresView {
         if (e.left === 0) this.w.fx.burst('spark-ours', s.sx, s.sy - 4, 0, 120);
         return;
       }
+      case 'purchase': {
+        const kinds = UPGRADES[e.item];
+        if (kinds) this.flashKinds(world, kinds);
+        return;
+      }
+      case 'faultLine':
+        this.flashKinds(world, ['wall']);
+        return;
       default:
         return;
+    }
+  }
+
+  /** Every structure of these kinds flashes white, with sparks bolting on (§7.2 upgrade state). */
+  private flashKinds(world: World, kinds: readonly StructureId[]) {
+    for (const st of world.structures) {
+      if (!kinds.includes(st.kind)) continue;
+      const [c, r] = st.tile;
+      let images: ArtImage[] = [];
+      if (st.kind === 'arrow_tower') images = this.turrets.get(st.id)?.images() ?? [];
+      else if (st.kind === 'bomb_tower') {
+        const m = this.mortars.get(st.id);
+        m?.rig.flash(UPGRADE_FLASH_MS);
+        images = m?.images() ?? [];
+      } else if (st.kind === 'wall') images = this.walls.at(c, r);
+      else if (st.kind === 'snare') images = this.nets.at(c, r);
+      if (images.length > 0) {
+        whiteFlash(images, true);
+        this.flashes.push({ images, left: UPGRADE_FLASH_MS });
+      }
+      const s = this.w.camera.worldToScreen(c + 0.5, r + 0.5);
+      this.w.fx.burst('spark-ours', s.sx, s.sy - 20, 0, (st.id % 4) * 40);
     }
   }
 
@@ -262,6 +320,13 @@ export class StructuresView {
 
   update(world: World, dtMs: number, hammerOf: (p: PlayerEnt) => ScreenPoint | null) {
     this.t += dtMs;
+    if (this.flashes.length > 0) {
+      for (const f of this.flashes) {
+        f.left -= dtMs;
+        if (f.left <= 0) whiteFlash(f.images, false);
+      }
+      this.flashes = this.flashes.filter((f) => f.left > 0);
+    }
     this.walls.update(dtMs);
     this.nets.update(dtMs);
     for (const t of this.turrets.values()) t.update(dtMs);

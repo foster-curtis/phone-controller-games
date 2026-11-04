@@ -1,7 +1,7 @@
 // Phone state sync (SPEC §15.6): the full `team` and per-phone `me` snapshots, built from the party
 // (lobby, presence) and the sim's world (the run). Pure: no relay, no clock.
 import type { Content } from '../../content';
-import type { ClassId, EnemyId, PlayerColorId, StructureId } from '../../shared/ids';
+import type { CardId, ClassId, EnemyId, PlayerColorId, StructureId } from '../../shared/ids';
 import {
   RUN_STAT_KEYS,
   type ArcSlot,
@@ -13,7 +13,7 @@ import {
   type TeamView,
 } from '../../shared/messages';
 import type { Member, Party } from '../party';
-import { buildTile, placementValid, throwTarget } from '../sim';
+import { buildTile, itemState, placementValid, throwTarget } from '../sim';
 import { STEP_MS, type PlayerEnt, type RunSettings, type World } from '../sim/types';
 
 export type FfParty = Party<PlayerColorId, ClassId>;
@@ -96,19 +96,19 @@ export function teamView(ctx: ViewCtx): TeamView {
     difficulty: ctx.settings.difficulty,
     leaderId: party.leaderId,
     roster,
-    // Shop purchases beyond crates arrive with FF12; only the content's rows are shown.
+    // The team shop (§6.2, FF12): the sim's own visibility and price rules. Quartermaster-only rows
+    // go to every phone flagged `qmOnly`; phones show them only to Quartermasters (§10.3).
     shop: content.shop.map((s) => {
-      const tier = w?.team.shop[s.id] ?? 0;
+      const st = w ? itemState(content, w, s) : null;
       const maxTier = s.repeatable ? 0 : s.tiers.length;
-      const next = s.repeatable ? s.tiers[0] : s.tiers[tier];
       return {
         id: s.id,
-        tier,
+        tier: st?.tier ?? 0,
         maxTier,
-        price: next ? next.price : null,
-        visible: true,
+        price: st ? st.price : (s.tiers[0]?.price ?? null),
+        visible: st?.visible ?? false,
         qmOnly: s.qmOnly ?? false,
-        holdToConfirm: s.holdToConfirm ?? false,
+        holdToConfirm: st?.holdToConfirm ?? s.holdToConfirm ?? false,
       };
     }),
     wishlist: (w?.team.wishlist ?? []).map((x) => ({ item: x.item, by: playerIdOfSlot(x.slot) })),
@@ -255,7 +255,14 @@ export function meView(ctx: ViewCtx, m: FfMember | null, full = false): MeView {
     },
     buildKit: kit,
     respawnMs: dead ? Math.max(0, Math.round((p.respawnAt! - w.tick) * STEP_MS)) : null,
-    cards: NO_CARDS,
+    // Private card offer and owned stacks (§6.1, FF12).
+    cards: {
+      offer: w.phase === 'build' && p.offer ? [...p.offer] : null,
+      picked: w.phase === 'build' ? p.picked : null,
+      owned: (Object.keys(p.cards) as CardId[])
+        .filter((id) => (p.cards[id] ?? 0) > 0)
+        .map((id) => ({ id, n: p.cards[id]! })),
+    },
     build:
       w.phase === 'build'
         ? {

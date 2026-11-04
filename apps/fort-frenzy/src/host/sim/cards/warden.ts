@@ -44,7 +44,11 @@ export const aftershock: ModuleDef = {
           for (const z of m.zones) {
             for (const e of s.world.enemies) {
               if (e.hp <= 0 || e.flying || dist(z.x, z.y, e.x, e.y) - e.r > radius) continue;
-              ctx.applyEffect(e.id, { effect: 'slow', strength: slow, durationMs: slowMs }, self.id);
+              ctx.applyEffect(
+                e.id,
+                { effect: 'slow', strength: slow, durationMs: slowMs },
+                self.id,
+              );
             }
           }
         },
@@ -72,7 +76,11 @@ export const bodyguard: ModuleDef = {
           if (!s.targetable(me)) return;
           for (const q of s.world.players) {
             if (q === me || !s.targetable(q) || dist(me.x, me.y, q.x, q.y) > radius) continue;
-            ctx.applyEffect(q.id, { effect: 'aura_bodyguard', strength, durationMs: auraMs }, me.id);
+            ctx.applyEffect(
+              q.id,
+              { effect: 'aura_bodyguard', strength, durationMs: auraMs },
+              me.id,
+            );
           }
         },
       },
@@ -117,9 +125,17 @@ export const faultLine: ModuleDef = {
           const damage = s.attackStat(pl, def.damage, 'damage', 'super');
           for (const e of s.world.enemies.slice()) {
             if (e.hp <= 0 || e.flying) continue;
-            const on = walls.some((w) => circleTouchesTile(e.x, e.y, e.r + touch, w.tile[0], w.tile[1]));
+            const on = walls.some((w) =>
+              circleTouchesTile(e.x, e.y, e.r + touch, w.tile[0], w.tile[1]),
+            );
             if (!on) continue;
-            ctx.damage({ source: pl.id, target: e.id, amount: damage, kind: 'area', tags: ['super', 'fault_line'] });
+            ctx.damage({
+              source: pl.id,
+              target: e.id,
+              amount: damage,
+              kind: 'area',
+              tags: ['super', 'fault_line'],
+            });
             ctx.applyEffect(e.id, { effect: 'slow', strength: slow, durationMs: slowMs }, pl.id);
           }
           ctx.emit({ e: 'faultLine', slot: pl.slot });

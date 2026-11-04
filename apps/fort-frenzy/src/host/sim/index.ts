@@ -24,3 +24,6 @@ export {
   type ReplayResult,
   type RunRecording,
 } from './recorder';
+export { extraDischarges, itemState, shownTo, type ShopItemState } from './shop';
+export { canSpawnFor, guaranteedRare, offerFor, RARE_CHANCE } from './cards';
+export { shieldOf } from './cards/effects';

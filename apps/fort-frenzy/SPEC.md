@@ -1702,7 +1702,10 @@ interface Hooks {
   onKill(ctx: SimCtx, self: Unit, victim: Unit): void;
   onDeath(ctx: SimCtx, self: Unit, killer: Unit | null): void;        // Wildfire, Plague (on the effect)
   onPhase(ctx: SimCtx, self: Unit, phase: Phase): void;               // Veterans
+  modifyHeal(ctx: SimCtx, self: Unit, h: HealCalc): void;             // FF12: Triage, before a heal lands
 }
+// HealCalc { source; target; amount } (FF12). SimEvent appends `{ e: 'faultLine'; slot }` (FF12: the
+// TV flashes every wall when a Fault Line stomp shocks them).
 // Modules are registered by id and built from config params:
 function defineModule<P>(id: string, make: (params: P) => Modifier): ModuleDef<P>;
 ```

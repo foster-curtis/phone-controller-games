@@ -1,7 +1,7 @@
 // Scenario harness for headless sim tests (SPEC §15.9): a run with scripted phones, and helpers to
 // reach a phase, move players and step until something happens.
 import type { Content } from '../../../content';
-import type { CardId, ClassId, PlayerColorId } from '../../../shared/ids';
+import type { CardId, ClassId, DifficultyId, PlayerColorId } from '../../../shared/ids';
 import { PLAYER_COLOR_IDS } from '../../../shared/ids';
 import { createSim, ScriptedInputSource, type Sim } from '../index';
 import type { PlayerEnt, RunStart, SimEvent } from '../types';
@@ -52,6 +52,8 @@ export interface HarnessOptions {
   classes?: ClassId[];
   /** Content override (custom enemies for a scenario). */
   content?: Content;
+  /** Run difficulty (default Normal, §2.2). */
+  difficulty?: DifficultyId;
 }
 
 export function harness(players = 1, seed = 1, opts: HarnessOptions = {}): Harness {
@@ -59,6 +61,7 @@ export function harness(players = 1, seed = 1, opts: HarnessOptions = {}): Harne
   const sources = new Map(pads.map((pad, i) => [i, pad] as const));
   const start = startOf(players, seed);
   start.slots.forEach((sl, i) => (sl.classId = opts.classes?.[i] ?? sl.classId));
+  if (opts.difficulty) start.settings.difficulty = opts.difficulty;
   const sim = createSim(start, { sources, content: opts.content });
   const h: Harness = {
     sim,
@@ -109,7 +112,8 @@ export function harness(players = 1, seed = 1, opts: HarnessOptions = {}): Harne
         p.picked = null;
         sim.command({ c: 'card', slot, card });
         sim.step();
-        if (p.picked !== card) throw new Error(`give: ${card} was not picked (phase ${sim.world.phase})`);
+        if (p.picked !== card)
+          throw new Error(`give: ${card} was not picked (phase ${sim.world.phase})`);
       }
     },
   };

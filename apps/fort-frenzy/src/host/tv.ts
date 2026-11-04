@@ -60,7 +60,8 @@ export function buildTvView(input: TvInput): TvView {
     const row = team?.shop.find((s) => s.id === item);
     wishlist.push({
       item,
-      tier: row?.tier ?? 0,
+      // The tier the request is for: the next one (repeatable items have none).
+      tier: row && row.maxTier > 0 ? Math.min(row.maxTier, row.tier + 1) : 0,
       price: row?.price ?? null,
       by: (team?.wishlist ?? [])
         .filter((x) => x.item === item)

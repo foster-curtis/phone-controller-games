@@ -31,14 +31,7 @@ import {
   vanguardAura,
 } from './cards/effects';
 import { fireArrows, piercingShot, skyhunter, volley, wildfire } from './cards/engineer';
-import {
-  bulkBuyer,
-  lightLoad,
-  overflow,
-  plague,
-  triage,
-  venomBolts,
-} from './cards/quartermaster';
+import { bulkBuyer, lightLoad, overflow, plague, triage, venomBolts } from './cards/quartermaster';
 import { aftershock, bodyguard, faultLine, giantSlayer, unshakable } from './cards/warden';
 import { chargedWalls } from './shop/chargedWalls';
 import { mason, stunEffect } from './classes/warden';

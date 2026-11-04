@@ -14,11 +14,15 @@ function ownSoldiers(s: SimState, slot: number): SoldierEnt[] {
 
 /** Gives each of the Commander's soldiers the modifier `id` once. */
 function ensureSquadMod(s: SimState, me: PlayerEnt, id: string, make: (u: SoldierEnt) => Modifier) {
-  for (const u of ownSoldiers(s, me.slot)) if (!u.mods.some((m) => m.id === id)) u.mods.push(make(u));
+  for (const u of ownSoldiers(s, me.slot))
+    if (!u.mods.some((m) => m.id === id)) u.mods.push(make(u));
 }
 
-const stacksOfCard = (s: SimState, slot: number, card: 'siege_breakers' | 'last_stand' | 'veterans') =>
-  s.player(slot)?.cards[card] ?? 0;
+const stacksOfCard = (
+  s: SimState,
+  slot: number,
+  card: 'siege_breakers' | 'last_stand' | 'veterans',
+) => s.player(slot)?.cards[card] ?? 0;
 
 /** The squad moves faster, following and to the flag: a refreshed haste on each soldier. */
 export const forcedMarch: ModuleDef = {
@@ -55,7 +59,8 @@ export const siegeBreakers: ModuleDef = {
             hooks: {
               modifyOutgoing(c, _u, d) {
                 const e = enemyTarget(c, d.target);
-                if (e?.kind === 'siege') d.amount *= 1 + pct * stacksOfCard(state(c), me.slot, 'siege_breakers');
+                if (e?.kind === 'siege')
+                  d.amount *= 1 + pct * stacksOfCard(state(c), me.slot, 'siege_breakers');
               },
             },
           }));

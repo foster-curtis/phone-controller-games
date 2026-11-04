@@ -87,6 +87,67 @@ describe('content ids', () => {
     expect(c.shop.map((s) => s.id)).toContain('crate');
   });
 
+  it('FF12: every card and shop id has content; 64 cards (8 commons × 4 + 8 per class)', () => {
+    expect(c.cards.map((x) => x.id).sort()).toEqual([...CARD_IDS].sort());
+    expect(c.shop.map((x) => x.id).sort()).toEqual([...SHOP_ITEM_IDS].sort());
+    const commons = c.cards.filter((x) => x.owner === 'common');
+    expect(commons).toHaveLength(8);
+    let total = commons.length * CLASS_IDS.length;
+    for (const cls of CLASS_IDS) {
+      const own = c.cards.filter((x) => x.owner === cls);
+      expect(own.filter((x) => x.tier === 'common')).toHaveLength(2);
+      expect(own.filter((x) => x.tier === 'rare')).toHaveLength(5);
+      expect(own.filter((x) => x.tier === 'combo')).toHaveLength(1);
+      total += own.length;
+    }
+    expect(total).toBe(64);
+    // Commons are tuned per class: every class has numbers for each.
+    for (const x of commons)
+      for (const cls of CLASS_IDS) expect(x.perClass?.[cls]?.length).toBeGreaterThan(0);
+    // Every card does something: stats, per-class stats or a registered module.
+    for (const x of c.cards)
+      expect((x.stats?.length ?? 0) > 0 || x.module !== undefined || x.perClass !== undefined).toBe(
+        true,
+      );
+  });
+
+  it('FF12: combos need two cards of their own class that are not combos', () => {
+    for (const x of c.cards.filter((k) => k.tier === 'combo')) {
+      expect(x.requires).toHaveLength(2);
+      for (const r of x.requires!) {
+        const pre = c.cards.find((k) => k.id === r)!;
+        expect(pre.owner).toBe(x.owner);
+        expect(pre.tier).not.toBe('combo');
+      }
+    }
+    for (const x of c.cards.filter((k) => k.tier !== 'combo')) expect(x.requires).toBeUndefined();
+  });
+
+  it('FF12: favored enemies are ones the waves can spawn', () => {
+    const spawnable = new Set(
+      c.waves.flatMap((w) => [...w.allowed, ...(w.boss ? [w.boss.id] : [])]),
+    );
+    for (const x of c.cards) if (x.favoredEnemy) expect(spawnable).toContain(x.favoredEnemy);
+  });
+
+  it('FF12: shop tiers rise in price; tiered structure items have 3 tiers', () => {
+    for (const item of c.shop) {
+      const prices = item.tiers.map((t) => t.price);
+      for (let i = 1; i < prices.length; i++) expect(prices[i]).toBeGreaterThan(prices[i - 1]!);
+    }
+    for (const id of [
+      'arrow_rate',
+      'bomb_radius',
+      'tower_hp',
+      'wall_hp',
+      'snare_charges',
+      'base_armor',
+    ])
+      expect(c.shop.find((s) => s.id === id)?.tiers).toHaveLength(3);
+    for (const id of ['base_armor', 'emergency_kit'])
+      expect(c.shop.find((s) => s.id === id)?.qmOnly).toBe(true);
+  });
+
   it('waves: pools, guaranteed spawns and lanes exist; budgets cover the guaranteed spawns', () => {
     expect(c.waves.map((w) => w.n)).toEqual(c.waves.map((_, i) => i + 1));
     for (const w of c.waves) {

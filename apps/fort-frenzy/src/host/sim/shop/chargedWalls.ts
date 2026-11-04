@@ -15,7 +15,13 @@ export const chargedWalls: ModuleDef = {
           const src = r.source;
           if (src === null || src === self.id || r.kind === 'dot') return;
           if (state(ctx).kinds.get(src) !== 'enemy') return;
-          ctx.damage({ source: self.id, target: src, amount: damage, kind: 'contact', tags: ['charged'] });
+          ctx.damage({
+            source: self.id,
+            target: src,
+            amount: damage,
+            kind: 'contact',
+            tags: ['charged'],
+          });
         },
       },
     };

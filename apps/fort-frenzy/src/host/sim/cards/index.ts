@@ -25,9 +25,13 @@ const isRare = (c: CardDef) => c.tier !== 'common';
 /** Classes that bring ranged attackers: without one, Flyers are replaced (§9, lifecycle.ts). */
 const RANGED = new Set(['engineer', 'quartermaster']);
 
-/** Can `enemy` still spawn for this team, from wave `from` on (Flyer substitution included)? */
+/**
+ * Can `enemy` still spawn for this team, from wave `from` on? Flyers are substituted when no ranged
+ * class is connected (the wave start's rule, §9, lifecycle.ts), so the picker reads the same.
+ */
 export function canSpawnFor(cat: Catalog, world: World, enemy: EnemyId, from: number): boolean {
-  if (enemy === 'flyer' && !world.players.some((p) => RANGED.has(p.classId))) return false;
+  const ranged = world.players.some((p) => p.connected && RANGED.has(p.classId));
+  if (enemy === 'flyer' && !ranged) return false;
   return cat.waves.some(
     (w) =>
       w.n >= from &&
@@ -115,7 +119,8 @@ function attachCard(s: FullState, p: PlayerEnt, id: CardId) {
 
 /** Rebuilds every card modifier from `p.cards` (a resumed run, FF14). */
 export function attachAllCards(s: FullState, p: PlayerEnt): void {
-  for (const id of Object.keys(p.cards) as CardId[]) if ((p.cards[id] ?? 0) > 0) attachCard(s, p, id);
+  for (const id of Object.keys(p.cards) as CardId[])
+    if ((p.cards[id] ?? 0) > 0) attachCard(s, p, id);
 }
 
 /** The `card` command: a private pick of one card from the player's offer (build phase). */

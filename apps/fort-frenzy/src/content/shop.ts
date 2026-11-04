@@ -108,7 +108,11 @@ export const towerHp = {
 
 export const wallHp = {
   id: 'wall_hp',
-  tiers: tiers3([4, 7, 10], { kind: 'stats', target: 'wall', stats: [{ stat: 'maxHp', addPct: 0.3 }] }),
+  tiers: tiers3([4, 7, 10], {
+    kind: 'stats',
+    target: 'wall',
+    stats: [{ stat: 'maxHp', addPct: 0.3 }],
+  }),
   visibleIf: WARDEN,
 } satisfies ShopItemDef;
 

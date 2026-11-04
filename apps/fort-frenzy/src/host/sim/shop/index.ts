@@ -7,7 +7,13 @@
 // The row helpers are pure on (content, world), so phone views use the same rules as the sim.
 import type { Content } from '../../../content';
 import { HOLD_CONFIRM_PRICE } from '../../../content/shop';
-import type { Condition, ShopItemDef, StatMod, UpgradeTarget, WaveDef } from '../../../content/types';
+import type {
+  Condition,
+  ShopItemDef,
+  StatMod,
+  UpgradeTarget,
+  WaveDef,
+} from '../../../content/types';
 import type { ClassId, ShopItemId, StructureId } from '../../../shared/ids';
 import type { AckReason } from '../../../shared/messages';
 import { buyCrate } from '../crates';
@@ -60,7 +66,8 @@ export function itemState(content: Content, world: World, def: ShopItemDef): Sho
   let visible = conditionMet(def.visibleIf, world);
   // Squad stats: one tier per regular wave cleared, sold only right after a regular wave.
   if (def.afterRegularWaveOnly) {
-    visible &&= afterRegularWave(waves, world.wave) && owned < regularWavesBefore(waves, world.wave);
+    visible &&=
+      afterRegularWave(waves, world.wave) && owned < regularWavesBefore(waves, world.wave);
   }
   const price = next ? next.price : null;
   return {
@@ -79,7 +86,10 @@ export function shownTo(def: ShopItemDef, classId: ClassId | null): boolean {
 
 // ---- shop modifiers on units --------------------------------------------------------------------
 
-function targetsOf(kind: 'structure' | 'soldier' | 'base', structure?: StructureId): UpgradeTarget[] {
+function targetsOf(
+  kind: 'structure' | 'soldier' | 'base',
+  structure?: StructureId,
+): UpgradeTarget[] {
   if (kind === 'soldier') return ['squad'];
   if (kind === 'base') return ['base', 'archers'];
   const out: UpgradeTarget[] = [structure!];
@@ -88,7 +98,11 @@ function targetsOf(kind: 'structure' | 'soldier' | 'base', structure?: Structure
 }
 
 /** The `shop:<item>` modifiers a unit gets from the tiers the team owns. */
-export function shopModifiers(content: Content, team: TeamState, targets: readonly UpgradeTarget[]): Modifier[] {
+export function shopModifiers(
+  content: Content,
+  team: TeamState,
+  targets: readonly UpgradeTarget[],
+): Modifier[] {
   const out: Modifier[] = [];
   for (const def of content.shop) {
     const owned = Math.min(team.shop[def.id] ?? 0, def.tiers.length);
@@ -115,7 +129,8 @@ export function extraDischarges(content: Content, team: TeamState): number {
   let n = 0;
   for (const def of content.shop) {
     const owned = Math.min(team.shop[def.id] ?? 0, def.tiers.length);
-    for (const t of def.tiers.slice(0, owned)) if (t.effect.kind === 'discharges') n += t.effect.add;
+    for (const t of def.tiers.slice(0, owned))
+      if (t.effect.kind === 'discharges') n += t.effect.add;
   }
   return n;
 }
@@ -161,7 +176,12 @@ export function buy(s: FullState, p: PlayerEnt, item: ShopItemId): AckReason | n
   if (!shownTo(def, p.classId)) return 'invalid';
   const st = itemState(s.cat.content, w, def);
   if (!st.visible || st.price === null) return 'invalid';
-  const tier = def.id === 'repair' ? def.tiers[Math.min(w.base.repairs, def.tiers.length - 1)]! : def.repeatable ? def.tiers[0]! : def.tiers[st.tier]!;
+  const tier =
+    def.id === 'repair'
+      ? def.tiers[Math.min(w.base.repairs, def.tiers.length - 1)]!
+      : def.repeatable
+        ? def.tiers[0]!
+        : def.tiers[st.tier]!;
   const fx = tier.effect;
   if (fx.kind === 'crates') {
     // Crates (§6): the depot's price and rules, into the buyer's inventory; personal, so no announcement.
@@ -171,7 +191,8 @@ export function buy(s: FullState, p: PlayerEnt, item: ShopItemId): AckReason | n
   }
   if (fx.kind === 'kit' && p.kits >= 1) return 'cap';
   if (fx.kind === 'repair' && w.base.hp >= w.base.maxHp) return 'invalid';
-  if (fx.kind === 'archers' && w.base.archers.count >= s.cat.base.archers.at.length) return 'invalid';
+  if (fx.kind === 'archers' && w.base.archers.count >= s.cat.base.archers.at.length)
+    return 'invalid';
   if (w.team.coins < st.price) return 'coins';
   w.team.coins -= st.price;
   w.team.shop[item] = st.tier + 1;
@@ -186,7 +207,12 @@ export function buy(s: FullState, p: PlayerEnt, item: ShopItemId): AckReason | n
     case 'archers':
       for (let i = 0; i < fx.add && w.base.archers.count < s.cat.base.archers.at.length; i++) {
         w.base.archers.count++;
-        w.base.archers.attack.push({ readyAt: 0, queued: false, aim: { x: 0, y: 0 }, windupEndsAt: null });
+        w.base.archers.attack.push({
+          readyAt: 0,
+          queued: false,
+          aim: { x: 0, y: 0 },
+          windupEndsAt: null,
+        });
         w.base.archers.aim.push(Math.PI / 2);
       }
       break;
@@ -207,7 +233,12 @@ export function buy(s: FullState, p: PlayerEnt, item: ShopItemId): AckReason | n
 }
 
 /** The `request` command (§6.2): toggles this player's wish for an item they can see (build phase). */
-export function request(s: FullState, p: PlayerEnt, item: ShopItemId, on: boolean): AckReason | null {
+export function request(
+  s: FullState,
+  p: PlayerEnt,
+  item: ShopItemId,
+  on: boolean,
+): AckReason | null {
   const w = s.world;
   const def = s.cat.shopItem(item);
   if (!def) return 'invalid';

@@ -34,7 +34,7 @@ import { locomotionClip, locomotionSpeed, StatusSprites } from '../render/status
 import { Citadel, frameAt, type SentryId } from '../render/structures';
 import type { IconKey, ProjectileKind, ProjectileSprite, StatusLook } from '../render/types';
 import type { RenderWorld } from '../render/world';
-import { aimPreview, buildTile, placementValid } from '../sim';
+import { aimPreview, buildTile, placementValid, shieldOf } from '../sim';
 import {
   BASE_ID,
   STEP_MS,
@@ -125,6 +125,8 @@ interface Knight {
   tag: Phaser.GameObjects.Text;
   tagState: TagState;
   reconnect: ArtImage;
+  /** Overflow shield (§6.1, FF12): the icon beside the HP bar while a shield holds. */
+  overflow: ArtImage;
   ghost: ArtImage;
   arc: { tile: ArtImage; glyph: ArtImage }[];
 }
@@ -334,6 +336,7 @@ export class WorldView {
         tag,
         tagState: { color: theme.color.foreground.hex },
         reconnect: this.icon('reconnecting'),
+        overflow: this.icon('overflow-shield'),
         ghost,
         arc,
       });
@@ -703,6 +706,10 @@ export class WorldView {
         bh,
       );
     }
+    // Overflow shield: its icon beside the HP bar, no world sprite (§6.1, FF12).
+    const shielded = p.respawnAt === null && shieldOf(p) > 0;
+    k.overflow.img.setVisible(shielded);
+    if (shielded) k.overflow.img.setPosition(at.sx + 23 + 9, below ? tagY + 26 : tagY + 5);
     this.drawAim(p, at);
     // Build ghost at the feet (§10.2): dashed amber when valid, red with an X when blocked.
     const ghost = w.phase === 'build' && p.ghost !== null && p.respawnAt === null;

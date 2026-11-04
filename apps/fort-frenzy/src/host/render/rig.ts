@@ -49,6 +49,18 @@ interface Playing {
   speed: number;
 }
 
+/**
+ * White fill on plain art images, or back (FF12: the structure upgrade flash). Lives here, beside
+ * the rig's own flash, because this module already loads Phaser (structures.ts stays Node-safe).
+ */
+export function whiteFlash(images: readonly ArtImage[], on: boolean): void {
+  for (const a of images) {
+    if (!a.img.active) continue;
+    if (on) a.img.setTintMode(Phaser.TintModes.FILL).setTint(0xffffff);
+    else a.img.setTintMode(Phaser.TintModes.MULTIPLY).clearTint();
+  }
+}
+
 export class RigSprite implements RigInstance {
   readonly root: Phaser.GameObjects.Container;
   private sets: PartSet[] = [];

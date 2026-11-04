@@ -28,7 +28,11 @@ export const lightLoad: ModuleDef = {
           const r = s.attackStat(me, base, 'auraRadius');
           for (const q of s.world.players) {
             if (!s.targetable(q) || dist(me.x, me.y, q.x, q.y) > r + q.r) continue;
-            ctx.applyEffect(q.id, { effect: 'aura_field_medic', strength: factor, durationMs: auraMs }, me.id);
+            ctx.applyEffect(
+              q.id,
+              { effect: 'aura_field_medic', strength: factor, durationMs: auraMs },
+              me.id,
+            );
           }
         },
       },
@@ -76,7 +80,11 @@ export const overflow: ModuleDef = {
             fx.strength = Math.min(cap, fx.strength + h.overflow);
             fx.remaining = Math.max(fx.remaining, s.cat.steps(durationMs));
           } else {
-            ctx.applyEffect(u.id, { effect: 'shield', strength: Math.min(cap, h.overflow), durationMs }, self.id);
+            ctx.applyEffect(
+              u.id,
+              { effect: 'shield', strength: Math.min(cap, h.overflow), durationMs },
+              self.id,
+            );
           }
         },
       },

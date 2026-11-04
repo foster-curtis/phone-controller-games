@@ -48,6 +48,9 @@ function setVisible(a: ArtImage | null | undefined, on: boolean) {
   a?.img.setVisible(on);
 }
 
+/** The upgrade flash (§7.2 states, FF12): how long every image of a structure stays white. */
+export const UPGRADE_FLASH_MS = 220;
+
 // ---- pulse turret ---------------------------------------------------------------------------------
 
 /** Muzzle attach indices per tier: the base head has one barrel, II and III twin barrels (§7.2). */
@@ -217,6 +220,7 @@ export function mortarGroups(tier: TowerTier): string[] {
 
 export class Mortar {
   private plate: ArtImage;
+  private bonus: ArtImage;
   readonly sx: number;
   readonly sy: number;
   private tubeRad = 0;
@@ -234,7 +238,14 @@ export class Mortar {
     this.sy = sy;
     // `plate/tile` under it, centered on the rig's foot (art README).
     this.plate = placeFrame(ctx, fk('plate/tile'), 'groundOverlay', sx, sy);
+    // The Artificer's super buff (FF12): shield pips on the plate's front edge, like the turret's.
+    this.bonus = placeFrame(ctx, fk('defense-bonus'), 'world', sx, sy, { sortY: sy + EPS / 2 });
+    this.bonus.img.setVisible(false);
     rig.setPosition(sx, sy);
+  }
+
+  setDefenseBonus(on: boolean) {
+    setVisible(this.bonus, on);
   }
 
   setTier(tier: TowerTier) {
@@ -305,6 +316,7 @@ export class Mortar {
   destroy() {
     this.setFortify(false);
     this.plate.img.destroy();
+    this.bonus.img.destroy();
     this.rig.destroy();
   }
 }

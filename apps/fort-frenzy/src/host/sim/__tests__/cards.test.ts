@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { rules } from '../../../content/base';
 import { cards as cardDefs } from '../../../content/cards';
 import { engineer, quartermaster, warden } from '../../../content/characters';
-import type { StatId } from '../../../content/types';
+import type { RulesDef, StatId } from '../../../content/types';
 import { CARD_IDS, type CardId, type ClassId } from '../../../shared/ids';
 import { collectStatMods, statValue } from '../../systems/modifiers';
 import { harness, type Harness } from './harness';
@@ -34,7 +34,8 @@ function atk(
   stat: StatId,
   scope?: 'main' | 'super' | 'passive',
 ): number {
-  return statValue(base, collectStatMods(p.mods), stat, rules.statCaps[stat], scope);
+  const caps: RulesDef['statCaps'] = rules.statCaps;
+  return statValue(base, collectStatMods(p.mods), stat, caps[stat], scope);
 }
 
 const effectOf = (u: { effects: readonly { def: string }[] }, def: string) =>
