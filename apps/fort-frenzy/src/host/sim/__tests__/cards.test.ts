@@ -165,8 +165,9 @@ describe('engineer cards', () => {
     const hit = (picks: Pick[]) => {
       const h = game(['engineer'], picks);
       h.put(0, 10, 16);
-      // Edge at 3.18 tiles: outside the base 3.0, inside 3.6.
-      const e = h.sim.spawnEnemy('grunt', 13.5, 16);
+      // Edge at 1.1× the base radius: outside the base circle, inside the 1.2× one.
+      const e = h.sim.spawnEnemy('grunt', 0, 16);
+      e.x = 10 + engineer.super.radius * 1.1 + e.r;
       h.p(0).superCharge = 1;
       h.pads[0]!.tap('superFires');
       h.run(1);
@@ -287,7 +288,7 @@ describe('warden cards', () => {
 
   it('heavy_slam: the slam arc is 20% wider', () => {
     const p = game(['warden'], [[0, 'heavy_slam']]).p(0);
-    expect(atk(p, warden.main.arcDeg, 'arcDeg', 'main')).toBeCloseTo(144, 6);
+    expect(atk(p, warden.main.arcDeg, 'arcDeg', 'main')).toBeCloseTo(warden.main.arcDeg * 1.2, 6);
     // The stomp is untouched.
     expect(atk(p, warden.super.arcDeg, 'arcDeg', 'super')).toBeCloseTo(warden.super.arcDeg, 6);
   });
