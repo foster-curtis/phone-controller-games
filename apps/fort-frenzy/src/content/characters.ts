@@ -90,7 +90,7 @@ export const commander = {
   hp: 130,
   moveSpeed: 4.3,
   radius: 0.34,
-  // Sword slash in a short arc in front of him.
+  // Sword slash in a short arc in front of him; aimed, a quick tap auto-aims (FF7-fix-3, C3).
   main: {
     shape: 'arc',
     damage: 28,
@@ -110,7 +110,7 @@ export const commander = {
     effects: [{ effect: 'morale', strength: 0.35, durationMs: 6000 }],
     selfEffects: [{ effect: 'haste', strength: 0.25, durationMs: 6000 }],
   },
-  input: { main: 'tap', super: 'tap' },
+  input: { main: 'aimed', super: 'tap' },
   superChargeRate: 0.008,
   // Lead from the Front: his soldiers within `radius` deal +`damagePct` (a refreshed aura).
   passive: {
@@ -135,8 +135,8 @@ export const commander = {
 } satisfies CharacterDef;
 
 /**
- * Warden (tank, §8): a ground slam in a short arc in front (tap: auto-aims), a longer aimed stomp
- * whose arc stuns, and Mason (walls near him repair, combat only). Both attacks wind up, so the
+ * Warden (tank, §8): an aimed ground slam in a short arc (a quick tap auto-aims; FF7-fix-3, C3), a
+ * longer aimed stomp whose arc stuns, and Mason (walls near him repair, combat only). Both attacks wind up, so the
  * hammer and the foot land on the TV when the damage does (`windupMs` = the clips' impact times,
  * render/clips/warden.ts; src/host/__tests__/speeds.test.ts keeps them equal).
  */
@@ -167,7 +167,7 @@ export const warden = {
     hitsFlyers: false,
     effects: [{ effect: 'stun', strength: 1, durationMs: 1400 }],
   },
-  input: { main: 'tap', super: 'aimed' },
+  input: { main: 'aimed', super: 'aimed' },
   /** 160 damage fills it: the slam hits groups, so the stomp comes round often. */
   superChargeRate: 0.00625,
   passive: { module: 'mason', params: { radius: 2.5, hpPerSec: 10 } },

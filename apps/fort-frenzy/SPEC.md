@@ -206,7 +206,8 @@ Applies to every theme pack. Theme packs change the drawings, not these rules.
 T-visor; front-to-back crest plume (crest shape is Warden-only); gravity hammer with the head centered
 on the haft and an amber gravity coil at the center of the head, which brightens during the slam
 wind-up. Amber seams: chest chevron, power core, belt, pauldron trim, knee.
-Animations: idle, walk, main (ground slam), super (stomp with shockwave), build (kneel and tap),
+Animations: idle, walk, main (ground slam, toward the aim; while aiming the TV shows its cone,
+§10.1), super (stomp with shockwave), build (kneel and tap),
 Mason passive sparks to nearby walls.
 
 **Ranger (neon knights):** tall, narrow silhouette with a dark cloak behind and the bow in front;
@@ -231,7 +232,7 @@ triangle along the cutting edge, thickest at the base by the guard and thinning 
 diamond rank badge on the chest. The rally flag rides on his back as a banner; planting it moves it
 into the world, so "following" vs "holding" is visible at a glance.
 Animations: idle, walk, main (sword slash; the amber edge flares and leaves a trail tracing the exact
-hit arc), super (morale: amber pulse, and an amber aura on him and his squad that fades as the buff
+hit arc, toward the aim; while aiming the TV shows that arc filled, §10.1), super (morale: amber pulse, and an amber aura on him and his squad that fades as the buff
 runs out, doubling as its timer; for the buff's whole duration every unit it affects flashes its amber
 parts and the aura circle under it brightly on and off, 250 ms each, timed from the sim's buff), plant
 flag / recall, Lead from the Front as small amber nanite motes that drift slowly from him to each
@@ -770,7 +771,8 @@ All supers charge by dealing damage, and each character has its own charge rate.
 - **Strongest against:** Flyers, Runners, and Siege (the longbow outranges them).
 
 ### Warden (tank)
-- **Main:** Ground slam in a short arc in front of the Warden. Hits multiple enemies.
+- **Main:** Ground slam in a short arc in front of the Warden, aimed (a quick tap auto-aims; §10.1,
+  §15.11 #47). Hits multiple enemies.
 - **Super:** A longer-range stomp with an arc area of effect. Deals damage and stuns briefly.
 - **Passive — Mason:** walls near the Warden slowly repair themselves. Off during the build phase.
 - **Build kit:**
@@ -791,7 +793,8 @@ All supers charge by dealing damage, and each character has its own charge rate.
 - **Strongest against:** Swarms and Flyers. Its main value is keeping the team alive.
 
 ### Commander (squad leader)
-- **Main:** Sword slash in a short arc in front of him.
+- **Main:** Sword slash in a short arc in front of him, aimed (a quick tap auto-aims; §10.1,
+  §15.11 #47).
 - **Super (morale):** For a short duration, his squad gets more attack speed and attack damage. The
   Commander gets the same boosts plus extra movement speed.
 - **Passive — Lead from the Front:** the squad deals more damage while near the Commander.
@@ -1094,7 +1097,8 @@ viewport. Sizes are fixed in px, with the minimums listed.
 - **Aim preview** (C3, §15.11 #41): the TV's aim line is the attack's real hit area, from the same
   effective stats the sim hits with (content through passives and cards): a dashed amber line the bolt's
   range for a single bolt (Ranger), a transparent amber-filled cone for arcs, cones and spread volleys
-  (Warden stomp, Artificer shot and super), a filled amber 0.6 ellipse for circles. Cones and circles lie on
+  (Warden slam and stomp, Commander slash, Artificer shot and super), a filled amber 0.6 ellipse for
+  circles. Cones and circles lie on
   the ground under the units, dim enough to stay out of the bloom. A super previews only once charged.
 - **Release outside the dead zone:** fires in the aimed direction.
 - **Slide back into the dead zone, then release:** cancels.
@@ -1127,9 +1131,12 @@ only glanceable information.
 | Character | Main | Super |
 |---|---|---|
 | Engineer | Aimed | Tap |
-| Warden | Tap | Aimed |
+| Warden | Aimed | Aimed |
 | Quartermaster | Aimed | Aimed |
-| Commander | Tap | Tap |
+| Commander | Aimed | Tap |
+
+The Warden's slam and the Commander's slash became aimed at C3 (§15.11 #47); a quick tap still
+auto-aims, so melee stays a one-touch swing.
 
 **Action button** (context-sensitive). When several situations apply, the first matching row wins:
 
@@ -2216,3 +2223,4 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 44 | 2026-11-03 | Wasp jitter | Ground points lerp on the ground at both ends (the Wasp's was lerped from the sim's flyer `z` = 1 toward the drawn 0, so its height swung with the frame's phase) | The Wasp jumped back and forth like a glitch (Foster, C3); its sim motion was already smooth |
 | 45 | 2026-11-03 | Hunter | Paths round tower and sentry range when it can (its field adds 4 per covering attacker); retargets on down, daze or a player 2 tiles closer; the eye thread is replaced by a ~2 s flash of the quarry's color at its feet on each new quarry. v2 behavior recorded in §9 and §13 | The Hunter should be smarter than other units, and a permanent thread was noise (Foster, C3) |
 | 46 | 2026-11-03 | Flow-field shape | 8-neighbor octile fields with no corner cutting, and steering at the farthest tile down the chain a body-wide corridor reaches without a costlier tile | Enemies went straight up the field and then along the back; they should head for the Citadel on a direct diagonal (Foster, C3) |
+| 47 | 2026-11-03 | Aimed melee mains | The Warden's slam and the Commander's slash are aimed buttons (§10.1): a quick tap (≤ 150 ms in the dead zone) still fires at once, auto-aimed at the nearest enemy in range or straight ahead; a drag aims and the release lands the same arc (slam 1.75 tiles, 102°; slash 1.4 tiles, 110°) toward the aim; back in the dead zone cancels. While aiming the TV draws each arc as the filled amber ground cone from the shared `hitShape` | C3 follow-up (Foster): "the warden's attack should be aimed, as well as the commander's slash", with the slash's arc shown while aiming; tap buttons held nothing, so they had no preview |

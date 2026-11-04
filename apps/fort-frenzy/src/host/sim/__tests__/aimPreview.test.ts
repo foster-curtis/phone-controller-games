@@ -6,7 +6,7 @@ import { content } from '../../../content';
 import { commander, engineer, quartermaster, warden } from '../../../content/characters';
 import { grunt } from '../../../content/enemies';
 import type { CharacterDef } from '../../../content/types';
-import type { ClassId } from '../../../shared/ids';
+import type { CardId, ClassId } from '../../../shared/ids';
 import { windupSteps } from '../classes/warden';
 import { aimPreview } from '../preview';
 import type { HitShape } from '../classes/hitShape';
@@ -28,8 +28,15 @@ const BOOST: Modifier = {
   ],
 };
 
-function setup(cls: ClassId, boosted: boolean) {
+/** `true` adds `BOOST`; a card id picks that real card (FF12) before combat. */
+type Boost = boolean | CardId;
+
+function setup(cls: ClassId, boosted: Boost) {
   const h = harness(1, 1, { classes: [cls] });
+  if (typeof boosted === 'string') {
+    h.toBuild();
+    h.give(0, boosted);
+  }
   h.toCombat();
   h.holdSpawns();
   h.put(0, PX, PY);
@@ -37,7 +44,7 @@ function setup(cls: ClassId, boosted: boolean) {
   h.pads[0]!.set({ move: { x: 0.001, y: 0 } });
   h.run(1);
   h.put(0, PX, PY);
-  if (boosted) h.p(0).mods.push(BOOST);
+  if (boosted === true) h.p(0).mods.push(BOOST);
   // Park the Commander's squad far away so only his own attack lands.
   for (const u of h.sim.world.soldiers) {
     u.x = 30;
@@ -50,30 +57,36 @@ function setup(cls: ClassId, boosted: boolean) {
 const shapeOf = (h: ReturnType<typeof setup>, slot: 'main' | 'super') =>
   aimPreview(h.p(0), DEFS[h.p(0).classId], slot, content.rules);
 
-function fire(h: ReturnType<typeof setup>, slot: 'main' | 'super') {
+function fire(h: ReturnType<typeof setup>, slot: 'main' | 'super', aim = AIM) {
   const p = h.p(0);
   if (slot === 'super') {
     p.superCharge = 1;
-    h.pads[0]!.tap('superFires', { superAim: AIM });
+    h.pads[0]!.tap('superFires', { superAim: aim });
   } else {
-    h.pads[0]!.tap('mainFires', { mainAim: AIM });
+    h.pads[0]!.tap('mainFires', { mainAim: aim });
   }
   h.run(2 + windupSteps(DEFS[p.classId][slot]));
 }
 
-/** Fires at a lone Grunt placed by `at` (from the preview shape); true when it took damage. */
+/**
+ * Fires at a lone Grunt placed by `at` (from the preview shape, in the aim's frame: +x along the aim)
+ * aimed at `aimAng` radians; true when it took damage.
+ */
 function hits(
   cls: ClassId,
   slot: 'main' | 'super',
-  boosted: boolean,
+  boosted: Boost,
   at: (s: HitShape) => [number, number],
+  aimAng = 0,
 ): boolean {
   const h = setup(cls, boosted);
-  const [dx, dy] = at(shapeOf(h, slot));
-  const e = h.sim.spawnEnemy('grunt', PX + dx, PY + dy);
+  const [ax, ay] = at(shapeOf(h, slot));
+  const c = Math.cos(aimAng);
+  const s = Math.sin(aimAng);
+  const e = h.sim.spawnEnemy('grunt', PX + ax * c - ay * s, PY + ax * s + ay * c);
   e.stats.moveSpeed = 0;
   const hp0 = e.hp;
-  fire(h, slot);
+  fire(h, slot, aimAng === 0 ? AIM : { x: c, y: s });
   return e.hp < hp0;
 }
 
@@ -133,6 +146,18 @@ describe('preview geometry is the content through modifiers', () => {
     }
   });
 
+  it('every aimed button has a shape to preview (FF7-fix-3: Warden and Commander mains too)', () => {
+    expect(warden.input.main).toBe('aimed');
+    expect(commander.input.main).toBe('aimed');
+    for (const cls of Object.keys(DEFS) as ClassId[]) {
+      const h = setup(cls, false);
+      for (const slot of ['main', 'super'] as const) {
+        if (DEFS[cls].input[slot] !== 'aimed') continue;
+        expect(shapeOf(h, slot).kind, `${cls} ${slot}`).not.toBe('none');
+      }
+    }
+  });
+
   it('moves with a mod (and with Steady Aim, the Ranger passive)', () => {
     const h = setup('warden', true);
     const s = cone(shapeOf(h, 'super'));
@@ -168,6 +193,52 @@ describe('the sim hits exactly the previewed area', () => {
         expect(hits(cls, slot, boosted, (s) => polar(d(s), edge(s, d(s)) + 0.02))).toBe(false);
       });
     }
+  }
+
+  // FF7-fix-3: the Warden's slam and the Commander's slash are aimed, so the previewed sector turns
+  // with the phone's aim and the hit turns with it.
+  for (const cls of ['warden', 'commander'] as const) {
+    for (const ang of [2.2, -1.1]) {
+      it(`${cls} main aimed at ${ang} rad: the reach and both edges follow the aim`, () => {
+        const reach = (s: HitShape) => cone(s).range + R;
+        const d = (s: HitShape) => cone(s).range * 0.6;
+        const edge = (s: HitShape) => cone(s).half + Math.asin(R / d(s));
+        expect(hits(cls, 'main', false, (s) => [reach(s) - 0.02, 0], ang)).toBe(true);
+        expect(hits(cls, 'main', false, (s) => [reach(s) + 0.02, 0], ang)).toBe(false);
+        for (const side of [1, -1]) {
+          expect(hits(cls, 'main', true, (s) => polar(d(s), side * (edge(s) - 0.02)), ang)).toBe(
+            true,
+          );
+          expect(hits(cls, 'main', true, (s) => polar(d(s), side * (edge(s) + 0.02)), ang)).toBe(
+            false,
+          );
+        }
+      });
+    }
+  }
+
+  // FF12's slam and slash cards (Heavy Slam, Bladework: +20% arc, main only) and Reach move the
+  // aimed preview with the hit.
+  for (const [cls, card] of [
+    ['warden', 'heavy_slam'],
+    ['commander', 'bladework'],
+    ['warden', 'reach'],
+    ['commander', 'reach'],
+  ] as const) {
+    it(`${cls} main with ${card}: the preview and the aimed hit agree`, () => {
+      const base = cone(shapeOf(setup(cls, false), 'main'));
+      const got = cone(shapeOf(setup(cls, card), 'main'));
+      if (card === 'reach') expect(got.range).toBeGreaterThan(base.range);
+      else expect(got.half).toBeCloseTo(base.half * 1.2, 9);
+      const ang = 2.2;
+      const reach = (s: HitShape) => cone(s).range + R;
+      const d = (s: HitShape) => cone(s).range * 0.6;
+      const edge = (s: HitShape) => cone(s).half + Math.asin(R / d(s));
+      expect(hits(cls, 'main', card, (s) => [reach(s) - 0.02, 0], ang)).toBe(true);
+      expect(hits(cls, 'main', card, (s) => [reach(s) + 0.02, 0], ang)).toBe(false);
+      expect(hits(cls, 'main', card, (s) => polar(d(s), edge(s) - 0.02), ang)).toBe(true);
+      expect(hits(cls, 'main', card, (s) => polar(d(s), edge(s) + 0.02), ang)).toBe(false);
+    });
   }
 
   for (const boosted of [false, true]) {

@@ -2,9 +2,12 @@
 // shape under the §2.5 ground projection, amber, dim enough for the bloom, and draws nothing extra.
 import type * as Phaser from 'phaser';
 import { describe, expect, it } from 'vitest';
+import { content } from '../../../content';
+import { commander, warden } from '../../../content/characters';
 import { theme } from '../../../shared/theme';
 import { FixedCamera } from '../../render/camera';
-import type { HitShape } from '../../sim';
+import { aimPreview, type HitShape } from '../../sim';
+import { harness } from '../../sim/__tests__/harness';
 import { AIM_EDGE_ALPHA, AIM_FILL_ALPHA, drawAimPreview, type GroundFrame } from '../aimPreview';
 
 interface Rec {
@@ -122,4 +125,40 @@ describe('drawAimPreview', () => {
     expect(AIM_FILL_ALPHA * v).toBeLessThan(0.72);
     expect(AIM_EDGE_ALPHA * v).toBeLessThan(0.72);
   });
+});
+
+// FF7-fix-3 (C3 follow-up): the Warden's slam and the Commander's slash are aimed; while aiming the TV
+// draws the sim's own sector for them (`aimPreview`), turned to the phone's aim.
+describe('aimed melee previews', () => {
+  const DEG = Math.PI / 180;
+  for (const [cls, def] of [
+    ['warden', warden],
+    ['commander', commander],
+  ] as const) {
+    it(`${cls} main: a filled amber sector of the attack's real range and arc at the aim`, () => {
+      const h = harness(1, 1, { classes: [cls] });
+      h.toCombat();
+      h.holdSpawns();
+      h.pads[0]!.set({ mainAim: { x: -0.6, y: 0.8 }, mainAiming: true });
+      h.run(1);
+      const p = h.p(0);
+      expect(p.mainAim).not.toBeNull();
+      const shape = aimPreview(p, def, 'main', content.rules);
+      const angle = Math.atan2(p.mainAim!.y, p.mainAim!.x);
+      const ground = fakeGfx();
+      const ui = fakeGfx();
+      drawAimPreview(ground.g, ui.g, shape, frame, angle, amber);
+      expect(ui.r.calls).toBe(0);
+      const [, ...rim] = ground.r.pts;
+      const offs = rim.map((pt) => {
+        const [x, y] = toWorld(pt);
+        expect(Math.hypot(x!, y!)).toBeCloseTo(def.main.range, 9);
+        const off = Math.atan2(y!, x!) - angle;
+        return Math.atan2(Math.sin(off), Math.cos(off));
+      });
+      expect(Math.min(...offs)).toBeCloseTo((-def.main.arcDeg / 2) * DEG, 9);
+      expect(Math.max(...offs)).toBeCloseTo((def.main.arcDeg / 2) * DEG, 9);
+      expect(ground.r.fills).toEqual([[amber, AIM_FILL_ALPHA]]);
+    });
+  }
 });

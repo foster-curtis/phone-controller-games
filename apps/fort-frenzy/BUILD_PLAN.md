@@ -820,6 +820,7 @@ Rules:
   - [x] Merged to `main`
   - [x] FF7-fix-1: C2 notes (Ranger bow draw/release, bolt leaves from the bow, super-ready amber ring pulse replaces the head badge)
   - [x] FF7-fix-2: C3 aim previews shaped like every aimed attack and super (Warden cone fill, Artificer filled cone), Warden narrower + longer slam and super, Ranger super range up
+  - [x] FF7-fix-3: C3 follow-up: Warden slam and Commander slash aimed, cone/arc previews
 - [x] **User approved C2** (slice on real phones and TV): notes fixed in FF7-fix-1; Citadel collapse deferred to v2; feel and visual notes re-judged at C3
 - FF8 Warden + structures
   - [x] Warden kit + clips
@@ -1522,6 +1523,15 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   for 220 ms with sparks while its new parts are already on; `whiteFlash` lives in `render/rig.ts` (it needs
   Phaser at runtime, and `render/structures.ts` must stay Node-safe for its tests). The mortar gains the
   defense-bonus pips; the Overflow icon sits right of the HP bar; the TV wishlist names the next tier.
+- [FF7-fix-3] decision: Warden and Commander mains are aimed (user, C3 follow-up); quick tap still auto-aims.
+- [FF7-fix-3] decision: content only plus the phone copy: `input.main: 'aimed'` (warden, commander) and
+  `CLASS_INFO` mode `aim`; the sim already fired every shape along the tuple's aim (0,0 = nearest enemy in
+  range, else facing) and the TV already previewed any held aim from `hitShape`, so no sim, render or contract
+  change. A controller test pins copy modes to content input kinds. A hold past 150 ms that never leaves the
+  dead zone cancels (the kit's aimed rule, §15.7), same as the Ranger and Artificer mains.
+- [FF7-fix-3] decision: FF12's Heavy Slam, Bladework (arcDeg +20%, main scope) and Reach are stat mods, so
+  they reach both the sim's sector and the aimed preview through `hitShape`; `sim/__tests__/aimPreview.test.ts`
+  picks each real card and probes the aimed reach and edge. Aftershock drops its zone along `atk.aim`, the aim.
 
 - [FF13] decision: SFX picks are by name only (not auditioned); swap in `scripts/pick-sfx.ts` `PICKS` and rerun. Cue gate: `Cue.when(e, kindOf)` takes an entity-kind resolver from the world; `marker` is the boss wind-up cue (no new SimEvent added); `purchase`/`cardPicked` already exist. Player: per-cue volume + max-per-window cap in `TUNING`; `createSfx(ThemeHost.sfx)` preloads behind the home bar (min of atlas and audio progress in `main.ts`), unlocks on first key or pointer.
 ## 9. Final handoff
