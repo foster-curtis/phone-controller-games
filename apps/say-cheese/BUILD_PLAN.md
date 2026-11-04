@@ -457,7 +457,7 @@ Rules:
   - [x] Camera module + tests
   - [x] Spike page + spike e2e
   - [x] Merged to `say-cheese` and pushed
-  - [ ] User approved C1 (camera spike on iPhone + Android)
+  - [x] User approved C1 (camera spike on iPhone + Android)
 - **SC2**
   - [x] Seats module + tests
   - [x] Match state machine (phases, rules, rounds, matchEnd, rematch) + transition tests
