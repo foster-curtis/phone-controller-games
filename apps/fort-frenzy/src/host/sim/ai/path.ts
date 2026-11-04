@@ -15,8 +15,6 @@ import {
   type StructureEnt,
 } from '../types';
 
-/** Extra reach when a wound-up swing lands (the target may have stepped back a little). */
-const LAND_SLACK = 0.25;
 /** A knockback faster than this (tiles/s) overrides walking. */
 export const KNOCKED = 1;
 
@@ -240,7 +238,8 @@ export function land(s: SimState, e: EnemyEnt, def: EnemyDef) {
   const u = s.units.get(id);
   if (!u || u.hp <= 0) return;
   const kind = s.kinds.get(id);
-  const range = def.attack.range + LAND_SLACK;
+  // A little extra reach: the target may have stepped back during the wind-up.
+  const range = def.attack.range + s.cat.rules.enemySwingSlack;
   let mult = 1;
   if (kind === 'base') {
     if (rectDist(e.x, e.y, s.baseRect) - e.r > range) return;

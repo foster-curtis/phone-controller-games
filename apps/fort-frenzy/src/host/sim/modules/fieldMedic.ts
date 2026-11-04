@@ -3,18 +3,17 @@
 // more slowly than damage does; the super's own healing never charges it (only this module charges
 // from heals). Ticks on whole-second step multiples, so it needs no state.
 import { dist } from '../geometry';
+import { num } from '../cards/common';
 import { state } from '../internal';
 import type { ModuleDef, PlayerEnt } from '../types';
-
-const num = (v: unknown, fallback: number) => (typeof v === 'number' ? v : fallback);
 
 export const fieldMedic: ModuleDef = {
   id: 'field_medic',
   make(params) {
-    const radius = num(params.radius, 2.5);
-    const heal = num(params.heal, 3);
-    const everyMs = num(params.everyMs, 1000);
-    const chargeRate = num(params.chargeRate, 0.002);
+    const radius = num(params, 'radius');
+    const heal = num(params, 'heal');
+    const everyMs = num(params, 'everyMs');
+    const chargeRate = num(params, 'chargeRate');
     return {
       id: 'passive:field_medic',
       hooks: {
@@ -46,5 +45,5 @@ export const fieldMedic: ModuleDef = {
 
 /** The aura's radius for a Quartermaster (render's dotted circle; params as content gives them). */
 export function fieldMedicRadius(params: Record<string, unknown> | undefined): number {
-  return num(params?.radius, 2.5);
+  return num(params, 'radius');
 }

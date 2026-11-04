@@ -1,22 +1,18 @@
 // Quartermaster card modules (SPEC §6.1): Light Load, Venom Bolts, Overflow, Bulk Buyer, Triage and
-// the Plague combo. Strong Arm and Wide Aura are plain stat cards (content/cards.ts). Plague's spread
+// the Plague combo. Strong Arm and Wide Aura are plain stat cards (content/balance.ts). Plague's spread
 // lives on the poison effect (cards/effects.ts); its module marks the card on the Quartermaster.
 import { dist } from '../geometry';
 import { state } from '../internal';
 import type { Modifier, ModuleDef, PlayerEnt } from '../types';
+import { fieldMedicRadius } from '../modules/fieldMedic';
 import { num, stacksOf } from './common';
-
-/** Field Medic's radius as content gives it (the aura the Light Load and Overflow cards ride on). */
-function medicRadius(params: Record<string, unknown> | undefined): number {
-  return typeof params?.radius === 'number' ? params.radius : 2.5;
-}
 
 /** Allies inside the Field Medic aura suffer `factor` less of the carry slowdown (combat, like the aura). */
 export const lightLoad: ModuleDef = {
   id: 'light_load',
   make(p) {
-    const factor = num(p, 'factor', 0.5);
-    const auraMs = num(p, 'auraMs', 200);
+    const factor = num(p, 'factor');
+    const auraMs = num(p, 'auraMs');
     return {
       id: 'card:light_load',
       hooks: {
@@ -24,7 +20,7 @@ export const lightLoad: ModuleDef = {
           const s = state(ctx);
           const me = self as PlayerEnt;
           if (s.world.phase !== 'combat' || !s.targetable(me)) return;
-          const base = medicRadius(s.cat.character(me.classId).passive.params);
+          const base = fieldMedicRadius(s.cat.character(me.classId).passive.params);
           const r = s.attackStat(me, base, 'auraRadius');
           for (const q of s.world.players) {
             if (!s.targetable(q) || dist(me.x, me.y, q.x, q.y) > r + q.r) continue;
@@ -44,8 +40,8 @@ export const lightLoad: ModuleDef = {
 export const venomBolts: ModuleDef = {
   id: 'venom_bolts',
   make(p) {
-    const strength = num(p, 'tick', 2) * stacksOf(p);
-    const durationMs = num(p, 'durationMs', 4000);
+    const strength = num(p, 'tick') * stacksOf(p);
+    const durationMs = num(p, 'durationMs');
     return {
       id: 'card:venom_bolts',
       hooks: {
@@ -64,8 +60,8 @@ export const venomBolts: ModuleDef = {
 export const overflow: ModuleDef = {
   id: 'overflow',
   make(p) {
-    const cap = num(p, 'cap', 40);
-    const durationMs = num(p, 'durationMs', 6000);
+    const cap = num(p, 'cap');
+    const durationMs = num(p, 'durationMs');
     return {
       id: 'card:overflow',
       hooks: {
@@ -101,7 +97,7 @@ export const BULK_BUYER_ID = 'card:bulk_buyer';
 
 /**
  * A larger crate discount: every `every`th crate the Quartermaster buys is free (one sooner per extra
- * stack, at least every 2nd). Coins are whole numbers and the 50% discount already sells at the 1-coin
+ * stack, at least every `minEvery`th). Coins are whole numbers and the 50% discount already sells at the 1-coin
  * floor, so the extra discount comes as free crates (BUILD_PLAN §8).
  */
 export const bulkBuyer: ModuleDef = {
@@ -110,7 +106,7 @@ export const bulkBuyer: ModuleDef = {
     const m: BulkBuyerMod = {
       id: BULK_BUYER_ID,
       bought: 0,
-      every: Math.max(2, num(p, 'every', 3) - (stacksOf(p) - 1)),
+      every: Math.max(num(p, 'minEvery'), num(p, 'every') - (stacksOf(p) - 1)),
     };
     return m;
   },
@@ -125,8 +121,8 @@ export function bulkBuyerOf(p: { mods: readonly Modifier[] }): BulkBuyerMod | un
 export const triage: ModuleDef = {
   id: 'triage',
   make(p) {
-    const below = num(p, 'below', 0.3);
-    const mult = num(p, 'mult', 2);
+    const below = num(p, 'below');
+    const mult = num(p, 'mult');
     return {
       id: 'card:triage',
       hooks: {

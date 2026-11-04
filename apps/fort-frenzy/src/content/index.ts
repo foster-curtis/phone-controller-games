@@ -1,14 +1,33 @@
-// Gameplay content registry (SPEC §15.4): one export per domain file in src/content/, typed with
-// `satisfies` against ./types. Append-only registry (BUILD_PLAN §3): add entries at the end, never
-// reorder or delete.
-import { base, rules } from './base';
-import { commander, engineer, quartermaster, warden } from './characters';
-import { difficulties, scaling } from './difficulty';
-import { brute, colossus, flyer, grunt, hunter, runner, siege, swarm } from './enemies';
+// Gameplay content registry (SPEC §15.4): the balance sheet (./balance.ts, every tuning number) and
+// the map (./map.ts), typed with `satisfies` against ./types. Append-only registry (BUILD_PLAN §3):
+// add entries at the end, never reorder or delete.
+import {
+  arrowTower,
+  base,
+  bombTower,
+  brute,
+  cards,
+  colossus,
+  commander,
+  difficulties,
+  engineer,
+  flyer,
+  fortify,
+  grunt,
+  hunter,
+  quartermaster,
+  rules,
+  runner,
+  scaling,
+  shop,
+  siege,
+  snare,
+  swarm,
+  wall,
+  warden,
+  waves,
+} from './balance';
 import { mapV1 } from './map';
-import { cards } from './cards';
-import { shop } from './shop';
-import { arrowTower, bombTower, fortify, snare, wall } from './structures';
 import type {
   BaseDef,
   CardDef,
@@ -22,7 +41,6 @@ import type {
   StructureDef,
   WaveDef,
 } from './types';
-import { waves } from './waves';
 
 export interface Content {
   characters: readonly CharacterDef[];

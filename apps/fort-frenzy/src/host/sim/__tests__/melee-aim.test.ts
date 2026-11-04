@@ -3,7 +3,7 @@
 // a quick tap (aim 0,0) auto-aims at the nearest enemy in range, else swings straight ahead; holding
 // the aim only sets the TV's preview vector and fires nothing.
 import { describe, expect, it } from 'vitest';
-import { commander, warden } from '../../../content/characters';
+import { commander, warden } from '../../../content/balance';
 import type { EnemyEnt } from '../types';
 import { windupSteps } from '../classes/warden';
 import { harness } from './harness';

@@ -3,16 +3,16 @@
 // packs and coins per kill. Walls come from a stand-in def until FF8's wall is on main.
 import { describe, expect, it } from 'vitest';
 import { content as baseContent, type Content } from '../../../content';
-import { engineer } from '../../../content/characters';
 import {
   brute as bruteDef,
+  engineer,
   flyer as flyerDef,
+  hunter as hunterDef,
   runner as runnerDef,
   siege as siegeDef,
-} from '../../../content/enemies';
+} from '../../../content/balance';
 import type { StructureDef } from '../../../content/types';
 import type { ClassId } from '../../../shared/ids';
-import { RETARGET_TILES } from '../ai/hunter';
 import { createCatalog } from '../catalog';
 import { createSim, ScriptedInputSource, type Sim } from '../index';
 import { createState } from '../state';
@@ -92,6 +92,8 @@ const hits = (evs: SimEvent[], target: number) =>
   evs.filter(
     (e): e is Extract<SimEvent, { e: 'damage' }> => e.e === 'damage' && e.target === target,
   );
+
+const RETARGET_TILES = hunterDef.hunt.retargetTiles;
 
 describe('Runner', () => {
   it('bursts the base once and dies, never attacks players, pays no coins', () => {

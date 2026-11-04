@@ -4,18 +4,17 @@
 // (tag `steady`, applied in `modifyOutgoing`, pipeline stage 2).
 import type { StatMod } from '../../../content/types';
 import { msToSteps } from '../../systems/effects';
+import { num } from '../cards/common';
 import { state } from '../internal';
 import { SIM_HZ, type Modifier, type ModuleDef, type PlayerEnt } from '../types';
-
-const num = (v: unknown, fallback: number) => (typeof v === 'number' ? v : fallback);
 
 export const steadyAim: ModuleDef = {
   id: 'steady_aim',
   make(params) {
-    const stillMs = num(params.stillMs, 600);
-    const damagePct = num(params.damagePct, 0.25);
+    const stillMs = num(params, 'stillMs');
+    const damagePct = num(params, 'damagePct');
     const bonus: readonly StatMod[] = [
-      { stat: 'range', addPct: num(params.rangePct, 0.2), scope: 'main' },
+      { stat: 'range', addPct: num(params, 'rangePct'), scope: 'main' },
     ];
     const none: readonly StatMod[] = [];
     let active = false;

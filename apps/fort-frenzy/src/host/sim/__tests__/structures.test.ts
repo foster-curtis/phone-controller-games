@@ -4,7 +4,7 @@
 // occupied tiles; Fortify only on towers (§8); the mortar's arcing shell and blast (§7.2, §8).
 import { describe, expect, it } from 'vitest';
 import { content as baseContent, type Content } from '../../../content';
-import { bombTower, fortify, snare, wall } from '../../../content/structures';
+import { bombTower, fortify, snare, wall } from '../../../content/balance';
 import type { EnemyDef } from '../../../content/types';
 import { placementValid } from '../index';
 import { effects } from '../registry';

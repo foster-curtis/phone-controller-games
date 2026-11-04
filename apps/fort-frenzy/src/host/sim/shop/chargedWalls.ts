@@ -3,11 +3,12 @@
 // shop module (`shop:spiked_walls` on every wall, built ones included). Leaf module: no registry.
 import { state } from '../internal';
 import type { ModuleDef } from '../types';
+import { num } from '../cards/common';
 
 export const chargedWalls: ModuleDef = {
   id: 'charged_walls',
   make(p) {
-    const damage = typeof p.damage === 'number' ? p.damage : 10;
+    const damage = num(p, 'damage');
     return {
       id: 'shop:spiked_walls',
       hooks: {

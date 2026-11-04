@@ -3,7 +3,7 @@
 // Front, rally flag and squad.
 import { describe, expect, it } from 'vitest';
 import { content as baseContent, type Content } from '../../../content';
-import { commander, quartermaster } from '../../../content/characters';
+import { commander, quartermaster } from '../../../content/balance';
 import type { WaveDef } from '../../../content/types';
 import type { ClassId, PlayerColorId } from '../../../shared/ids';
 import { PLAYER_COLOR_IDS } from '../../../shared/ids';

@@ -34,6 +34,7 @@ every message goes through a shared, game-agnostic WebSocket **relay**.
 | Physics simulation (Matter.js, no Phaser)                 | `apps/sunny-side/src/host/sim/`                                                                     |
 | Match rules: roster, rounds, scoring, leader, persistence | `apps/sunny-side/src/host/match/`                                                                   |
 | Gameplay tuning constants                                 | `apps/sunny-side/src/host/sim/config.ts`, `apps/sunny-side/src/host/match/config.ts`                |
+| Fort Frenzy balance: every HP, damage, timer, budget      | `apps/fort-frenzy/src/content/balance.ts` (one file; map layout in `content/map.ts`)                |
 | Fixed-step loop, lerp, seeded RNG, host helpers           | `packages/game-kit/src/` (public API `src/index.ts`; Vite plugins `src/vite.ts`)                    |
 | Phone platform, shell, widgets, gestures, input sender    | `packages/controller-kit/src/` (public API `src/index.ts`)                                          |
 | Sunny Side render interpolation                           | `apps/sunny-side/src/host/interpolate.ts`                                                           |
@@ -117,7 +118,9 @@ These rules are enforced by ESLint or by `pnpm check`. Don't work around them.
   breaking change there breaks all of them.
   If you add to a contract, also update the matching spec section (`apps/relay/SPEC.md` for the relay
   and net-client).
-- **Tuning constants are not frozen.** Change values in the `config.ts` files freely.
+- **Tuning constants are not frozen.** Change values in the `config.ts` files (Sunny Side) and
+  `apps/fort-frenzy/src/content/balance.ts` freely. Fort Frenzy keeps every balance number in that one
+  file: don't add tuning constants or fallback numbers to its sim, put them in `balance.ts` (SPEC §15.4).
 - **The Sunny Side brand kit is read-only.** Don't edit `src/styles/brand.css`, `public/**` or `brand/**`.
   Take colors, fonts and sizes from `brand.css` variables (DOM) or `theme.ts` (Phaser), never from
   literals. `theme.test.ts` fails if `theme.ts` drifts from `brand.css`.

@@ -17,25 +17,24 @@ export const slowEffect: EffectDef = {
   }),
 };
 
-/** An enemy counts as on the net when its body's inner half overlaps the tile. */
-const ON_TILE = 0.5;
-
 export function snareTick(ctx: SimCtx, st: StructureEnt): void {
   const s = state(ctx);
   if (st.discharges === null || st.discharges <= 0) return;
   const t = s.tick();
   if (st.rearmAt !== null && t < st.rearmAt) return;
   const def = s.cat.structure(st.kind);
+  // An enemy is on the net when the inner `triggerFraction` of its body overlaps the tile.
+  const inner = def.triggerFraction!;
   const [col, row] = st.tile;
   let fired = false;
   for (const e of s.world.enemies) {
     if (e.hp <= 0 || e.flying) continue;
-    if (!circleTouchesTile(e.x, e.y, e.r * ON_TILE, col, row)) continue;
+    if (!circleTouchesTile(e.x, e.y, e.r * inner, col, row)) continue;
     fired = true;
     if (def.slow) s.applyEffect(e.id, def.slow, st.id);
   }
   if (!fired) return;
   st.discharges--;
-  st.rearmAt = t + s.cat.steps(def.rearmMs ?? 500);
+  st.rearmAt = t + s.cat.steps(def.rearmMs!);
   s.emit({ e: 'snareDischarge', id: st.id, left: st.discharges });
 }

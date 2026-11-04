@@ -4,6 +4,7 @@
 // while stunned; the AI skips it, sim.ts).
 import type { AttackDef } from '../../../content/types';
 import { msToSteps } from '../../systems/effects';
+import { num } from '../cards/common';
 import { state, type SimState } from '../internal';
 import { sectorGeometry } from './hitShape';
 import { inSector } from './sector';
@@ -18,8 +19,6 @@ import {
   type PlayerEnt,
   type Unit,
 } from '../types';
-
-const num = (v: unknown, fallback: number) => (typeof v === 'number' ? v : fallback);
 
 export interface ArcHit {
   attack: AttackDef;
@@ -102,8 +101,8 @@ export function stunned(u: Unit): boolean {
 export const mason: ModuleDef = {
   id: 'mason',
   make(params) {
-    const radius = num(params.radius, 2.5);
-    const perSec = num(params.hpPerSec, 10);
+    const radius = num(params, 'radius');
+    const perSec = num(params, 'hpPerSec');
     const m: Modifier = {
       id: 'passive:mason',
       hooks: {

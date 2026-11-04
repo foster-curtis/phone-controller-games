@@ -1,12 +1,14 @@
 // Content validation (SPEC §15.4): every referenced id exists, structure costs fit the carry cap, build
-// lists fit the build arc, wave budgets cover their guaranteed spawns, and the map is well formed.
+// lists fit the build arc, wave budgets cover their guaranteed spawns, the map is well formed, and the
+// balance sheet carries every number the sim reads.
 import { describe, expect, it } from 'vitest';
-import { STRUCTURE_INFO } from '../../controller/copy';
+import { CARD_INFO, STRUCTURE_INFO } from '../../controller/copy';
 import { FORTIFIABLE } from '../../host/sim/building';
 import { modules } from '../../host/sim/registry';
 import { aiKinds, bosses, structureBehaviors } from '../../host/sim/registry';
 import { generateWave, groupsCost, playerScale, waveRng } from '../../host/systems/waves';
 import {
+  type CardId,
   CARD_IDS,
   CLASS_IDS,
   DIFFICULTY_IDS,
@@ -16,7 +18,7 @@ import {
   STRUCTURE_IDS,
 } from '../../shared/ids';
 import { content } from '../index';
-import type { UpgradeTarget } from '../types';
+import type { ModuleRef, UpgradeTarget } from '../types';
 
 const c = content;
 const enemyIds = new Set(c.enemies.map((e) => e.id));
@@ -230,6 +232,92 @@ describe('content rules', () => {
     expect(c.rules!.buildCapMs).toBe(45_000);
     expect(c.rules!.inputStaleMs).toBe(250);
     expect(c.scaling).toEqual({ base: 0.5, perPlayer: 0.25 });
+  });
+});
+
+// The sim keeps no tuning numbers of its own (balance.ts header): modules throw on a missing param
+// and the sim reads optional fields without fallbacks, so content must carry them.
+describe('balance sheet (src/content/balance.ts)', () => {
+  it('every passive, card and shop module builds from its content params', () => {
+    const refs: ModuleRef[] = [
+      ...c.characters.map((ch) => ch.passive),
+      ...c.cards.flatMap((x) => (x.module ? [x.module] : [])),
+      ...c.shop.flatMap((s) =>
+        s.tiers.flatMap((t) => (t.effect.kind === 'module' ? [t.effect.module] : [])),
+      ),
+    ];
+    for (const ref of refs) {
+      const make = () => modules[ref.module]!.make({ ...ref.params, stacks: 1 });
+      expect(make, ref.module).not.toThrow();
+    }
+  });
+
+  it('attacks, enemies, structures and classes carry every field the sim reads', () => {
+    const attacks = [
+      ...c.characters.flatMap((ch) => [
+        ch.main,
+        ch.super,
+        ...(ch.squad ? [ch.squad.soldier.attack] : []),
+      ]),
+      ...c.structures.flatMap((s) => (s.attack ? [s.attack] : [])),
+      ...c.enemies.map((e) => e.attack),
+      c.base!.archers.attack,
+    ];
+    for (const a of attacks) if (a.shape === 'projectile') expect(a.speed).toBeGreaterThan(0);
+    // A knight's arc or cone needs its opening (classes/hitShape.ts).
+    for (const ch of c.characters)
+      for (const a of [ch.main, ch.super])
+        if (a.shape === 'arc' || a.shape === 'cone') expect(a.arcDeg, ch.id).toBeGreaterThan(0);
+    // Lobbed shells: the Bombard's and the mortar's.
+    const lobs = [
+      ...c.enemies.filter((e) => e.ai === 'siege').map((e) => e.attack),
+      c.structures.find((s) => s.id === 'bomb_tower')!.attack!,
+    ];
+    for (const a of lobs) {
+      expect(a.speed).toBeGreaterThan(0);
+      expect(a.minFlightMs).toBeGreaterThan(0);
+      expect(a.radius).toBeGreaterThan(0);
+    }
+    for (const e of c.enemies) {
+      if (e.ai === 'swarm') expect(e.jitter, e.id).toBeDefined();
+      if (e.ai === 'hunter') expect(e.hunt, e.id).toBeDefined();
+      if (e.ai === 'boss') {
+        expect(e.attack.windupMs).toBeGreaterThan(0);
+        expect(e.attack.radius).toBeGreaterThan(0);
+      }
+    }
+    for (const s of c.structures) {
+      if (s.discharges === undefined) continue;
+      expect(s.rearmMs, s.id).toBeGreaterThan(0);
+      expect(s.triggerFraction, s.id).toBeGreaterThan(0);
+    }
+    for (const ch of c.characters) {
+      if (ch.squad) {
+        expect(ch.squad.aggro, ch.id).toBeDefined();
+        expect(ch.squad.hurry, ch.id).toBeDefined();
+        expect(ch.squad.formation, ch.id).toBeDefined();
+      }
+      if (ch.supply) expect(ch.supply.throwMinFlightMs, ch.id).toBeGreaterThan(0);
+    }
+  });
+
+  it('the phone card copy quotes the content numbers (controller/copy.ts)', () => {
+    const card = (id: CardId) => c.cards.find((x) => x.id === id)!;
+    const param = (id: CardId, key: string) => card(id).module!.params![key] as number;
+    const pct = (v: number) => `${Math.round(v * 100)}%`;
+    for (const mods of Object.values(card('quick_recovery').perClass!))
+      expect(CARD_INFO.quick_recovery.text).toContain(`${-mods[0]!.add! / 1000} s`);
+    expect(CARD_INFO.skyhunter.text).toContain(pct(param('skyhunter', 'pct')));
+    expect(CARD_INFO.giant_slayer.text).toContain(pct(param('giant_slayer', 'pct')));
+    expect(CARD_INFO.siege_breakers.text).toContain(pct(param('siege_breakers', 'pct')));
+    expect(CARD_INFO.bodyguard.text).toContain(pct(param('bodyguard', 'reduction')));
+    expect(CARD_INFO.triage.text).toContain(pct(param('triage', 'below')));
+    expect(CARD_INFO.volley.text).toBe(
+      `Every ${param('volley', 'every')}th shot fires ${param('volley', 'arrows')} arrows.`,
+    );
+    // "Double healing", "half as heavy".
+    expect(param('triage', 'mult')).toBe(2);
+    expect(param('light_load', 'factor')).toBe(0.5);
   });
 });
 

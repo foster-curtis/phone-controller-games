@@ -3,8 +3,7 @@
 // previewed area (probes just inside and just past the reach and the edge, with and without a mod).
 import { describe, expect, it } from 'vitest';
 import { content } from '../../../content';
-import { commander, engineer, quartermaster, warden } from '../../../content/characters';
-import { grunt } from '../../../content/enemies';
+import { commander, engineer, grunt, quartermaster, warden } from '../../../content/balance';
 import type { CharacterDef } from '../../../content/types';
 import type { CardId, ClassId } from '../../../shared/ids';
 import { windupSteps } from '../classes/warden';

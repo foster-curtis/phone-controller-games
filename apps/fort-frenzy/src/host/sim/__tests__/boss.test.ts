@@ -4,7 +4,7 @@
 // and the boss's death ending the wave.
 import { describe, expect, it } from 'vitest';
 import { content } from '../../../content';
-import { colossus as colossusDef } from '../../../content/enemies';
+import { colossus as colossusDef } from '../../../content/balance';
 import type { ClassId } from '../../../shared/ids';
 import { COLOSSUS_TUNING_KEYS, tuning } from '../boss/colossus';
 import type { EnemyEnt } from '../types';

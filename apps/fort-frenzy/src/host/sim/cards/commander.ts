@@ -1,5 +1,5 @@
 // Commander card modules (SPEC §6.1): Forced March, Siege Breakers, Veterans, Last Stand, Vanguard and
-// the Warcry combo. Bladework and Rally Cry are plain stat cards (content/cards.ts). Squad cards
+// the Warcry combo. Bladework and Rally Cry are plain stat cards (content/balance.ts). Squad cards
 // change how the squad behaves, never its raw stats (shop): the Commander's module keeps a small
 // modifier on each of his soldiers, which reads his current stacks live (a re-pick needs no resync).
 import { dist } from '../geometry';
@@ -28,8 +28,8 @@ const stacksOfCard = (
 export const forcedMarch: ModuleDef = {
   id: 'forced_march',
   make(p) {
-    const strength = num(p, 'pct', 0.2) * stacksOf(p);
-    const auraMs = num(p, 'auraMs', 200);
+    const strength = num(p, 'pct') * stacksOf(p);
+    const auraMs = num(p, 'auraMs');
     return {
       id: 'card:forced_march',
       hooks: {
@@ -47,7 +47,7 @@ export const forcedMarch: ModuleDef = {
 export const siegeBreakers: ModuleDef = {
   id: 'siege_breakers',
   make(p) {
-    const pct = num(p, 'pct', 0.5);
+    const pct = num(p, 'pct');
     return {
       id: 'card:siege_breakers',
       hooks: {
@@ -74,7 +74,7 @@ export const siegeBreakers: ModuleDef = {
 export const lastStand: ModuleDef = {
   id: 'last_stand',
   make(p) {
-    const pct = num(p, 'pct', 0.15);
+    const pct = num(p, 'pct');
     return {
       id: 'card:last_stand',
       hooks: {
@@ -107,8 +107,8 @@ export const lastStand: ModuleDef = {
 export const veterans: ModuleDef = {
   id: 'veterans',
   make(p) {
-    const gain = num(p, 'gain', 0.1);
-    const max = num(p, 'max', 5);
+    const gain = num(p, 'gain');
+    const max = num(p, 'max');
     // On the modifier (not a closure) so the state hash sees it.
     const m: Modifier & { alive: number[]; fighting: boolean } = {
       id: 'card:veterans',
@@ -158,9 +158,9 @@ export const veterans: ModuleDef = {
 export const vanguard: ModuleDef = {
   id: 'vanguard',
   make(p) {
-    const radius = num(p, 'radius', 3);
-    const strength = num(p, 'reduction', 0.2) * stacksOf(p);
-    const auraMs = num(p, 'auraMs', 200);
+    const radius = num(p, 'radius');
+    const strength = num(p, 'reduction') * stacksOf(p);
+    const auraMs = num(p, 'auraMs');
     return {
       id: 'card:vanguard',
       hooks: {
@@ -180,9 +180,9 @@ export const vanguard: ModuleDef = {
 export const warcry: ModuleDef = {
   id: 'warcry',
   make(p) {
-    const radius = num(p, 'radius', 4);
-    const strength = num(p, 'strength', 0.2);
-    const durationMs = num(p, 'durationMs', 4000);
+    const radius = num(p, 'radius');
+    const strength = num(p, 'strength');
+    const durationMs = num(p, 'durationMs');
     return {
       id: 'card:warcry',
       hooks: {

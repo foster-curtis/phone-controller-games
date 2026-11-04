@@ -32,7 +32,7 @@ export function turretTick(ctx: SimCtx, st: StructureEnt): void {
     attack: atk,
     damage: s.attackStat(st, atk.damage, 'damage'),
     range: range + target.r,
-    speed: s.attackStat(st, atk.speed ?? 20, 'projectileSpeed'),
+    speed: s.attackStat(st, atk.speed!, 'projectileSpeed'),
     kind: 'ranged',
     tags: [],
     effects: [],

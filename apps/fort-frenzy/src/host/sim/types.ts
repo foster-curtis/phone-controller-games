@@ -525,6 +525,7 @@ export type { ModuleRef };
 export interface EffectDef {
   id: EffectId;
   stacking: 'refresh' | 'strongest' | 'stack';
+  /** Unused since the balance pass: content's `RulesDef.dots` gives the stack cap and tick (frozen). */
   maxStacks?: number;
   tickEveryMs?: number;
   modifier(strength: number): Modifier;

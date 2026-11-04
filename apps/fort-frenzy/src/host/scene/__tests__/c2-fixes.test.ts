@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { engineer } from '../../../content/characters';
+import { engineer } from '../../../content/balance';
 import { theme } from '../../../shared/theme';
 import { neonKnightsHost } from '../../../themes/neon-knights/host';
 import { isPosed, type ViewId } from '../../../themes/types';

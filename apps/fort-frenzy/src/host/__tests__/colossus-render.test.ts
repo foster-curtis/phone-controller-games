@@ -3,7 +3,7 @@
 // swaps the legs' draw order, the look helpers (tiers, head, core by stagger), and the boss bar.
 import { describe, expect, it } from 'vitest';
 import rig from '../../../art/neon-knights/rigs/colossus.json';
-import { colossus as def } from '../../content/enemies';
+import { colossus as def } from '../../content/balance';
 import {
   clips,
   COLOSSUS_CALL_MS,

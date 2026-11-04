@@ -8,8 +8,6 @@ import type { ProjectileEnt, SimCtx, StructureEnt } from '../types';
 
 /** Muzzle height (tiles): the mortar rig's tube tip above its foot (≈ 66 units × 0.6 px / 48 px). */
 export const SHELL_LAUNCH_Z = 0.8;
-/** Shortest flight, ms: a close lob still arcs high enough to read. */
-export const SHELL_MIN_FLIGHT_MS = 700;
 
 /** Apex height above the straight launch-to-ground line, tiles. */
 export const shellApex = (dist: number) => 1.4 + 0.3 * dist;
@@ -46,8 +44,9 @@ export function mortarTick(ctx: SimCtx, st: StructureEnt): void {
   st.facing = Math.atan2(dy, dx);
   const speedUp = Math.max(0.05, s.attackStat(st, 1, 'attackSpeed'));
   a.readyAt = t + s.cat.steps(atk.cooldownMs / speedUp);
-  const speed = Math.max(0.1, atk.speed ?? 6);
-  const flight = s.cat.steps(Math.max(SHELL_MIN_FLIGHT_MS, (d / speed) * 1000));
+  // A close lob still takes content's `minFlightMs`, so it arcs high enough to read.
+  const speed = Math.max(0.1, atk.speed!);
+  const flight = s.cat.steps(Math.max(atk.minFlightMs!, (d / speed) * 1000));
   const l = d || 1;
   s.emit({ e: 'attack', source: st.id, slot: 'attack', x: st.x, y: st.y, angle: st.facing });
   const shell: ProjectileEnt = {
@@ -57,7 +56,7 @@ export function mortarTick(ctx: SimCtx, st: StructureEnt): void {
     z: SHELL_LAUNCH_Z,
     vx: (dx / l) * (d / (flight / 60)),
     vy: (dy / l) * (d / (flight / 60)),
-    r: 0.12,
+    r: s.cat.rules.projectileRadius,
     side: 'ours',
     source: st.id,
     from: st.kind,

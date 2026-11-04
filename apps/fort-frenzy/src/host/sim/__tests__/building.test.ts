@@ -1,6 +1,6 @@
 // Building and pathing scenarios (SPEC §7, §10.1 row 5 and build arc, §10.2 ghost, §15.5).
 import { describe, expect, it } from 'vitest';
-import { arrowTower } from '../../../content/structures';
+import { arrowTower } from '../../../content/balance';
 import { placementValid } from '../index';
 import { harness } from './harness';
 

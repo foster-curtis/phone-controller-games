@@ -7,8 +7,6 @@ import { dist } from '../geometry';
 import type { FullState } from '../state';
 import type { PlayerEnt, ThrownCrate, World } from '../types';
 
-/** A throw is never shorter than this, steps (a lob, even point-blank). */
-const MIN_FLIGHT_STEPS = 15;
 /** Who a Quartermaster throws to (§10.1 row 6). */
 const RECEIVERS = new Set(['engineer', 'warden']);
 
@@ -42,7 +40,9 @@ export function throwCrate(s: FullState, p: PlayerEnt, to: PlayerEnt): void {
   const w = s.world;
   const d = dist(p.x, p.y, to.x, to.y);
   const speed = Math.max(0.1, p.stats.throwSpeed);
-  const flight = Math.max(MIN_FLIGHT_STEPS, Math.round((d / speed) * 60));
+  // Never shorter than content's `throwMinFlightMs`: a lob, even point-blank.
+  const least = s.cat.steps(s.cat.character(p.classId).supply!.throwMinFlightMs!);
+  const flight = Math.max(least, Math.round((d / speed) * 60));
   p.crates--;
   const c: ThrownCrate = {
     id: w.nextId++,

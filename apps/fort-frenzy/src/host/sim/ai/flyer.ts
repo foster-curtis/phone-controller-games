@@ -9,9 +9,6 @@ import { BASE_ID, type EnemyEnt, type PlayerEnt, type SimCtx } from '../types';
 import { knocked } from './field';
 import { leash, walkTo } from './path';
 
-/** A shot flies a little past its target so a moving player can still step into it. */
-const SHOT_SLACK = 1;
-
 export function flyerAi(ctx: SimCtx, e: EnemyEnt): void {
   const s = state(ctx);
   const def = s.cat.enemy(e.kind);
@@ -92,8 +89,9 @@ function shoot(s: SimState, e: EnemyEnt, target: number) {
     dy: dy / l,
     attack: def.attack,
     damage: e.stats.damage,
-    range: l + SHOT_SLACK,
-    speed: def.attack.speed ?? 16,
+    // A little past the target, so a moving player can still step into it.
+    range: l + s.cat.rules.enemyShotSlack,
+    speed: def.attack.speed!,
     kind: 'ranged',
     tags: [],
     effects: [],

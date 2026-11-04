@@ -63,7 +63,7 @@ export function stepArchers(s: FullState): void {
       attack: atk,
       damage: s.attackStat(b, atk.damage, 'damage'),
       range: range + target.r,
-      speed: atk.speed ?? 20,
+      speed: atk.speed!,
       kind: 'ranged',
       tags: [],
       effects: [],

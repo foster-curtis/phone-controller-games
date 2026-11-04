@@ -10,7 +10,7 @@
 // It can't be stunned or knocked back. A hidden stagger meter fills a little with all damage and
 // more with a stun (one per lockout, so stuns alone can't lock it down); full = 3 s on one knee
 // taking bonus damage, the attack winding up called off, then the meter starts again from 0.
-// Tuning comes from the content's `boss.params` (content/enemies.ts). Imports only types, internal,
+// Tuning comes from the content's `boss.params` (content/balance.ts). Imports only types, internal,
 // geometry and the shared AI steps (registry rule, BUILD_PLAN §8 FF6).
 import type { EnemyDef } from '../../../content/types';
 import { fieldStep, toBase } from '../ai/field';
@@ -34,7 +34,10 @@ export interface ColossusTuning {
   hpMk2: number;
   hpMk3: number;
   slamOffset: number;
+  slamReach: number;
+  baseReach: number;
   boulderWindupMs: number;
+  boulderMinFlightMs: number;
   boulderCooldownMs: number;
   boulderMinRange: number;
   boulderRange: number;
@@ -65,7 +68,10 @@ export const COLOSSUS_TUNING_KEYS = [
   'hpMk2',
   'hpMk3',
   'slamOffset',
+  'slamReach',
+  'baseReach',
   'boulderWindupMs',
+  'boulderMinFlightMs',
   'boulderCooldownMs',
   'boulderMinRange',
   'boulderRange',
@@ -96,8 +102,6 @@ export const COLOSSUS_TUNING_KEYS = [
 export type ColossusAct = 'slam' | 'breaker' | 'boulder' | 'call';
 
 const TOWERS = new Set(['arrow_tower', 'bomb_tower']);
-/** A boulder's shortest flight, steps (as the Bombard's shells). */
-const MIN_FLIGHT = 36;
 
 export function tuning(def: EnemyDef): ColossusTuning {
   return (def.boss?.params ?? {}) as unknown as ColossusTuning;
@@ -245,7 +249,7 @@ function slam(
     x = e.x + dx * (e.r + T.slamOffset);
     y = e.y + dy * (e.r + T.slamOffset);
   }
-  const lands = t + s.cat.steps(def.attack.windupMs ?? 1500);
+  const lands = t + s.cat.steps(def.attack.windupMs!);
   const marker = addMarker(
     s,
     {
@@ -253,7 +257,7 @@ function slam(
       shape: 'circle',
       x,
       y,
-      r: def.attack.radius ?? 1.5,
+      r: def.attack.radius!,
       createdAt: t,
       landsAt: lands,
       payload: { damage: e.stats.damage, kind: 'area', tags: ['boss', kind], hitsStructures: true },
@@ -266,7 +270,7 @@ function slam(
 /** The nearest targetable player or soldier the slam can reach (ties by id). */
 function slamTarget(s: SimState, e: EnemyEnt, T: ColossusTuning): Unit | null {
   const def = s.cat.enemy(e.kind);
-  const reach = e.r + T.slamOffset + (def.attack.radius ?? 1.5) * 0.6;
+  const reach = e.r + T.slamOffset + def.attack.radius! * T.slamReach;
   let best: Unit | null = null;
   let bestD = Infinity;
   const consider = (u: Unit) => {
@@ -335,7 +339,7 @@ function boulder(s: SimState, e: EnemyEnt, to: { x: number; y: number; target: E
   const t = s.tick();
   const windup = s.cat.steps(T.boulderWindupMs);
   const d = dist(e.x, e.y, to.x, to.y);
-  const flight = Math.max(MIN_FLIGHT, Math.round((d / T.boulderSpeed) * 60));
+  const flight = Math.max(s.cat.steps(T.boulderMinFlightMs), Math.round((d / T.boulderSpeed) * 60));
   const marker = addMarker(
     s,
     {
@@ -405,7 +409,7 @@ function rings(s: SimState, e: EnemyEnt, x: number, y: number) {
   const T = tuning(def);
   const t = s.tick();
   const step = s.cat.steps(T.ringStepMs);
-  const r0 = def.attack.radius ?? 1.5;
+  const r0 = def.attack.radius!;
   for (let k = 1; k <= T.ringCount; k++) {
     const inner = r0 + (k - 1) * T.ringBand;
     addMarker(
@@ -508,7 +512,7 @@ function blockerAhead(s: SimState, e: EnemyEnt): StructureEnt | null {
 /** Walk the breaker field to the Citadel; slam what blocks it (walls get the wall breaker). */
 function advance(s: SimState, e: EnemyEnt, T: ColossusTuning) {
   const t = s.tick();
-  const reach = T.slamOffset + 0.3;
+  const reach = T.slamOffset + T.baseReach;
   if (rectDist(e.x, e.y, s.baseRect) - e.r <= reach) {
     // At the Citadel: heavy hits on it (§9.2), never instant.
     stop(e);

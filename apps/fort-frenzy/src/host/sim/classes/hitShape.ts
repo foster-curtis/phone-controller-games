@@ -40,5 +40,5 @@ export function hitShape(a: AttackDef, stat: AttackStatFn): HitShape {
 
 /** The sector of an `arc` or `cone` attack: its reach and half the opening (radians). */
 export function sectorGeometry(a: AttackDef, stat: AttackStatFn): { range: number; half: number } {
-  return { range: stat(a.range, 'range'), half: (stat(a.arcDeg ?? 90, 'arcDeg') / 2) * RAD };
+  return { range: stat(a.range, 'range'), half: (stat(a.arcDeg!, 'arcDeg') / 2) * RAD };
 }

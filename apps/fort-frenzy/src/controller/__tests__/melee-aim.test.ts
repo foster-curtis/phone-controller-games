@@ -4,7 +4,7 @@
 // a return to the dead zone (or a hold past 150 ms that never left it) cancels.
 import { createLocalClient } from '@pcg/controller-kit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { characters } from '../../content/characters';
+import { characters } from '../../content/balance';
 import { createApp, type App } from '../app';
 import { CLASS_INFO } from '../copy';
 import { layoutCombat } from '../layout';

@@ -1,10 +1,7 @@
 // Combat scenarios: the Engineer's kit (SPEC §8, §10.1), the pulse turret, base archers (§3.5), the
 // Grunt (§9, aggro leash), dazed (§11.3), death and respawn (§5), danger markers, invincible (§9.5).
 import { describe, expect, it } from 'vitest';
-import { base as baseDef } from '../../../content/base';
-import { engineer } from '../../../content/characters';
-import { grunt } from '../../../content/enemies';
-import { arrowTower } from '../../../content/structures';
+import { arrowTower, base as baseDef, engineer, grunt } from '../../../content/balance';
 import { harness } from './harness';
 
 const MAIN = engineer.main.damage;

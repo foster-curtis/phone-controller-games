@@ -1331,8 +1331,9 @@ Ideas deferred from v1. Build v1 so these can be added without rewrites.
 2. **Numbers to set in playtesting:** player HP, character damage and super charge rates, structure costs
    and HP, snare discharges and slow strength (no structure may cost more than the non-Quartermaster
    carry cap, §6), crate prices, the per-crate slowdown curve, base HP and the repair amount per crate,
-   aggro and leash radii (§9), and the breaker field's wall cost (§15.5). These go in config, and the
-   starting values are picked during implementation.
+   aggro and leash radii (§9), and the breaker field's wall cost (§15.5). Every one of them is in the
+   balance sheet, `src/content/balance.ts` (§15.4), and the starting values are picked during
+   implementation.
    - **Main-attack cooldowns start at 0.4 s or more.** Attacks fire once per release (§10.1), so Haste
      only matters while the cooldown is longer than a fast tap.
 3. **Passive regeneration (balance watch):** HP carries over between waves and nothing heals players
@@ -1412,7 +1413,7 @@ apps/fort-frenzy/
   scripts/              build-atlases.ts, replay.ts (Node)
   src/
     shared/       messages.ts (protocol), ids.ts, theme.ts (brand.css mirror), relayUrl
-    content/      gameplay config as TS data (§15.4) + types.ts
+    content/      balance.ts (every tuning number, §15.4), map.ts, index.ts, types.ts
     themes/<id>/  shared.ts (phones + TV), host.ts (TV only)
     host/
       sim/        deterministic run simulation: world, systems, step order, run phases, economy
@@ -1764,13 +1765,25 @@ interface BossBehavior {
 
 ### 15.4 Data and config
 
-- **Format: TS data modules** in `src/content/`, one file per domain, typed with `satisfies` against
-  `src/content/types.ts`. All tuning numbers live here (§14). Units: distances in tiles, speeds in
-  tiles/s, times in ms (converted to steps at load), damage and HP as numbers.
+- **Format: TS data modules** in `src/content/`, typed with `satisfies` against
+  `src/content/types.ts`. Units: distances in tiles, speeds in tiles/s, times in ms (converted to
+  steps at load), damage and HP as numbers.
+- **One balance sheet (settled 2026-11-04, §15.11 #48):** every number that affects balance lives in
+  `src/content/balance.ts` (§14 #2), in sections: Citadel and run rules, difficulty and player
+  scaling, characters, structures, enemies and the Colossus, waves, upgrade cards, team shop. That
+  covers HP, damage, ranges, areas, timers, speeds, costs and prices, wave budgets, and the numbers
+  behind AI and card behavior (aggro and leash, Hunter threat cost, Swarm jitter, squad engage range,
+  shell minimum flights, projectile hit radius, card offer size and rare chance, damage-over-time ticks
+  and stacks). `src/content/map.ts` holds the map layout; `index.ts` assembles `Content`.
+- **No numbers in the sim:** card, passive, shop and boss modules read every param from content (a
+  missing param throws), and the sim reads optional content fields without fallback values. What
+  stays in code is engine plumbing, not balance: the step rate, spatial-hash and flow-field steering
+  internals (`systems/` can't import content), physics thresholds, spawn scatter and render-only arcs.
 - **Validation test** (Vitest): every referenced id exists (cards, combo prerequisites, favored enemies,
   wave pools, guaranteed spawns, shop targets, modules); no structure costs more than the
   non-Quartermaster carry cap (§6); every class's build list has at most 3 entries (the build arc);
-  each wave's budget covers its guaranteed spawns.
+  each wave's budget covers its guaranteed spawns; every module builds from its content params; every
+  optional field the sim reads is present; the phone's card copy quotes the content numbers.
 
 ```ts
 interface CharacterDef {
@@ -1781,22 +1794,30 @@ interface CharacterDef {
   superChargeRate: number; passive: ModuleRef;
   build: StructureId[];                                               // arc order: left, up, right
   carryCap: number; carrySlowdown: number[];                          // slowdown per crate count
-  squad?: { size: number[]; soldier: UnitStats; followRadius: number };
-  supply?: { crateDiscount: number; throwRange: number; throwSpeed: number; kitRepair: number }; // FF9, §6
+  squad?: { size: number[]; soldier: UnitStats; followRadius: number;
+    aggro?: { radius: number; leash: number }; hurry?: { at: number; factor: number };   // #48
+    formation?: { flagRing: number; followSpread: number } };
+  supply?: { crateDiscount: number; throwRange: number; throwSpeed: number; kitRepair: number; // FF9, §6
+    throwMinFlightMs?: number };                                      // #48
 }
 interface AttackDef { shape: 'projectile' | 'arc' | 'cone' | 'circle' | 'buff'; damage: number; range: number;
   cooldownMs: number; windupMs?: number; arcDeg?: number; count?: number; spreadDeg?: number;
-  speed?: number; hitsFlyers: boolean; blockedBy?: ('wall' | 'tower')[]; knockback?: number }
+  speed?: number; hitsFlyers: boolean; blockedBy?: ('wall' | 'tower')[]; knockback?: number;
+  radius?: number; minFlightMs?: number }                             // #48: lobbed shells' shortest flight
 interface EnemyDef { id: EnemyId; hp: number; speed: number; radius: number; flying: boolean;
   budget: number; groupSize?: number;
   ai: 'path' | 'runner' | 'siege' | 'hunter' | 'flyer' | 'boss' | 'swarm' | 'brute';   // FF10: swarm, brute
   field: 'ground' | 'breaker' | 'none'; attack: AttackDef;
   vsStructure?: Partial<Record<StructureId | 'base', number>>;        // Brute 2× walls, Colossus 3×
-  aggro?: { radius: number; leash: number }; slowResist?: number; boss?: ModuleRef }
+  aggro?: { radius: number; leash: number }; slowResist?: number; boss?: ModuleRef;
+  hunt?: { closeRange: number; retargetTiles: number; threatCost: number; threatPad: number }; // #48 Hunter
+  jitter?: { drift: number; pace: number; paceRange: number; stopChance: number;               // #48 Swarm
+    rollMs: [number, number]; stopMs: [number, number] } }
 interface StructureDef { id: StructureId; cost: number; hp: number | null; pathCost: number;
   blocksProjectiles: boolean; attack?: AttackDef; attachesTo?: StructureId[];
   discharges?: number; rearmMs?: number; slow?: EffectApply;          // snare
-  defense?: number }                                                  // Fortify's damage reduction (FF8)
+  defense?: number;                                                   // Fortify's damage reduction (FF8)
+  triggerFraction?: number }                                          // #48: snare trigger (body radius)
 interface CardDef { id: CardId; owner: ClassId | 'common'; tier: 'common' | 'rare' | 'combo';
   unique?: boolean; requires?: [CardId, CardId]; favoredEnemy?: EnemyId; requiresClass?: ClassId;
   stats?: StatMod[]; module?: ModuleRef; perClass?: Partial<Record<ClassId, StatMod[]>> }
@@ -1818,7 +1839,12 @@ interface BaseDef { hp: number; repairPerCrate: number; stages: number[]; alarmA
 interface RulesDef { startCoins: number; countdownMs: number; buildCapMs: number; respawnMs: number;
   victoryMs: number; defeatMs: number; spawnWarningMs: number; inputStaleMs: number; dropLockMs: number;
   pickupRadius: number; giveRadius: number; respawn: Vec2[]; statCaps: Partial<Record<StatId, StatCap>>;
-  breakerWallCost: number; separation: number; knockbackDecay: number }
+  breakerWallCost: number; separation: number; knockbackDecay: number;
+  // #48: the sim's former constants
+  projectileRadius: number; enemySwingSlack: number; enemyShotSlack: number; fortifyReach: number;
+  cardOffer: { size: number; rareChance: number };
+  dots: Partial<Record<EffectId, { maxStacks: number; tickEveryMs: number }>>;
+  comboSpread: { radius: number; durationMs: number } }
 ```
 
 - **Generic system signatures** (extraction-ready, §15.1; Fort Frenzy passes its content in):
@@ -2173,7 +2199,7 @@ interface RunSnapshot {
 "Frozen", as in Sunny Side): `src/shared/messages.ts`, `src/shared/ids.ts`, `src/content/types.ts`, the
 sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `BossBehavior`),
 `src/themes/types.ts` (`ThemeShared`, `ThemeHost`, `RigDef`), `RunSnapshot`, and the public APIs of
-`@pcg/controller-kit` and `@pcg/game-kit`. Tuning values in `src/content/` are never frozen.
+`@pcg/controller-kit` and `@pcg/game-kit`. Tuning values in `src/content/balance.ts` are never frozen.
 
 | # | Date | Decision | Choice | Why |
 |---|---|---|---|---|
@@ -2224,3 +2250,4 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 45 | 2026-11-03 | Hunter | Paths round tower and sentry range when it can (its field adds 4 per covering attacker); retargets on down, daze or a player 2 tiles closer; the eye thread is replaced by a ~2 s flash of the quarry's color at its feet on each new quarry. v2 behavior recorded in §9 and §13 | The Hunter should be smarter than other units, and a permanent thread was noise (Foster, C3) |
 | 46 | 2026-11-03 | Flow-field shape | 8-neighbor octile fields with no corner cutting, and steering at the farthest tile down the chain a body-wide corridor reaches without a costlier tile | Enemies went straight up the field and then along the back; they should head for the Citadel on a direct diagonal (Foster, C3) |
 | 47 | 2026-11-03 | Aimed melee mains | The Warden's slam and the Commander's slash are aimed buttons (§10.1): a quick tap (≤ 150 ms in the dead zone) still fires at once, auto-aimed at the nearest enemy in range or straight ahead; a drag aims and the release lands the same arc (slam 1.75 tiles, 102°; slash 1.4 tiles, 110°) toward the aim; back in the dead zone cancels. While aiming the TV draws each arc as the filled amber ground cone from the shared `hitShape` | C3 follow-up (Foster): "the warden's attack should be aimed, as well as the commander's slash", with the slash's arc shown while aiming; tap buttons held nothing, so they had no preview |
+| 48 | 2026-11-04 | Balance sheet | Every number that affects balance (HP, damage, ranges, areas, timers, speeds, costs, wave budgets, AI and card tuning) lives in one file, `src/content/balance.ts` (was eight domain files plus constants inside the sim: AI, squad, card offers, damage-over-time, shell flights, projectile radius); card and passive modules read every param from it with no code fallbacks, and content.test checks it is complete; the map stays in `map.ts` (§15.4) | One place to tune for balance (Foster) |

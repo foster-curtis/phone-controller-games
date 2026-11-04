@@ -220,7 +220,7 @@ function fire(
     shaped(s, p, a, slot, damage, atk);
     return;
   }
-  const speed = s.attackStat(p, a.speed ?? 20, 'projectileSpeed', slot);
+  const speed = s.attackStat(p, a.speed!, 'projectileSpeed', slot);
   const spread = (atk.spreadDeg * Math.PI) / 180;
   for (let i = 0; i < atk.count; i++) {
     const off = atk.count > 1 ? spread * (i / (atk.count - 1) - 0.5) : 0;

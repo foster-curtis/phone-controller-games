@@ -3,7 +3,7 @@
 import type * as Phaser from 'phaser';
 import { describe, expect, it } from 'vitest';
 import { content } from '../../../content';
-import { commander, warden } from '../../../content/characters';
+import { commander, warden } from '../../../content/balance';
 import { theme } from '../../../shared/theme';
 import { FixedCamera } from '../../render/camera';
 import { aimPreview, type HitShape } from '../../sim';

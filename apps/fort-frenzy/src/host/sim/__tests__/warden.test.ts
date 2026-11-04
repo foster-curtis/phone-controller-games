@@ -2,7 +2,7 @@
 // wind-up), the aimed stomp (longer arc, damage and a brief stun), and Mason (walls near him repair in
 // combat only, §5).
 import { describe, expect, it } from 'vitest';
-import { warden } from '../../../content/characters';
+import { warden } from '../../../content/balance';
 import { harness } from './harness';
 
 const steps = (ms: number) => Math.max(1, Math.round((ms * 60) / 1000));

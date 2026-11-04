@@ -6,7 +6,7 @@
 // when it's bought, and everything at the wave start.
 // The row helpers are pure on (content, world), so phone views use the same rules as the sim.
 import type { Content } from '../../../content';
-import { HOLD_CONFIRM_PRICE } from '../../../content/shop';
+import { HOLD_CONFIRM_PRICE } from '../../../content/balance';
 import type {
   Condition,
   ShopItemDef,

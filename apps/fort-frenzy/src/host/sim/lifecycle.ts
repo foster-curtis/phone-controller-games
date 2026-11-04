@@ -22,10 +22,10 @@ function tickUnit(s: FullState, u: Unit) {
     tickEffects(
       u.effects,
       (def) => {
-        const d = effectDefs[def];
+        const dot = s.cat.rules.dots[def];
         return {
-          stacking: d?.stacking ?? 'refresh',
-          tickEvery: d?.tickEveryMs ? s.cat.steps(d.tickEveryMs) : undefined,
+          stacking: effectDefs[def]?.stacking ?? 'refresh',
+          tickEvery: dot ? s.cat.steps(dot.tickEveryMs) : undefined,
         };
       },
       (e) => {

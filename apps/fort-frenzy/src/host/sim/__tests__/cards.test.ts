@@ -1,9 +1,13 @@
 // Upgrade card scenarios (SPEC §6.1): one test per card, picked through the real `card` command
 // (harness `give`), plus stacking (×N) and the stat caps.
 import { describe, expect, it } from 'vitest';
-import { rules } from '../../../content/base';
-import { cards as cardDefs } from '../../../content/cards';
-import { engineer, quartermaster, warden } from '../../../content/characters';
+import {
+  cards as cardDefs,
+  engineer,
+  quartermaster,
+  rules,
+  warden,
+} from '../../../content/balance';
 import type { RulesDef, StatId } from '../../../content/types';
 import { CARD_IDS, type CardId, type ClassId } from '../../../shared/ids';
 import { collectStatMods, statValue } from '../../systems/modifiers';

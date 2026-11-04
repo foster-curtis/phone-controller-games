@@ -716,7 +716,7 @@ export class WorldView {
     k.ghost.img.setVisible(ghost);
     if (ghost) {
       // Fortify's ghost sits on the tower it would attach to (FF8).
-      const [c, r] = buildTile(w, p.ghost!, p);
+      const [c, r] = buildTile(w, p.ghost!, p, this.content.rules?.fortifyReach ?? 0);
       const valid = placementValid(w, p.ghost!, [c, r], p.slot);
       this.w.lib.setFrame(k.ghost, valid ? fk('build-ghost/valid') : fk('build-ghost/blocked'));
       const s = this.w.camera.worldToScreen(c + 0.5, r + 0.5);

@@ -1,8 +1,7 @@
 // Run phases (SPEC §4, §9.3, §9.4, §10.2, §15.3 step 10): countdown, build (ready + 45 s cap), combat
 // (spawner, warnings, scaling), wave clear, victory, defeat, summary.
 import { describe, expect, it } from 'vitest';
-import { rules } from '../../../content/base';
-import { waves } from '../../../content/waves';
+import { rules, waves } from '../../../content/balance';
 import { createSim } from '../index';
 import { harness, startOf } from './harness';
 

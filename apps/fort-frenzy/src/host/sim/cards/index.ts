@@ -1,6 +1,7 @@
-// Upgrade cards in the run (SPEC §6.1, §15.3): each build phase every player gets a private offer of
-// 3 from the seeded stream `cards:<wave>:<slot>` (a restored offer is identical, §15.8), with a
-// guaranteed rare after any wave whose `WaveDef.boss` is set; the §6.1 exclusions run over the team
+// Upgrade cards in the run (SPEC §6.1, §15.3): each build phase every player gets a private offer
+// (size and rare chance: content `rules.cardOffer`) from the seeded stream `cards:<wave>:<slot>` (a
+// restored offer is identical, §15.8), with a guaranteed rare after any wave whose `WaveDef.boss` is
+// set; the §6.1 exclusions run over the team
 // (unique and owned, combos without both prerequisites, favored enemies that can't spawn for this
 // team, cards for classes not on it). A pick adds a stack (×N) and rebuilds that card's modifier:
 // the card's stats (and the commons' per-class numbers) times the stacks, plus its module built with
@@ -14,10 +15,6 @@ import { effects as effectDefs, modules } from '../registry';
 import type { FullState } from '../state';
 import { refreshStats } from '../stats';
 import type { Modifier, PlayerEnt, StatMod, World } from '../types';
-
-/** §6.1: about 15% of offers include one rare. */
-export const RARE_CHANCE = 0.15;
-export const OFFER_SIZE = 3;
 
 /** Combos count as rares: an offer holds at most one of either (BUILD_PLAN §8). */
 const isRare = (c: CardDef) => c.tier !== 'common';
@@ -63,9 +60,9 @@ export function offerFor(cat: Catalog, world: World, p: PlayerEnt): CardId[] {
     pool: cat.content.cards,
     eligible: eligibleFor(cat, world, p),
     isRare,
-    rareChance: RARE_CHANCE,
+    rareChance: cat.rules.cardOffer.rareChance,
     guaranteedRare: guaranteedRare(cat, world.wave),
-    size: OFFER_SIZE,
+    size: cat.rules.cardOffer.size,
     rng: offerRng(world.seed, world.wave, p.slot),
   }).map((c) => c.id);
 }

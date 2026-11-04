@@ -6,11 +6,19 @@ import type { EnemyEnt, Modifier, ModuleDef, SimCtx } from '../types';
 
 export type Params = Record<string, number | string | boolean>;
 
-export const num = (p: Params, key: string, fallback: number): number =>
-  typeof p[key] === 'number' ? (p[key] as number) : fallback;
+/**
+ * A module's numeric param. Content (src/content/balance.ts) gives every one, so the sim holds no
+ * tuning numbers; a missing param throws (content.test builds every module).
+ */
+export function num(p: Readonly<Record<string, unknown>> | undefined, key: string): number {
+  const v = p?.[key];
+  if (typeof v !== 'number') throw new Error(`module param '${key}' is missing from content`);
+  return v;
+}
 
 /** Stacks the card is held at (×N, §6.1); 1 if absent. */
-export const stacksOf = (p: Params): number => Math.max(1, num(p, 'stacks', 1));
+export const stacksOf = (p: Params): number =>
+  typeof p.stacks === 'number' ? Math.max(1, p.stacks) : 1;
 
 /** The enemy a hit lands on, or null when the target isn't an enemy. */
 export function enemyTarget(ctx: SimCtx, id: number): EnemyEnt | null {
@@ -24,7 +32,7 @@ export function vsEnemies(id: string, fallback: EnemyId[]): ModuleDef {
     id,
     make(p) {
       const kinds = new Set(typeof p.enemies === 'string' ? p.enemies.split(',') : fallback);
-      const bonus = num(p, 'pct', 0.5) * stacksOf(p);
+      const bonus = num(p, 'pct') * stacksOf(p);
       const m: Modifier = {
         id: `card:${id}`,
         hooks: {

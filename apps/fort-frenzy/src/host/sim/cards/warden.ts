@@ -1,5 +1,5 @@
 // Warden card modules (SPEC §6.1): Aftershock, Giant Slayer, Bodyguard, Unshakable and the Fault Line
-// combo. Heavy Slam, Earthshaker and Master Mason are plain stat cards (content/cards.ts). A slam or
+// combo. Heavy Slam, Earthshaker and Master Mason are plain stat cards (content/balance.ts). A slam or
 // stomp's `onAttack` runs when its wind-up lands (players.ts), so these hooks fire on the impact.
 import { circleTouchesTile, dist } from '../geometry';
 import { state } from '../internal';
@@ -12,14 +12,15 @@ interface Zone {
   until: number;
 }
 
-/** The slam leaves a slowing zone in front of the Warden for `zoneMs`. */
+/** The slam leaves a slowing zone `reachPct` of its reach in front of the Warden for `zoneMs`. */
 export const aftershock: ModuleDef = {
   id: 'aftershock',
   make(p) {
-    const radius = num(p, 'radius', 1.2);
-    const slow = Math.min(0.9, num(p, 'slow', 0.35) * stacksOf(p));
-    const slowMs = num(p, 'slowMs', 800);
-    const zoneMs = num(p, 'zoneMs', 2000);
+    const radius = num(p, 'radius');
+    const slow = Math.min(num(p, 'maxSlow'), num(p, 'slow') * stacksOf(p));
+    const slowMs = num(p, 'slowMs');
+    const zoneMs = num(p, 'zoneMs');
+    const reachPct = num(p, 'reachPct');
     // Zones live on the modifier (not a closure) so the state hash sees them.
     const m: Modifier & { zones: Zone[] } = {
       id: 'card:aftershock',
@@ -31,8 +32,8 @@ export const aftershock: ModuleDef = {
           const pl = self as PlayerEnt;
           const reach = s.attackStat(pl, s.cat.character(pl.classId).main.range, 'range', 'main');
           m.zones.push({
-            x: pl.x + atk.aim.x * reach * 0.6,
-            y: pl.y + atk.aim.y * reach * 0.6,
+            x: pl.x + atk.aim.x * reach * reachPct,
+            y: pl.y + atk.aim.y * reach * reachPct,
             until: s.tick() + s.cat.steps(zoneMs),
           });
         },
@@ -64,9 +65,9 @@ export const giantSlayer = vsEnemies('giant_slayer', ['brute', 'colossus']);
 export const bodyguard: ModuleDef = {
   id: 'bodyguard',
   make(p) {
-    const radius = num(p, 'radius', 3);
-    const strength = num(p, 'reduction', 0.2) * stacksOf(p);
-    const auraMs = num(p, 'auraMs', 200);
+    const radius = num(p, 'radius');
+    const strength = num(p, 'reduction') * stacksOf(p);
+    const auraMs = num(p, 'auraMs');
     return {
       id: 'card:bodyguard',
       hooks: {
@@ -109,9 +110,9 @@ export const unshakable: ModuleDef = {
 export const faultLine: ModuleDef = {
   id: 'fault_line',
   make(p) {
-    const slow = num(p, 'slow', 0.4);
-    const slowMs = num(p, 'slowMs', 1500);
-    const touch = num(p, 'touch', 0.15);
+    const slow = num(p, 'slow');
+    const slowMs = num(p, 'slowMs');
+    const touch = num(p, 'touch');
     return {
       id: 'card:fault_line',
       hooks: {

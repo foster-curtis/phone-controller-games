@@ -9,9 +9,6 @@ import { BASE_ID, type EnemyEnt, type SimCtx, type StructureEnt } from '../types
 import { fieldStep, knocked, toBase } from './field';
 
 const TOWERS = new Set(['arrow_tower', 'bomb_tower']);
-/** Shell flight, tiles/s along the ground, and its shortest flight, steps. */
-const SHELL_SPEED = 6;
-const MIN_FLIGHT = 36;
 
 export function siegeAi(ctx: SimCtx, e: EnemyEnt): void {
   const s = state(ctx);
@@ -95,15 +92,17 @@ function lob(s: SimState, e: EnemyEnt, target: number) {
   const dy = to.y - e.y;
   const d = Math.sqrt(dx * dx + dy * dy);
   const t = w.tick;
-  const flight = Math.max(MIN_FLIGHT, Math.round((d / SHELL_SPEED) * 60));
-  const radius = def.attack.radius ?? 0.8;
+  // The shell's ground speed (tiles/s) and shortest flight are content (`attack.speed`, `minFlightMs`).
+  const speed = def.attack.speed!;
+  const flight = Math.max(s.cat.steps(def.attack.minFlightMs!), Math.round((d / speed) * 60));
+  const radius = def.attack.radius!;
   w.projectiles.push({
     id: w.nextId++,
     x: e.x,
     y: e.y,
-    vx: (dx / Math.max(1e-6, d)) * SHELL_SPEED,
-    vy: (dy / Math.max(1e-6, d)) * SHELL_SPEED,
-    r: 0.12,
+    vx: (dx / Math.max(1e-6, d)) * speed,
+    vy: (dy / Math.max(1e-6, d)) * speed,
+    r: s.cat.rules.projectileRadius,
     z: 0,
     side: 'theirs',
     source: e.id,

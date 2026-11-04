@@ -15,9 +15,6 @@ export function tileAt(x: number, y: number): Tile {
   return [Math.floor(x), Math.floor(y)];
 }
 
-/** Fortify reaches a tower whose tile is this close to the builder's center (tiles). */
-export const FORTIFY_REACH = 0.75;
-
 /** Kinds Fortify attaches to: the towers (content `fortify.attachesTo`; content.test keeps them equal). */
 export const FORTIFIABLE: readonly StructureId[] = ['arrow_tower', 'bomb_tower'];
 const attachable = (kind: StructureId) => FORTIFIABLE.includes(kind);
@@ -35,7 +32,12 @@ function structureOn(world: World, tile: Tile): StructureEnt | null {
  * Where `kind` would go for this player: the tile at their feet, or for Fortify the nearest tower in
  * reach that it can attach to (an unfortified tower first; the feet when there is none, invalid).
  */
-export function buildTile(world: World, kind: StructureId, p: PlayerEnt): Tile {
+export function buildTile(
+  world: World,
+  kind: StructureId,
+  p: PlayerEnt,
+  fortifyReach: number,
+): Tile {
   const feet = tileAt(p.x, p.y);
   if (kind !== 'fortify') return feet;
   let best: Tile | null = null;
@@ -43,7 +45,7 @@ export function buildTile(world: World, kind: StructureId, p: PlayerEnt): Tile {
   for (const st of world.structures) {
     if (!attachable(st.kind) || st.fortified || st.hp <= 0) continue;
     const d = rectDist(p.x, p.y, tileRect(st.tile[0], st.tile[1]));
-    if (d <= FORTIFY_REACH && d < bestD) {
+    if (d <= fortifyReach && d < bestD) {
       best = st.tile;
       bestD = d;
     }
@@ -99,7 +101,7 @@ export function buildAtFeet(s: FullState, p: PlayerEnt, kind: StructureId): AckR
   const def = s.cat.structure(kind);
   if (!s.cat.character(p.classId).build.includes(kind)) return 'invalid';
   if (p.crates < def.cost) return 'crates';
-  const tile = buildTile(s.world, kind, p);
+  const tile = buildTile(s.world, kind, p, s.cat.rules.fortifyReach);
   if (!placementValid(s.world, kind, tile, p.slot)) return 'invalid';
   const st = kind === 'fortify' ? attachFortify(s, tile) : s.placeStructure(kind, ...tile, p.slot);
   p.crates -= def.cost;

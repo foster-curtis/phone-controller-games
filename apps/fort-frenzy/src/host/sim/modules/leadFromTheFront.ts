@@ -2,17 +2,16 @@
 // aura (§15.3): a short `aura_lead_from_the_front` effect re-applied each step to his soldiers in
 // range, with `refresh`, while he is up.
 import { dist } from '../geometry';
+import { num } from '../cards/common';
 import { state } from '../internal';
 import type { ModuleDef, PlayerEnt } from '../types';
-
-const num = (v: unknown, fallback: number) => (typeof v === 'number' ? v : fallback);
 
 export const leadFromTheFront: ModuleDef = {
   id: 'lead_from_the_front',
   make(params) {
-    const radius = num(params.radius, 3);
-    const damagePct = num(params.damagePct, 0.25);
-    const auraMs = num(params.auraMs, 200);
+    const radius = num(params, 'radius');
+    const damagePct = num(params, 'damagePct');
+    const auraMs = num(params, 'auraMs');
     return {
       id: 'passive:lead_from_the_front',
       hooks: {

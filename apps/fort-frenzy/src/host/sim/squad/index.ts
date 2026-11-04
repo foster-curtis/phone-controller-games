@@ -2,24 +2,15 @@
 // formation, or hold the rally flag's position while it's planted, and in combat attack enemies near
 // their post. Size 3, then one more after each boss wave (wave data's `boss`, waves 5 and 10 in v1).
 // The fallen respawn at the base at the start of each build phase. Steering is straight toward the
-// goal, with the usual structure collision (BUILD_PLAN §8 FF9: no flow field needed).
+// goal, with the usual structure collision (BUILD_PLAN §8 FF9: no flow field needed). Engage range,
+// leash, hurry and formation are content (`CharacterDef.squad`).
 import type { CharacterDef, WaveDef } from '../../../content/types';
 import { dist } from '../geometry';
 import type { FullState } from '../state';
 import type { EnemyEnt, PlayerEnt, SoldierEnt } from '../types';
 
-/** A soldier engages enemies this close to it (tiles)… */
-export const SQUAD_AGGRO = 3;
-/** …and never chases further than this from its post (the flag, or the Commander). */
-export const SQUAD_LEASH = 5;
-/** Far from their slot, soldiers hurry (tiles, speed factor). */
-const HURRY_AT = 3;
-const HURRY = 1.3;
 /** Close enough to the formation slot to stand still (tiles). */
 const ARRIVED = 0.12;
-/** Formation: radius around a planted flag; spread between follow slots (radians). */
-const FLAG_RING = 0.8;
-const FOLLOW_SPREAD = 0.6;
 
 type SquadDef = NonNullable<CharacterDef['squad']>;
 
@@ -65,13 +56,13 @@ export function postOf(
   if (mode === 'rally' && c?.flag) {
     const a = (2 * Math.PI * k) / Math.max(1, n) - Math.PI / 2;
     return {
-      x: c.flag.x + Math.cos(a) * FLAG_RING,
-      y: c.flag.y + Math.sin(a) * FLAG_RING,
+      x: c.flag.x + Math.cos(a) * def.formation!.flagRing,
+      y: c.flag.y + Math.sin(a) * def.formation!.flagRing,
       anchor: c.flag,
     };
   }
   if (!c || c.respawnAt !== null || !c.connected) return null;
-  const a = c.facing + Math.PI + (k - (n - 1) / 2) * FOLLOW_SPREAD;
+  const a = c.facing + Math.PI + (k - (n - 1) / 2) * def.formation!.followSpread;
   return {
     x: c.x + Math.cos(a) * def.followRadius,
     y: c.y + Math.sin(a) * def.followRadius,
@@ -93,24 +84,28 @@ function walkTo(u: SoldierEnt, x: number, y: number, speed: number, stopAt: numb
   u.facing = Math.atan2(dy, dx);
 }
 
-/** Nearest enemy this soldier may engage: near it, and within the leash of its post. */
+/**
+ * Nearest enemy this soldier may engage: near it, and within the leash of its post (the flag, or the
+ * Commander).
+ */
 function pick(
   s: FullState,
   u: SoldierEnt,
   def: SquadDef,
   anchor: { x: number; y: number },
 ): EnemyEnt | null {
+  const { radius, leash } = def.aggro!;
   const cur = u.target === null ? undefined : s.units.get(u.target);
   if (cur && cur.hp > 0 && s.kinds.get(cur.id) === 'enemy') {
-    if (dist(anchor.x, anchor.y, cur.x, cur.y) <= SQUAD_LEASH) return cur as EnemyEnt;
+    if (dist(anchor.x, anchor.y, cur.x, cur.y) <= leash) return cur as EnemyEnt;
   }
   let best: EnemyEnt | null = null;
   let bestD = Infinity;
   for (const e of s.world.enemies) {
     if (e.hp <= 0 || (e.flying && !def.soldier.attack.hitsFlyers)) continue;
-    if (dist(anchor.x, anchor.y, e.x, e.y) > SQUAD_LEASH) continue;
+    if (dist(anchor.x, anchor.y, e.x, e.y) > leash) continue;
     const d = dist(u.x, u.y, e.x, e.y) - e.r;
-    if (d <= SQUAD_AGGRO && d < bestD) {
+    if (d <= radius && d < bestD) {
       best = e;
       bestD = d;
     }
@@ -176,7 +171,8 @@ export function stepSquads(s: FullState): void {
       u.vx = u.vy = 0;
       continue;
     }
-    const far = dist(u.x, u.y, post.x, post.y) > HURRY_AT;
-    walkTo(u, post.x, post.y, speed * (far ? HURRY : 1), ARRIVED);
+    // Far from their slot, soldiers hurry.
+    const far = dist(u.x, u.y, post.x, post.y) > def.hurry!.at;
+    walkTo(u, post.x, post.y, speed * (far ? def.hurry!.factor : 1), ARRIVED);
   }
 }

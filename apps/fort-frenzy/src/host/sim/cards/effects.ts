@@ -2,14 +2,11 @@
 // shield, and the card auras (Bodyguard, Vanguard, Light Load), all on the one timed-effect system.
 // Burn and poison carry the combo death hooks (§15.3 "on the effect"): a burning enemy that dies
 // ignites its neighbors when the burn's source owns Wildfire, a poisoned one spreads poison when the
-// source owns Plague. Leaf module: types, internal and geometry only (never the registry).
+// source owns Plague. Stack caps, tick intervals and the spread are content (`rules.dots`,
+// `rules.comboSpread`). Leaf module: types, internal and geometry only (never the registry).
 import { dist } from '../geometry';
 import { state } from '../internal';
 import type { EffectDef, PlayerEnt, SimCtx, StatusEffect, Unit } from '../types';
-
-/** Spread radius and duration when Wildfire or Plague passes an effect on (tiles, ms). */
-export const SPREAD_RADIUS = 1.6;
-export const SPREAD_MS = 3000;
 
 function owns(ctx: SimCtx, source: number | null, card: 'wildfire' | 'plague'): boolean {
   if (source === null) return false;
@@ -21,28 +18,18 @@ function owns(ctx: SimCtx, source: number | null, card: 'wildfire' | 'plague'): 
 /** Passes `fx` from a dying enemy to every living enemy near it (Wildfire, Plague). */
 function spread(ctx: SimCtx, self: Unit, fx: StatusEffect) {
   const s = state(ctx);
+  const { radius, durationMs } = s.cat.rules.comboSpread;
   for (const e of s.world.enemies) {
     if (e === self || e.hp <= 0) continue;
-    if (dist(self.x, self.y, e.x, e.y) - e.r > SPREAD_RADIUS) continue;
-    ctx.applyEffect(
-      e.id,
-      { effect: fx.def, strength: fx.strength, durationMs: SPREAD_MS },
-      fx.source,
-    );
+    if (dist(self.x, self.y, e.x, e.y) - e.r > radius) continue;
+    ctx.applyEffect(e.id, { effect: fx.def, strength: fx.strength, durationMs }, fx.source);
   }
 }
 
-function dotDef(
-  id: 'burn' | 'poison',
-  maxStacks: number,
-  tickEveryMs: number,
-  combo: 'wildfire' | 'plague',
-): EffectDef {
+function dotDef(id: 'burn' | 'poison', combo: 'wildfire' | 'plague'): EffectDef {
   return {
     id,
     stacking: 'stack',
-    maxStacks,
-    tickEveryMs,
     modifier: () => ({
       id: `effect:${id}`,
       hooks: {
@@ -55,10 +42,10 @@ function dotDef(
   };
 }
 
-/** Fire Arrows (§6.1): damage per tick × stacks, every 0.5 s. */
-export const burnEffect = dotDef('burn', 3, 500, 'wildfire');
-/** Venom Bolts (§6.1): damage per tick × stacks, every second. */
-export const poisonEffect = dotDef('poison', 5, 1000, 'plague');
+/** Fire Arrows (§6.1): damage per tick × stacks. */
+export const burnEffect = dotDef('burn', 'wildfire');
+/** Venom Bolts (§6.1): damage per tick × stacks. */
+export const poisonEffect = dotDef('poison', 'plague');
 
 /**
  * Overflow's temporary shield (§6.1): its strength is the HP it still absorbs. The damage pipeline's

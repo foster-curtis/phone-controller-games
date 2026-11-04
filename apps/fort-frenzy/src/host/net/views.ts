@@ -270,7 +270,12 @@ export function meView(ctx: ViewCtx, m: FfMember | null, full = false): MeView {
             valid:
               p.ghost === null
                 ? null
-                : placementValid(w, p.ghost, buildTile(w, p.ghost, p), p.slot),
+                : placementValid(
+                    w,
+                    p.ghost,
+                    buildTile(w, p.ghost, p, content.rules?.fortifyReach ?? 0),
+                    p.slot,
+                  ),
           }
         : null,
   };

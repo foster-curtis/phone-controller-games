@@ -690,7 +690,7 @@ files are found with `import.meta.glob`.
   15-wave run on Normal (and a few waves on Easy and Hard); time it (target 22–27 min), note waves that drag
   or spike, card and shop choices that feel useless or mandatory, coin and crate pacing, boss fights, and
   any crash (the debug panel's replay download goes to the fix agent). Then reload the TV mid-build and
-  resume. Notes become fix milestones; tuning goes to `src/content/**`.
+  resume. Notes become fix milestones; tuning goes to `src/content/balance.ts` (SPEC §15.4).
 
 ### Fix milestones (`FF<N>-fix-<k>`)
 
@@ -765,7 +765,8 @@ Rules:
 10. Route checkpoint notes by owner directory: phone UI → FF4-fix; TV DOM screens → FF5-fix; art assembly,
     rigs, clips, bloom, camera → FF3-fix (or the class/enemy milestone that owns that rig's clips after
     FF7); host wiring, net, flow → FF7-fix (FF14-fix after FF14); sim rules → the milestone owning that
-    feature; numbers and pacing → a fix on the owning milestone changing only `src/content/**`. Fix
+    feature; numbers and pacing → a fix on the owning milestone changing only `src/content/balance.ts`
+    (the map layout: `map.ts`). Fix
     milestones touching disjoint directories run in parallel in worktrees.
 11. When everything in §6 is checked, run the Workspace checks once more on `main` via a test-runner, then
     print the §9 Final handoff list.
@@ -1458,7 +1459,7 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
 - [FF11] contract+: `src/host/sim/types.ts` `BossAct` and optional `EnemyEnt.boss` fields `act`, `ready`, `stunAt`
   (the attack winding up, per-attack ready ticks, the last counted stun). SPEC §15.3 sketch updated.
 - [FF11] decision: content's `boss.module` names the `bosses` registry (content.test checked `modules` before), the
-  `boss` AI kind dispatches to it, and tuning lives in `boss.params` (content/enemies.ts). Boss-wave rules shared by
+  `boss` AI kind dispatches to it, and tuning lives in `boss.params` (content/balance.ts). Boss-wave rules shared by
   any boss are `sim/boss/index.ts`: the boss spawns alone up the wave's first lane right after its lane warning; its
   Mk is the wave data's (debug spawns: by wave number); HP × player-count multiplier at spawn, then × Mk (II 1.6,
   III 2.4) by the module; once no boss is alive the other enemies collapse as their own killers (no coins), and
@@ -1539,6 +1540,27 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   so profile the new 8-neighbor flowfield + Hunter tower-cost field, boss and card hooks first.
 - [orch] cleanup for FF15: FF3-fix-2's Stalker-thread color (`THREAD_ALPHA`) and its test are unused since
   FF10-fix-1 removed the thread; delete both.
+- [balance] decision (user, SPEC §15.11 #48): every balance number lives in `src/content/balance.ts`. The eight
+  domain files (`base`, `difficulty`, `characters`, `structures`, `enemies`, `waves`, `cards`, `shop`) are merged
+  into it in that order, under section headers; `map.ts` stays. Constants that leaked into the sim moved there
+  with their values unchanged (replays and hashes are the same): Hunter close range, retarget, threat cost and
+  pad (`hunter.hunt`); Swarm drift, pace and re-roll windows (`swarm.jitter`); Bombard shell speed and minimum
+  flight, mortar minimum flight (`attack.speed`, `attack.minFlightMs`); snare trigger (`triggerFraction`); squad
+  engage, leash, hurry and formation (`commander.squad`); crate throw minimum flight (`supply.throwMinFlightMs`);
+  Colossus boulder minimum flight and slam reaches (`boss.params`); and in `rules` the projectile hit radius,
+  enemy swing and shot slack, Fortify reach, card offer size and rare chance, burn and poison ticks and stack
+  caps, and the Wildfire/Plague spread. Card and passive module params that only had code defaults (aura
+  refresh `auraMs`, Aftershock `maxSlow`/`reachPct`, Fault Line `touch`, Volley/Bulk Buyer `minEvery`) are now
+  in content. Modules read params through `num(p, key)`, which throws on a missing one; the sim reads optional
+  content fields with `!`, not a fallback; content.test builds every module and checks those fields, and pins
+  the phone card copy's numbers (Skyhunter, Volley, Triage…) to content. `RARE_CHANCE` left `sim/index.ts`.
+  What stays in code is plumbing: `SIM_HZ`, flow-field steering (`systems/` can't import content), spatial
+  hash, physics thresholds, spawn scatter, render-only arc heights, the autopilot's heuristics.
+- [balance] contract+: `src/content/types.ts` `AttackDef.minFlightMs?`; `CharacterDef.squad` `aggro?`, `hurry?`,
+  `formation?`; `CharacterDef.supply.throwMinFlightMs?`; `EnemyDef.hunt?`, `jitter?`; `StructureDef.triggerFraction?`;
+  `RulesDef` `projectileRadius`, `enemySwingSlack`, `enemyShotSlack`, `fortifyReach`, `cardOffer`, `dots`,
+  `comboSpread` (only content builds a `RulesDef`). `sim/types.ts` `EffectDef.maxStacks`/`tickEveryMs` stay but are
+  unused (`rules.dots` replaces them). SPEC §15.4 sketch updated.
 
 ## 9. Final handoff
 

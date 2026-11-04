@@ -2,7 +2,7 @@
 // a slightly longer reach, and the Ranger's super a slightly larger radius. Pins the new numbers
 // against the old ones so a later retune is a deliberate edit here too.
 import { describe, expect, it } from 'vitest';
-import { engineer, warden } from '../characters';
+import { engineer, warden } from '../balance';
 
 const OLD = {
   wardenMain: { range: 1.5, arcDeg: 120 },

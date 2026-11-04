@@ -1,5 +1,5 @@
 // Engineer card modules (SPEC §6.1): Fire Arrows, Piercing Shot, Skyhunter, Volley and the Wildfire
-// combo. Quick Draw, Blast Radius and Deadeye are plain stat cards (content/cards.ts). Wildfire's
+// combo. Quick Draw, Blast Radius and Deadeye are plain stat cards (content/balance.ts). Wildfire's
 // spread lives on the burn effect (cards/effects.ts); its module marks the card on the Engineer.
 import type { Modifier, ModuleDef } from '../types';
 import { num, stacksOf, vsEnemies } from './common';
@@ -8,8 +8,8 @@ import { num, stacksOf, vsEnemies } from './common';
 export const fireArrows: ModuleDef = {
   id: 'fire_arrows',
   make(p) {
-    const strength = num(p, 'tick', 3) * stacksOf(p);
-    const durationMs = num(p, 'durationMs', 3000);
+    const strength = num(p, 'tick') * stacksOf(p);
+    const durationMs = num(p, 'durationMs');
     return {
       id: 'card:fire_arrows',
       hooks: {
@@ -25,7 +25,7 @@ export const fireArrows: ModuleDef = {
 export const piercingShot: ModuleDef = {
   id: 'piercing_shot',
   make(p) {
-    const pierce = num(p, 'pierce', 1) * stacksOf(p);
+    const pierce = num(p, 'pierce') * stacksOf(p);
     return {
       id: 'card:piercing_shot',
       hooks: {
@@ -39,13 +39,13 @@ export const piercingShot: ModuleDef = {
 
 export const skyhunter = vsEnemies('skyhunter', ['flyer']);
 
-/** Every `every`th main shot (one sooner per extra stack, at least every 2nd) fires `arrows` in a spread. */
+/** Every `every`th main shot (one sooner per extra stack, at least every `minEvery`th) fires `arrows` in a spread. */
 export const volley: ModuleDef = {
   id: 'volley',
   make(p) {
-    const every = Math.max(2, num(p, 'every', 4) - (stacksOf(p) - 1));
-    const arrows = num(p, 'arrows', 3);
-    const spreadDeg = num(p, 'spreadDeg', 14);
+    const every = Math.max(num(p, 'minEvery'), num(p, 'every') - (stacksOf(p) - 1));
+    const arrows = num(p, 'arrows');
+    const spreadDeg = num(p, 'spreadDeg');
     // Kept on the modifier (not a closure) so the state hash sees it.
     const m: Modifier & { shots: number } = {
       id: 'card:volley',

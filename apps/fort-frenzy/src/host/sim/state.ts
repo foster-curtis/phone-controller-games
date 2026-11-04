@@ -14,7 +14,7 @@ import { fitSoldier, fitStructure } from './shop';
 import type { FireSpec, Rect, SimState, SlotInput, UnitKind } from './internal';
 import { bossMk } from './boss';
 import { bosses, effects as effectDefs, modules } from './registry';
-import { THREAT_COST, threatMap, type Attacker } from './ai/threat';
+import { threatMap, type Attacker } from './ai/threat';
 import { createSpatialHash } from './spatial';
 import { attackStat, modifiersOf, statBlock, type Caps } from './stats';
 import {
@@ -225,9 +225,11 @@ export function createState(start: RunStart, cat: Catalog): FullState {
   // Tower threat for the Hunters' fields (C3, FF10-fix-1): ground cost plus a cost per attacker
   // whose range covers the tile (ai/threat.ts).
   const threat = new Float32Array(cols * rows);
+  const hunt = cat.content.enemies.find((e) => e.hunt)?.hunt;
+  const threatCost = hunt?.threatCost ?? 0;
   const huntCost = (t: number) => {
     const g = groundCost(t);
-    return g === IMPASSABLE ? g : g + threat[t]! * THREAT_COST;
+    return g === IMPASSABLE ? g : g + threat[t]! * threatCost;
   };
   const computeThreat = () => {
     const out: Attacker[] = [];
@@ -249,7 +251,7 @@ export function createState(start: RunStart, cat: Catalog): FullState {
         if (at) out.push({ x: at.x, y: at.y, range });
       }
     }
-    threatMap(cols, rows, out, threat);
+    threatMap(cols, rows, out, threat, hunt?.threatPad ?? 0);
   };
   // 8-neighbor fields that never cut a blocker's corner (C3: direct diagonals to the Citadel).
   const solid = (t: number) => {
@@ -412,7 +414,7 @@ export function createState(start: RunStart, cat: Catalog): FullState {
         y: spec.y,
         vx: spec.dx * spec.speed,
         vy: spec.dy * spec.speed,
-        r: 0.12,
+        r: cat.rules.projectileRadius,
         side: spec.side,
         source: spec.source.id,
         from: spec.from,
@@ -544,11 +546,12 @@ export function createState(start: RunStart, cat: Catalog): FullState {
     addSoldier(owner, x, y, index) {
       const lead = world.players.find((p) => p.slot === owner);
       const def = lead ? cat.character(lead.classId).squad?.soldier : undefined;
-      const hp = def?.hp ?? 100;
-      const r = def?.radius ?? 0.28;
+      if (!def) throw new Error(`sim: slot ${owner} has no squad`);
+      const hp = def.hp;
+      const r = def.radius;
       const stats = statBlock({
         maxHp: hp,
-        moveSpeed: def?.moveSpeed ?? 3,
+        moveSpeed: def.moveSpeed,
         radius: r,
         attackSpeed: 1,
       });
@@ -661,14 +664,16 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       // Brutes and the Colossus take slows at half strength (§7.1, `slowResist`).
       if (effect.effect === 'slow' && unitKinds.get(targetId) === 'enemy')
         strength *= 1 - (cat.enemy((u as EnemyEnt).kind).slowResist ?? 0);
+      // Damage over time ticks and stacks as content says (`rules.dots`).
+      const dot = cat.rules.dots[effect.effect];
       const ev = { ...effect, strength, source, target: targetId };
       for (const f of ctx.hooks(u, 'beforeEffect')) if (!f(ctx, u, ev)) return false;
       applyEffectTo(
         u.effects,
         {
           stacking: def.stacking,
-          maxStacks: def.maxStacks,
-          tickEvery: def.tickEveryMs ? cat.steps(def.tickEveryMs) : undefined,
+          maxStacks: dot?.maxStacks,
+          tickEvery: dot ? cat.steps(dot.tickEveryMs) : undefined,
         },
         {
           def: effect.effect,
