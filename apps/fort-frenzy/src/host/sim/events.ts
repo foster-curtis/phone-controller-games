@@ -67,6 +67,8 @@ export type SimEvent =
   | { e: 'waveCleared'; wave: number }
   | { e: 'lateJoin'; slot: number; classId: ClassId }
   | { e: 'presence'; slot: number; connected: boolean }
-  | { e: 'runEnd'; result: 'victory' | 'defeat'; wave: number };
+  | { e: 'runEnd'; result: 'victory' | 'defeat'; wave: number }
+  /** FF12: a Fault Line stomp shocked every wall on the map (each wall flashes on the TV). */
+  | { e: 'faultLine'; slot: number };
 
 export type SimEventKind = SimEvent['e'];

@@ -4,7 +4,9 @@
 import { tickEffects } from '../systems/effects';
 import { generateWave, playerScale, waveRng } from '../systems/waves';
 import { bossSpawn, collapseAfterBoss } from './boss';
+import { closeOffers, dealOffers } from './cards';
 import { dropAll } from './crates';
+import { clearWishlist } from './shop';
 import { releaseAll, respawn } from './players';
 import { effects as effectDefs } from './registry';
 import { fillSquads } from './squad';
@@ -50,7 +52,12 @@ export function stepEffects(s: FullState): void {
     // Players' stats follow their mods every step (passives such as Steady Aim toggle bonuses).
     refreshStats(p, s.baseStats.get(p.id)!, effectDefs, s.caps);
   }
-  for (const u of w.soldiers) if (u.hp > 0) tickUnit(s, u);
+  for (const u of w.soldiers) {
+    if (u.hp <= 0) continue;
+    tickUnit(s, u);
+    // Squad modifiers (shop squad stats, Veterans, FF12) follow their state every step.
+    if (u.mods.length > 0) refreshStats(u, s.baseStats.get(u.id)!, effectDefs, s.caps);
+  }
   for (const e of w.enemies) if (e.hp > 0) tickUnit(s, e);
   for (const st of w.structures) if (st.effects.length > 0 || st.mods.length > 0) tickUnit(s, st);
 }
@@ -231,6 +238,8 @@ export function startBuild(s: FullState, n: number): void {
   }
   // Dead soldiers return at the base, and squads grow after boss waves (§8, FF9).
   fillSquads(s);
+  // Each player's private pick of 3 upgrade cards (§6.1, FF12).
+  dealOffers(s);
   setPhase(s, 'build', s.cat.steps(s.cat.rules.buildCapMs));
 }
 
@@ -249,6 +258,9 @@ export function startCombat(s: FullState): void {
     p.ready = false;
     p.ghost = null;
   }
+  // Offers not taken are gone, and the wishlist clears at the wave start (§6.1, §6.2; FF12).
+  closeOffers(s);
+  clearWishlist(w);
   w.spawns.length = 0;
   const def = cat.wave(w.wave);
   if (def) {

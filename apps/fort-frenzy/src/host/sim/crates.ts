@@ -2,6 +2,7 @@
 // team coins, picked up from piles, handed over or dropped, delivered to repair the base, dropped on
 // death or when dazed.
 import type { AckReason } from '../../shared/messages';
+import { bulkBuyerOf } from './cards/quartermaster';
 import { dist } from './geometry';
 import type { FullState } from './state';
 import type { PlayerEnt } from './types';
@@ -79,9 +80,13 @@ export function deliver(s: FullState, p: PlayerEnt): void {
 /** Row 4 and the phone shop: one crate for team coins at full price. */
 export function buyCrate(s: FullState, p: PlayerEnt): AckReason | null {
   if (p.crates >= carryCap(s, p)) return 'cap';
-  const price = cratePrice(s, p);
+  // Bulk Buyer (FF12): every few crates the Quartermaster buys one is free.
+  const bulk = bulkBuyerOf(p);
+  const free = bulk !== undefined && (bulk.bought + 1) % bulk.every === 0;
+  const price = free ? 0 : cratePrice(s, p);
   if (s.world.team.coins < price) return 'coins';
   s.world.team.coins -= price;
+  if (bulk) bulk.bought++;
   p.crates++;
   s.emit({ e: 'crate', action: 'buy', slot: p.slot, to: null, x: p.x, y: p.y });
   return null;

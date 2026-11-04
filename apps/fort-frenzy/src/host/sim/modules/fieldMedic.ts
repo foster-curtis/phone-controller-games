@@ -27,8 +27,10 @@ export const fieldMedic: ModuleDef = {
           const r = s.attackStat(p, radius, 'auraRadius');
           const amount = s.attackStat(p, heal, 'healing');
           let healed = 0;
+          // With Overflow (FF12) a full player still takes the heal, as a shield.
+          const overflow = (p.cards.overflow ?? 0) > 0;
           for (const q of w.players) {
-            if (!s.targetable(q) || q.hp >= q.maxHp) continue;
+            if (!s.targetable(q) || (q.hp >= q.maxHp && !overflow)) continue;
             if (dist(p.x, p.y, q.x, q.y) > r + q.r) continue;
             healed += ctx.heal(q.id, amount, p.id).healed;
           }

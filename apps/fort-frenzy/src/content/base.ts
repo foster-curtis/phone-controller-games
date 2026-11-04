@@ -51,6 +51,10 @@ export const rules = {
     range: { pctMax: 0.4 },
     moveSpeed: { pctMax: 0.4 },
     damageReduction: { addMax: 0.4 },
+    // Quick Recovery: −2 s a stack, never below 5 s of the 10 s respawn (§6.1).
+    respawnMs: { addMin: -5000 },
+    // Deadeye's shorter Steady Aim wait never drops below a fifth of it.
+    durationMs: { pctMin: -0.8 },
   },
   breakerWallCost: 3,
   separation: 0.3,

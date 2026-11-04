@@ -1,7 +1,7 @@
 // Player attack shapes beyond projectiles and circles (SPEC §8): the Commander's sword `arc`, the
 // Quartermaster's super `cone` (heals players, buffs towers, passes through walls and towers) and the
 // Commander's morale `buff`. Players' `fire` dispatches here by `AttackDef.shape`.
-import type { AttackDef, CharacterDef } from '../../../content/types';
+import type { AttackDef, CharacterDef, EffectApply } from '../../../content/types';
 import type { FullState } from '../state';
 import type { AttackEvent, PlayerEnt } from '../types';
 import { sectorGeometry } from './hitShape';
@@ -72,14 +72,18 @@ const cone: ShapeFire = (s, p, a, slot, damage, atk) => {
 };
 
 /** Morale (Commander super): `effects` on him and his living soldiers, `selfEffects` on him only. */
-const buff: ShapeFire = (s, p, a) => {
+const buff: ShapeFire = (s, p, a, slot) => {
   const sup = a as SuperDef;
-  for (const fx of sup.effects ?? []) {
+  // Rally Cry (FF12) lengthens them through the `durationMs` stat.
+  const k = s.attackStat(p, 1, 'durationMs', slot);
+  const longer = (fx: EffectApply) => (k === 1 ? fx : { ...fx, durationMs: fx.durationMs * k });
+  for (const fx0 of sup.effects ?? []) {
+    const fx = longer(fx0);
     s.applyEffect(p.id, fx, p.id);
     for (const u of s.world.soldiers)
       if (u.owner === p.slot && u.hp > 0) s.applyEffect(u.id, fx, p.id);
   }
-  for (const fx of sup.selfEffects ?? []) s.applyEffect(p.id, fx, p.id);
+  for (const fx of sup.selfEffects ?? []) s.applyEffect(p.id, longer(fx), p.id);
 };
 
 export const attackShapes: Partial<Record<AttackDef['shape'], ShapeFire>> = { arc, cone, buff };

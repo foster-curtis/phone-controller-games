@@ -1,7 +1,7 @@
 // Scenario harness for headless sim tests (SPEC §15.9): a run with scripted phones, and helpers to
 // reach a phase, move players and step until something happens.
 import type { Content } from '../../../content';
-import type { ClassId, PlayerColorId } from '../../../shared/ids';
+import type { CardId, ClassId, PlayerColorId } from '../../../shared/ids';
 import { PLAYER_COLOR_IDS } from '../../../shared/ids';
 import { createSim, ScriptedInputSource, type Sim } from '../index';
 import type { PlayerEnt, RunStart, SimEvent } from '../types';
@@ -26,6 +26,11 @@ export interface Harness {
   events<K extends SimEvent['e']>(kind: K): Extract<SimEvent, { e: K }>[];
   /** Steps `n` times and collects every event of `kind`. */
   collect<K extends SimEvent['e']>(kind: K, n: number): Extract<SimEvent, { e: K }>[];
+  /**
+   * Build phase only: gives `slot` the card `n` times through the real pick command (the offer is
+   * set to just that card first). Steps once per pick.
+   */
+  give(slot: number, card: CardId, n?: number): void;
 }
 
 export function startOf(players: number, seed = 1, classId: ClassId = 'engineer'): RunStart {
@@ -96,6 +101,16 @@ export function harness(players = 1, seed = 1, opts: HarnessOptions = {}): Harne
         out.push(...sim.world.events.filter((e) => e.e === kind));
       }
       return out as never;
+    },
+    give(slot, card, n = 1) {
+      for (let i = 0; i < n; i++) {
+        const p = h.p(slot);
+        p.offer = [card];
+        p.picked = null;
+        sim.command({ c: 'card', slot, card });
+        sim.step();
+        if (p.picked !== card) throw new Error(`give: ${card} was not picked (phase ${sim.world.phase})`);
+      }
     },
   };
   return h;

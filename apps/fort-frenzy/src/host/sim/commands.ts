@@ -2,7 +2,9 @@
 // a `ref` (the intent ack, BUILD_PLAN §8 FF1).
 import type { AckReason } from '../../shared/messages';
 import { buildAtFeet } from './building';
-import { buyCrate, dropAll, give } from './crates';
+import { pickCard } from './cards';
+import { dropAll, give } from './crates';
+import { buy, request } from './shop';
 import { spawnGroup, startBuild } from './lifecycle';
 import { releaseAll } from './players';
 import type { FullState } from './state';
@@ -50,17 +52,17 @@ function apply(s: FullState, cmd: SimCommand): AckReason | null {
       return why;
     }
     case 'buy':
-      // The phone shop (§10.3); only crates until the team shop lands (FF12).
-      if (cmd.item !== 'crate') return 'invalid';
-      if (w.phase !== 'build') return 'phase';
-      return buyCrate(s, p);
+      // The phone shop (§6.2, §10.3; FF12).
+      return buy(s, p, cmd.item);
+    case 'request':
+      return request(s, p, cmd.item, cmd.on);
+    case 'card':
+      return pickCard(s, p, cmd.card);
     case 'give':
       if (p.respawnAt !== null || !p.connected) return 'invalid';
       return give(s, p);
     case 'join':
-    case 'request':
-    case 'card':
-      // Late joins (FF14), the wishlist and cards (FF12).
+      // Late joins (FF14).
       return 'invalid';
   }
 }

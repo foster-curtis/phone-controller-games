@@ -4,6 +4,7 @@
 // (tag `steady`, applied in `modifyOutgoing`, pipeline stage 2).
 import type { StatMod } from '../../../content/types';
 import { msToSteps } from '../../systems/effects';
+import { state } from '../internal';
 import { SIM_HZ, type Modifier, type ModuleDef, type PlayerEnt } from '../types';
 
 const num = (v: unknown, fallback: number) => (typeof v === 'number' ? v : fallback);
@@ -11,7 +12,7 @@ const num = (v: unknown, fallback: number) => (typeof v === 'number' ? v : fallb
 export const steadyAim: ModuleDef = {
   id: 'steady_aim',
   make(params) {
-    const stillSteps = msToSteps(num(params.stillMs, 600), SIM_HZ);
+    const stillMs = num(params.stillMs, 600);
     const damagePct = num(params.damagePct, 0.25);
     const bonus: readonly StatMod[] = [
       { stat: 'range', addPct: num(params.rangePct, 0.2), scope: 'main' },
@@ -24,8 +25,10 @@ export const steadyAim: ModuleDef = {
         return (active ? bonus : none) as StatMod[];
       },
       hooks: {
-        onTick(_ctx, self) {
-          active = (self as PlayerEnt).stillTicks >= stillSteps;
+        onTick(ctx, self) {
+          // The wait is the passive's duration, so Deadeye (FF12) shortens it as a stat.
+          const wait = state(ctx).attackStat(self, stillMs, 'durationMs', 'passive');
+          active = (self as PlayerEnt).stillTicks >= msToSteps(wait, SIM_HZ);
         },
         onAttack(_ctx, _self, atk) {
           if (active && atk.slot === 'main') atk.tags.push('steady');

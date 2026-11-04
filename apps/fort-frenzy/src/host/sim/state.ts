@@ -9,6 +9,8 @@ import { applyEffect as applyEffectTo } from '../systems/effects';
 import { buildField, IMPASSABLE } from '../systems/flowfield';
 import { hookList } from '../systems/modifiers';
 import type { Catalog } from './catalog';
+import { absorbShield } from './cards/effects';
+import { fitSoldier, fitStructure } from './shop';
 import type { FireSpec, Rect, SimState, SlotInput, UnitKind } from './internal';
 import { bossMk } from './boss';
 import { bosses, effects as effectDefs, modules } from './registry';
@@ -514,6 +516,8 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       };
       world.structures.push(st);
       register(st, 'structure', stats);
+      // The team's building upgrades apply to structures built later too (§6.2, FF12).
+      fitStructure(ctx, st);
       occupant[row * cols + col] = st.id;
       updateMasks(col, row);
       if (isBlocker(kind)) world.fields.dirty = true;
@@ -571,6 +575,8 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       };
       world.soldiers.push(s);
       register(s, 'soldier', stats);
+      // Squad stat upgrades from the shop (§6.2, FF12).
+      fitSoldier(ctx, s);
       return s;
     },
     removeUnit(id) {
@@ -609,6 +615,8 @@ export function createState(start: RunStart, cat: Catalog): FullState {
           const dr = target.stats.damageReduction;
           if (dr > 0) c.amount = reduceBy(c.amount, dr);
         },
+        // Stage 5: the Overflow shield (FF12).
+        absorb: (_c, amount) => (target.effects.length > 0 ? absorbShield(target, amount) : 0),
         takeHp: (c, amount) =>
           tkind === 'player' && (target as PlayerEnt).invincible
             ? { dealt: 0, killed: false }
@@ -616,16 +624,29 @@ export function createState(start: RunStart, cat: Catalog): FullState {
         after: (r) => afterDamage(r as DamageResult, src, target, tkind),
       }) as DamageResult;
     },
-    heal(targetId, amount, source): HealResult {
+    heal(targetId, amount0, source): HealResult {
       const u = units.get(targetId);
-      if (!u || u.hp <= 0 || amount <= 0) {
-        return { source, target: targetId, amount, healed: 0, overflow: Math.max(0, amount) };
+      if (!u || u.hp <= 0 || amount0 <= 0) {
+        return {
+          source,
+          target: targetId,
+          amount: amount0,
+          healed: 0,
+          overflow: Math.max(0, amount0),
+        };
+      }
+      const src = source === null ? null : units.get(source);
+      // The healer's `modifyHeal` hooks (FF12: Triage).
+      let amount = amount0;
+      if (src) {
+        const calc = { source, target: targetId, amount };
+        for (const f of ctx.hooks(src, 'modifyHeal')) f(ctx, src, calc);
+        amount = Math.max(0, calc.amount);
       }
       const healed = Math.min(amount, u.maxHp - u.hp);
       u.hp += healed;
       const h: HealResult = { source, target: targetId, amount, healed, overflow: amount - healed };
       if (healed > 0) ctx.emit({ e: 'heal', source, target: targetId, amount: healed });
-      const src = source === null ? null : units.get(source);
       if (src) {
         if (unitKinds.get(src.id) === 'player') (src as PlayerEnt).run.healingDone += healed;
         for (const f of ctx.hooks(src, 'onHeal')) f(ctx, src, h);

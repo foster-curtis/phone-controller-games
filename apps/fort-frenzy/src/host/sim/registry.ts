@@ -14,6 +14,33 @@ import { pathAi } from './ai/path';
 import { runnerAi } from './ai/runner';
 import { siegeAi } from './ai/siege';
 import { swarmAi } from './ai/swarm';
+import {
+  forcedMarch,
+  lastStand,
+  siegeBreakers,
+  vanguard,
+  veterans,
+  warcry,
+} from './cards/commander';
+import {
+  bodyguardAura,
+  burnEffect,
+  lightLoadAura,
+  poisonEffect,
+  shieldEffect,
+  vanguardAura,
+} from './cards/effects';
+import { fireArrows, piercingShot, skyhunter, volley, wildfire } from './cards/engineer';
+import {
+  bulkBuyer,
+  lightLoad,
+  overflow,
+  plague,
+  triage,
+  venomBolts,
+} from './cards/quartermaster';
+import { aftershock, bodyguard, faultLine, giantSlayer, unshakable } from './cards/warden';
+import { chargedWalls } from './shop/chargedWalls';
 import { mason, stunEffect } from './classes/warden';
 import { steadyAim } from './modules/steadyAim';
 import { fieldMedic } from './modules/fieldMedic';
@@ -43,6 +70,31 @@ export const modules: Record<string, ModuleDef> = {
   field_medic: fieldMedic, // FF9
   lead_from_the_front: leadFromTheFront, // FF9
   mason: mason, // FF8
+  // FF12: card modules (§6.1)
+  fire_arrows: fireArrows,
+  piercing_shot: piercingShot,
+  skyhunter: skyhunter,
+  volley: volley,
+  wildfire: wildfire,
+  aftershock: aftershock,
+  giant_slayer: giantSlayer,
+  bodyguard: bodyguard,
+  unshakable: unshakable,
+  fault_line: faultLine,
+  light_load: lightLoad,
+  venom_bolts: venomBolts,
+  overflow: overflow,
+  bulk_buyer: bulkBuyer,
+  triage: triage,
+  plague: plague,
+  forced_march: forcedMarch,
+  siege_breakers: siegeBreakers,
+  veterans: veterans,
+  last_stand: lastStand,
+  vanguard: vanguard,
+  warcry: warcry,
+  // FF12: shop modules (§6.2)
+  charged_walls: chargedWalls,
 };
 
 /** Status effect definitions (§15.3). */
@@ -53,6 +105,13 @@ export const effects: Partial<Record<EffectId, EffectDef>> = {
   aura_lead_from_the_front: leadAura, // FF9
   slow: slowEffect, // FF8
   stun: stunEffect, // FF8
+  // FF12: card effects (§6.1)
+  burn: burnEffect,
+  poison: poisonEffect,
+  shield: shieldEffect,
+  aura_bodyguard: bodyguardAura,
+  aura_vanguard: vanguardAura,
+  aura_field_medic: lightLoadAura,
 };
 
 /** Boss behaviors, by id ('colossus'). */

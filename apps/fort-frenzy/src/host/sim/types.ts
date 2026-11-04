@@ -5,7 +5,7 @@
 // Frozen at FF1 (BUILD_PLAN §3): additive changes only (new optional fields, new union members).
 // FF6 added `Unit.push` and `BaseState.stage`; FF9 added `ThrownCrate` and `World.thrown`; FF10 added
 // `EnemyEnt.wander`; FF8 added `AttackState.windupAim`; FF11 added `BossAct` and the optional
-// `EnemyEnt.boss` fields `act`, `ready` and `stunAt`.
+// `EnemyEnt.boss` fields `act`, `ready` and `stunAt`; FF12 added `HealCalc` and `Hooks.modifyHeal`.
 import type { Rng } from '@pcg/game-kit';
 import type {
   EffectApply,
@@ -476,6 +476,13 @@ export interface HealResult {
   overflow: number;
 }
 
+/** A heal about to land (FF12): the healer's `modifyHeal` hooks may change `amount` (Triage). */
+export interface HealCalc {
+  source: EntityId | null;
+  target: EntityId;
+  amount: number;
+}
+
 /** An effect about to be applied (`beforeEffect` may refuse it). */
 export interface EffectApplyEvent extends EffectApply {
   source: EntityId | null;
@@ -494,6 +501,8 @@ export interface Hooks {
   onKill(ctx: SimCtx, self: Unit, victim: Unit): void;
   onDeath(ctx: SimCtx, self: Unit, killer: Unit | null): void; // Wildfire, Plague
   onPhase(ctx: SimCtx, self: Unit, phase: Phase): void; // Veterans
+  /** FF12: before a heal this unit gives lands (Triage doubles it on players below 30% HP). */
+  modifyHeal(ctx: SimCtx, self: Unit, h: HealCalc): void;
 }
 
 /** Passives, cards, status effects, auras and boss behaviors share this shape (§15.3). */
