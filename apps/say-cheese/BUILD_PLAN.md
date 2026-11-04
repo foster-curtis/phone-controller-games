@@ -476,7 +476,7 @@ Rules:
   - [x] Host wiring (client, match, receiver, timers, debug)
   - [x] Phone wiring (client, camera, photos, sender)
   - [x] Spike removed; round + limits e2e
-  - [ ] Merged to `say-cheese` and pushed
+  - [x] Merged to `say-cheese` and pushed
   - [ ] User approved C2 (one round, 3 people in a room)
 - **SC6**
   - [ ] Disconnect + turn-queue rules + tests
