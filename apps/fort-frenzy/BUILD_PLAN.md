@@ -840,7 +840,7 @@ Rules:
 - FF11 Colossus
   - [x] Boss module (forms, attacks, stagger, rewards)
   - [x] Colossus render + clips + boss bar
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
 - FF12 Economy
   - [ ] 64 cards + offers
   - [ ] Team shop + wishlist + announcements + tier visuals
