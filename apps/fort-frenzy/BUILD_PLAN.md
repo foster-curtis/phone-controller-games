@@ -838,8 +838,8 @@ Rules:
   - [x] FF10-fix-1: C3 Wasp jitter, Hunter tower-avoiding path + player-color foot flash, diagonal flow field to the Citadel
 - [x] **User approved C3** (class kits and enemies): notes fixed in FF3-fix-2, FF7-fix-2, FF9-fix-1, FF10-fix-1, run in parallel with FF11–FF13 at the user's request; feel and visual notes re-judged at C4
 - FF11 Colossus
-  - [ ] Boss module (forms, attacks, stagger, rewards)
-  - [ ] Colossus render + clips + boss bar
+  - [x] Boss module (forms, attacks, stagger, rewards)
+  - [x] Colossus render + clips + boss bar
   - [ ] Merged to `main`
 - FF12 Economy
   - [ ] 64 cards + offers
@@ -1454,6 +1454,34 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
 - [FF10-fix-1] decision: the target flash is a pulsing ring (4 pulses, last 500 ms fading, `HUNT_FLASH_MS` 2000)
   in the quarry's color on WorldView's per-frame ground graphics (one shared object, no per-ring allocation),
   timed from `world.tick − huntSince`.
+- [FF11] contract+: `src/host/sim/types.ts` `BossAct` and optional `EnemyEnt.boss` fields `act`, `ready`, `stunAt`
+  (the attack winding up, per-attack ready ticks, the last counted stun). SPEC §15.3 sketch updated.
+- [FF11] decision: content's `boss.module` names the `bosses` registry (content.test checked `modules` before), the
+  `boss` AI kind dispatches to it, and tuning lives in `boss.params` (content/enemies.ts). Boss-wave rules shared by
+  any boss are `sim/boss/index.ts`: the boss spawns alone up the wave's first lane right after its lane warning; its
+  Mk is the wave data's (debug spawns: by wave number); HP × player-count multiplier at spawn, then × Mk (II 1.6,
+  III 2.4) by the module; once no boss is alive the other enemies collapse as their own killers (no coins), and
+  pending spawns, markers and enemy shots are dropped, so the usual "wave cleared" check ends the wave.
+- [FF11] decision: starting values: Mk I 2500 HP, 0.585 t/s, radius 0.9; slam 60 dmg, 1.5-tile circle 0.7 past its
+  body, 1.5 s wind-up (always 90 steps, the final phase too: the design rule's clear tell), 2.5 s cooldown; walls 3×,
+  the Citadel 1.5×; boulder (Mk II+) 1 s wind-up, 8 t/s lob, 45 dmg, 1.2 radius, range 2.5–9, every 7 s (first after
+  3.5 s); final phase 1.35× speed, 0.6× cooldowns, 5 rings of 0.8 tiles every 130 ms (25 dmg, players and soldiers
+  only), 5 Runners every 6 s; 10 coins for the kill.
+- [FF11] decision: it keeps to its breaker-field path and never chases: it slams a player or soldier within reach,
+  a wall (wall breaker) or tower its body walks into (its radius spans tiles, so it checks its whole leading edge),
+  or the Citadel. Boulder target: the largest group of 2+ players within 2 tiles of one of them, else the nearest
+  tower, else one player. Mk II and III bring 2 Grunts and a Swarm pack beside it at spawn (§9.2 escorts, on top of
+  the budget).
+- [FF11] decision: stagger: damage fills 3 meters per max HP (a third of its HP fills it), a stun adds 0.25 but only
+  one stun counts per 2.5 s and none while staggered; stuns and knockback never apply. Full: 3 s down, +50% damage
+  taken, the wind-up and its marker called off, meter back to 0. A Warden stomping as fast as he can staggers it
+  about a third of the time (boss.test).
+- [FF11] decision: render: `scene/colossusView.ts` drives the Colossus from `EnemyEnt.boss` (clips offset to the
+  sim's act start so they stay in step; hits flash but don't replace its own clips); glows (core by meter, fists,
+  spires, plumes) are drawn at attach points (enemy parts aren't emissive); ring markers aren't red fills but one
+  violet outline rolling on the sim's band; the boulder leaves `fist-near`. No walk ground shake (a camera shake moves
+  every world layer; left for C4). Gallery: a `colossus` page (4 tiers × 8 clips) and the
+  rigs page's clip list gains `slam`, `throw`, `call`, `stagger`.
 
 - [FF13] decision: SFX picks are by name only (not auditioned); swap in `scripts/pick-sfx.ts` `PICKS` and rerun. Cue gate: `Cue.when(e, kindOf)` takes an entity-kind resolver from the world; `marker` is the boss wind-up cue (no new SimEvent added); `purchase`/`cardPicked` already exist. Player: per-cue volume + max-per-window cap in `TUNING`; `createSfx(ThemeHost.sfx)` preloads behind the home bar (min of atlas and audio progress in `main.ts`), unlocks on first key or pointer.
 ## 9. Final handoff

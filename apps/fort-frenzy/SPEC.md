@@ -1744,6 +1744,12 @@ interface BossBehavior {
   tick(ctx: SimCtx, boss: EnemyEnt): void;       // picks attacks, emits DangerMarkers with wind-ups
   onDamage?(ctx: SimCtx, boss: EnemyEnt, r: DamageResult): void;  // stagger meter
 }
+// FF11: `EnemyEnt.boss` also keeps the attack winding up, `act?: BossAct | null` (kind, startedAt,
+// at, x, y, target, marker), per-attack `ready?: Record<string, number>` ticks and `stunAt?` (the
+// last stun the meter counted). Content's `boss: { module, params }` names a `bosses` registry entry
+// (ai `'boss'`); the pipeline calls `onDamage` for a boss target (stage 7). Boss-wave rules shared
+// by every boss (spawn up the wave's first lane, the Mk, death collapsing the wave) live in
+// `sim/boss/index.ts`.
 ```
 
 ### 15.4 Data and config
