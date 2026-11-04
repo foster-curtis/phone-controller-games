@@ -849,7 +849,7 @@ Rules:
 - FF13 Audio
   - [x] SFX picked and converted + LICENSES
   - [x] Player + cues + unlock
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
 - FF14 Lifecycle + resume
   - [ ] Victory/defeat/summary/end options, late joins
   - [ ] Snapshot + resume + device-ID claim
