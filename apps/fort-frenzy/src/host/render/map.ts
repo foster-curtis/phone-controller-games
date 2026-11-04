@@ -1,11 +1,16 @@
 // Map ground (SPEC §3.1, §15.2 Map v1): stone tiles (variant 1 on most, 2–4 sparsely by a seeded
 // hash of the tile, so the ground is stable run to run), border edges except on lane tiles, the lane
-// entries open or sealed, and sparse flat decor. All on layer 1.
+// entries open or sealed, and sparse flat decor. All on layer 1. The theme's `floorLift` lightens the
+// tiles, edges and decor at draw time (C3 floor contrast, BUILD_PLAN §8 FF3-fix-2).
+import type * as Phaser from 'phaser';
 import type { LaneId } from '../../shared/ids';
 import type { ThemeHost } from '../../themes/types';
 import type { ArtImage } from './atlas';
 import { placeFrame, type RenderContext } from './context';
 import type { LaneState } from './types';
+
+/** `Phaser.TintModes.ADD`, as a literal so node tests that import `tileHash` don't load Phaser. */
+const TINT_ADD = 2 as Phaser.TintModes;
 
 export const MAP_COLS = 36;
 export const MAP_ROWS = 24;
@@ -88,10 +93,15 @@ export class MapView {
     },
   ) {
     const { c0, r0, c1, r1 } = window;
+    const lift = map.floorLift;
     // Layer-1 order: tiles (row by row), decor, edges, lanes; the Citadel plate sorts after them.
     const at = (name: string, c: number, r: number, base: number) => {
       const { sx, sy } = ctx.camera.worldToScreen(c + 0.5, r + 0.5);
-      this.images.push(placeFrame(ctx, name, 'ground', sx, sy, { sortY: base + r * 0.01 }));
+      const a = placeFrame(ctx, name, 'ground', sx, sy, { sortY: base + r * 0.01 });
+      // The floor lift (C3, FF3-fix-2) adds to every channel, so seams, hash variety and the rim
+      // keep their steps; lanes stay untinted (their glows must stay amber and violet).
+      if (lift) a.img.setTintMode(TINT_ADD).setTint(lift);
+      this.images.push(a);
     };
     for (let r = r0; r <= r1; r++) {
       for (let c = c0; c <= c1; c++)

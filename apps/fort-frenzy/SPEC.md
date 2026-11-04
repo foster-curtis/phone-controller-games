@@ -1551,7 +1551,10 @@ interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: num
     enemy's leg height.
   - Map: `map/ground/1`…`4` (1 on most tiles, 2–4 sparsely by a seeded hash of the tile),
     `map/edge/<n s e w ne nw se sw>` on border tiles except lane tiles, `map/lane/<lane>-<open|sealed>`
-    (§3.1), and `map/decor/*`.
+    (§3.1), and `map/decor/*`. The theme's `floorLift` is added to every ground, edge and decor frame
+    at draw time (Phaser ADD tint; lanes keep their glows untinted), so the floor reads lighter than
+    its art: neon knights lifts the #262b33 stone to #62676f, enough for the violet-iron hulls and the
+    ink outlines to stand off it, and still below the bloom (§15.11 #43).
   - Status effects (§6.1): `burn-1`/`2` and `corrosion-1`/`2` loop at about 8 fps, anchored
     bottom-center on the body and scaled to its height; `stun-1`…`4` loop centered on the enemy's
     `top` point; `defense-bonus` shares the tower's anchor and draws right after it; `carry-pip` and
@@ -1815,7 +1818,8 @@ interface ThemeHost {                            // TV only
   atlases: AtlasRef[]; rigs: Record<string, RigDef>; clips: Record<string, Clip>;
   sfx: Partial<Record<SfxId, string>>;           // music joins this map in v2 (§13)
   map: { ground: string[]; edges: Record<'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw', string>;
-    lanes: Record<LaneId, { open: string; sealed: string }>; decor?: string[] };
+    lanes: Record<LaneId, { open: string; sealed: string }>; decor?: string[];
+    floorLift?: number };                        // 0xRRGGBB added to ground/edge/decor (§15.2 Map)
 }
 ```
 
@@ -2165,3 +2169,4 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 40 | 2026-11-03 | Commander passive and super on the TV | Lead from the Front: pooled nanite-mote frames drift (1.4 s, eased, seeded sway) from his chest to each soldier under the sim's aura, one per 520 ms per soldier, at most 3 in flight, dropped when the soldier leaves it; the link lines are gone. Morale: every unit carrying the buff flashes its emissive parts (glow 2, the rig's full boost, so the bloom stays capped) and its aura circle (alpha 0.55) on and off every 250 ms from the buff's ticks left, the faded aura showing between flashes | C3 notes (Foster); motes reuse the Artificer's nanite look; sim-timed so the flash ends exactly with the buff |
 | 41 | 2026-11-03 | Aim previews | While aiming, the TV draws the attack's real hit area from the sim's effective stats (one `hitShape` for both): a dashed amber line for a single bolt, a transparent amber-filled ground cone for arcs, cones and spread volleys, a filled amber 0.6 ellipse for circles; dim, under the bloom; supers only when charged (§10.1) | C3 note (Foster): the aim bar should match the attack's shape (the Warden's cone, the Artificer's shot); one source keeps tuning and cards in step |
 | 42 | 2026-11-03 | Warden and Ranger reach | Warden slam 1.5 → 1.75 tiles, 120° → 102°; stomp 3.2 → 3.7 tiles, 100° → 85°; Ranger super radius 3 → 3.5 tiles (content) | C3 notes (Foster): the Warden's spread slightly narrower and range slightly longer, main and super; the Ranger's super slightly bigger |
+| 43 | 2026-11-03 | Arena floor | The floor draws lighter than its art: neon knights lifts the #262b33 stone to #62676f at render time (`ThemeHost.map.floorLift`); player rings and red danger markers get an ink edge, and the Stalker thread is pale violet at 0.5 | Enemies sat at the floor's luminance and vanished, the small ones worst (Foster, C3); measured: outlines 1.35 → 3.4:1, hull colors 1.0–1.2 → 1.5–2.6:1, glows stay brighter than the floor, nothing new blooms |

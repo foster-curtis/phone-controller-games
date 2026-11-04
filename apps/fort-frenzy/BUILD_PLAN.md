@@ -796,7 +796,7 @@ Rules:
   - [x] Gallery + stress mode + asset/rig tests + gallery e2e
   - [x] Merged to `main`
   - [x] FF3-fix-1: C1 gallery notes (gauge, enemy hit/death, walks, down pile, respawn, twin flash, smoke, collapse, speeds, glints, stun idle, slow)
-  - [ ] FF3-fix-2: C3 floor contrast (lighter arena floor, checked against enemies, effects, player colors)
+  - [x] FF3-fix-2: C3 floor contrast (lighter arena floor, checked against enemies, effects, player colors)
 - FF4 Controller
   - [x] Client wiring, sender, `layoutCombat` + tests
   - [x] All screens + components + dev mode
@@ -1411,6 +1411,28 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   stomp range 3.2 → 3.7, arc 100° → 85° (each ~15% narrower, ~15–17% longer); Ranger super radius 3 → 3.5
   (+17%; "range" of a circle around him is its radius). Pinned by `content/__tests__/c3-tuning.test.ts`. The
   stomp scenario's out-of-arc Grunt moved from (12.5, 15) to (12, 16.5): the longer stomp reached it.
+- [FF3-fix-2] decision: floor #262b33 → #62676f because the violet-iron hulls (#2a2340, #3a3150, #4a4068,
+  #4f4570) sat at the old stone's luminance (1.0–1.2:1, ink outlines 1.35:1), so enemies vanished, mites and
+  Skitters worst (C3). Measured (WCAG ratios, `floor-contrast.test.ts`): ink outlines 3.4:1; area-weighted
+  bodies mite 2.3, Skitter 2.1, Drone 2.0, Brute 2.1, Bombard 2.1, Stalker 1.9, Colossus 1.9, Wasp 1.9 (it also
+  has its ground shadow); glows stay brighter (violet 1.55, amber 2.6, hostile core 3.1); bloom weight 0 for
+  every lifted map color; shadows go from invisible (1.1) to 1.65. Lighter (#6a6f77+) pushed violet glows and
+  danger red under 1.4:1 and knights' tops into the floor, so this is the balance point. Drawn as an ADD tint
+  of 0x3c3c3c on ground, edge and decor frames (seam and hash steps unchanged, lanes untinted); no art edits.
+- [FF3-fix-2] contract+: `ThemeHost.map.floorLift?: number` (0xRRGGBB added to ground, edge and decor frames);
+  SPEC §15.4 block, §15.2 Map, §15.11 #43.
+- [FF3-fix-2] decision: player rings and their notch get an opaque `brandInk` edge (1.5 px each side) because
+  cobalt (1.0:1) and forest (1.1:1) match the new floor's luminance; every player color is ≥ 3.1:1 on the ink (cobalt 3.19), the ink 3.2:1 on the floor.
+- [FF3-fix-2] decision: red danger markers get a `brandInk` edge at 0.85 under the red ring because red fell
+  from 3.3 to 1.4:1 on the new floor (red ring 3.6:1 on its edge, edge 2.8:1 on the floor).
+- [FF3-fix-2] decision: the Stalker target thread is `hostileCore` at 0.5 (was `hostile` at 0.32) because the
+  old thread fell to 1.13:1; now 1.8:1 (old floor: 1.5:1), still faint, world UI so never bloomed.
+- [FF3-fix-2] decision: the bloom's band edges moved to `render/bloomPick.ts`, and the select shader is built from
+  them, so tests check colors against the same threshold.
+- [FF3-fix-2] note for C4 (measured, unchanged): knights' #5c6676 tops sit near the floor (1.0:1; their ink
+  outline carries the silhouette); translucent amber, danger and build-ghost fills lose contrast on the lighter
+  floor (their full-alpha strokes carry them); `plate/tile` and lane breaches keep the old dark stone, so
+  structure plates read as dark sockets; near-opaque amber (≥ 0.85) blooms a little more over the lighter floor.
 
 - [FF13] decision: SFX picks are by name only (not auditioned); swap in `scripts/pick-sfx.ts` `PICKS` and rerun. Cue gate: `Cue.when(e, kindOf)` takes an entity-kind resolver from the world; `marker` is the boss wind-up cue (no new SimEvent added); `purchase`/`cardPicked` already exist. Player: per-cue volume + max-per-window cap in `TUNING`; `createSfx(ThemeHost.sfx)` preloads behind the home bar (min of atlas and audio progress in `main.ts`), unlocks on first key or pointer.
 ## 9. Final handoff

@@ -8,6 +8,7 @@ import type { ArtImage } from './atlas';
 import { placeFrame, type RenderContext } from './context';
 import { carryPips, ellipsePoint } from './ground';
 import { PIP_FRAMES } from './keys';
+import { RING_EDGE_PX } from './legibility';
 import { Pool } from './pool';
 
 export class GroundMarks {
@@ -56,13 +57,20 @@ export class GroundMarks {
   ring(sx: number, sy: number, rTiles: number, color: number, aimRad: number | null) {
     const { rx, ry } = this.ctx.camera.groundEllipse(rTiles);
     const w = theme.stroke.ring;
+    const tip = ellipsePoint(sx, sy, rx + 7, ry + 7 * 0.6, aimRad ?? 0);
+    const l = ellipsePoint(sx, sy, rx, ry, (aimRad ?? 0) - 0.22);
+    const r = ellipsePoint(sx, sy, rx, ry, (aimRad ?? 0) + 0.22);
+    // Ink edge under ring and notch (C3, FF3-fix-2): cobalt and forest sit near the lighter floor's
+    // luminance, so every player color reads against ink instead (≥ 3:1, floor-contrast.test.ts).
+    const ink = theme.color.brandInk.num;
+    this.rings.lineStyle(w + RING_EDGE_PX * 2, ink, 1).strokeEllipse(sx, sy, rx * 2, ry * 2);
+    if (aimRad !== null)
+      this.rings
+        .lineStyle(RING_EDGE_PX * 2, ink, 1)
+        .strokeTriangle(tip.x, tip.y, l.x, l.y, r.x, r.y);
     this.rings.lineStyle(w, color, 1).strokeEllipse(sx, sy, rx * 2, ry * 2);
-    if (aimRad !== null) {
-      const tip = ellipsePoint(sx, sy, rx + 7, ry + 7 * 0.6, aimRad);
-      const l = ellipsePoint(sx, sy, rx, ry, aimRad - 0.22);
-      const r = ellipsePoint(sx, sy, rx, ry, aimRad + 0.22);
+    if (aimRad !== null)
       this.rings.fillStyle(color, 1).fillTriangle(tip.x, tip.y, l.x, l.y, r.x, r.y);
-    }
   }
 
   /**

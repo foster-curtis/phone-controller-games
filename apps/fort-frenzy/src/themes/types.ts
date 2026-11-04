@@ -241,5 +241,10 @@ export interface ThemeHost {
     edges: Record<'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw', string>;
     lanes: Record<LaneId, { open: string; sealed: string }>;
     decor?: string[];
+    /**
+     * `0xRRGGBB` added to every ground, edge and decor frame's color (Phaser's ADD tint; lanes are
+     * left alone, they hold the glows), so the floor can be lighter than its art. Additive (FF3-fix-2).
+     */
+    floorLift?: number;
   };
 }

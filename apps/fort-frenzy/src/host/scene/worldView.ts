@@ -26,6 +26,7 @@ import { clipLandedMs, spawnPile } from '../render/fall';
 import { RIG_INFO, type RigInfo } from '../render/gallery/rigInfo';
 import { fk, iconFrame } from '../render/keys';
 import { TILE_W } from '../render/camera';
+import { DANGER_EDGE, THREAD_ALPHA } from '../render/legibility';
 import { MapView } from '../render/map';
 import { mitePack } from '../render/swarm';
 import type { RigSprite } from '../render/rig';
@@ -847,8 +848,9 @@ export class WorldView {
       const eyes = en.rig.attach('eyes');
       if (q && !q.down && eyes) {
         const to = { sx: q.sx, sy: q.sy - q.info.bodyH * k1 * 0.55 };
+        // Pale violet (was `hostile` at 0.32): still faint, but ≥ 1.5:1 on the C3 floor (FF3-fix-2).
         this.ui
-          .lineStyle(2, theme.color.hostile.num, 0.32)
+          .lineStyle(2, theme.color.hostileCore.num, THREAD_ALPHA)
           .lineBetween(eyes.sx, eyes.sy, to.sx, to.sy);
       }
     }
@@ -976,6 +978,10 @@ export class WorldView {
         1,
         Math.max(0, (w.tick - m.createdAt) / Math.max(1, m.landsAt - m.createdAt)),
       );
+      // Ink edge under the red ring (FF3-fix-2): red is near the lighter floor's luminance (C3).
+      this.ground
+        .lineStyle(3 + DANGER_EDGE.px * 2, theme.color.brandInk.num, DANGER_EDGE.alpha)
+        .strokeEllipse(s.sx, s.sy, rx * 2, ry * 2);
       this.ground
         .lineStyle(3, theme.color.danger.num, 0.9)
         .strokeEllipse(s.sx, s.sy, rx * 2, ry * 2);

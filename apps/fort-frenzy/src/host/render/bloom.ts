@@ -2,8 +2,10 @@
 // half resolution. The threshold is hue-selective: it keeps only amber (#e8a33d, ember cores) and
 // violet (#8f6bff, hostile cores), never the gunmetal or violet-iron shades, player colors or danger
 // red. Phaser 4 has no bloom filter, so this is a custom select pass (which also halves the
-// resolution) + Phaser's Blur, in a ParallelFilters added back with ADD (BUILD_PLAN §8).
+// resolution) + Phaser's Blur, in a ParallelFilters added back with ADD (BUILD_PLAN §8). The band
+// edges live in bloomPick.ts, so tests check colors against the same threshold (FF3-fix-2).
 import * as Phaser from 'phaser';
+import { bandGlsl, BLOOM_BANDS } from './bloomPick';
 
 const NODE = 'FFBloomSelect';
 
@@ -27,12 +29,9 @@ vec4 pick(vec2 uv) {
   vec4 c = texture2D(uMainSampler, uv);
   if (c.a <= 0.0) return vec4(0.0);
   vec3 h = hsv(c.rgb / c.a);
-  // Amber family: hue 25-54 deg, saturated, bright.
-  float amber = smoothstep(0.04, 0.07, h.x) * (1.0 - smoothstep(0.14, 0.17, h.x))
-    * smoothstep(0.3, 0.45, h.y) * smoothstep(0.72, 0.85, h.z);
-  // Violet family: hue 238-280 deg, bright (the hostile core is pale violet).
-  float violet = smoothstep(0.64, 0.67, h.x) * (1.0 - smoothstep(0.77, 0.8, h.x))
-    * smoothstep(0.18, 0.28, h.y) * smoothstep(0.8, 0.92, h.z);
+  // Amber hue 25-54 deg and violet 238-280 deg (bloomPick.ts BLOOM_BANDS).
+  float amber = ${bandGlsl(BLOOM_BANDS.amber)};
+  float violet = ${bandGlsl(BLOOM_BANDS.violet)};
   return c * max(amber, violet);
 }
 
