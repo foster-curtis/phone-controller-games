@@ -59,7 +59,8 @@ describe('Warden stomp', () => {
     h.put(0, 10, 12);
     // Plain Grunts: a stun refreshes stats, which resets an inflated max HP.
     const near = h.sim.spawnEnemy('grunt', 12.5, 12);
-    const far = h.sim.spawnEnemy('grunt', 12.5, 15); // outside the arc (down, not right)
+    // Outside the arc (down, not right); FF7-fix-2's longer stomp reached the old (12.5, 15).
+    const far = h.sim.spawnEnemy('grunt', 12, 16.5);
     h.pads[0]!.tap('superFires', { superAim: { x: 1, y: 0 } });
     h.run(5);
     expect(near.hp).toBe(near.maxHp);

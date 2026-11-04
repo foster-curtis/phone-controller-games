@@ -4,6 +4,7 @@
 import type { AttackDef, CharacterDef } from '../../../content/types';
 import type { FullState } from '../state';
 import type { AttackEvent, PlayerEnt } from '../types';
+import { sectorGeometry } from './hitShape';
 import { inSector, type Sector } from './sector';
 
 export type ShapeFire = (
@@ -21,13 +22,9 @@ const TOWERS = new Set(['arrow_tower', 'bomb_tower']);
 
 /** The attack's sector from the player's facing (already turned to the aim). */
 export function sectorOf(s: FullState, p: PlayerEnt, a: AttackDef, slot: 'main' | 'super'): Sector {
-  return {
-    x: p.x,
-    y: p.y,
-    angle: p.facing,
-    half: ((s.attackStat(p, a.arcDeg ?? 90, 'arcDeg', slot) / 2) * Math.PI) / 180,
-    range: s.attackStat(p, a.range, 'range', slot),
-  };
+  // The same geometry as the TV's aim preview (classes/hitShape.ts).
+  const g = sectorGeometry(a, (b, st) => s.attackStat(p, b, st, slot));
+  return { x: p.x, y: p.y, angle: p.facing, half: g.half, range: g.range };
 }
 
 function hitEnemies(

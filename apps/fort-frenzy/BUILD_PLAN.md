@@ -819,7 +819,7 @@ Rules:
   - [x] Debug panel + `__pcg` + smoke/reconnect e2e
   - [x] Merged to `main`
   - [x] FF7-fix-1: C2 notes (Ranger bow draw/release, bolt leaves from the bow, super-ready amber ring pulse replaces the head badge)
-  - [ ] FF7-fix-2: C3 aim previews shaped like every aimed attack and super (Warden cone fill, Artificer filled cone), Warden narrower + longer slam and super, Ranger super range up
+  - [x] FF7-fix-2: C3 aim previews shaped like every aimed attack and super (Warden cone fill, Artificer filled cone), Warden narrower + longer slam and super, Ranger super range up
 - [x] **User approved C2** (slice on real phones and TV): notes fixed in FF7-fix-1; Citadel collapse deferred to v2; feel and visual notes re-judged at C3
 - FF8 Warden + structures
   - [x] Warden kit + clips
@@ -1388,6 +1388,29 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
 - [FF9-fix-1] decision: motes and the flash live in `scene/support.ts` (pure: `leadTargets`, `MoteStream`,
   `moteDrift`, `superFlashOn`) and `scene/supportView.ts`; no render contract change. Between flashes the aura
   shows its old fading alpha, so it still doubles as the timer (SPEC §15.11 #40).
+- [FF7-fix-2] decision: one hit-shape source, `sim/classes/hitShape.ts` (`hitShape(attack, stat)`): a single
+  bolt is a `line` of its range, arcs, cones and spread volleys (count > 1) a `cone` (range, half the arc or
+  spread), circles a `circle` (radius), buffs `none`. The sim's sector tests (`sectorOf`, the Warden's
+  `landArc`) now read `sectorGeometry` from it; the TV's preview is `aimPreview(p, def, slot, rules)`
+  (`sim/preview.ts`): the same function through `attackStat` with the registry's effects and the run's stat
+  caps, so content tuning, passives (Steady Aim) and FF12 card stat mods move the preview with the hit. Not
+  covered: an `onAttack` hook that changes a volley's count or spread (the preview reads the def's).
+- [FF7-fix-2] decision: preview look (`scene/aimPreview.ts`): a single bolt keeps the dashed amber line (world
+  UI); cones are a transparent amber-filled sector with a thin amber edge and circles a filled 0.6 ground
+  ellipse, on the ground-overlay Graphics under the units (fill α 0.16, edge α 0.45: amber over the dark floor
+  stays below the bloom's 0.72 value cut, so it never floods the bloom). Drawn into the scene's existing
+  Graphics with a reused frame object; the §2.5 projection is linear on the ground, so vertices are center +
+  scaled offsets, no per-vertex allocation.
+- [FF7-fix-2] decision: previews draw whenever a phone holds an aimed button (main: Ranger, Artificer; super:
+  Warden, Artificer), from the shape alone, so a button made aimed later previews with no render change. A
+  super previews only once it is charged (a release while charging does nothing, §10.1). The Warden's slam
+  and both Commander buttons are tap buttons (§10.1 table): nothing is held, so nothing to preview; the C3 note
+  "Warden's main attack … the entire cone" is met by the aimed stomp's cone (making the slam aimed would be a
+  phone change, out of scope here; ask at C4 if the slam should become aimed).
+- [FF7-fix-2] decision: C3 tuning (content only): Warden slam range 1.5 → 1.75 tiles, arc 120° → 102°; Warden
+  stomp range 3.2 → 3.7, arc 100° → 85° (each ~15% narrower, ~15–17% longer); Ranger super radius 3 → 3.5
+  (+17%; "range" of a circle around him is its radius). Pinned by `content/__tests__/c3-tuning.test.ts`. The
+  stomp scenario's out-of-arc Grunt moved from (12.5, 15) to (12, 16.5): the longer stomp reached it.
 
 - [FF13] decision: SFX picks are by name only (not auditioned); swap in `scripts/pick-sfx.ts` `PICKS` and rerun. Cue gate: `Cue.when(e, kindOf)` takes an entity-kind resolver from the world; `marker` is the boss wind-up cue (no new SimEvent added); `purchase`/`cardPicked` already exist. Player: per-cue volume + max-per-window cap in `TUNING`; `createSfx(ThemeHost.sfx)` preloads behind the home bar (min of atlas and audio progress in `main.ts`), unlocks on first key or pointer.
 ## 9. Final handoff

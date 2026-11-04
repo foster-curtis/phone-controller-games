@@ -17,12 +17,12 @@ export const engineer = {
     speed: 26,
     hitsFlyers: true,
   },
-  // A wide circle around the Engineer: light area damage and knockback (§8).
+  // A wide circle around the Engineer: light area damage and knockback (§8). Radius 3 → 3.5 (C3).
   super: {
     shape: 'circle',
     damage: 25,
     range: 0,
-    radius: 3,
+    radius: 3.5,
     cooldownMs: 500,
     knockback: 2.5,
     hitsFlyers: true,
@@ -145,11 +145,13 @@ export const warden = {
   hp: 170,
   moveSpeed: 3.8,
   radius: 0.36,
+  // C3: both arcs ~15% narrower and ~15% longer (slam 1.5 → 1.75 tiles, 120° → 102°; stomp 3.2 → 3.7,
+  // 100° → 85°).
   main: {
     shape: 'arc',
     damage: 30,
-    range: 1.5,
-    arcDeg: 120,
+    range: 1.75,
+    arcDeg: 102,
     cooldownMs: 800,
     windupMs: 200,
     knockback: 0.5,
@@ -158,8 +160,8 @@ export const warden = {
   super: {
     shape: 'arc',
     damage: 45,
-    range: 3.2,
-    arcDeg: 100,
+    range: 3.7,
+    arcDeg: 85,
     cooldownMs: 600,
     windupMs: 320,
     hitsFlyers: false,

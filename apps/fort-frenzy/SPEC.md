@@ -1078,6 +1078,11 @@ viewport. Sizes are fixed in px, with the minimums listed.
 - **Tap** (released within 150 ms and inside the dead zone): auto-aims at the nearest valid enemy in
   range.
 - **Drag:** aims. The aim line is drawn **on the TV**, not the phone. Maximum drag radius 70 px.
+- **Aim preview** (C3, §15.11 #41): the TV's aim line is the attack's real hit area, from the same
+  effective stats the sim hits with (content through passives and cards): a dashed amber line the bolt's
+  range for a single bolt (Ranger), a transparent amber-filled cone for arcs, cones and spread volleys
+  (Warden stomp, Artificer shot and super), a filled amber 0.6 ellipse for circles. Cones and circles lie on
+  the ground under the units, dim enough to stay out of the bloom. A super previews only once charged.
 - **Release outside the dead zone:** fires in the aimed direction.
 - **Slide back into the dead zone, then release:** cancels.
 
@@ -1454,12 +1459,13 @@ interface Camera {
   1. ground: map tiles, Citadel plate, Armory pad, repair zone
   2. ground overlays: red danger markers, shock nets, structure base plates, wall rails, build-ghost
      footprints, the rally-flag ring, player rings (with the amber super-ready pulse, §10.1), Field
-     Medic circle, range previews, AoE rings (all 0.6 ellipses of sim circles)
+     Medic circle, range previews, AoE rings (all 0.6 ellipses of sim circles), the amber-filled cone and
+     circle aim previews (§10.1; the sim's `hitShape`, code-drawn)
   3. **world**, one y-sorted layer: structures, the Citadel, the Armory kiosk, units, flyers and arcing
      projectiles. Sort key = foot point; flyers and arcing projectiles sort by their shadow; multi-tile
      structures by their footprint's front edge.
   4. effects: hit sparks, tracers, muzzle flashes, plumes
-  5. world UI: nametags and HP bars (flipping below near the top edge, §2.1), aim lines, the build arc,
+  5. world UI: nametags and HP bars (flipping below near the top edge, §2.1), single-bolt aim lines, the build arc,
      the Stalker target thread
   6. HUD (screen space)
 - **Ground, world or effects:** each non-rig frame's `layer` in `sprites.json` is one of:
@@ -2157,3 +2163,5 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 38 | 2026-11-03 | Super ready on the TV | The player's ring pulses with amber light (an amber ring just outside the colored ring, at the phone ring's 1.2 Hz and 1.0→1.12 scale); the badge over the head is gone | C2 note (Foster); the ring already marks the player, and amber reads as ours and blooms |
 | 39 | 2026-11-03 | Ranger shot | The main shot draws, holds and releases; the TV holds the bolt on the bow until the clip's release (100 ms, or 30 ms when already at full draw while aiming or in Steady Aim), then launches it from the rig's `bolt` point at bow height and eases it onto the sim's path. Render only: the sim still fires from the feet at once | The shot read as a twitch and the bolt left from the feet (Foster, C2); the sim's timing and hit geometry stay as tested |
 | 40 | 2026-11-03 | Commander passive and super on the TV | Lead from the Front: pooled nanite-mote frames drift (1.4 s, eased, seeded sway) from his chest to each soldier under the sim's aura, one per 520 ms per soldier, at most 3 in flight, dropped when the soldier leaves it; the link lines are gone. Morale: every unit carrying the buff flashes its emissive parts (glow 2, the rig's full boost, so the bloom stays capped) and its aura circle (alpha 0.55) on and off every 250 ms from the buff's ticks left, the faded aura showing between flashes | C3 notes (Foster); motes reuse the Artificer's nanite look; sim-timed so the flash ends exactly with the buff |
+| 41 | 2026-11-03 | Aim previews | While aiming, the TV draws the attack's real hit area from the sim's effective stats (one `hitShape` for both): a dashed amber line for a single bolt, a transparent amber-filled ground cone for arcs, cones and spread volleys, a filled amber 0.6 ellipse for circles; dim, under the bloom; supers only when charged (§10.1) | C3 note (Foster): the aim bar should match the attack's shape (the Warden's cone, the Artificer's shot); one source keeps tuning and cards in step |
+| 42 | 2026-11-03 | Warden and Ranger reach | Warden slam 1.5 → 1.75 tiles, 120° → 102°; stomp 3.2 → 3.7 tiles, 100° → 85°; Ranger super radius 3 → 3.5 tiles (content) | C3 notes (Foster): the Warden's spread slightly narrower and range slightly longer, main and super; the Ranger's super slightly bigger |

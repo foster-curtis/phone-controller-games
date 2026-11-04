@@ -1,6 +1,6 @@
 // The run drawn from sim state (SPEC §15.2) through the renderer in render/: the map and lanes, the
 // Citadel with sentries and damage stages, the Armory, knights (rings with the aim notch, carry pips,
-// the amber super-ready pulse, nametags and HP bars that flip below near the top, aim lines, the
+// the amber super-ready pulse, nametags and HP bars that flip below near the top, aim previews, the
 // build ghost and arc, the Ranger's shot (draw, hold, release; the bolt leaves from the bow), super
 // and build kneel with the deploy beacon, down piles and respawns), enemies (walk, attack, hit and
 // death clips; stun forces idle; FF10: tell glows, the Skitter's core throb, the Stalker's target
@@ -33,7 +33,7 @@ import { locomotionClip, locomotionSpeed, StatusSprites } from '../render/status
 import { Citadel, frameAt, type SentryId } from '../render/structures';
 import type { IconKey, ProjectileKind, ProjectileSprite, StatusLook } from '../render/types';
 import type { RenderWorld } from '../render/world';
-import { buildTile, placementValid } from '../sim';
+import { aimPreview, buildTile, placementValid } from '../sim';
 import {
   BASE_ID,
   STEP_MS,
@@ -52,6 +52,7 @@ import {
   TELL_GLOW,
   type EnemyShot,
 } from './enemyFx';
+import { drawAimPreview, type GroundFrame } from './aimPreview';
 import { anchorToWorld, shotPos, shotTiming, type Launch, type Pos } from './shot';
 import { shotAnchor } from './support';
 import { SupportView } from './supportView';
@@ -169,6 +170,8 @@ export class WorldView {
   /** Enemy tells and the Skitter core throb (effects layer, so the bloom takes them). */
   private readonly glow: Phaser.GameObjects.Graphics;
   private timers: Timer[] = [];
+  /** Reused by the aim previews each frame. */
+  private readonly aimFrame: GroundFrame = { sx: 0, sy: 0, kx: 0, ky: 0 };
   private t = 0;
   private openLanes = new Set<LaneId>();
 
@@ -693,20 +696,7 @@ export class WorldView {
         bh,
       );
     }
-    // Aim line while the main button is held (§10.1: drawn on the TV, not the phone).
-    if (p.mainAim && p.respawnAt === null && (p.mainAim.x !== 0 || p.mainAim.y !== 0)) {
-      const def = this.content.characters.find((c) => c.id === p.classId);
-      const range = def?.main.range ?? 6;
-      const a = Math.atan2(p.mainAim.y, p.mainAim.x);
-      this.dashed(
-        g,
-        at.x,
-        at.y,
-        at.x + Math.cos(a) * range,
-        at.y + Math.sin(a) * range,
-        theme.color.amber.num,
-      );
-    }
+    this.drawAim(p, at);
     // Build ghost at the feet (§10.2): dashed amber when valid, red with an X when blocked.
     const ghost = w.phase === 'build' && p.ghost !== null && p.respawnAt === null;
     k.ghost.img.setVisible(ghost);
@@ -754,27 +744,33 @@ export class WorldView {
     });
   }
 
-  private dashed(
-    g: Phaser.GameObjects.Graphics,
-    x0: number,
-    y0: number,
-    x1: number,
-    y1: number,
-    color: number,
-  ) {
-    const a = this.w.camera.worldToScreen(x0, y0);
-    const b = this.w.camera.worldToScreen(x1, y1);
-    const len = Math.hypot(b.sx - a.sx, b.sy - a.sy);
-    const n = Math.max(1, Math.floor(len / 14));
-    g.lineStyle(3, color, 0.85);
-    for (let i = 0; i < n; i += 2) {
-      const u0 = i / n;
-      const u1 = Math.min(1, (i + 1) / n);
-      g.lineBetween(
-        lerp(a.sx, b.sx, u0),
-        lerp(a.sy, b.sy, u0),
-        lerp(a.sx, b.sx, u1),
-        lerp(a.sy, b.sy, u1),
+  /**
+   * Aim previews while an aimed button is held (§10.1: drawn on the TV, not the phone; C3): the
+   * attack's real hit area from the sim's effective stats. A super shows only once it can fire.
+   */
+  private drawAim(p: PlayerEnt, at: { x: number; y: number }) {
+    if (p.respawnAt !== null) return;
+    const def = this.content.characters.find((c) => c.id === p.classId);
+    if (!def) return;
+    for (const slot of ['main', 'super'] as const) {
+      const aim = slot === 'main' ? p.mainAim : p.superAim;
+      if (!aim || (aim.x === 0 && aim.y === 0)) continue;
+      if (slot === 'super' && p.superCharge < 1) continue;
+      const f = this.aimFrame;
+      const s = this.w.camera.worldToScreen(at.x, at.y);
+      const e = this.w.camera.groundEllipse(1);
+      f.sx = s.sx;
+      f.sy = s.sy;
+      f.kx = e.rx;
+      f.ky = e.ry;
+      const shape = aimPreview(p, def, slot, this.content.rules);
+      drawAimPreview(
+        this.ground,
+        this.ui,
+        shape,
+        f,
+        Math.atan2(aim.y, aim.x),
+        theme.color.amber.num,
       );
     }
   }

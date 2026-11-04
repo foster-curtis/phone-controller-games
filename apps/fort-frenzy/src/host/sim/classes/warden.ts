@@ -5,6 +5,7 @@
 import type { AttackDef } from '../../../content/types';
 import { msToSteps } from '../../systems/effects';
 import { state, type SimState } from '../internal';
+import { sectorGeometry } from './hitShape';
 import { inSector } from './sector';
 import {
   SIM_HZ,
@@ -39,8 +40,9 @@ export interface ArcHit {
  */
 export function landArc(s: SimState, p: PlayerEnt, h: ArcHit): EnemyEnt[] {
   const a = h.attack;
-  const reach = s.attackStat(p, a.range, 'range', h.slot);
-  const width = s.attackStat(p, a.arcDeg ?? 90, 'arcDeg', h.slot);
+  // The same geometry as the TV's aim preview (classes/hitShape.ts).
+  const g = sectorGeometry(a, (b, st) => s.attackStat(p, b, st, h.slot));
+  const reach = g.range;
   const knock = s.attackStat(p, a.knockback ?? 0, 'knockback', h.slot);
   const v0 = knock * 60 * (1 - s.cat.rules.knockbackDecay);
   // The same sector test as the Commander's slash (FF9, classes/sector.ts).
@@ -48,7 +50,7 @@ export function landArc(s: SimState, p: PlayerEnt, h: ArcHit): EnemyEnt[] {
     x: p.x,
     y: p.y,
     angle: Math.atan2(h.dy, h.dx),
-    half: (width * Math.PI) / 360,
+    half: g.half,
     range: reach,
   };
   const ids = s.world.spatial.query(p.x, p.y, reach + 1, s.scratch).slice();
