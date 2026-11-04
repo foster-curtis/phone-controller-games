@@ -845,7 +845,7 @@ Rules:
   - [x] 64 cards + offers
   - [x] Team shop + wishlist + announcements + tier visuals
   - [x] Difficulty
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
 - FF13 Audio
   - [x] SFX picked and converted + LICENSES
   - [x] Player + cues + unlock
