@@ -575,6 +575,7 @@ Format: `- [SC#] decision: one line, with the reason.`
 - [SC5] decision: e2e helpers add `joinPlayer` (commits the lobby name with Enter), `cameraAndReady`, `photographerOf`, `sendRaw` and host hook readers; SC0's `joinPhone` stays as it is (it expects a Next button the SC3 lobby doesn't have). Phone buttons are found by `data-action` (SC3's `button` helper).
 - [SC5] decision: `play.html` JS measured 15.3 KB gzip (limit 40 KB): no limit change.
 - [SC5-fix-1] decision: the limits e2e checks the 15th shot on the host (15 photos in the round), not the phone's shot counter, because the 15th shot ends the shoot and the phone's shoot screen can unmount before the assertion (a test race; the code is right).
+- [plan] decision: the full `pnpm e2e:say-cheese` takes close to an hour, so each milestone or fix runs the full suite once; repeat runs (fix loops, post-merge verification of an already-run ff merge) use only the affected spec (`pnpm --filter @pcg/say-cheese exec playwright test e2e/<spec>`), because the user asked for this (2026-11-04).
 
 ## 9. Final handoff (and early setup)
 
