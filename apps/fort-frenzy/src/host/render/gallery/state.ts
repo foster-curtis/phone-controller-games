@@ -10,13 +10,15 @@ export const PAGES = [
   'effects',
   'icons',
   'map',
+  'colossus',
 ] as const;
 export type PageId = (typeof PAGES)[number];
 
 /**
  * `death` plays on enemies and the Colossus, `down`/`respawn` on knights; `attack` on the Ranger
- * (main shot) and the Drone (slash), `super` and `build` on the Ranger (FF7). A rig without the clip
- * idles.
+ * (main shot) and the Drone (slash), `super` and `build` on the Ranger (FF7); `slam`, `throw`,
+ * `call` and `stagger` on the Colossus (FF11, which also has its own `colossus` page). A rig without
+ * the clip idles.
  */
 export const CLIP_NAMES = [
   'idle',
@@ -28,6 +30,10 @@ export const CLIP_NAMES = [
   'attack',
   'super',
   'build',
+  'slam',
+  'throw',
+  'call',
+  'stagger',
 ] as const;
 
 export interface GalleryState {

@@ -2,7 +2,16 @@
 // shapes (every frame it draws is in the atlas), and writes e2e/__screens__/gallery-<page>.png.
 import { expect, test, type Page } from '@playwright/test';
 
-const PAGES = ['rigs', 'turrets', 'citadel', 'autotiles', 'effects', 'icons', 'map'] as const;
+const PAGES = [
+  'rigs',
+  'turrets',
+  'citadel',
+  'autotiles',
+  'effects',
+  'icons',
+  'map',
+  'colossus',
+] as const;
 
 test.use({ viewport: { width: 1920, height: 1080 } });
 
@@ -60,6 +69,35 @@ for (const clip of ['hit', 'death', 'down', 'respawn', 'attack', 'super', 'build
     const probe = await page.evaluate(() => window.__pcgGallery!);
     expect(probe.fallbacks).toBe(0);
     await page.screenshot({ path: `e2e/__screens__/gallery-rigs-${clip}.png` });
+    expect(errors).toEqual([]);
+  });
+}
+
+// FF11: the Colossus page (Mk I, II, III and final × idle, walk, slam, throw, call, stagger, hit,
+// death) runs a full loop of every clip with its tells, lit and unlit, with no fallback shapes; the
+// rigs page plays the Colossus's own clips too.
+for (const unlit of [0, 1] as const) {
+  test(`gallery colossus clips over a loop${unlit ? ' unlit' : ''}`, async ({ page }) => {
+    const errors = watchErrors(page);
+    await open(page, `page=colossus&panel=0&unlit=${unlit}`);
+    await page.waitForTimeout(3600);
+    const probe = await page.evaluate(() => window.__pcgGallery!);
+    expect(probe.page).toBe('colossus');
+    expect(probe.missing).toEqual([]);
+    expect(probe.fallbacks).toBe(0);
+    await page.screenshot({ path: `e2e/__screens__/gallery-colossus${unlit ? '-unlit' : ''}.png` });
+    expect(errors).toEqual([]);
+  });
+}
+
+for (const clip of ['slam', 'throw', 'call', 'stagger'] as const) {
+  test(`gallery rigs colossus ${clip}`, async ({ page }) => {
+    const errors = watchErrors(page);
+    await open(page, `page=rigs&panel=0&clip=${clip}&colossus=4`);
+    await page.waitForTimeout(1200);
+    const probe = await page.evaluate(() => window.__pcgGallery!);
+    expect(probe.fallbacks).toBe(0);
+    await page.screenshot({ path: `e2e/__screens__/gallery-rigs-colossus-${clip}.png` });
     expect(errors).toEqual([]);
   });
 }

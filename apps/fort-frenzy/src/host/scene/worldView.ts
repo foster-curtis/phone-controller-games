@@ -55,6 +55,7 @@ import {
   type EnemyShot,
 } from './enemyFx';
 import { drawAimPreview, type GroundFrame } from './aimPreview';
+import { ColossusView } from './colossusView';
 import { lerpGround, lerpPos } from './interp';
 import { anchorToWorld, shotPos, shotTiming, type Launch, type Pos } from './shot';
 import { shotAnchor } from './support';
@@ -160,6 +161,8 @@ export class WorldView {
   private readonly knights = new Map<number, Knight>();
   private readonly enemies = new Map<EntityId, Enemy>();
   private readonly structs: StructuresView;
+  /** The Colossus's tiers, attack clips, tells, core and shockwaves (FF11). */
+  private readonly boss: ColossusView;
   private readonly shots = new Map<EntityId, ProjectileSprite>();
   private readonly launches = new Map<EntityId, Launch>();
   private readonly launchers = new Map<EntityId, Knight>();
@@ -184,6 +187,7 @@ export class WorldView {
     this.citadel = new Citadel(w, CITADEL_AT.x, CITADEL_AT.y);
     this.support = new SupportView(w, content, (slot) => this.knights.get(slot) ?? null);
     this.structs = new StructuresView(w, content);
+    this.boss = new ColossusView(w);
     frameAt(w, fk('armory/pad'), 'ground', ARMORY_AT.x, ARMORY_AT.y);
     frameAt(w, fk('armory/kiosk'), 'world', ARMORY_AT.x, ARMORY_AT.y);
     const gfx = (layer: 'groundOverlay' | 'worldUi' | 'effects', depth: number) => {
@@ -243,7 +247,9 @@ export class WorldView {
     this.drawKnights(w, f);
     this.support.update(f);
     this.structs.update(w, f.dtMs, (p) => this.knights.get(p.slot)?.rig.attach('hammer') ?? null);
+    this.boss.begin(f.dtMs);
     this.drawEnemies(w, f);
+    this.boss.frame(w, (id) => this.enemies.get(id)?.rig ?? null);
     this.drawProjectiles(w, f);
     this.drawPiles(w);
     this.drawMarkers(w);
@@ -394,7 +400,7 @@ export class WorldView {
             en.rig.flash(60);
             return;
           }
-          if (!playing(en.rig) || en.rig.clip === 'hit')
+          if ((!playing(en.rig) || en.rig.clip === 'hit') && !this.boss.holds(en.rig))
             en.rig.play('hit', { restart: true, fadeMs: 0 });
           en.rig.flash(60);
           this.w.fx.burst('spark-ours', en.sx, en.sy - en.info.bodyH * this.w.unitPx * 0.5);
@@ -497,6 +503,8 @@ export class WorldView {
     const en = this.enemies.get(e.source);
     if (en && !en.dying) {
       en.mirror = enemyMirror(Math.cos(e.angle), en.mirror);
+      // The Colossus's attacks play from its boss state (colossusView.ts, FF11).
+      if (en.rig.rigId === 'colossus') return;
       en.rig.play('attack', { restart: true, fadeMs: 60 });
       // The wind-up is the tell (§9.6): its glow runs for the content's wind-up.
       const kind = w.enemies.find((x) => x.id === e.source)?.kind;
@@ -811,8 +819,10 @@ export class WorldView {
       en.status?.set(looks);
       const stunned = looks.includes('stun');
       if (stunned) en.tell = null;
-      // Stunned units always idle (C1 note 11); slowed ones walk sluggishly.
-      if (!playing(en.rig) || stunned)
+      // Stunned units always idle (C1 note 11); slowed ones walk sluggishly. The Colossus picks its
+      // own clips from its boss state (FF11).
+      if (e.boss) this.boss.update(e, en.rig, moving, locomotionSpeed(looks), f.dtMs, w);
+      else if (!playing(en.rig) || stunned)
         en.rig.play(locomotionClip(moving, looks), {
           speed: locomotionSpeed(looks) * en.clipSpeed,
         });
@@ -928,7 +938,9 @@ export class WorldView {
     let s = this.enemyShots.get(pr.id);
     if (!s) {
       const en = this.enemies.get(pr.source);
-      const m = en && !en.dying ? en.rig.attach('muzzle') : null;
+      // The Colossus's boulder leaves its near fist (FF11), with no muzzle flash.
+      const boulder = en?.rig.rigId === 'colossus';
+      const m = en && !en.dying ? en.rig.attach(boulder ? 'fist-near' : 'muzzle') : null;
       const arc = pr.arc;
       const flightMs = (arc ? arc.landsAt - arc.launchedAt : pr.expiresAt - w.tick) * STEP_MS;
       s = {
@@ -940,7 +952,8 @@ export class WorldView {
         endZ: arc ? 0 : 0.5,
       };
       this.enemyShots.set(pr.id, s);
-      if (m) this.w.fx.burst('muzzle-theirs', m.sx, m.sy, screenRot(Math.atan2(pr.vy, pr.vx)));
+      if (m && !boulder)
+        this.w.fx.burst('muzzle-theirs', m.sx, m.sy, screenRot(Math.atan2(pr.vy, pr.vx)));
     }
     return enemyShotPos(s, this.t, sim);
   }
@@ -974,6 +987,8 @@ export class WorldView {
   /** Red danger markers on the ground (boss telegraphs, §3.6), filling as they land. */
   private drawMarkers(w: World) {
     for (const m of w.markers) {
+      // Shockwave rings are the Colossus's rolling violet outline (colossusView.ts), not red fills.
+      if (m.shape === 'ring') continue;
       const s = this.w.camera.worldToScreen(m.x, m.y);
       const { rx, ry } = this.w.camera.groundEllipse(m.r);
       const u = Math.min(
@@ -1053,6 +1068,7 @@ export class WorldView {
     this.structs.destroy();
     for (const s of this.shots.values()) s.release();
     this.support.destroy();
+    this.boss.destroy();
     this.knights.clear();
     this.shots.clear();
     this.launches.clear();
@@ -1079,6 +1095,7 @@ function projectileKind(from: string): ProjectileKind {
   if (from === 'flyer') return 'wasp-shot';
   if (from === 'siege') return 'bombard-shell';
   if (from === 'bomb_tower') return 'mortar-shell';
+  if (from === 'colossus') return 'boulder';
   return 'bolt';
 }
 

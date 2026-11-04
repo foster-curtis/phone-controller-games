@@ -5,7 +5,8 @@ import type { QrMatrix } from '@pcg/game-kit';
 import type { LaneId } from '../shared/ids';
 import type { Announcement, HomeRow, TvPlayer, TvScreen, TvView } from './ui/types';
 import { newEnemies, teamView, type ViewCtx } from './net/views';
-import { STEP_MS } from './sim/types';
+import { livingBoss } from './sim/boss';
+import { STEP_MS, type World } from './sim/types';
 
 export interface TvInput {
   ctx: ViewCtx;
@@ -30,6 +31,19 @@ export function tvScreen(input: Pick<TvInput, 'ctx' | 'loading' | 'room'>): TvSc
     default:
       return w.phase;
   }
+}
+
+/** The boss bar along the bottom edge (§9.2): the living boss's HP, Mk and stagger (FF11). */
+export function bossBar(w: World): TvView['bossBar'] {
+  const b = livingBoss(w.enemies);
+  if (!b?.boss) return null;
+  return {
+    enemy: b.kind,
+    hp: Math.max(0, Math.ceil(b.hp)),
+    maxHp: Math.round(b.maxHp),
+    mk: b.boss.mk,
+    staggered: b.boss.staggeredUntil !== null,
+  };
 }
 
 export function buildTvView(input: TvInput): TvView {
@@ -68,7 +82,7 @@ export function buildTvView(input: TvInput): TvView {
       w && w.phase === 'countdown' && w.phaseEndsAt !== null
         ? Math.max(0, (w.phaseEndsAt - w.tick) * STEP_MS)
         : null,
-    bossBar: null,
+    bossBar: w?.phase === 'combat' ? bossBar(w) : null,
     announcements: input.announcements,
     laneWarnings: lanes,
     lowHpAlarm: !!w && w.base.alarm && w.phase === 'combat',

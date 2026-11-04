@@ -45,6 +45,7 @@ import {
 } from '../types';
 import type { RenderWorld } from '../world';
 import { RIG_INFO, type RigInfo } from './rigInfo';
+import { colossusPage } from './colossusPage';
 import { colossusGroups, gaugeGroups, type GalleryState, type PageId } from './state';
 
 export interface Unit {
@@ -78,6 +79,10 @@ const ONE_SHOTS: Partial<Record<string, number>> = {
   attack: 1200,
   super: 1600,
   build: 1600,
+  slam: 2600,
+  throw: 1900,
+  call: 1800,
+  stagger: 3400,
 };
 
 /** World tiles under a screen point (the fixed camera's inverse; ground only). */
@@ -856,4 +861,5 @@ export const PAGE_BUILDERS: Record<PageId, (k: PageKit) => void> = {
   effects: effectsPage,
   icons: iconsPage,
   map: mapPage,
+  colossus: colossusPage,
 };
