@@ -473,9 +473,9 @@ Rules:
   - [x] Host controls (buttons + keyboard) + gallery
   - [x] Merged to `say-cheese` and pushed
 - **SC5**
-  - [ ] Host wiring (client, match, receiver, timers, debug)
-  - [ ] Phone wiring (client, camera, photos, sender)
-  - [ ] Spike removed; round + limits e2e
+  - [x] Host wiring (client, match, receiver, timers, debug)
+  - [x] Phone wiring (client, camera, photos, sender)
+  - [x] Spike removed; round + limits e2e
   - [ ] Merged to `say-cheese` and pushed
   - [ ] User approved C2 (one round, 3 people in a room)
 - **SC6**
@@ -561,6 +561,19 @@ Format: `- [SC#] decision: one line, with the reason.`
 - [SC2] decision: removing the photographer between pass and review ends the round unscored and starts the next turn; a removed seat's unscored tags are dropped, because SPEC §6.3 keeps only scored tags.
 - [SC2] decision: `profile` creates only seat 0 (other seats come from `addSeat`, lobby only, or `hello`); renames only in the lobby; Ready is kept across Rematch and Back to lobby, because these are the simplest rules the spec allows.
 - [SC2] decision: `restored` snapshots replay an open round with a new `r` (photographer first in the queue), start the next turn from `results`, and turn `rules` into `lobby`; SC6 refines connection handling.
+- [SC5] decision: the match's `now` is the host timers' clock, which stands still while the tab is hidden, so deadlines and the TV/phone countdowns pause together; `timeScale` is applied once, by the match (`scaled`), never again by the timers.
+- [SC5] decision: `hello` lists seat 0 only (relay player key, name from the last screen) and is empty before the first profile, because extra seats and their keys are SC7.
+- [SC5] decision: the host turns a finished photo into a match `photo` event only when it came from the current photographer's phone (others are revoked), because that event carries no sender.
+- [SC5] decision: TV sounds come from diffing consecutive `TvView`s: `beep` at 3 and 2 s and `beepFinal` at 1 s of scatter, `startBuzz` entering shoot, `shutter` per new shot, `endBuzz` leaving shoot, `develop` per review photo shown, `sting` entering results, because SPEC §6.8 names the moments but not the hooks.
+- [SC5] decision: the TV repaints when its view changes (countdowns compared in whole seconds) and on a 250 ms ticker during scatter and shoot, because the match has no clock events of its own.
+- [SC5] decision: on every `onRoom` the host feeds the relay roster to the match as peer joined/left, the minimum for a socket-drop reclaim; refresh replay stays SC6.
+- [SC5] decision: a 9th player's `profile` is simply not seated (their phone stays in the lobby without a chip; the TV lists 8), because the lobby has no "room full" copy yet and the match already refuses at `MAX_SEATS`.
+- [SC5] decision: `/play` without `?code=` mounts the joining screen on a local client (no relay), because there is no code-entry screen in v1 (phones scan the QR).
+- [SC5] decision: the phone installs `window.__pcg` = `{ playerId, status, send }` in dev or with `?debug=1`, so e2e can send raw messages (the dodger `tag` check).
+- [SC5] decision: e2e changes `timeScale` at runtime via `__pcg.setTimeScale` (0.3 for the 5-shot shoot, 1 for the 15-shot shoot), because the phone's 0.4 s shutter cooldown isn't scaled and 0.1 leaves only a 2 s shoot.
+- [SC5] decision: "TV shows 5 / 5" is checked as `📸 5 / 15` on the shoot view plus `Photo 1 / 5` and five arrived photos in review, because photos upload while shooting and the TV goes straight past upload when they're all in.
+- [SC5] decision: e2e helpers add `joinPlayer` (commits the lobby name with Enter), `cameraAndReady`, `photographerOf`, `sendRaw` and host hook readers; SC0's `joinPhone` stays as it is (it expects a Next button the SC3 lobby doesn't have). Phone buttons are found by `data-action` (SC3's `button` helper).
+- [SC5] decision: `play.html` JS measured 15.3 KB gzip (limit 40 KB): no limit change.
 
 ## 9. Final handoff (and early setup)
 

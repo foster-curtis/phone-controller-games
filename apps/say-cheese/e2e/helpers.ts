@@ -115,3 +115,86 @@ export async function joinPhone(browser: Browser, code: string, name: string): P
 export function screen(page: Page, kind: ScreenKind) {
   return page.locator(`[data-screen=${kind}]`);
 }
+
+// ---- SC5 (additive) ----
+
+/** The host's `window.__pcg` (src/host/debug.ts), as e2e uses it. */
+export interface HostHooks {
+  code(): string | null;
+  phase(): string;
+  state(): {
+    phase: string;
+    players: { id: string; phoneId: string; name: string; score: number }[];
+    round: {
+      r: number;
+      photographer: string;
+      photos: { index: number; url?: string }[];
+      tags: { tagId: string; photo: number; playerId: string | null }[];
+    } | null;
+    lastResult: { photographerDelta: number; caught: { playerId: string; count: number }[] } | null;
+  };
+  control(c: { action: string; playerId?: string }): void;
+  setTimeScale(n: number): void;
+}
+
+type HookWindow = { __pcg: HostHooks };
+
+export const hostPhase = (host: Host) =>
+  host.page.evaluate(() => (window as unknown as HookWindow).__pcg.phase());
+export const hostState = (host: Host) =>
+  host.page.evaluate(() => (window as unknown as HookWindow).__pcg.state());
+export const hostControl = (host: Host, c: { action: string; playerId?: string }) =>
+  host.page.evaluate((ctl) => (window as unknown as HookWindow).__pcg.control(ctl), c);
+export const setTimeScale = (host: Host, n: number) =>
+  host.page.evaluate((v) => (window as unknown as HookWindow).__pcg.setTimeScale(v), n);
+
+/**
+ * Opens `/play?code=CODE&debug=1` on a new phone and joins as `name` (the lobby's name field commits
+ * on Enter), then waits until the host lists the player.
+ */
+export async function joinPlayer(
+  browser: Browser,
+  host: Host,
+  name: string,
+  { expectSeat = true }: { expectSeat?: boolean } = {},
+): Promise<Phone> {
+  const context = await newPhone(browser);
+  const page = await context.newPage();
+  await page.goto(`/play?code=${host.code}&debug=1`);
+  await expect(screen(page, 'lobby')).toBeVisible();
+  const input = page.locator('input[name=name]');
+  await input.fill(name);
+  await input.press('Enter');
+  if (expectSeat) {
+    await expect
+      .poll(async () => (await hostState(host)).players.some((p) => p.name === name))
+      .toBe(true);
+  }
+  return { context, page, name };
+}
+
+/** Enable camera, then Ready, on a lobby phone. */
+export async function cameraAndReady(phone: Phone): Promise<void> {
+  const cam = phone.page.locator('[data-action=camera]');
+  await cam.click();
+  await expect(phone.page.locator('[data-action=camera]')).toHaveText('Camera on ✓');
+  await phone.page.locator('[data-action=ready]').click();
+  await expect(phone.page.locator('[data-action=ready]')).toHaveText('Not ready');
+}
+
+/** The phone whose seat is the current round's photographer. */
+export async function photographerOf(host: Host, phones: Phone[]): Promise<Phone> {
+  const s = await hostState(host);
+  const id = s.round?.photographer;
+  const name = s.players.find((p) => p.id === id)?.name;
+  const phone = phones.find((p) => p.name === name);
+  if (!phone) throw new Error(`no photographer phone (round ${JSON.stringify(s.round)})`);
+  return phone;
+}
+
+/** Sends a raw phone message through the page's client hook (`window.__pcg.send`). */
+export function sendRaw(phone: Phone, msg: unknown): Promise<void> {
+  return phone.page.evaluate((m) => {
+    (window as unknown as { __pcg: { send(m: unknown): void } }).__pcg.send(m);
+  }, msg);
+}
