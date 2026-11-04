@@ -829,7 +829,7 @@ Rules:
   - [x] Artificer kit + gauge + throw + kit use
   - [x] Commander + squad + flag
   - [x] Merged to `main`
-  - [ ] FF9-fix-1: C3 Commander passive as drifting amber motes (no link lines), super flashes affected units' amber parts + rings
+  - [x] FF9-fix-1: C3 Commander passive as drifting amber motes (no link lines), super flashes affected units' amber parts + rings
 - FF10 Enemies
   - [x] Six new AIs + leash + Flyer substitution
   - [x] Enemy clips + status visuals
@@ -1382,6 +1382,12 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
 - [C3] v2 note: Hunter v2 behavior (user, C3): walks in and finds a spot no tower can hit; targets and attacks
   any player within the Ranger's range; otherwise waits until a player drops below 50% HP (always targeted) or a
   Brute spawns, then walks slowly behind the Brute as a shield until close to a player.
+- [FF9-fix-1] decision: "the circle beneath them" (C3) is the morale aura circle, drawn under the Commander and
+  every footman (footmen have no player ring, and the ring is the player's color, not amber); the Commander's
+  player ring is left alone, which also keeps clear of FF7-fix-2's ring/aim code in `worldView.ts`.
+- [FF9-fix-1] decision: motes and the flash live in `scene/support.ts` (pure: `leadTargets`, `MoteStream`,
+  `moteDrift`, `superFlashOn`) and `scene/supportView.ts`; no render contract change. Between flashes the aura
+  shows its old fading alpha, so it still doubles as the timer (SPEC §15.11 #40).
 
 - [FF13] decision: SFX picks are by name only (not auditioned); swap in `scripts/pick-sfx.ts` `PICKS` and rerun. Cue gate: `Cue.when(e, kindOf)` takes an entity-kind resolver from the world; `marker` is the boss wind-up cue (no new SimEvent added); `purchase`/`cardPicked` already exist. Player: per-cue volume + max-per-window cap in `TUNING`; `createSfx(ThemeHost.sfx)` preloads behind the home bar (min of atlas and audio progress in `main.ts`), unlocks on first key or pointer.
 ## 9. Final handoff

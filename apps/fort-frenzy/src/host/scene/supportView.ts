@@ -3,7 +3,8 @@
 // thrown cells lobbing from the hand to the receiver's carry point with a ground shadow; the
 // Commander's banner on his back or the planted flag (tinted cloth, amber ring), slash trail along
 // the exact hit arc, morale pulse and aura (a soft amber glow under him and his squad that fades as
-// the buff runs out), and Lead from the Front link lines; footmen (march, stab, collapse into scrap);
+// the buff runs out; C3: their amber parts and aura flash on and off while it runs), and Lead from
+// the Front's amber motes drifting to the soldiers it reaches; footmen (march, stab, collapse into scrap);
 // heal glints. Ring-adjacent marks stay unlike the super-ready pulse (a stroked amber ring): the
 // aura is a soft fill, the Field Medic circle dots, the flag ring is art. Reads the sim, never writes.
 import type * as Phaser from 'phaser';
@@ -19,6 +20,7 @@ import { clipLandedMs } from '../render/fall';
 import { GAUGE_GROUPS, gaugeGroups } from '../render/gauge';
 import { RIG_INFO, type RigInfo } from '../render/gallery/rigInfo';
 import { fk } from '../render/keys';
+import { Pool } from '../render/pool';
 import type { RigSprite } from '../render/rig';
 import type { ScreenPoint } from '../render/types';
 import type { RenderWorld } from '../render/world';
@@ -29,16 +31,24 @@ import {
   type PlayerEnt,
   type SimEvent,
   type SoldierEnt,
+  type StatusEffect,
   type World,
 } from '../sim/types';
 import {
   dottedAngles,
+  LEAD_MOTE,
+  leadTargets,
   Scratch,
   MIN_PEAK_PX,
   moraleAlpha,
+  moteDrift,
+  MoteStream,
   PEAK_PX_PER_TILE,
+  SUPER_FLASH,
+  superFlashOn,
   throwArc,
   throwProgress,
+  type LeadMote,
 } from './support';
 import type { FrameInput } from './worldView';
 
@@ -103,6 +113,11 @@ export class SupportView {
   private readonly gauges = new Map<number, number>();
   private readonly banners = new Map<number, boolean>();
   private readonly motes = new Map<number, number>();
+  /** Lead from the Front's drifting motes, per Commander slot (pooled nanite-mote frames). */
+  private readonly lead = new Map<number, MoteStream>();
+  private readonly leadImgs = new Map<LeadMote, ArtImage>();
+  private readonly leadMade: ArtImage[] = [];
+  private leadPool: Pool<ArtImage> | null = null;
   private swipes: Swipe[] = [];
   /** Nanite cones fired since the last frame (their towers glint). */
   private glints: Sector[] = [];
@@ -266,12 +281,20 @@ export class SupportView {
     }
     this.glints = [];
     this.syncSoldiers(w, f);
+    const leading = new Set<number>();
     for (const p of w.players) {
       const k = this.knight(p.slot);
       if (!k) continue;
       if (p.classId === 'quartermaster') this.drawArtificer(w, p, k);
-      else if (p.classId === 'commander') this.drawCommander(w, p, k);
+      else if (p.classId === 'commander') {
+        leading.add(p.slot);
+        this.drawLead(w, p.slot, k, f.dtMs);
+        this.drawCommander(w, p, k);
+      }
     }
+    // Commanders gone (left, changed class): their motes stop.
+    for (const slot of this.lead.keys())
+      if (!leading.has(slot)) this.drawLead(w, slot, null, f.dtMs);
     this.syncFlags(w);
     this.drawCells(w, f);
     this.drawSwipes(f.dtMs);
@@ -329,30 +352,94 @@ export class SupportView {
       k.rig.setGroup('banner', banner);
     }
     if (k.down) return;
-    const color = theme.color.amber.num;
-    // Morale aura: on him and his squad, fading with the buff (its timer).
-    const morale = p.effects.find((e) => e.def === 'morale');
+    // Morale: on him and his squad, whoever carries the buff in the sim.
     const total = this.def(p)?.super.effects?.find((x) => x.effect === 'morale')?.durationMs ?? 0;
-    const a = morale ? moraleAlpha(morale.remaining * STEP_MS, total) : 0;
-    if (a > 0) {
-      this.aura(k.sx, k.sy, 0.75, a);
-      k.rig.setGlow(1 + a * 2);
-    } else k.rig.setGlow(1);
-    // Lead from the Front: link lines to the footmen in its aura.
-    const chest = k.rig.attach('carry') ?? { sx: k.sx, sy: k.sy - 60 };
+    const morale = (u: { effects: StatusEffect[] }) => u.effects.find((e) => e.def === 'morale');
+    this.moraleLook(k.rig, k.sx, k.sy, 0.75, morale(p), total);
     for (const u of w.soldiers) {
       if (u.owner !== p.slot || u.hp <= 0) continue;
       const s = this.soldiers.get(u.id);
       if (!s || s.dying) continue;
-      const m = u.effects.find((e) => e.def === 'morale');
-      const ua = m ? moraleAlpha(m.remaining * STEP_MS, total) : 0;
-      if (ua > 0) {
-        this.aura(s.sx, s.sy, 0.42, ua);
-        s.rig.setGlow(1 + ua * 2);
-      } else s.rig.setGlow(1);
-      if (!u.effects.some((e) => e.def === 'aura_lead_from_the_front')) continue;
-      const body = s.sy - this.footInfo.bodyH * this.w.unitPx * 0.55;
-      this.lines.draw().lineStyle(2, color, 0.5).lineBetween(chest.sx, chest.sy, s.sx, body);
+      this.moraleLook(s.rig, s.sx, s.sy, 0.42, morale(u), total);
+    }
+  }
+
+  /**
+   * A unit under morale (C3 note): its amber parts and the aura under it flash on and off for the
+   * buff's duration (phase from the sim's ticks left); between flashes the aura fades with the buff
+   * (its timer). Normal again once the buff ends.
+   */
+  private moraleLook(
+    rig: RigSprite,
+    sx: number,
+    sy: number,
+    rTiles: number,
+    e: StatusEffect | undefined,
+    totalMs: number,
+  ) {
+    if (!e || e.remaining <= 0) {
+      rig.setGlow(1);
+      return;
+    }
+    const on = superFlashOn(e, totalMs);
+    rig.setGlow(on ? SUPER_FLASH.glow : 1);
+    const a = on ? SUPER_FLASH.auraAlpha : moraleAlpha(e.remaining * STEP_MS, totalMs);
+    if (a > 0) this.aura(sx, sy, rTiles, a);
+  }
+
+  /**
+   * Lead from the Front (C3 note): small amber nanite motes drift slowly from the Commander to each
+   * soldier the sim's aura reaches now; none toward others, and in-flight ones to a soldier who left
+   * it are dropped. `k` null (Commander gone or down) stops them.
+   */
+  private drawLead(w: World, slot: number, k: KnightRef | null, dtMs: number) {
+    const targets = k && !k.down ? leadTargets(w, slot) : new Set<EntityId>();
+    for (const id of targets) {
+      const s = this.soldiers.get(id);
+      if (!s || s.dying) targets.delete(id);
+    }
+    let stream = this.lead.get(slot);
+    if (!stream) {
+      if (targets.size === 0) return;
+      stream = new MoteStream(slot);
+      this.lead.set(slot, stream);
+    }
+    const { spawned, removed } = stream.step(dtMs, targets);
+    for (const m of removed) {
+      const img = this.leadImgs.get(m);
+      if (img) this.leadPool!.release(img);
+      this.leadImgs.delete(m);
+    }
+    if (stream.motes.length === 0 && !k) {
+      this.lead.delete(slot);
+      return;
+    }
+    const pool = (this.leadPool ??= new Pool(
+      () => {
+        const a = placeFrame(this.w, fk('nanite-mote'), 'effects', -999, -999);
+        this.leadMade.push(a);
+        return a;
+      },
+      (a, on) => {
+        a.img.setVisible(on).setAlpha(0);
+      },
+    ));
+    for (const m of spawned) this.leadImgs.set(m, pool.get());
+    if (!k) return;
+    const from = k.rig.attach('carry') ?? { sx: k.sx, sy: k.sy - 60 };
+    const bodyPx = this.footInfo.bodyH * this.w.unitPx * 0.55;
+    for (const m of stream.motes) {
+      const s = this.soldiers.get(m.target);
+      const a = this.leadImgs.get(m);
+      if (!s || !a) continue;
+      const d = moteDrift(
+        from,
+        { sx: s.sx, sy: s.sy - bodyPx },
+        m.age / LEAD_MOTE.travelMs,
+        m.seed,
+      );
+      a.img.setPosition(d.sx, d.sy).setAlpha(d.alpha);
+      this.w.lib.setUnitScale(a, this.w.unitPx, d.scale);
     }
   }
 
@@ -555,9 +642,14 @@ export class SupportView {
       c.img.img.destroy();
       c.shadow.destroy();
     }
+    for (const a of this.leadMade) a.img.destroy();
     this.soldiers.clear();
     this.flags.clear();
     this.cells.clear();
+    this.lead.clear();
+    this.leadImgs.clear();
+    this.leadMade.length = 0;
+    this.leadPool = null;
     this.ground.destroy();
     this.lines.destroy();
   }

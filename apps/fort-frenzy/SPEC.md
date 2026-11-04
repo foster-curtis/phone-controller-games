@@ -232,8 +232,10 @@ diamond rank badge on the chest. The rally flag rides on his back as a banner; p
 into the world, so "following" vs "holding" is visible at a glance.
 Animations: idle, walk, main (sword slash; the amber edge flares and leaves a trail tracing the exact
 hit arc), super (morale: amber pulse, and an amber aura on him and his squad that fades as the buff
-runs out, doubling as its timer), plant flag / recall, Lead from the Front link lines to nearby
-footmen.
+runs out, doubling as its timer; for the buff's whole duration every unit it affects flashes its amber
+parts and the aura circle under it brightly on and off, 250 ms each, timed from the sim's buff), plant
+flag / recall, Lead from the Front as small amber nanite motes that drift slowly from him to each
+footman the passive currently reaches (no link lines; §15.11 #40).
 
 **Automaton footmen:** about half the Commander's height; amber eye; mini plume swept back in their
 Commander's player color; straight blade, fully amber, with a dark crossguard. No ring and no name.
@@ -2154,3 +2156,4 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 37 | 2026-11-02 | Knight legs, front and back | The renderer draws the one-piece `legs` frame twice, cropped into left and right halves, so each leg steps on its own | The art has one legs part per view; a split keeps the art as is (Foster, C1) |
 | 38 | 2026-11-03 | Super ready on the TV | The player's ring pulses with amber light (an amber ring just outside the colored ring, at the phone ring's 1.2 Hz and 1.0→1.12 scale); the badge over the head is gone | C2 note (Foster); the ring already marks the player, and amber reads as ours and blooms |
 | 39 | 2026-11-03 | Ranger shot | The main shot draws, holds and releases; the TV holds the bolt on the bow until the clip's release (100 ms, or 30 ms when already at full draw while aiming or in Steady Aim), then launches it from the rig's `bolt` point at bow height and eases it onto the sim's path. Render only: the sim still fires from the feet at once | The shot read as a twitch and the bolt left from the feet (Foster, C2); the sim's timing and hit geometry stay as tested |
+| 40 | 2026-11-03 | Commander passive and super on the TV | Lead from the Front: pooled nanite-mote frames drift (1.4 s, eased, seeded sway) from his chest to each soldier under the sim's aura, one per 520 ms per soldier, at most 3 in flight, dropped when the soldier leaves it; the link lines are gone. Morale: every unit carrying the buff flashes its emissive parts (glow 2, the rig's full boost, so the bloom stays capped) and its aura circle (alpha 0.55) on and off every 250 ms from the buff's ticks left, the faded aura showing between flashes | C3 notes (Foster); motes reuse the Artificer's nanite look; sim-timed so the flash ends exactly with the buff |
