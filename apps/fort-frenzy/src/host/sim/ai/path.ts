@@ -5,7 +5,15 @@
 import type { EnemyDef } from '../../../content/types';
 import { dist, rectDist, rectNearest, tileRect } from '../geometry';
 import { state, type SimState } from '../internal';
-import { BASE_ID, type EnemyEnt, type PlayerEnt, type SimCtx, type StructureEnt } from '../types';
+import { steerTile } from '../../systems/flowfield';
+import {
+  BASE_ID,
+  type EnemyEnt,
+  type FlowField,
+  type PlayerEnt,
+  type SimCtx,
+  type StructureEnt,
+} from '../types';
 
 /** Extra reach when a wound-up swing lands (the target may have stepped back a little). */
 const LAND_SLACK = 0.25;
@@ -129,7 +137,22 @@ function followPath(s: SimState, e: EnemyEnt, def: EnemyDef) {
       return;
     }
   }
-  // Toward the next tile's center, blended with the one after so turns don't zigzag (§15.5).
+  steerAlong(e, field, t, next, speed);
+}
+
+/**
+ * Walks along `field` from tile `t` (whose next tile is `next`): straight at the farthest clear tile
+ * down the chain (`steerTile`, FF10-fix-1: direct diagonals, no L-shaped routes), else toward the
+ * next tile's center blended with the one after so turns don't zigzag (§15.5).
+ */
+export function steerAlong(e: EnemyEnt, field: FlowField, t: number, next: number, speed: number) {
+  const cols = field.cols;
+  const far = steerTile(field, t);
+  if (far >= 0 && far !== next) {
+    const fc = far % cols;
+    walkTo(e, fc + 0.5, (far - fc) / cols + 0.5, speed);
+    return;
+  }
   const nc = next % cols;
   let dx = nc + 0.5 - e.x;
   let dy = (next - nc) / cols + 0.5 - e.y;

@@ -12,6 +12,7 @@ import {
 } from '../../../content/enemies';
 import type { StructureDef } from '../../../content/types';
 import type { ClassId } from '../../../shared/ids';
+import { RETARGET_TILES } from '../ai/hunter';
 import { createCatalog } from '../catalog';
 import { createSim, ScriptedInputSource, type Sim } from '../index';
 import { createState } from '../state';
@@ -203,7 +204,7 @@ describe('Siege', () => {
 });
 
 describe('Hunter', () => {
-  it('hunts the nearest player along their field, and retargets on daze and death', () => {
+  it('hunts the nearest player along their field, and retargets on a clearly closer player, daze and death', () => {
     const t = quiet(['engineer', 'engineer']);
     const w = t.sim.world;
     const [a, b] = w.players as [(typeof w.players)[0], (typeof w.players)[0]];
@@ -215,12 +216,36 @@ describe('Hunter', () => {
     t.run(2);
     expect(h.hunting).toBe(a.slot);
     expect(h.ai).toBe('hunt');
+    const first = h.huntSince!;
+    expect(first).toBeLessThanOrEqual(w.tick);
     const field = w.fields.hunted[a.slot]!;
     expect(field.dist[14 * 36 + 8]).toBe(0);
     // Its quarry steps to a new tile: the field follows.
     a.x = 6.5;
     t.run(1);
     expect(w.fields.hunted[a.slot]!.dist[14 * 36 + 6]).toBe(0);
+    // Another player a little closer (inside the hysteresis): it keeps its quarry.
+    const dA = Math.hypot(a.x - h.x, a.y - h.y);
+    const toward = (d: number) => {
+      const dx = (a.x - h.x) / dA;
+      const dy = (a.y - h.y) / dA;
+      b.x = h.x - dy * d; // off to the side, at distance d
+      b.y = h.y + dx * d;
+    };
+    toward(dA - (RETARGET_TILES - 0.5));
+    t.run(2);
+    expect(h.hunting).toBe(a.slot);
+    expect(h.huntSince).toBe(first);
+    // Clearly closer: it switches, and the switch is stamped (the TV's foot flash).
+    toward(Math.max(1.6, dA - RETARGET_TILES - 1.5));
+    t.run(2);
+    expect(h.hunting).toBe(b.slot);
+    expect(h.huntSince!).toBeGreaterThan(first);
+    // Back out of the way: the first player is clearly closer again.
+    b.x = 28.5;
+    b.y = 8.5;
+    t.run(2);
+    expect(h.hunting).toBe(a.slot);
     t.until(() => a.hp < a.maxHp, 60 * 10);
     // Dazed (phone away): the next player.
     t.sim.command({ c: 'presence', slot: a.slot, connected: false });
@@ -244,6 +269,60 @@ describe('Hunter', () => {
     const evs = t.run(60 * 25);
     expect(hits(evs, BASE_ID)).toHaveLength(0);
     expect(p.hp).toBeLessThan(p.maxHp);
+  });
+
+  // C3 (FF10-fix-1): the Hunter's field prices tower range, so it slips round the defenses.
+  const turretRange = 6;
+  function towerRun(px: number, py: number) {
+    const t = quiet();
+    const w = t.sim.world;
+    const p = w.players[0]!;
+    p.x = px;
+    p.y = py;
+    const tower = t.sim.place('arrow_tower', 18, 19, 0);
+    t.run(1);
+    const h = t.sim.spawnEnemy('hunter', 5.5, 20.5);
+    h.hp = h.maxHp = 1e9;
+    let nearest = Infinity;
+    let shots = 0;
+    for (let i = 0; i < 60 * 40 && p.hp === p.maxHp; i++) {
+      const evs = t.run(1);
+      shots += evs.filter((e) => e.e === 'attack' && e.source === tower.id).length;
+      nearest = Math.min(nearest, Math.hypot(h.x - tower.x, h.y - tower.y) - h.r);
+    }
+    return { t, p, h, tower, nearest, shots };
+  }
+
+  it('takes a route round a tower’s range when there is one', () => {
+    const r = towerRun(30.5, 20.5);
+    expect(r.p.hp).toBeLessThan(r.p.maxHp);
+    expect(r.nearest).toBeGreaterThan(turretRange);
+    expect(r.shots).toBe(0);
+  });
+
+  it('still reaches a target standing in tower range', () => {
+    const r = towerRun(20.5, 19.5);
+    expect(r.p.hp).toBeLessThan(r.p.maxHp);
+    expect(r.shots).toBeGreaterThan(0);
+  });
+
+  it('re-prices its field when a tower is built or destroyed', () => {
+    const t = quiet();
+    const w = t.sim.world;
+    const p = w.players[0]!;
+    p.x = 30.5;
+    p.y = 20.5;
+    const probe = 20 * 36 + 14; // a tile 4 left of where the tower goes
+    t.sim.spawnEnemy('hunter', 5.5, 20.5);
+    t.run(1);
+    const d0 = w.fields.hunted[0]!.dist[probe]!;
+    const tower = t.sim.place('arrow_tower', 18, 19, 0);
+    t.run(1);
+    const d1 = w.fields.hunted[0]!.dist[probe]!;
+    expect(d1).toBeGreaterThan(d0);
+    tower.hp = 0;
+    t.run(2);
+    expect(w.fields.hunted[0]!.dist[probe]!).toBeCloseTo(d0, 4);
   });
 });
 

@@ -835,7 +835,7 @@ Rules:
   - [x] Enemy clips + status visuals
   - [x] Waves 1–15 content
   - [x] Merged to `main`
-  - [ ] FF10-fix-1: C3 Wasp jitter, Hunter tower-avoiding path + player-color foot flash, diagonal flow field to the Citadel
+  - [x] FF10-fix-1: C3 Wasp jitter, Hunter tower-avoiding path + player-color foot flash, diagonal flow field to the Citadel
 - [x] **User approved C3** (class kits and enemies): notes fixed in FF3-fix-2, FF7-fix-2, FF9-fix-1, FF10-fix-1, run in parallel with FF11–FF13 at the user's request; feel and visual notes re-judged at C4
 - FF11 Colossus
   - [ ] Boss module (forms, attacks, stagger, rewards)
@@ -1433,6 +1433,27 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   outline carries the silhouette); translucent amber, danger and build-ghost fills lose contrast on the lighter
   floor (their full-alpha strokes carry them); `plate/tile` and lane breaches keep the old dark stone, so
   structure plates read as dark sockets; near-opaque amber (≥ 0.85) blooms a little more over the lighter floor.
+- [FF10-fix-1] contract+: `src/host/systems/flowfield/index.ts` `buildField(…, into?, opts?: FieldOptions)`
+  (`diagonal`, `solid`; default stays 4-neighbor, so FF2's tests hold as written) and `steerTile(field, from)`
+  (+ `STEER_LOOKAHEAD` 32, `STEER_HALF_WIDTH` 0.3); `src/host/sim/types.ts` `EnemyEnt.huntSince?` (tick of the
+  Hunter's current quarry). SPEC §9, §9.6, §15.2, §15.5, §13 and decision rows updated.
+- [FF10-fix-1] decision: Wasp jitter root cause was render, not sim: `worldView.drawEnemies` drew the ground
+  point with z = 0 lerped from `prev` (which holds the sim's flyer z = 1), so its screen y swung by up to a tile
+  with the accumulator's phase every frame. Fixed with `scene/interp.ts` `lerpGround`; the sim test shows a
+  Wasp's progress was already monotone.
+- [FF10-fix-1] decision: flow-field shape: the sim builds 8-neighbor fields (no corner cutting past blockers or
+  impassable tiles) and every walker steers at `steerTile` (farthest chain tile a ±0.3-tile corridor reaches
+  through tiles no costlier than the next step; cached per tile until the rebuild). Lanes now walk within
+  0.13 tiles of the straight line (was 7.7, path 1.33× straight).
+- [FF10-fix-1] decision: Hunter threat: `ai/threat.ts` counts attackers (structures with an `attack`, the present
+  sentries) covering each tile within range + 1 (`THREAT_PAD`: a tile's half-diagonal plus a body; 0.4 still let
+  a corner graze the range); the hunted field adds 4 (`THREAT_COST`) per attacker. Recomputed in
+  `rebuildFields`, which `startCombat` now also calls (range cards, sentry buys). Peak bench mean 0.44–0.48 ms.
+- [FF10-fix-1] decision: Hunter retarget hysteresis `RETARGET_TILES` = 2: another player must be 2 tiles closer
+  (straight-line) than the current quarry to take over; down, daze or leaving still retargets at once.
+- [FF10-fix-1] decision: the target flash is a pulsing ring (4 pulses, last 500 ms fading, `HUNT_FLASH_MS` 2000)
+  in the quarry's color on WorldView's per-frame ground graphics (one shared object, no per-ring allocation),
+  timed from `world.tick − huntSince`.
 
 - [FF13] decision: SFX picks are by name only (not auditioned); swap in `scripts/pick-sfx.ts` `PICKS` and rerun. Cue gate: `Cue.when(e, kindOf)` takes an entity-kind resolver from the world; `marker` is the boss wind-up cue (no new SimEvent added); `purchase`/`cardPicked` already exist. Player: per-cue volume + max-per-window cap in `TUNING`; `createSfx(ThemeHost.sfx)` preloads behind the home bar (min of atlas and audio progress in `main.ts`), unlocks on first key or pointer.
 ## 9. Final handoff

@@ -4,7 +4,7 @@
 // build ghost and arc, the Ranger's shot (draw, hold, release; the bolt leaves from the bow), super
 // and build kneel with the deploy beacon, down piles and respawns), enemies (walk, attack, hit and
 // death clips; stun forces idle; FF10: tell glows, the Skitter's core throb, the Stalker's target
-// thread, Wasp hover over its shadow, mites at their own sizes and paces, shots from the weapon,
+// flash (C3), Wasp hover over its shadow, mites at their own sizes and paces, shots from the weapon,
 // burn/poison tick flashes), pulse turrets (aim and muzzle flashes), projectiles, crate piles,
 // danger markers and the debug overlays. Positions are lerped between the last two sim steps; the
 // sim is read, never written.
@@ -26,7 +26,7 @@ import { clipLandedMs, spawnPile } from '../render/fall';
 import { RIG_INFO, type RigInfo } from '../render/gallery/rigInfo';
 import { fk, iconFrame } from '../render/keys';
 import { TILE_W } from '../render/camera';
-import { DANGER_EDGE, THREAD_ALPHA } from '../render/legibility';
+import { DANGER_EDGE } from '../render/legibility';
 import { MapView } from '../render/map';
 import { mitePack } from '../render/swarm';
 import type { RigSprite } from '../render/rig';
@@ -48,12 +48,14 @@ import {
   chargeLevel,
   drawGlow,
   enemyShotPos,
+  huntFlashLevel,
   pulseHz,
   pulseLevel,
   TELL_GLOW,
   type EnemyShot,
 } from './enemyFx';
 import { drawAimPreview, type GroundFrame } from './aimPreview';
+import { lerpGround, lerpPos } from './interp';
 import { anchorToWorld, shotPos, shotTiming, type Launch, type Pos } from './shot';
 import { shotAnchor } from './support';
 import { SupportView } from './supportView';
@@ -86,8 +88,6 @@ const CITADEL_AT = { x: 18, y: 2 };
 const ARMORY_AT = { x: 22.5, y: 1.5 };
 /** Knights near the top edge (by the Citadel) get their label below the sprite (§2.1). */
 const FLIP_BELOW_Y = 4;
-/** A jump longer than this between two steps (respawn, debug) snaps instead of lerping. */
-const SNAP_TILES = 2;
 const ONE_SHOTS = new Set(['attack', 'super', 'build', 'hit', 'respawn', 'throw', 'plant']);
 /** How long a shot keeps the Ranger facing and in his `ready` pose, ms: the whole attack clip. */
 const SHOT_HOLD_MS = ATTACK_MS + 20;
@@ -208,16 +208,14 @@ export class WorldView {
   }
 
   private screen(id: EntityId, x: number, y: number, z: number, f: FrameInput) {
-    const p = f.prev.get(id);
-    let px = x;
-    let py = y;
-    let pz = z;
-    if (p && Math.abs(p.x - x) + Math.abs(p.y - y) < SNAP_TILES) {
-      px = lerp(p.x, x, f.alpha);
-      py = lerp(p.y, y, f.alpha);
-      pz = lerp(p.z, z, f.alpha);
-    }
-    return { x: px, y: py, z: pz, ...this.w.camera.worldToScreen(px, py, pz) };
+    const p = lerpPos(f.prev.get(id), x, y, z, f.alpha);
+    return { ...p, ...this.w.camera.worldToScreen(p.x, p.y, p.z) };
+  }
+
+  /** The lerped ground point under a body, whatever its sim height (C3: the Wasp's jitter). */
+  private groundAt(id: EntityId, x: number, y: number, f: FrameInput) {
+    const p = lerpGround(f.prev.get(id), x, y, f.alpha);
+    return { ...p, ...this.w.camera.worldToScreen(p.x, p.y, 0) };
   }
 
   update(f: FrameInput) {
@@ -796,8 +794,8 @@ export class WorldView {
       }
       if (!e) continue;
       // On the ground: a Wasp hovers at its fixed height above its ground point, where its shadow
-      // stays (§2.5 height, §9.6), so the sim's z isn't drawn.
-      const at = this.screen(id, e.x, e.y, 0, f);
+      // stays (§2.5 height, §9.6), so the sim's z isn't drawn (nor lerped: C3, interp.ts).
+      const at = this.groundAt(id, e.x, e.y, f);
       en.sx = at.sx;
       en.sy = at.sy;
       en.wx = at.x;
@@ -825,7 +823,7 @@ export class WorldView {
     }
   }
 
-  /** Tell glows, the Skitter's core throb and the Stalker's target thread (FF10, §9.6). */
+  /** Tell glows, the Skitter's core throb and the Stalker's target flash (FF10, C3, §9.6). */
   private drawEnemyLooks(w: World, e: EnemyEnt, en: Enemy, dtMs: number) {
     const k1 = this.w.unitPx;
     const rigId = en.rig.rigId;
@@ -843,15 +841,19 @@ export class WorldView {
       const c = en.rig.attach('core');
       if (c) drawGlow(this.glow, c.sx, c.sy, 7 * k1, pulseLevel(en.pulse));
     }
-    if (rigId === 'stalker' && e.ai === 'hunt' && e.hunting !== null) {
-      const q = this.knights.get(e.hunting);
-      const eyes = en.rig.attach('eyes');
-      if (q && !q.down && eyes) {
-        const to = { sx: q.sx, sy: q.sy - q.info.bodyH * k1 * 0.55 };
-        // Pale violet (was `hostile` at 0.32): still faint, but ≥ 1.5:1 on the C3 floor (FF3-fix-2).
-        this.ui
-          .lineStyle(2, theme.color.hostileCore.num, THREAD_ALPHA)
-          .lineBetween(eyes.sx, eyes.sy, to.sx, to.sy);
+    if (rigId === 'stalker' && e.hunting !== null && e.huntSince !== undefined) {
+      // C3: no thread; its new quarry's color flashes at its feet for ~2 s, from sim time.
+      const level = huntFlashLevel((w.tick - e.huntSince) * STEP_MS);
+      const q = level > 0 ? w.players.find((p) => p.slot === e.hunting) : undefined;
+      if (q) {
+        const color = theme.players[q.color].fill.num;
+        const { rx, ry } = this.w.camera.groundEllipse(Math.max(0.45, en.info.hitbox * 1.4));
+        const sw = theme.stroke.ring;
+        this.ground
+          .lineStyle(sw * 3, color, 0.3 * level)
+          .strokeEllipse(en.sx, en.sy, rx * 2 + sw * 2, ry * 2 + sw * 1.2)
+          .lineStyle(sw, color, level)
+          .strokeEllipse(en.sx, en.sy, rx * 2, ry * 2);
       }
     }
   }

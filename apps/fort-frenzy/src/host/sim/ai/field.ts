@@ -1,11 +1,12 @@
-// Shared AI steps for the FF10 roster (SPEC §15.5): one step along a flow field (blended toward the
-// tile after next so turns don't zigzag), what blocks it, and the melee wind-up every swinging enemy
-// shares (it roots the enemy and is called off if a player target goes down or dazed).
+// Shared AI steps for the FF10 roster (SPEC §15.5): one step along a flow field (path.ts
+// `steerAlong`: at the farthest clear tile down its chain), what blocks it, and the melee wind-up
+// every swinging enemy shares (it roots the enemy and is called off if a player target goes down or
+// dazed).
 import type { EnemyDef } from '../../../content/types';
 import { rectNearest } from '../geometry';
 import type { SimState } from '../internal';
 import type { EnemyEnt, FlowField, PlayerEnt, StructureEnt } from '../types';
-import { land, toLane, walkTo } from './path';
+import { land, steerAlong, toLane, walkTo } from './path';
 
 export type FieldStep =
   /** Walking: velocity set. */
@@ -34,29 +35,7 @@ export function fieldStep(s: SimState, e: EnemyEnt, field: FlowField, speed: num
       return { kind: 'blocked', st, col: nc, row: (next - nc) / cols };
     }
   }
-  const nc = next % cols;
-  let dx = nc + 0.5 - e.x;
-  let dy = (next - nc) / cols + 0.5 - e.y;
-  let l = Math.sqrt(dx * dx + dy * dy) || 1;
-  dx /= l;
-  dy /= l;
-  const after = field.next[next]!;
-  if (after >= 0) {
-    const ac = after % cols;
-    let ax = ac + 0.5 - e.x;
-    let ay = (after - ac) / cols + 0.5 - e.y;
-    const al = Math.sqrt(ax * ax + ay * ay) || 1;
-    ax /= al;
-    ay /= al;
-    dx += 0.5 * ax;
-    dy += 0.5 * ay;
-    l = Math.sqrt(dx * dx + dy * dy) || 1;
-    dx /= l;
-    dy /= l;
-  }
-  e.vx = dx * speed;
-  e.vy = dy * speed;
-  e.facing = Math.atan2(dy, dx);
+  steerAlong(e, field, row * cols + col, next, speed);
   return { kind: 'walk' };
 }
 

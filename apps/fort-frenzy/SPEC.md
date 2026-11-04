@@ -340,7 +340,7 @@ corner, T-junction, cross), chosen from the four neighboring tiles.
 - **TV screens:** home (keyboard and gamepad: the focused row is lit amber, ◂ ▸ change theme and
   difficulty, "Resume wave N" only when a snapshot exists); lobby (URL, large mono room code, QR, six
   slots showing each knight's front view in the player's color with a name band, class and ready state;
-  open slots dashed); combat HUD (see above; the Stalker's target thread is world UI, and a ready super
+  open slots dashed); combat HUD (see above; the Stalker's target flash is world UI, and a ready super
   shows as an amber pulse on the knight's ring, §10.1); low-HP alarm (red vignette and "Citadel under attack" under the base bar);
   build-phase HUD (the phase timer replaces COMBAT; the next-wave preview takes the boss bar's place at
   the bottom with enemy portraits and counts, a newly introduced type framed in violet; ready status and
@@ -824,10 +824,20 @@ Each enemy type is designed as a problem that specific classes solve.
 | Siege | Stops at range and shells the base or towers | Engineer (outranges it), Commander and squad dive |
 | Flyer | Ignores walls | Engineer, arrow towers, Quartermaster, base archers |
 | Swarm | Many weak units | Area damage: Warden, bomb towers, Quartermaster, Engineer's super |
-| Hunter | Targets players instead of the base | Warden stun, Commander's squad, Quartermaster healing |
+| Hunter | Targets players instead of the base; smarter than other units, it paths round tower range | Warden stun, Commander's squad, Quartermaster healing |
 | Boss (Colossus, §9.2) | Appears at waves 5, 10 and 15 | Everyone |
 
 - **Melee attacks cannot hit Flyers.**
+- **Hunter (C3):** it hunts the nearest player and keeps that quarry until they go down or dazed, or
+  another player comes clearly closer (2 tiles closer, so two players at similar range don't flip it).
+  Rather than going straight for its quarry, it takes the route that spends the least time in range
+  of anything that shoots (towers and the Citadel's sentries) when one exists, and still reaches a
+  quarry standing in range (§15.5). Each new quarry flashes on the TV (§9.6).
+  **v2 (not in v1, Foster, C3):** it always starts by walking into the arena and finding a safe place
+  to stand where no tower can hit it. If a player comes within the Ranger's range of it, it targets
+  and attacks that player. Otherwise it waits until either a player drops below 50% HP (that player is
+  always targeted), or a Brute spawns: then it walks slowly behind the Brute, using it as a shield,
+  until it's close to a player.
 - **Who attacks players (aggro leash):** Grunts, Brutes, Swarms and Flyers attack a player who comes
   within a short aggro radius, chase up to a leash distance, then return to their path. Runners never
   attack players, Siege always shells the base or towers, and Hunters always hunt players. Radii live in
@@ -952,7 +962,8 @@ Enabled on the TV build with a URL flag and never shown to players. It can:
   cool gunmetal.
 - Emissive is violet only (eyes, cores, seams). Never amber, never red.
 - Machine posture: hunched forward, with spikes. Knights stand upright.
-- No player colors, rings or names on enemies. Size signals toughness.
+- No player colors, rings or names on enemies (except the Stalker's brief target flash). Size signals
+  toughness.
 - Same production rules as the characters (§2.4) and the perspective rules (§2.5): three-quarter view
   with top faces, mirrored left/right, vector cut-out rigs, ink outline, alignment and layering.
   Enemy glow sits inside each part (`class="glow"` groups), so it moves with the part.
@@ -997,8 +1008,10 @@ in step. Randomize each mite's offset, speed and wobble.
 head, a low head thrust forward with twin violet eye slits (the only enemy with two eyes), fins forward
 on the back that sweep well back, and a short spiked tail. Fast loping run toward its target player;
 wind-up tell: it crouches low, then lunges.
-**Target thread:** a faint violet line runs from the Stalker's eyes to the player it's hunting, so the
-whole room can see who's targeted and step in.
+**Target flash (C3, was a target thread):** each time the Stalker takes a quarry (its first pick or a
+change, §9), that player's color flashes as a ring around its feet for about 2 s, then there's no
+indicator until the quarry changes again. This is the one exception to "no player colors on enemies",
+so the whole room sees who's targeted and can step in (§15.11 #45).
 
 **Colossus (boss):** about 2.6× a knight's height; tall and top-heavy (the only enemy taller than it is
 wide): a wide shoulder yoke, a small sunk head with one violet eye bar, two slab fists hanging low,
@@ -1301,6 +1314,7 @@ Ideas deferred from v1. Build v1 so these can be added without rewrites.
 | Elite enemy variants | Modifiers such as armored or fast | Enemy stats come from config, so a variant is a stat override |
 | Music | v1 ships sound effects only (§12) | Theme packs carry an audio map (§15.4), so music is more entries plus a player |
 | Enemy back views | Back views for the common walkers (§2.4) | Rig views are looked up per rig from data, so a new view is data, not code (§15.2) |
+| Hunter v2 behavior | Walks in and waits where no tower can hit it; attacks a player within the Ranger's range; otherwise waits for a player below 50% HP (always targeted) or a Brute to shelter behind (§9, Foster, C3) | The Hunter is its own `ai` module with a tower-threat map (`ai/threat.ts`) |
 
 ## 14. Open / under discussion
 
@@ -1466,7 +1480,7 @@ interface Camera {
      structures by their footprint's front edge.
   4. effects: hit sparks, tracers, muzzle flashes, plumes
   5. world UI: nametags and HP bars (flipping below near the top edge, §2.1), single-bolt aim lines, the build arc,
-     the Stalker target thread
+     the Stalker target flash
   6. HUD (screen space)
 - **Ground, world or effects:** each non-rig frame's `layer` in `sprites.json` is one of:
   - `ground` (layers 1–2): anything flat on the ground, as its own frame.
@@ -1582,6 +1596,8 @@ interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: num
   come from per-kind pools; sim entities are plain objects, not pooled.
 - **Interpolation:** the renderer draws positions lerped between the last two sim steps (as in Sunny
   Side), keyed by entity id; spawned entities draw at their current position, removed ones disappear.
+  A body drawn at its ground point (every enemy, the Wasp included: its hover height is art, not the
+  sim's `z`) lerps on the ground at both ends; heights lerp only between heights (C3, §15.11 #44).
 - **Missing frames:** a dev-only fallback draws a labeled shape for the ID (sized from its hitbox), so a
   missing asset never breaks a build. Production builds fail the atlas check instead (§15.10).
 - **Performance budget**, measured by an early performance test at peak load (6 knights, 30 footmen,
@@ -1838,8 +1854,10 @@ interface ThemeHost {                            // TV only
 
 - **Flow fields** over the 36 × 24 grid, built with Dijkstra (a breadth-first search that weighs tile
   costs) outward from the tiles next to the Citadel. Each tile stores its distance and the neighbor to
-  step to next. A rebuild takes well under 1 ms and runs in the same step a blocking structure is
-  placed or destroyed.
+  step to next. The sim's fields take 8-neighbor (octile) steps: a diagonal costs √2 × the entered
+  tile's cost and never cuts the corner of a blocker or impassable tile (C3, §15.11 #46; the system's
+  default stays 4-neighbor). A rebuild takes well under 1 ms and runs in the same step a blocking
+  structure is placed or destroyed.
 - **Tile costs:** open 1; snare 1 (no rebuild, §7.1); wall and tower: a high configurable cost (enemies
   detour unless the detour is longer); terrain outside the map or marked blocked: impassable.
   Structures always have a finite cost, so a route always exists, and "break through" (§7) is simply an
@@ -1847,18 +1865,34 @@ interface ThemeHost {                            // TV only
 - **Fields:** `ground` (most walkers); `breaker` (Brutes and the Colossus: walls cheap, so they smash
   through, §7); one per hunted player (Hunters), rebuilt when that player moves to a new tile. Flyers
   ignore fields and steer straight at their target.
-- **Steering:** an enemy steers toward its next tile's center, blended with the neighbors' directions
-  so movement doesn't zigzag, plus soft separation from nearby units. Units never hard-block each other.
+- **Hunter fields price tower range (C3):** a hunted player's field adds 4 per attacker (a tower that
+  shoots, a Citadel sentry) whose range + 1 tile covers a tile, so a Hunter detours round the
+  defenses when that's cheaper than the time under fire and still reaches a quarry standing in range.
+  The coverage is rebuilt with the fields (a structure placed or destroyed) and at each combat start
+  (range cards and sentries bought in the build phase). `EnemyEnt.huntSince?` stamps the tick of each
+  new quarry, which drives the TV's target flash (§9.6).
+- **Steering:** an enemy heads straight for the farthest tile down its field's chain (up to 32 tiles)
+  that a body-wide corridor (±0.3 tiles) reaches without crossing a tile costlier than the chain's
+  next step, so it crosses open ground on a direct diagonal to the Citadel instead of an L-shaped
+  route, never shortcuts through a wall, tower or a Hunter's priced tiles, and stops at a blocker it
+  must attack (C3, §15.11 #46). With nothing farther clear it steers toward its next tile's center,
+  blended with the one after so movement doesn't zigzag. Plus soft separation from nearby units.
+  Units never hard-block each other.
 - **Behavior per `ai`:** `path` follows its field and attacks whatever blocks it or the base; `runner`
   bursts on base contact; `siege` stops once the base or a tower is in range and shells it; `hunter`
-  follows its target's field; `flyer` flies straight; aggro-leash enemies (§9) leave the path for a
+  follows its target's field (retargeting on down, daze or a player 2 tiles closer, §9); `flyer` flies
+  straight; aggro-leash enemies (§9) leave the path for a
   player in aggro radius and return past the leash. FF10 adds `swarm` (a `path` walker with the
   in-sim mite jitter) and `brute` (a `path` walker on the `breaker` field that also smashes a wall it
   walks into while chasing or returning).
 
 ```ts
 interface FlowField { cols: number; rows: number; dist: Float32Array; next: Int16Array } // −1 = goal
-function buildField(grid: TileGrid, cost: (tile: number) => number, goals: readonly number[]): FlowField;
+function buildField(grid: TileGrid, cost: (tile: number) => number, goals: readonly number[],
+  into?: FlowField, opts?: FieldOptions): FlowField;
+// FF10-fix-1 (additive): 8-neighbor steps; `solid` tiles' corners are never cut
+interface FieldOptions { diagonal?: boolean; solid?: (tile: number) => boolean }
+function steerTile(field: FlowField, from: number): number; // farthest clear tile down the chain
 ```
 
 ### 15.6 Network protocol
@@ -2170,3 +2204,6 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 41 | 2026-11-03 | Aim previews | While aiming, the TV draws the attack's real hit area from the sim's effective stats (one `hitShape` for both): a dashed amber line for a single bolt, a transparent amber-filled ground cone for arcs, cones and spread volleys, a filled amber 0.6 ellipse for circles; dim, under the bloom; supers only when charged (§10.1) | C3 note (Foster): the aim bar should match the attack's shape (the Warden's cone, the Artificer's shot); one source keeps tuning and cards in step |
 | 42 | 2026-11-03 | Warden and Ranger reach | Warden slam 1.5 → 1.75 tiles, 120° → 102°; stomp 3.2 → 3.7 tiles, 100° → 85°; Ranger super radius 3 → 3.5 tiles (content) | C3 notes (Foster): the Warden's spread slightly narrower and range slightly longer, main and super; the Ranger's super slightly bigger |
 | 43 | 2026-11-03 | Arena floor | The floor draws lighter than its art: neon knights lifts the #262b33 stone to #62676f at render time (`ThemeHost.map.floorLift`); player rings and red danger markers get an ink edge, and the Stalker thread is pale violet at 0.5 | Enemies sat at the floor's luminance and vanished, the small ones worst (Foster, C3); measured: outlines 1.35 → 3.4:1, hull colors 1.0–1.2 → 1.5–2.6:1, glows stay brighter than the floor, nothing new blooms |
+| 44 | 2026-11-03 | Wasp jitter | Ground points lerp on the ground at both ends (the Wasp's was lerped from the sim's flyer `z` = 1 toward the drawn 0, so its height swung with the frame's phase) | The Wasp jumped back and forth like a glitch (Foster, C3); its sim motion was already smooth |
+| 45 | 2026-11-03 | Hunter | Paths round tower and sentry range when it can (its field adds 4 per covering attacker); retargets on down, daze or a player 2 tiles closer; the eye thread is replaced by a ~2 s flash of the quarry's color at its feet on each new quarry. v2 behavior recorded in §9 and §13 | The Hunter should be smarter than other units, and a permanent thread was noise (Foster, C3) |
+| 46 | 2026-11-03 | Flow-field shape | 8-neighbor octile fields with no corner cutting, and steering at the farthest tile down the chain a body-wide corridor reaches without a costlier tile | Enemies went straight up the field and then along the back; they should head for the Citadel on a direct diagonal (Foster, C3) |

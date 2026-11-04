@@ -275,6 +275,8 @@ export function startCombat(s: FullState): void {
       });
     }
   }
+  // The Hunters' tower threat picks up range cards and sentries bought in the build (FF10-fix-1).
+  s.rebuildFields();
   setPhase(s, 'combat', null);
 }
 

@@ -3,7 +3,7 @@
 // eyes) and the Skitter's core throb are violet glows drawn at the rig's attach points on the
 // effects layer, where the bloom picks them up. Enemy shots leave from the weapon (C2 note 2): the
 // drawn shell or stinger shot starts at the `muzzle` and eases onto the sim's path over its flight.
-// Pure helpers are exported for tests; `drawGlow` takes a Phaser Graphics.
+// The Stalker flashes its new quarry's color at its feet (C3). Pure helpers are exported for tests; `drawGlow` takes a Phaser Graphics.
 import type * as Phaser from 'phaser';
 import { theme } from '../../shared/theme';
 import type { Pos } from './shot';
@@ -22,6 +22,25 @@ export function chargeLevel(ageMs: number, windupMs: number): number {
   if (ageMs >= windupMs) return 1 - (ageMs - windupMs) / 80;
   const u = ageMs / windupMs;
   return u * u * (3 - 2 * u);
+}
+
+/**
+ * The Stalker's target flash (C3, FF10-fix-1, §9.6): on each new quarry, the quarry's player color
+ * flashes as a ring at the Stalker's feet for `HUNT_FLASH_MS`, then nothing until the next change.
+ */
+export const HUNT_FLASH_MS = 2000;
+/** Flashes during the window. */
+const HUNT_FLASHES = 4;
+/** The last part of the window fades out, ms. */
+const HUNT_FADE_MS = 500;
+
+/** The flash level `ageMs` after the Stalker took its quarry: pulsing, fading out, then 0. */
+export function huntFlashLevel(ageMs: number): number {
+  if (ageMs < 0 || ageMs >= HUNT_FLASH_MS) return 0;
+  const u = ageMs / HUNT_FLASH_MS;
+  const pulse = 0.6 + 0.4 * Math.cos(2 * Math.PI * HUNT_FLASHES * u);
+  const fade = Math.min(1, (HUNT_FLASH_MS - ageMs) / HUNT_FADE_MS);
+  return pulse * fade;
 }
 
 /** Skitter core throb rate (Hz) by distance to the Citadel (tiles): faster as it nears (§9.6). */

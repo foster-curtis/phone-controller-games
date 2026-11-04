@@ -156,6 +156,11 @@ export interface EnemyEnt extends Unit {
   leashFrom: Vec2 | null;
   /** Hunter's quarry (slot). */
   hunting: number | null;
+  /**
+   * Hunter only (FF10-fix-1): the tick it took its current quarry (first pick or a change), which
+   * drives the TV's ~2 s player-color flash at its feet. Absent for other enemies.
+   */
+  huntSince?: number;
   attack: AttackState;
   /**
    * Scrap-mite jitter (FF10; §15.3: in the sim, combat stream): sideways drift (−1..1), pace factor

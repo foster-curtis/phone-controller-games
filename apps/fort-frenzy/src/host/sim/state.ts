@@ -11,6 +11,7 @@ import { hookList } from '../systems/modifiers';
 import type { Catalog } from './catalog';
 import type { FireSpec, Rect, SimState, SlotInput, UnitKind } from './internal';
 import { effects as effectDefs, modules } from './registry';
+import { THREAT_COST, threatMap, type Attacker } from './ai/threat';
 import { createSpatialHash } from './spatial';
 import { attackStat, modifiersOf, statBlock, type Caps } from './stats';
 import {
@@ -218,11 +219,51 @@ export function createState(start: RunStart, cat: Catalog): FullState {
   };
   const groundCost = tileCost(false);
   const breakerCost = tileCost(true);
+  // Tower threat for the Hunters' fields (C3, FF10-fix-1): ground cost plus a cost per attacker
+  // whose range covers the tile (ai/threat.ts).
+  const threat = new Float32Array(cols * rows);
+  const huntCost = (t: number) => {
+    const g = groundCost(t);
+    return g === IMPASSABLE ? g : g + threat[t]! * THREAT_COST;
+  };
+  const computeThreat = () => {
+    const out: Attacker[] = [];
+    for (const st of world.structures) {
+      const atk = cat.structure(st.kind).attack;
+      if (!atk || (st.damageable && st.hp <= 0)) continue;
+      out.push({
+        x: st.x,
+        y: st.y,
+        range: attackStat(st, atk.range, 'range', undefined, effectDefs, caps),
+      });
+    }
+    const b = world.base;
+    const sentries = cat.base.archers;
+    if (b.hp > 0) {
+      const range = attackStat(b, sentries.attack.range, 'range', undefined, effectDefs, caps);
+      for (let i = 0; i < b.archers.count; i++) {
+        const at = sentries.at[i];
+        if (at) out.push({ x: at.x, y: at.y, range });
+      }
+    }
+    threatMap(cols, rows, out, threat);
+  };
+  // 8-neighbor fields that never cut a blocker's corner (C3: direct diagonals to the Citadel).
+  const solid = (t: number) => {
+    const k = kinds[t];
+    if (k === 'citadel' || k === 'blocked') return true;
+    const occ = occupant[t]!;
+    if (occ === 0) return false;
+    const st = units.get(occ) as StructureEnt | undefined;
+    return st !== undefined && isBlocker(st.kind);
+  };
+  const fieldOpts = { diagonal: true, solid };
   /** The tile each hunted field was built toward (−1 = stale), by slot. */
   const huntedAt: number[] = [];
   const rebuildFields = () => {
-    buildField(world.grid, groundCost, goals, world.fields.ground);
-    buildField(world.grid, breakerCost, goals, world.fields.breaker);
+    buildField(world.grid, groundCost, goals, world.fields.ground, fieldOpts);
+    buildField(world.grid, breakerCost, goals, world.fields.breaker, fieldOpts);
+    computeThreat();
     huntedAt.fill(-1);
     world.fields.dirty = false;
   };
@@ -483,7 +524,7 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       while (huntedAt.length <= slot) huntedAt.push(-1);
       const f = hunted[slot] ?? undefined;
       if (f && huntedAt[slot] === t) return f;
-      hunted[slot] = buildField(world.grid, groundCost, [t], f);
+      hunted[slot] = buildField(world.grid, huntCost, [t], f, fieldOpts);
       huntedAt[slot] = t;
       return hunted[slot];
     },
