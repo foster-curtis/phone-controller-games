@@ -1,6 +1,7 @@
 // Enemies (SPEC §9, §9.1 starting stats). Speeds in tiles/s: the Grunt's 1.0 is 1.3 tiles/s and the
 // others scale from it. HP, damage and budget cost are §9.1's; reaches, cooldowns and wind-ups (the
-// tells, §9.6) are starting values for playtesting. The Colossus (§9.2) arrives with FF11.
+// tells, §9.6) are starting values for playtesting. The Colossus (§9.2) is a boss module (FF11): its
+// attacks, stagger and final phase run in src/host/sim/boss/colossus.ts from the params here.
 import type { EnemyDef } from './types';
 
 /** Tiles/s of speed 1.0 (§9.1's relative speeds). */
@@ -152,4 +153,72 @@ export const hunter = {
   },
 } satisfies EnemyDef;
 
-export const enemies: EnemyDef[] = [grunt, runner, swarm, brute, flyer, siege, hunter];
+/**
+ * The Colossus (§9.2, FF11): a slow walker on the breaker field. `attack` is its slam (a 1.5 s red
+ * circle in front of it, players and structures); walls take 3× (wall breaker), the Citadel 1.5×.
+ * HP is Mk I's at 2 players on Normal: Mk II and III multiply it (`hpMk2`, `hpMk3`), then player
+ * count and difficulty. Times in ms, distances in tiles, `stagger*` as fractions of the meter.
+ */
+export const colossus = {
+  id: 'colossus',
+  hp: 2500,
+  speed: 0.45 * SPEED,
+  radius: 0.9,
+  flying: false,
+  budget: 10,
+  ai: 'boss',
+  field: 'breaker',
+  attack: {
+    shape: 'circle',
+    damage: 60,
+    range: 1.2,
+    cooldownMs: 2500,
+    windupMs: 1500,
+    radius: 1.5,
+    hitsFlyers: false,
+  },
+  vsStructure: { wall: 3, base: 1.5 },
+  slowResist: 0.5,
+  boss: {
+    module: 'colossus',
+    params: {
+      hpMk2: 1.6,
+      hpMk3: 2.4,
+      // The slam's circle sits this far past its body; it slams a player or soldier within reach.
+      slamOffset: 0.7,
+      // Boulder throw (Mk II+): wind-up, then a lob at a tower or the largest group of players.
+      boulderWindupMs: 1000,
+      boulderCooldownMs: 7000,
+      boulderMinRange: 2.5,
+      boulderRange: 9,
+      boulderRadius: 1.2,
+      boulderDamage: 45,
+      boulderSpeed: 8,
+      groupRadius: 2,
+      // Final phase (Mk III below `finalAt` of its HP): faster moves and attacks, shockwave rings,
+      // Runner calls from the spires.
+      finalAt: 0.5,
+      finalSpeed: 1.35,
+      finalCooldown: 0.6,
+      ringCount: 5,
+      ringBand: 0.8,
+      ringStepMs: 130,
+      ringDamage: 25,
+      callWindupMs: 1000,
+      callCooldownMs: 10_000,
+      runners: 5,
+      // Stagger: damage fills `staggerPerHp` meters per max HP; a counted stun adds `staggerStun`,
+      // at most one per `stunLockMs`; full = `staggerMs` on one knee taking +`staggerBonus` damage.
+      staggerPerHp: 3,
+      staggerStun: 0.25,
+      stunLockMs: 2500,
+      staggerMs: 3000,
+      staggerBonus: 0.5,
+      // Grunt and Swarm escorts walk in with Mk II and III (§9.2 wave 10).
+      escortGrunts: 2,
+      escortSwarms: 1,
+    },
+  },
+} satisfies EnemyDef;
+
+export const enemies: EnemyDef[] = [grunt, runner, swarm, brute, flyer, siege, hunter, colossus];

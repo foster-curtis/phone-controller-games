@@ -10,7 +10,8 @@ import { buildField, IMPASSABLE } from '../systems/flowfield';
 import { hookList } from '../systems/modifiers';
 import type { Catalog } from './catalog';
 import type { FireSpec, Rect, SimState, SlotInput, UnitKind } from './internal';
-import { effects as effectDefs, modules } from './registry';
+import { bossMk } from './boss';
+import { bosses, effects as effectDefs, modules } from './registry';
 import { THREAT_COST, threatMap, type Attacker } from './ai/threat';
 import { createSpatialHash } from './spatial';
 import { attackStat, modifiersOf, statBlock, type Caps } from './stats';
@@ -473,6 +474,14 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       world.enemies.push(e);
       register(e, 'enemy', stats);
       ctx.emit({ e: 'spawn', id, enemy: kind, lane });
+      const boss = def.boss ? bosses[def.boss.module] : undefined;
+      if (boss) {
+        // Boss HP scales with the players at wave start (§9.2, §9.4), baked in like difficulty;
+        // the module may raise it further (the Colossus's Mk), so the stat block follows.
+        e.maxHp = e.hp = hp * world.team.scaling.mult;
+        boss.init(ctx, e, { wave: world.wave, mk: bossMk(cat.wave(world.wave), world.wave) });
+        stats.maxHp = e.stats.maxHp = e.maxHp;
+      }
       return e;
     },
     placeStructure(kind: StructureId, col, row, owner) {
@@ -676,6 +685,13 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       }
     }
     if (tkind === 'player') (target as PlayerEnt).run.damageTaken += r.dealt;
+    // The boss's stagger meter (§9.2, pipeline stage 7) and the summary's boss damage (FF11).
+    const boss = tkind === 'enemy' ? (target as EnemyEnt) : null;
+    if (boss?.boss) {
+      if (src && unitKinds.get(src.id) === 'player') (src as PlayerEnt).run.bossDamage += r.dealt;
+      const ref = cat.enemy(boss.kind).boss;
+      if (ref) bosses[ref.module]?.onDamage?.(ctx, boss, r);
+    }
     if (tkind === 'base' && r.dealt > 0) ctx.emit({ e: 'baseHit', amount: r.dealt, hp: target.hp });
     if (src) for (const f of ctx.hooks(src, 'onDamageDealt')) f(ctx, src, r);
     for (const f of ctx.hooks(target, 'onDamageTaken')) f(ctx, target, r);

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { STRUCTURE_INFO } from '../../controller/copy';
 import { FORTIFIABLE } from '../../host/sim/building';
 import { modules } from '../../host/sim/registry';
-import { aiKinds, structureBehaviors } from '../../host/sim/registry';
+import { aiKinds, bosses, structureBehaviors } from '../../host/sim/registry';
 import { generateWave, groupsCost, playerScale, waveRng } from '../../host/systems/waves';
 import {
   CARD_IDS,
@@ -65,7 +65,8 @@ describe('content ids', () => {
   it('enemies have an AI and boss modules exist; structures with attacks have a behavior', () => {
     for (const e of c.enemies) {
       expect(Object.keys(aiKinds)).toContain(e.ai);
-      if (e.boss) expect(Object.keys(modules)).toContain(e.boss.module);
+      // Boss refs name a boss behavior (FF11: the `bosses` registry, not passive modules).
+      if (e.boss) expect(Object.keys(bosses)).toContain(e.boss.module);
     }
     for (const s of c.structures) {
       if (s.attack) expect(Object.keys(structureBehaviors)).toContain(s.id);
@@ -99,8 +100,8 @@ describe('content ids', () => {
         cost += g.count * c.enemies.find((e) => e.id === g.enemy)!.budget;
       }
       expect(w.budget).toBeGreaterThanOrEqual(cost);
-      // The Colossus's def arrives with FF11; until then a boss ref only needs a known id.
-      if (w.boss) expect(ENEMY_IDS).toContain(w.boss.id);
+      // A boss ref names a boss enemy (FF11).
+      if (w.boss) expect(c.enemies.find((e) => e.id === w.boss!.id)?.ai).toBe('boss');
     }
   });
 });

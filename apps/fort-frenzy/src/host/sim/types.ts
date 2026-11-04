@@ -4,7 +4,8 @@
 // steps); config times in ms are converted to ticks at load.
 // Frozen at FF1 (BUILD_PLAN §3): additive changes only (new optional fields, new union members).
 // FF6 added `Unit.push` and `BaseState.stage`; FF9 added `ThrownCrate` and `World.thrown`; FF10 added
-// `EnemyEnt.wander`; FF8 added `AttackState.windupAim`.
+// `EnemyEnt.wander`; FF8 added `AttackState.windupAim`; FF11 added `BossAct` and the optional
+// `EnemyEnt.boss` fields `act`, `ready` and `stunAt`.
 import type { Rng } from '@pcg/game-kit';
 import type {
   EffectApply,
@@ -168,7 +169,32 @@ export interface EnemyEnt extends Unit {
    */
   wander?: { side: number; pace: number; until: number };
   /** Boss only: stagger meter 0..1 and Mk tier. */
-  boss?: { mk: 1 | 2 | 3; stagger: number; staggeredUntil: number | null; finalPhase: boolean };
+  boss?: {
+    mk: 1 | 2 | 3;
+    stagger: number;
+    staggeredUntil: number | null;
+    finalPhase: boolean;
+    /** FF11: the attack winding up (it lands or launches at `act.at`), null between attacks. */
+    act?: BossAct | null;
+    /** FF11: tick from which each of the boss's attacks may start again, by attack. */
+    ready?: Record<string, number>;
+    /** FF11: tick of the last stun that filled the stagger meter (one counts per lockout). */
+    stunAt?: number | null;
+  };
+}
+
+/**
+ * A boss attack in progress (FF11, §9.2): what it is (`slam`, `breaker`, `boulder`, `call` for the
+ * Colossus), when it started and lands, where it lands, what it aims at and its danger marker.
+ */
+export interface BossAct {
+  kind: string;
+  startedAt: number;
+  at: number;
+  x: number;
+  y: number;
+  target: EntityId | null;
+  marker: EntityId | null;
 }
 
 /** Structures and the base are damage targets with mods (tower defense, base armor), so units. */

@@ -3,6 +3,7 @@
 // destroyed, build timer and ready-up. Also the phase transitions the commands reuse.
 import { tickEffects } from '../systems/effects';
 import { generateWave, playerScale, waveRng } from '../systems/waves';
+import { bossSpawn, collapseAfterBoss } from './boss';
 import { dropAll } from './crates';
 import { releaseAll, respawn } from './players';
 import { effects as effectDefs } from './registry';
@@ -69,6 +70,8 @@ function coinsFor(s: FullState, e: EnemyEnt, paid: Set<number>): number {
 export function stepDeaths(s: FullState): void {
   const w = s.world;
   const t = w.tick;
+  // The boss's death ends the wave: the rest collapse (§9.2, FF11).
+  collapseAfterBoss(s);
   // Enemies.
   let write = 0;
   const paid = new Set<number>();
@@ -274,6 +277,9 @@ export function startCombat(s: FullState): void {
         warned: false,
       });
     }
+    // A boss wave's boss walks in first, up its first lane (§9.2, FF11).
+    const boss = bossSpawn(def, w.tick + lead);
+    if (boss) w.spawns.push(boss);
   }
   // The Hunters' tower threat picks up range cards and sentries bought in the build (FF10-fix-1).
   s.rebuildFields();

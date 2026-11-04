@@ -4,7 +4,7 @@
 import { base, rules } from './base';
 import { commander, engineer, quartermaster, warden } from './characters';
 import { difficulties, scaling } from './difficulty';
-import { brute, flyer, grunt, hunter, runner, siege, swarm } from './enemies';
+import { brute, colossus, flyer, grunt, hunter, runner, siege, swarm } from './enemies';
 import { mapV1 } from './map';
 import { crate } from './shop';
 import { arrowTower, bombTower, fortify, snare, wall } from './structures';
@@ -40,7 +40,7 @@ export interface Content {
 
 export const content: Content = {
   characters: [engineer, quartermaster, commander, warden],
-  enemies: [grunt, runner, swarm, brute, flyer, siege, hunter],
+  enemies: [grunt, runner, swarm, brute, flyer, siege, hunter, colossus],
   structures: [arrowTower, bombTower, wall, snare, fortify],
   cards: [],
   shop: [crate],

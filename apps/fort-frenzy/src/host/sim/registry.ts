@@ -6,6 +6,8 @@
 import type { EnemyDef } from '../../content/types';
 import type { EffectId, StructureId } from '../../shared/ids';
 import { bruteAi } from './ai/brute';
+import { colossus } from './boss/colossus';
+import { state } from './internal';
 import { flyerAi } from './ai/flyer';
 import { hunterAi } from './ai/hunter';
 import { pathAi } from './ai/path';
@@ -54,7 +56,15 @@ export const effects: Partial<Record<EffectId, EffectDef>> = {
 };
 
 /** Boss behaviors, by id ('colossus'). */
-export const bosses: Record<string, BossBehavior> = {};
+export const bosses: Record<string, BossBehavior> = {
+  colossus: colossus, // FF11
+};
+
+/** `boss` AI (FF11): the enemy's boss module (content `boss.module`) runs it each step. */
+function bossAi(ctx: SimCtx, e: EnemyEnt): void {
+  const ref = state(ctx).cat.enemy(e.kind).boss;
+  if (ref) bosses[ref.module]?.tick(ctx, e);
+}
 
 /** One enemy's AI for a step (§15.5 behavior per `ai`). */
 export type AiTick = (ctx: SimCtx, enemy: EnemyEnt) => void;
@@ -66,6 +76,7 @@ export const aiKinds: Partial<Record<EnemyDef['ai'], AiTick>> = {
   flyer: flyerAi, // FF10
   siege: siegeAi, // FF10
   hunter: hunterAi, // FF10
+  boss: bossAi, // FF11
 };
 
 /** One structure's behavior for a step (attacks, snare discharges, Fortify). */
