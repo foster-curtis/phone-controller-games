@@ -45,11 +45,14 @@ test('15th shot ends the shoot, dodger tags are ignored, 0 photos scores nothing
   const shoot = screen(ph.page, 'shoot');
   await expect(shoot).toBeVisible({ timeout: 10_000 });
   const started = Date.now();
-  for (let i = 1; i <= 15; i++) {
+  for (let i = 1; i < 15; i++) {
     await shoot.click({ position: { x: 200, y: 400 } });
     await expect(ph.page.locator('.shot-counter')).toHaveText(`${i} / 15`);
-    if (i < 15) await ph.page.waitForTimeout(450);
+    await ph.page.waitForTimeout(450);
   }
+  // The 15th shot ends the shoot, so the shoot screen may already be gone: check the host instead.
+  await shoot.click({ position: { x: 200, y: 400 } });
+  await expect.poll(async () => (await hostState(host)).round?.photos.length).toBe(15);
   await setTimeScale(host, 0.1);
   await expect.poll(() => hostPhase(host)).not.toBe('shoot');
   expect(Date.now() - started).toBeLessThan(18_000); // well before the 20 s timer

@@ -574,6 +574,7 @@ Format: `- [SC#] decision: one line, with the reason.`
 - [SC5] decision: "TV shows 5 / 5" is checked as `📸 5 / 15` on the shoot view plus `Photo 1 / 5` and five arrived photos in review, because photos upload while shooting and the TV goes straight past upload when they're all in.
 - [SC5] decision: e2e helpers add `joinPlayer` (commits the lobby name with Enter), `cameraAndReady`, `photographerOf`, `sendRaw` and host hook readers; SC0's `joinPhone` stays as it is (it expects a Next button the SC3 lobby doesn't have). Phone buttons are found by `data-action` (SC3's `button` helper).
 - [SC5] decision: `play.html` JS measured 15.3 KB gzip (limit 40 KB): no limit change.
+- [SC5-fix-1] decision: the limits e2e checks the 15th shot on the host (15 photos in the round), not the phone's shot counter, because the 15th shot ends the shoot and the phone's shoot screen can unmount before the assertion (a test race; the code is right).
 
 ## 9. Final handoff (and early setup)
 
