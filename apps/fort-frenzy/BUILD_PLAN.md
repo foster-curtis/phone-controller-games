@@ -860,8 +860,8 @@ Rules:
   - [x] Resume e2e (specs written, typechecked and linted; run by the orchestrator's test-runner)
   - [x] Merged to `main`
 - FF15 Soak + perf
-  - [ ] Soak + determinism over full runs
-  - [ ] Bench at real peak + stress mode + perf fixes
+  - [x] Soak + determinism over full runs
+  - [x] Bench at real peak + stress mode + perf fixes
   - [ ] Merged to `main`
 - [ ] **User approved C4** (full run, pacing, balance)
 - [ ] Final Workspace checks green on `main`
