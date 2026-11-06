@@ -822,6 +822,7 @@ Rules:
   - [x] FF7-fix-1: C2 notes (Ranger bow draw/release, bolt leaves from the bow, super-ready amber ring pulse replaces the head badge)
   - [x] FF7-fix-2: C3 aim previews shaped like every aimed attack and super (Warden cone fill, Artificer filled cone), Warden narrower + longer slam and super, Ranger super range up
   - [x] FF7-fix-3: C3 follow-up: Warden slam and Commander slash aimed, cone/arc previews
+  - [ ] FF7-fix-4: early C4 note: the aim line hides as soon as a held aimed attack cancels
 - [x] **User approved C2** (slice on real phones and TV): notes fixed in FF7-fix-1; Citadel collapse deferred to v2; feel and visual notes re-judged at C3
 - FF8 Warden + structures
   - [x] Warden kit + clips
@@ -838,6 +839,7 @@ Rules:
   - [x] Waves 1–15 content
   - [x] Merged to `main`
   - [x] FF10-fix-1: C3 Wasp jitter, Hunter tower-avoiding path + player-color foot flash, diagonal flow field to the Citadel
+  - [ ] FF10-fix-2: early C4 notes: Wasp flies at half height; enemy hitboxes cover the whole body (no arms/tails), Colossus low but a bit bigger
 - [x] **User approved C3** (class kits and enemies): notes fixed in FF3-fix-2, FF7-fix-2, FF9-fix-1, FF10-fix-1, run in parallel with FF11–FF13 at the user's request; feel and visual notes re-judged at C4
 - FF11 Colossus
   - [x] Boss module (forms, attacks, stagger, rewards)
@@ -1561,6 +1563,8 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   `RulesDef` `projectileRadius`, `enemySwingSlack`, `enemyShotSlack`, `fortifyReach`, `cardOffer`, `dots`,
   `comboSpread` (only content builds a `RulesDef`). `sim/types.ts` `EffectDef.maxStacks`/`tickEveryMs` stay but are
   unused (`rules.dots` replaces them). SPEC §15.4 sketch updated.
+- [orch] decision (user, early C4 notes, 2026-11-05): FF7-fix-4 (aim line on cancel) and FF10-fix-2 (Wasp height, body hitboxes incl. the Colossus) run in parallel with FF14 ∥ FF15; the user is re-picking the SFX themselves, so no fix milestone touches audio picks.
+- [orch] decision: since the Changesets setup on main, every FF branch that changes shipped code commits a `.changeset/*.md` note (`pnpm changeset --<level> @pcg/fort-frenzy -m "…"`); FF14 minor, FF15 and fixes patch.
 
 ## 9. Final handoff
 
