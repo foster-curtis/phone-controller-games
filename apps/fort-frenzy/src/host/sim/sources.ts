@@ -104,6 +104,7 @@ export class AutopilotInputSource implements InputSource {
   private counters = { mainFires: 0, superFires: 0, actionTaps: 0, radialCommits: 0 };
   private lastAction = -Infinity;
   private shots = 0;
+  private depot: { x: number; y: number } | null | undefined;
 
   constructor(
     private readonly world: () => World,
@@ -122,7 +123,9 @@ export class AutopilotInputSource implements InputSource {
     const price = this.content.shop.find((s) => s.id === 'crate')?.tiers[0]?.price ?? Infinity;
     const kit = def.build[0];
     const cost = kit ? (this.content.structures.find((s) => s.id === kit)?.cost ?? 99) : 99;
-    const depot = findTile(map.tiles, map.legend, 'armory');
+    // The map never changes: find the Armory pad once (FF15: it was a whole-map scan every sample).
+    if (this.depot === undefined) this.depot = findTile(map.tiles, map.legend, 'armory');
+    const depot = this.depot;
     const home = {
       x: map.cols / 2 + ((this.slot % 3) - 1) * 3,
       y: map.rows * 0.55 + Math.floor(this.slot / 3) * 2,

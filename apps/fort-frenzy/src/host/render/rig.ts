@@ -39,6 +39,8 @@ interface PartSet {
   container: Phaser.GameObjects.Container;
   nodes: Map<string, PartNode>;
   orderKey: string;
+  /** The view's own order, joined (no swap). */
+  baseKey: string;
   mats: Map<string, Mat>;
 }
 
@@ -285,8 +287,9 @@ export class RigSprite implements RigInstance {
 
   update(dtMs: number) {
     // Clips.
-    let sample: ClipSample = { parts: new Map(), order: null };
-    if (this.cur) {
+    let sample: ClipSample;
+    if (!this.cur) sample = { parts: new Map(), order: null };
+    else {
       this.cur.t += dtMs * this.cur.speed;
       sample = sampleClip(this.cur.clip, this.cur.t);
       if (this.prev && this.clipFade.ms > 0) {
@@ -388,6 +391,7 @@ export class RigSprite implements RigInstance {
       container,
       nodes,
       orderKey: rv.order.join(','),
+      baseKey: rv.order.join(','),
       mats: new Map(),
     };
     this.sets.push(set);
@@ -413,11 +417,9 @@ export class RigSprite implements RigInstance {
       const d = decompose(m, n.part.pivot);
       const p = sample.parts.get(n.name);
       let alpha = p?.alpha ?? 1;
-      const imgs = n.boost ? [n.art, n.boost] : [n.art];
-      for (const a of imgs) {
-        a.img.setPosition(d.x - fx, d.y - fy).setRotation(d.rotation);
-        a.img.setScale(d.scaleX / a.ppuX, d.scaleY / a.ppuY);
-      }
+      // No per-part array (FF15 perf: ~1,300 parts a frame at peak).
+      placePart(n.art, d, fx, fy);
+      if (n.boost) placePart(n.boost, d, fx, fy);
       if (n.part.emissive) {
         const level = this.unlit ? 1 : (p?.glow ?? 1) * this.glowLevel;
         alpha *= Math.min(1, level);
@@ -426,9 +428,12 @@ export class RigSprite implements RigInstance {
       }
       n.art.img.setAlpha(alpha);
     }
-    // Per-key draw-order swaps.
-    const order = applyOrder(set.rv.order, sample.order);
-    const key = order.join(',');
+    // Per-key draw-order swaps. Most clips have none: then the order is the view's own, and there is
+    // no copy and join every frame (FF15 perf).
+    const swap = sample.order !== null && sample.order.length > 0;
+    if (!swap && set.orderKey === set.baseKey) return;
+    const order = swap ? applyOrder(set.rv.order, sample.order) : set.rv.order;
+    const key = swap ? order.join(',') : set.baseKey;
     if (key !== set.orderKey) {
       set.orderKey = key;
       const rank = new Map(order.map((p, i) => [p, i]));
@@ -460,6 +465,16 @@ export class RigSprite implements RigInstance {
       }
     }
   }
+}
+
+function placePart(
+  a: ArtImage,
+  d: { x: number; y: number; rotation: number; scaleX: number; scaleY: number },
+  fx: number,
+  fy: number,
+) {
+  a.img.setPosition(d.x - fx, d.y - fy).setRotation(d.rotation);
+  a.img.setScale(d.scaleX / a.ppuX, d.scaleY / a.ppuY);
 }
 
 /** Crops an image to [x0, x1] sprite units of its frame (Phaser keeps it across `@unlit` swaps). */
