@@ -5,7 +5,8 @@
 // Frozen at FF1 (BUILD_PLAN §3): additive changes only (new optional fields, new union members).
 // FF6 added `Unit.push` and `BaseState.stage`; FF9 added `ThrownCrate` and `World.thrown`; FF10 added
 // `EnemyEnt.wander`; FF8 added `AttackState.windupAim`; FF11 added `BossAct` and the optional
-// `EnemyEnt.boss` fields `act`, `ready` and `stunAt`; FF12 added `HealCalc` and `Hooks.modifyHeal`.
+// `EnemyEnt.boss` fields `act`, `ready` and `stunAt`; FF12 added `HealCalc` and `Hooks.modifyHeal`;
+// FF7-fix-4 added `AttackState.held`.
 import type { Rng } from '@pcg/game-kit';
 import type {
   EffectApply,
@@ -97,6 +98,11 @@ export interface AttackState {
   windupEndsAt: number | null;
   /** A player's wound-up attack lands in this direction (FF8; `aim` keeps queueing presses). */
   windupAim?: Vec2 | null;
+  /**
+   * A player's held aim (FF7-fix-4): `out` once it left the dead zone, `cancelled` once it came back
+   * (a release would cancel; the aim line stays hidden until the button is let go), null when not held.
+   */
+  held?: 'out' | 'cancelled' | null;
 }
 
 export interface PlayerEnt extends Unit {

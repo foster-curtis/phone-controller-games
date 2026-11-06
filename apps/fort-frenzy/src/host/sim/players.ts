@@ -1,7 +1,8 @@
 // Step 3 (SPEC §15.3): players — respawn, movement with carry slowdown, attacks and supers (fire on
 // release, a release during the cooldown fires when it ends), the action button (§10.1 rows 1–5), the
 // build arc and Give.
-import type { AttackDef, EffectApply } from '../../content/types';
+import type { AttackDef, EffectApply, Vec2 } from '../../content/types';
+import { AIM_DEAD_ZONE } from '../../shared/messages';
 import { bodyAimY, circleHitsBody } from './body';
 import { buildAtFeet } from './building';
 import { landArc, windupSteps } from './classes/warden';
@@ -21,7 +22,7 @@ import { attackShapes } from './classes/shapes';
 import { cleanVec } from './geometry';
 import type { SlotInput } from './internal';
 import type { FullState } from './state';
-import type { AttackEvent, EnemyEnt, PlayerEnt } from './types';
+import type { AttackEvent, AttackState, EnemyEnt, PlayerEnt } from './types';
 
 export function respawn(s: FullState, p: PlayerEnt): void {
   const at = s.respawnPoint(p.slot);
@@ -45,10 +46,28 @@ function releaseAttacks(p: PlayerEnt): void {
 /** Clears held gestures and queued shots (death, dazed, phase changes). */
 export function releaseAll(p: PlayerEnt): void {
   p.mainAim = p.superAim = null;
+  p.main.held = p.super.held = null;
   p.radialOpen = false;
   p.radialSlot = -1;
   releaseAttacks(p);
   p.vx = p.vy = 0;
+}
+
+/**
+ * The held aim the TV previews (FF7-fix-4, SPEC §15.7): once a hold that left the dead zone comes back
+ * into it, a release would cancel, so the preview hides there and stays hidden until the button is
+ * let go. Only what the TV shows changes; when a release fires or cancels is still the phone's rule.
+ */
+function heldAim(st: AttackState, aiming: boolean, raw: Vec2): Vec2 | null {
+  if (!aiming) {
+    st.held = null;
+    return null;
+  }
+  const v = cleanVec(raw.x, raw.y);
+  const inside = Math.hypot(v.x, v.y) <= AIM_DEAD_ZONE;
+  if (!inside && st.held == null) st.held = 'out';
+  else if (inside && st.held === 'out') st.held = 'cancelled';
+  return st.held === 'out' ? v : null;
 }
 
 export function stepPlayers(s: FullState): void {
@@ -66,10 +85,8 @@ export function stepPlayers(s: FullState): void {
     }
     const inp = s.inputs.get(p.slot)!;
     move(s, p, inp, acting);
-    p.mainAim = inp.input.mainAiming ? cleanVec(inp.input.mainAim.x, inp.input.mainAim.y) : null;
-    p.superAim = inp.input.superAiming
-      ? cleanVec(inp.input.superAim.x, inp.input.superAim.y)
-      : null;
+    p.mainAim = heldAim(p.main, inp.input.mainAiming, inp.input.mainAim);
+    p.superAim = heldAim(p.super, inp.input.superAiming, inp.input.superAim);
     p.radialOpen = inp.input.radialOpen;
     p.radialSlot = inp.input.radialOpen ? inp.input.radialSlot : -1;
 

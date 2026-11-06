@@ -39,6 +39,12 @@ export const INPUT_FLAG_SUPER_AIMING = 2;
 export const INPUT_FLAG_RADIAL_OPEN = 4;
 
 /**
+ * Aimed-button dead zone as a fraction of the aim clamp (the kit's aimed rule, 12% of `maxPx`). A held
+ * aim back inside it cancels on release, so the TV hides its aim line (FF7-fix-4, SPEC §15.7).
+ */
+export const AIM_DEAD_ZONE = 0.12;
+
+/**
  * Phone → host input (SPEC §10.1, §11.4). Sticks and aims are ints −100..100, dead zone applied on
  * the phone. Counters only grow (a reload restarts them; the host re-baselines, §15.3).
  */

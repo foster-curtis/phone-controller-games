@@ -822,7 +822,7 @@ Rules:
   - [x] FF7-fix-1: C2 notes (Ranger bow draw/release, bolt leaves from the bow, super-ready amber ring pulse replaces the head badge)
   - [x] FF7-fix-2: C3 aim previews shaped like every aimed attack and super (Warden cone fill, Artificer filled cone), Warden narrower + longer slam and super, Ranger super range up
   - [x] FF7-fix-3: C3 follow-up: Warden slam and Commander slash aimed, cone/arc previews
-  - [ ] FF7-fix-4: early C4 note: the aim line hides as soon as a held aimed attack cancels
+  - [x] FF7-fix-4: early C4 note: the aim line hides as soon as a held aimed attack cancels
 - [x] **User approved C2** (slice on real phones and TV): notes fixed in FF7-fix-1; Citadel collapse deferred to v2; feel and visual notes re-judged at C3
 - FF8 Warden + structures
   - [x] Warden kit + clips
@@ -1625,6 +1625,8 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   lead since the balance sheet), so slot 0 is a Commander (FF15 rewrites the bench: take theirs on
   conflict). Peak, this machine, same load: main's sim mean 0.43–0.49 ms; this code with flat bodies 0.46;
   real bodies 0.54 ms, p99 1.4 ms (more footmen survive the run: 20 vs 4).
+- [FF7-fix-4] contract+: `src/shared/messages.ts` `AIM_DEAD_ZONE` (0.12, the kit's aimed dead zone as a fraction of the clamp; a test pins it to `AIMED_DEFAULTS`) and `src/host/sim/types.ts` optional `AttackState.held` (`'out' | 'cancelled' | null`); SPEC §10.1, §15.7, §15.11 #51 updated.
+- [FF7-fix-4] decision: the fix is in the sim (`players.ts` `heldAim`), not the phone: the tuple and its aiming flag are unchanged, and the TV keeps reading `PlayerEnt.mainAim`/`superAim` (null = no preview), so render is untouched. A held aim is `out` once its stick reads past the dead zone and `cancelled` once it reads back at or under it; cancelled hides the preview until the aiming flag drops (the brief's "stays hidden until a new press"). An aim that has not yet read past the dead zone shows nothing, so a slow drag rounding to the edge (stick ints) can't latch a cancel. Known edge: dragging out again after a cancel and releasing still fires (the phone's rule, unchanged) with no line shown; ask at C4 if the line should come back instead.
 
 ## 9. Final handoff
 

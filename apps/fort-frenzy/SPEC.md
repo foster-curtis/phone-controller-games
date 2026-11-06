@@ -1118,7 +1118,8 @@ viewport. Sizes are fixed in px, with the minimums listed.
   circles. Cones and circles lie on
   the ground under the units, dim enough to stay out of the bloom. A super previews only once charged.
 - **Release outside the dead zone:** fires in the aimed direction.
-- **Slide back into the dead zone, then release:** cancels.
+- **Slide back into the dead zone, then release:** cancels. The TV's aim line hides as soon as the aim is
+  back in the dead zone and stays hidden for the rest of that hold (C4, §15.11 #51).
 
 **Firing:** every attack fires **on release**, once per release.
 - Holding an aimed button only shows the aim line on the TV until release.
@@ -2104,7 +2105,10 @@ interface MeView {
 - **Gestures** (`controller-kit`, pure state machines with DOM adapters, unit-tested without a DOM):
   - **Aimed button:** down → `pending`; released within 150 ms inside the dead zone → `tap` (fire,
     aim 0,0); dragged out → `aiming` (aim flag set, vector clamped to 70 px); released outside the dead
-    zone → `fire` with the aim; released inside it after aiming → `cancel`.
+    zone → `fire` with the aim; released inside it after aiming → `cancel`. The tuple is unchanged; the
+    sim hides the held aim (`PlayerEnt.mainAim`/`superAim` null, tracked in `AttackState.held`) once an
+    aim that left the dead zone (`AIM_DEAD_ZONE` = 0.12 of the clamp, `shared/messages.ts`) comes back
+    into it, until the aiming flag drops (FF7-fix-4).
   - **Tap button:** fires on release (§10.1).
   - **Radial button:** a tap within 150 ms → `tap`; held 0.4 s or dragged out → `open` (radial flag,
     slot by drag direction among enabled slots, 8 px hysteresis between slots); released on a slot →
@@ -2294,3 +2298,4 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 48 | 2026-11-04 | Balance sheet | Every number that affects balance (HP, damage, ranges, areas, timers, speeds, costs, wave budgets, AI and card tuning) lives in one file, `src/content/balance.ts` (was eight domain files plus constants inside the sim: AI, squad, card offers, damage-over-time, shell flights, projectile radius); card and passive modules read every param from it with no code fallbacks, and content.test checks it is complete; the map stays in `map.ts` (§15.4) | One place to tune for balance (Foster) |
 | 49 | 2026-11-05 | Resume details | A resume restores the saved build phase with a full build timer, knights at the base, cooldowns reset; the snapshot adds the structures' `owner` and the run time `runMs`; phones re-send `hello` when the TV comes back; any slot no phone has matched is claimable in the same or a new room; Return to home kicks every phone and drops the host token (§4, §15.8) | The snapshot's frozen shape holds no positions or timers; a reloaded TV has no party until phones say hello; the claim screen covers a phone that lost its storage either way (FF14) |
 | 50 | 2026-11-05 | Wasp height and body hitboxes | The Wasp flies at half its height (its hull 1.37 tiles over its shadow, was 2.74); our attacks hit an enemy's drawn body (torso, head and legs, a ground capsule up the screen from its feet; arms, tails, rotors and barrels left out; the Wasp at its flight height), the Colossus kept low (its legs, radius 1.0, up to 0.8 tiles); enemy attacks, walking and ground effects keep feet circles | Early C4 notes (Foster): the Wasp flew too high, and aiming at an enemy's head missed because only its feet counted |
+| 51 | 2026-11-05 | Aim line on cancel | Once a held aimed main or super is back in the dead zone (a release would cancel), the TV hides its aim line at once and keeps it hidden until the button is let go, even if the thumb drags out again; when a release fires or cancels is unchanged (§10.1, §15.7) | Early C4 note (Foster): "it still shows the aim line until the player releases the button" |
