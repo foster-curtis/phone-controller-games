@@ -5,10 +5,12 @@ import { createLocalClient, isDevMode } from '@pcg/controller-kit';
 import '../styles/brand.css';
 import '../styles/base.css';
 import '../styles/controller.css';
+import { mountVersionTag } from '../shared/version';
 import { createApp } from './app';
 import { createFakeCamera } from './fakeCamera';
 
 const root = document.getElementById('app') ?? document.body;
+mountVersionTag();
 
 if (isDevMode()) {
   void import('./dev').then((m) => m.startDev(root));

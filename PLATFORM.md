@@ -61,7 +61,7 @@ PLATFORM.md  tsconfig.base.json  pnpm-workspace.yaml
 
 ## 5. Versioning (settled)
 
-Every app and package carries a semver `version` in its `package.json` and a `CHANGELOG.md`, managed by [Changesets](https://github.com/changesets/changesets) (`.changeset/config.json`). Starting points: `@pcg/sunny-side` and `@pcg/relay` 1.0.0 (live); `@pcg/fort-frenzy` and the three `packages/` 0.1.0 (pre-launch; Fort Frenzy goes to 1.0.0 at launch).
+Every app and package carries a semver `version` in its `package.json` and a `CHANGELOG.md`, managed by [Changesets](https://github.com/changesets/changesets) (`.changeset/config.json`). Starting points: `@pcg/sunny-side` and `@pcg/relay` 1.0.0 (live); `@pcg/fort-frenzy`, `@pcg/say-cheese` and the three `packages/` 0.1.0 (pre-launch; each game goes to 1.0.0 at launch).
 
 - **Note with every change.** A change to a package's shipped code adds a changeset (`pnpm changeset`): which packages, which level, one line for the changelog. Tests, fixtures, e2e and Markdown don't count as changes (`changedFilePatterns`). A change that needs no release (a pure refactor) can use `pnpm changeset --empty`.
 - **Bump on deploy.** Versions don't move per commit. Before a deploy lands on `main`, `pnpm changeset version` folds the pending notes into version bumps and changelog entries, so a version number always names something that shipped. Parallel branches never conflict over `package.json` or changelogs, since each note is its own file.

@@ -2,6 +2,7 @@
 // placeholder lobby until host wiring (SC5) feeds real `TvView`s into `renderTv`.
 import { debugEnabled, installDebug } from '@pcg/game-kit';
 import { noopSfx } from '../shared/sfx';
+import { mountVersionTag } from '../shared/version';
 import '../styles/brand.css';
 import '../styles/base.css';
 import '../styles/tv.css';
@@ -11,6 +12,7 @@ import { renderTv } from './view';
 
 const tv = document.getElementById('tv') ?? document.body;
 const params = new URLSearchParams(location.search);
+mountVersionTag();
 
 if (params.get('gallery') === '1') {
   mountGallery(tv);

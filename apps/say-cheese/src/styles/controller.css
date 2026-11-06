@@ -302,3 +302,8 @@ li.away {
   font: 12px var(--font-sans);
   padding: 4px 6px;
 }
+
+/* Version tag (src/shared/version.ts): join and lobby only, never over the controls. */
+body:not(:has([data-screen='joining'], [data-screen='lobby'])) .version-tag {
+  display: none;
+}
