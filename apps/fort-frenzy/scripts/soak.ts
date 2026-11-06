@@ -48,7 +48,8 @@ for (const seed of quick ? SEEDS.slice(0, 1) : SEEDS) {
       if (!ok) failed++;
       console.log(
         `soak seed ${seed} ${classes.join('/').padEnd(52)} ${a.steps} steps, wave ${a.wave} ` +
-          `${a.result}, peak ${a.maxEnemies} enemies, ${a.hashes.length} hashes ${fingerprint(a)} ` +
+          `${a.result}, peak ${a.maxEnemies} enemies, ${a.cardsPicked} cards, ${a.purchases} buys, ` +
+          `${a.hashes.length} hashes ${fingerprint(a)} ` +
           `${same ? 'rerun identical' : 'RERUN DIFFERS'} (${s.toFixed(1)} s for both)` +
           (ok ? '' : '  FAIL'),
       );

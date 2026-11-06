@@ -1,7 +1,7 @@
 // TV entry (index.html, SPEC §15.1, §15.2): the Phaser canvas (the World scene) and the DOM overlay
 // (home, lobby, HUD, summary) over it, both fitted to the window by one shared transform; the host
 // runtime (relay, party, sim); visibility pause and Wake Lock; and, in dev or with `?debug=1`, the
-// debug panel and `window.__pcg`. `?ui=<screen>` and `?gallery=1` stay dev pages.
+// debug panel and `window.__pcg`. `?ui=<screen>`, `?gallery=1` and `?stress=1` stay dev pages.
 import { createHostWakeLock, debugEnabled, watchVisibility } from '@pcg/game-kit';
 import '../styles/brand.css';
 import { mountVersionTag } from '../shared/version';
@@ -148,6 +148,9 @@ if (uiScreen && debug) {
 } else if (params.get('gallery') === '1' && debug) {
   // The art gallery (`?gallery=1`, BUILD_PLAN FF3): dev or `?debug=1` only.
   void import('./render/gallery/index').then(({ startGallery }) => startGallery(tv));
+} else if (params.get('stress') === '1' && debug) {
+  // The in-game stress mode (`?stress=1`, BUILD_PLAN FF15): the real sim at the §15.2 peak.
+  void import('./stress').then(({ startStress }) => startStress(tv, params));
 } else {
   void startTv();
 }

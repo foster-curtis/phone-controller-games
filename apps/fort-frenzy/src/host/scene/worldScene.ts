@@ -19,6 +19,8 @@ export interface SceneHost {
   frame(renderMs: number): FrameInput | null;
   /** Atlas progress 0..1; null when ready. */
   onLoading(progress: number | null): void;
+  /** The scene's render world, once built (the stress overlay, FF15). */
+  onWorld?(world: RenderWorld): void;
   /** After every frame (the DOM overlay refresh). */
   afterFrame?(): void;
 }
@@ -49,6 +51,7 @@ export class WorldScene extends Phaser.Scene {
     this.world = new RenderWorld(this, neonKnightsHost, assets, this.scale1x2, { bloom });
     this.view = null;
     this.runId = this.host.runId;
+    this.host.onWorld?.(this.world);
   }
 
   /** Dev fallback shapes drawn so far (e2e asserts none). */

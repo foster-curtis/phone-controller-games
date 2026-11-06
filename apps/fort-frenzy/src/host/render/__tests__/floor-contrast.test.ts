@@ -10,7 +10,7 @@ import { theme } from '../../../shared/theme';
 import { neonKnightsHost } from '../../../themes/neon-knights/host';
 import { bloomWeight } from '../bloomPick';
 import { contrast, lift, luminance, over, rgb, toHex } from '../color';
-import { DANGER_EDGE, THREAD_ALPHA } from '../legibility';
+import { DANGER_EDGE } from '../legibility';
 
 const art = join(import.meta.dirname, '..', '..', '..', '..', 'art', 'neon-knights');
 const read = (...p: string[]) => readFileSync(join(art, ...p), 'utf8');
@@ -136,14 +136,12 @@ describe('C3 floor (FF3-fix-2)', () => {
       expect(contrast(rgb(p.fill.hex), ink), id).toBeGreaterThanOrEqual(3);
   });
 
-  it('keeps danger markers, shadows and the Stalker thread visible', () => {
+  it('keeps danger markers and shadows visible', () => {
     const ink = rgb(theme.color.brandInk.hex);
     const edge = over(ink, DANGER_EDGE.alpha, FLOOR);
     expect(contrast(FLOOR, edge), 'danger edge').toBeGreaterThanOrEqual(2.5);
     expect(contrast(over(rgb(theme.color.danger.hex), 0.9, edge), edge)).toBeGreaterThanOrEqual(3);
     // groundMarks.shadow's default alpha; on the old floor this was 1.1:1, barely there.
     expect(contrast(FLOOR, over(ink, 0.4, FLOOR)), 'shadow').toBeGreaterThanOrEqual(1.5);
-    const thread = over(rgb(theme.color.hostileCore.hex), THREAD_ALPHA, FLOOR);
-    expect(contrast(FLOOR, thread), 'thread').toBeGreaterThanOrEqual(1.5);
   });
 });

@@ -6,6 +6,3 @@ export const RING_EDGE_PX = 1.5;
 
 /** Ink edge on each side of a red danger marker's ring. */
 export const DANGER_EDGE = { px: 1.5, alpha: 0.85 } as const;
-
-/** The Stalker's target thread: `hostileCore` (pale violet) at this alpha (was `hostile` at 0.32). */
-export const THREAD_ALPHA = 0.5;

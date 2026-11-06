@@ -128,10 +128,12 @@ export class AutopilotInputSource implements InputSource {
       y: map.rows * 0.55 + Math.floor(this.slot / 3) * 2,
     };
 
+    // Only what the main attack can hit: a melee knight under a Flyer would stand there forever
+    // (FF15 soak: invincible, it holds the Flyers' aggro and the wave never ends).
     let nearest = null as (typeof w.enemies)[number] | null;
     let nd = Infinity;
     for (const e of w.enemies) {
-      if (e.hp <= 0) continue;
+      if (e.hp <= 0 || (e.flying && !def.main.hitsFlyers)) continue;
       const d = dist(p.x, p.y, e.x, e.y);
       if (d < nd) {
         nd = d;
@@ -187,6 +189,12 @@ export class AutopilotInputSource implements InputSource {
     const range = def.main.range;
     if (nd > range * 0.8) out.move = toward(p, nearest.x, nearest.y);
     else if (nd < 2.5) out.move = away(p, nearest.x, nearest.y);
+    else if (def.main.blockedBy && shotBlocked(w, p, nearest, def.main.blockedBy)) {
+      // A wall or tower eats the shots (FF15 soak): sidestep, switching sides every 2 s.
+      const side = (Math.floor(tick / 120) + this.slot) % 2 === 0 ? 1 : -1;
+      const d = unit(nearest.x - p.x, nearest.y - p.y);
+      out.move = { x: -d.y * side, y: d.x * side };
+    }
     if (p.main.readyAt <= tick && !p.main.queued) {
       // Alternate aimed shots and auto-aim taps.
       this.shots++;
@@ -210,6 +218,29 @@ function toward(p: PlayerEnt, x: number, y: number) {
 
 function away(p: PlayerEnt, x: number, y: number) {
   return unit(p.x - x, p.y - y);
+}
+
+/** Whether a structure the shot stops at (`blockedBy`) stands on the line to `to` (quarter-tile steps). */
+function shotBlocked(
+  w: World,
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  blockedBy: readonly string[],
+): boolean {
+  const { cols, rows, occupant } = w.grid;
+  const n = Math.ceil(dist(from.x, from.y, to.x, to.y) * 4);
+  for (let i = 1; i < n; i++) {
+    const c = Math.floor(from.x + ((to.x - from.x) * i) / n);
+    const r = Math.floor(from.y + ((to.y - from.y) * i) / n);
+    if (c < 0 || r < 0 || c >= cols || r >= rows) continue;
+    const id = occupant[r * cols + c]!;
+    if (id === 0) continue;
+    const st = w.structures.find((s) => s.id === id);
+    if (!st) continue;
+    const what = st.kind === 'wall' ? 'wall' : st.kind.endsWith('_tower') ? 'tower' : null;
+    if (what !== null && blockedBy.includes(what)) return true;
+  }
+  return false;
 }
 
 function findTile(tiles: readonly string[], legend: Record<string, string>, kind: string) {

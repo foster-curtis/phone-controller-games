@@ -11,7 +11,8 @@
     "typecheck": "pnpm assets && tsc -p tsconfig.json",
     "test": "pnpm assets && vitest run",
     "e2e": "pnpm assets && playwright test --pass-with-no-tests",
-    "bench": "tsx scripts/bench.ts"
+    "bench": "tsx scripts/bench.ts",
+    "soak": "tsx scripts/soak.ts"
   },
   "dependencies": {
     "@pcg/controller-kit": "workspace:*",
