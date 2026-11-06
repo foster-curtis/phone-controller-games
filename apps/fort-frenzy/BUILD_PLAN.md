@@ -862,7 +862,8 @@ Rules:
 - FF15 Soak + perf
   - [x] Soak + determinism over full runs
   - [x] Bench at real peak + stress mode + perf fixes
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
+  - [x] FF15-fix-1: stress overlay counts rig parts only in part sets (crash on code-drawn extras)
 - [ ] **User approved C4** (full run, pacing, balance)
 - [ ] Final Workspace checks green on `main`
 - [ ] Final handoff printed
