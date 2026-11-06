@@ -37,7 +37,8 @@ function startOf(players: number, seed: number): RunStart {
       slot: i,
       name: `Bot${i + 1}`,
       color: PLAYER_COLOR_IDS[i % PLAYER_COLOR_IDS.length]!,
-      classId: 'engineer' as const,
+      // Slot 0 leads the peak's footmen (`addSoldier` needs a Commander since the balance sheet).
+      classId: i === 0 ? ('commander' as const) : ('engineer' as const),
       connected: true,
     })),
   };

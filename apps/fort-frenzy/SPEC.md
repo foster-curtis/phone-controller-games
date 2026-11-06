@@ -289,6 +289,10 @@ W = 48 px (48 × 28.8). Characters are about 1.6 W tall (about 77 px). Art is au
 **Implementation:** the sim stays in square tile coordinates with circular hitboxes. Only the renderer
 projects: screen y = world y × 0.6 − height. Hitboxes, ranges and AoE are drawn as 0.6 ellipses of the
 same circles the sim uses, so what players see always matches what hits.
+**Enemy bodies (C4):** a part drawn h tiles above an enemy's feet covers the ground h / 0.6 tiles up the
+screen, so for our attacks an enemy's hitbox is its feet circle swept up the screen over its drawn body
+(a capsule on the ground, §9, §15.3). An aim line or cone that crosses the drawn body, head included,
+hits; feet circles still walk, collide and take enemy attacks.
 
 **Walls and nets in both directions:** a wall running across the screen shows its full light panel; a
 wall running into the screen is seen edge-on and shows as a glowing top strip between stacked posts.
@@ -835,6 +839,14 @@ Each enemy type is designed as a problem that specific classes solve.
 | Boss (Colossus, §9.2) | Appears at waves 5, 10 and 15 | Everyone |
 
 - **Melee attacks cannot hit Flyers.**
+- **Body hitboxes (C4, Foster):** our attacks (players' shots, arcs, cones and circles, towers, base
+  archers, mortar shells) hit an enemy anywhere on its drawn body: torso, head and legs, from the feet up
+  to the top of the head (the Wasp: its hull at its flight height, not its shadow). Arms, tails, rotors
+  and barrels are left out. The Colossus keeps a low hitbox, its legs, a bit bigger than its feet, so its
+  head and chest never count. Sizes are measured off each rig and live in the balance sheet (§15.4);
+  auto-aim and towers aim at the body's near end (the feet, or the Wasp's hull). Enemy attacks,
+  walking, collisions, the Commander's soldiers and ground effects (snares, Aftershock zones, spreads)
+  keep the feet circles.
 - **Hunter (C3):** it hunts the nearest player and keeps that quarry until they go down or dazed, or
   another player comes clearly closer (2 tiles closer, so two players at similar range don't flip it).
   Rather than going straight for its quarry, it takes the route that spends the least time in range
@@ -999,10 +1011,11 @@ legs with wide foot pads; a long mortar barrel angled up and a rack of glowing s
 Plods to range, plants its legs and lifts the barrel; the muzzle charges violet before each shot, and a
 red landing marker shows where the shell will hit.
 
-**Wasp drone (Flyer):** no legs. Hovers above a knight's head, out of hammer reach, with two violet
-rotor discs each spinning on its own mast, a stinger cannon and a down-thruster glow under the rear of
-the body; its shadow stays on the ground far below. Bobs at a fixed height and never drops toward the
-ground, so it always reads as out of melee reach.
+**Wasp drone (Flyer):** no legs. Hovers at about a knight's head height, out of hammer reach, with two
+violet rotor discs each spinning on its own mast, a stinger cannon and a down-thruster glow under the
+rear of the body; its shadow stays on the ground below. Bobs at a fixed height and never drops toward
+the ground, so it always reads as out of melee reach. **Flight height (C4, Foster):** its hull's
+underside flies 1.37 tiles over its shadow, half its first height (2.74).
 
 **Scrap mites (Swarm):** tiny beetle bugs, about a fifth of a knight's height: a round split shell, a
 small head with antennae, six short legs and one violet eye, in packs of 8. Packs are scattered and
@@ -1445,7 +1458,8 @@ apps/fort-frenzy/
 - **Phaser 4.2.x** renders only; it never owns game state (as in Sunny Side). **No physics engine:** the
   sim moves bodies kinematically, with circle hitboxes, a uniform spatial hash for "who's near me"
   queries and soft separation, collision against blocking structure tiles, and knockback as a velocity
-  impulse with damping.
+  impulse with damping. Our attacks hit enemies' body capsules (§2.5, §9, C4); the debug hitbox overlay
+  (§9.5) draws each enemy's capsule as a 0.6 stadium over its feet circle, and the gallery's too.
 - **Canvas:** 1920 × 1080 logical, `Scale.FIT`.
 - **Screen layout** (W = 48 px tile width, depth 28.8 px per §2.5):
 
@@ -1610,6 +1624,8 @@ interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: num
   Side), keyed by entity id; spawned entities draw at their current position, removed ones disappear.
   A body drawn at its ground point (every enemy, the Wasp included: its hover height is art, not the
   sim's `z`) lerps on the ground at both ends; heights lerp only between heights (C3, §15.11 #44).
+  The Wasp's flight height is `render/clips/wasp.ts` `WASP_FLIGHT_TILES` (its art's own lift plus the
+  render hover `WASP_HOVER_TILES`), and its content body's `bottom` matches it (C4, §15.11 #50).
 - **Missing frames:** a dev-only fallback draws a labeled shape for the ID (sized from its hitbox), so a
   missing asset never breaks a build. Production builds fail the atlas check instead (§15.10).
 - **Performance budget**, measured by an early performance test at peak load (6 knights, 30 footmen,
@@ -1659,7 +1675,10 @@ type Phase = 'countdown' | 'build' | 'combat' | 'victory' | 'defeat' | 'summary'
   3. players: movement (carry slowdown), attacks and supers, action button, build arc, crates
   4. AI: enemies (path, aggro leash, siege, hunter, flyer, runner), soldiers, the boss module
   5. integrate movement, soft separation, structure collision
-  6. projectiles and area attacks → `applyDamage`
+  6. projectiles and area attacks → `applyDamage` (ours hit enemy bodies, `sim/body.ts`, C4: the
+     content body swept up the screen as a ground capsule, `segmentHitsBody`, `circleHitsBody`,
+     `sectorHitsBody`; candidates from `SpatialHash.queryBox`, which looks the tallest body's reach
+     south of the shot)
   7. status effects, `onTick` hooks, auras (combat only)
   8. deaths: hooks, coins, crate drops; destroyed blockers rebuild the flow fields
   9. wave spawner (spawn warnings 3 s ahead)
@@ -1816,7 +1835,8 @@ interface EnemyDef { id: EnemyId; hp: number; speed: number; radius: number; fly
   aggro?: { radius: number; leash: number }; slowResist?: number; boss?: ModuleRef;
   hunt?: { closeRange: number; retargetTiles: number; threatCost: number; threatPad: number }; // #48 Hunter
   jitter?: { drift: number; pace: number; paceRange: number; stopChance: number;               // #48 Swarm
-    rollMs: [number, number]; stopMs: [number, number] } }
+    rollMs: [number, number]; stopMs: [number, number] };
+  body?: { radius: number; bottom: number; top: number } }  // #50: drawn body, tiles above the feet
 interface StructureDef { id: StructureId; cost: number; hp: number | null; pathCost: number;
   blocksProjectiles: boolean; attack?: AttackDef; attachesTo?: StructureId[];
   discharges?: number; rearmMs?: number; slow?: EffectApply;          // snare
@@ -2273,3 +2293,4 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 47 | 2026-11-03 | Aimed melee mains | The Warden's slam and the Commander's slash are aimed buttons (§10.1): a quick tap (≤ 150 ms in the dead zone) still fires at once, auto-aimed at the nearest enemy in range or straight ahead; a drag aims and the release lands the same arc (slam 1.75 tiles, 102°; slash 1.4 tiles, 110°) toward the aim; back in the dead zone cancels. While aiming the TV draws each arc as the filled amber ground cone from the shared `hitShape` | C3 follow-up (Foster): "the warden's attack should be aimed, as well as the commander's slash", with the slash's arc shown while aiming; tap buttons held nothing, so they had no preview |
 | 48 | 2026-11-04 | Balance sheet | Every number that affects balance (HP, damage, ranges, areas, timers, speeds, costs, wave budgets, AI and card tuning) lives in one file, `src/content/balance.ts` (was eight domain files plus constants inside the sim: AI, squad, card offers, damage-over-time, shell flights, projectile radius); card and passive modules read every param from it with no code fallbacks, and content.test checks it is complete; the map stays in `map.ts` (§15.4) | One place to tune for balance (Foster) |
 | 49 | 2026-11-05 | Resume details | A resume restores the saved build phase with a full build timer, knights at the base, cooldowns reset; the snapshot adds the structures' `owner` and the run time `runMs`; phones re-send `hello` when the TV comes back; any slot no phone has matched is claimable in the same or a new room; Return to home kicks every phone and drops the host token (§4, §15.8) | The snapshot's frozen shape holds no positions or timers; a reloaded TV has no party until phones say hello; the claim screen covers a phone that lost its storage either way (FF14) |
+| 50 | 2026-11-05 | Wasp height and body hitboxes | The Wasp flies at half its height (its hull 1.37 tiles over its shadow, was 2.74); our attacks hit an enemy's drawn body (torso, head and legs, a ground capsule up the screen from its feet; arms, tails, rotors and barrels left out; the Wasp at its flight height), the Colossus kept low (its legs, radius 1.0, up to 0.8 tiles); enemy attacks, walking and ground effects keep feet circles | Early C4 notes (Foster): the Wasp flew too high, and aiming at an enemy's head missed because only its feet counted |

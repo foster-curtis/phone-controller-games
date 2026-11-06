@@ -4,10 +4,10 @@
 // while stunned; the AI skips it, sim.ts).
 import type { AttackDef } from '../../../content/types';
 import { msToSteps } from '../../systems/effects';
+import { sectorHitsBody } from '../body';
 import { num } from '../cards/common';
 import { state, type SimState } from '../internal';
 import { sectorGeometry } from './hitShape';
-import { inSector } from './sector';
 import {
   SIM_HZ,
   type DamageKind,
@@ -52,13 +52,18 @@ export function landArc(s: SimState, p: PlayerEnt, h: ArcHit): EnemyEnt[] {
     half: g.half,
     range: reach,
   };
-  const ids = s.world.spatial.query(p.x, p.y, reach + 1, s.scratch).slice();
+  // It reaches enemy bodies (C4, body.ts), whose feet may stand up to `reach` south of it.
+  const m = s.cat.bodyMax;
+  const pad = reach + m.r;
+  const ids = s.world.spatial
+    .queryBox(p.x - pad, p.y - pad, p.x + pad, p.y + reach + m.reach, s.scratch)
+    .slice();
   const hit: EnemyEnt[] = [];
   for (const id of ids) {
     if (s.kinds.get(id) !== 'enemy') continue;
     const e = s.units.get(id) as EnemyEnt;
     if (e.hp <= 0 || (e.flying && !a.hitsFlyers)) continue;
-    if (!inSector(sec, e.x, e.y, e.r)) continue;
+    if (!sectorHitsBody(sec, e.x, e.y, s.cat.body(e.kind))) continue;
     hit.push(e);
   }
   for (const e of hit) {

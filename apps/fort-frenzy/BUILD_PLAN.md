@@ -839,7 +839,7 @@ Rules:
   - [x] Waves 1–15 content
   - [x] Merged to `main`
   - [x] FF10-fix-1: C3 Wasp jitter, Hunter tower-avoiding path + player-color foot flash, diagonal flow field to the Citadel
-  - [ ] FF10-fix-2: early C4 notes: Wasp flies at half height; enemy hitboxes cover the whole body (no arms/tails), Colossus low but a bit bigger
+  - [x] FF10-fix-2: early C4 notes: Wasp flies at half height; enemy hitboxes cover the whole body (no arms/tails), Colossus low but a bit bigger
 - [x] **User approved C3** (class kits and enemies): notes fixed in FF3-fix-2, FF7-fix-2, FF9-fix-1, FF10-fix-1, run in parallel with FF11–FF13 at the user's request; feel and visual notes re-judged at C4
 - FF11 Colossus
   - [x] Boss module (forms, attacks, stagger, rewards)
@@ -1591,6 +1591,40 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   stays unused.
 - [FF14] decision: replays build an input source for every slot in the recording (late joiners have no start
   slot).
+- [FF10-fix-2] contract+: `src/content/types.ts` `EnemyDef.body?: { radius; bottom; top }` (every enemy has
+  one; the sim throws without it); `src/host/sim/types.ts` `SpatialHash.queryBox(x0, y0, x1, y1, out)`.
+  SPEC §2.5, §9, §9.6, §15.2, §15.3 step 6, §15.4 sketch and §15.11 #50 updated.
+- [FF10-fix-2] decision: a body hitbox is the content body (drawn tiles above the feet, measured off each
+  rig's part bboxes at rest: torso, head and legs) swept up the screen as a ground capsule (`sim/body.ts`:
+  `lo` = bottom / 0.6, `hi` = top / 0.6 − r, so its cap reaches the drawn top), symmetric about the feet
+  (no facing; the sim's facing and the render mirror can disagree mid-turn). The 0.6 is §2.5's projection,
+  so it moved to `src/shared/projection.ts` (`render/camera.ts` re-exports it), not into the balance sheet.
+- [FF10-fix-2] decision: bodies are hit by ours only: players' shots, arcs, cones and circles, towers, base
+  archers and mortar shells. Squad soldiers' swings, enemy attacks, walking, separation and ground effects
+  (snares, Aftershock, Wildfire/Plague, Fault Line, charged walls) keep feet circles. Auto-aim, pulse
+  turrets and archers aim at the body's near end (`bodyAimY`: the feet on the ground, so ground aims are
+  unchanged; the Wasp's hull, else a shot at its shadow would now pass under it). The mortar still lobs at
+  the feet (it never hits Flyers).
+- [FF10-fix-2] decision: sizes (radius, top; drawn tiles): Drone 0.42, 1.01 (radius to its head, so the
+  blade arm reaching 0.6 out stays out; spine spikes too); Skitter 0.44, 0.57; mite 0.16, 0.19 (size 1);
+  Brute 0.54, 1.5 (fists, arms, pauldrons out); Bombard 0.56, 1.18 (barrel, splayed legs out); Stalker
+  0.54, 0.8 (tail out); Wasp 0.43, 1.37–1.76 (rotors, masts, thruster glow out); Colossus 1.0, 0.8 (its
+  legs: bigger than its 0.9 feet, under half its 1.69-tile neck).
+- [FF10-fix-2] decision: "half the height" is the gap the room reads, the hull's underside over its shadow:
+  the Wasp art already lifts its hull 1.14 tiles over the rig's foot, so FF10's 1.6-tile hover drew it 2.74
+  up; now 1.37 (`WASP_FLIGHT_TILES`, hover 0.23). Halving the 1.6 constant alone would only have lowered it
+  ~30%. The sim's flyer `z` = 1 isn't drawn or read by any hit test, so it stays (hashes unchanged by it).
+- [FF10-fix-2] decision: the sector test samples the capsule as feet-test circles r / 4 apart (covers it to
+  0.01 r) after a reach reject; segments use exact segment–segment closest points; no per-test allocation.
+  Projectile and blast candidates come from `queryBox`, reaching the tallest body (`Catalog.bodyMax`) south.
+- [FF10-fix-2] decision: test fixtures: the aim-preview probes flatten the Grunt's body to its feet (they
+  measure the shape; `body.test.ts` covers bodies); FF8's stand-in enemies get flat bodies; the Skyhunter
+  Wasp, Plague neighbor and the aimed-melee "behind" Grunt moved so their drawn bodies are where the test
+  means. No hashes or replays are pinned in tests; replays recorded before this change won't match.
+- [FF10-fix-2] decision: the bench crashed on main (it starts all Engineers and `addSoldier` needs a squad
+  lead since the balance sheet), so slot 0 is a Commander (FF15 rewrites the bench: take theirs on
+  conflict). Peak, this machine, same load: main's sim mean 0.43–0.49 ms; this code with flat bodies 0.46;
+  real bodies 0.54 ms, p99 1.4 ms (more footmen survive the run: 20 vs 4).
 
 ## 9. Final handoff
 

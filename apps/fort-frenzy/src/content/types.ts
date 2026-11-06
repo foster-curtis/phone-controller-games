@@ -202,6 +202,13 @@ export interface EnemyDef {
     rollMs: [number, number];
     stopMs: [number, number];
   };
+  /**
+   * The body our attacks hit (C4, FF10-fix-2; SPEC §9, §15.3): the drawn torso, head and legs (arms,
+   * tails, rotors and barrels left out), in tiles of drawn height above the ground point, from
+   * `bottom` (0 on the ground; the Wasp's flight height) to `top`; `radius` is half its width. The
+   * sim sweeps a circle of `radius` up the screen over that span (`sim/body.ts`). Every enemy has one.
+   */
+  body?: { radius: number; bottom: number; top: number };
 }
 
 export interface StructureDef {

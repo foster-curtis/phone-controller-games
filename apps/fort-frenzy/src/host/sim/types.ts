@@ -326,6 +326,11 @@ export interface SpatialHash {
   insert(id: EntityId, x: number, y: number, r: number): void;
   /** Ids whose circles touch (x, y, r), ascending, into `out`. */
   query(x: number, y: number, r: number, out: EntityId[]): EntityId[];
+  /**
+   * FF10-fix-2: ids whose circles' boxes touch the box x0..x1 × y0..y1, ascending, into `out` (body
+   * hitboxes reach up the screen from the feet, so hit tests look further south than north).
+   */
+  queryBox(x0: number, y0: number, x1: number, y1: number, out: EntityId[]): EntityId[];
 }
 
 export interface BaseState extends Unit {

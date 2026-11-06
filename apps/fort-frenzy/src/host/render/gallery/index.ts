@@ -3,6 +3,8 @@
 // timing overlay instead. `window.__pcgGallery` reports readiness and fallback shapes for e2e.
 import * as Phaser from 'phaser';
 import { manifest } from '../../../../generated/manifest';
+import { content } from '../../../content';
+import { groundBody } from '../../sim/body';
 import { LANE_IDS, PLAYER_COLOR_IDS } from '../../../shared/ids';
 import { theme } from '../../../shared/theme';
 import { neonKnightsHost } from '../../../themes/neon-knights/host';
@@ -31,6 +33,12 @@ declare global {
 }
 
 const assets = manifest.themes['neon-knights'] as ThemeAssets;
+/** Content's enemy body hitboxes by rig id (C4), drawn with the hitbox toggle. */
+const ENEMY_BODIES = new Map(
+  content.enemies.flatMap((e) =>
+    e.body ? [[neonKnightsHost.rigFor.enemy[e.id], groundBody(e.body)] as const] : [],
+  ),
+);
 const scale = pickAtlasScale();
 const stress = new URLSearchParams(location.search).get('stress') === '1';
 
@@ -115,7 +123,11 @@ class GalleryScene extends Phaser.Scene {
           u.rig.rigId === 'artificer' ? 8 : 4,
         );
       }
-      if (this.state.hitbox) m.hitbox(u.sx, u.sy, u.info.hitbox);
+      if (this.state.hitbox) {
+        m.hitbox(u.sx, u.sy, u.info.hitbox);
+        const body = ENEMY_BODIES.get(u.rig.rigId);
+        if (body) m.bodyHitbox(u.sx, u.sy, body);
+      }
       u.status?.update(dt, u.sx, u.sy - (u.info.fly ?? 0) * 48);
     }
     if (this.state.hitbox) for (const b of this.hitboxes) m.hitbox(b.sx, b.sy, b.r);

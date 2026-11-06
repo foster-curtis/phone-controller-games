@@ -2,6 +2,7 @@
 // release, a release during the cooldown fires when it ends), the action button (§10.1 rows 1–5), the
 // build arc and Give.
 import type { AttackDef, EffectApply } from '../../content/types';
+import { bodyAimY, circleHitsBody } from './body';
 import { buildAtFeet } from './building';
 import { landArc, windupSteps } from './classes/warden';
 import {
@@ -154,8 +155,9 @@ function fire(
     // Auto-aim: the nearest valid enemy in range, else straight ahead.
     const target: EnemyEnt | null = s.nearestEnemy(p.x, p.y, range, a.hitsFlyers);
     if (target) {
+      // At its body: a Wasp's flies over its shadow (C4, body.ts).
       dx = target.x - p.x;
-      dy = target.y - p.y;
+      dy = bodyAimY(target.y, s.cat.body(target.kind)) - p.y;
     } else {
       dx = Math.cos(p.facing);
       dy = Math.sin(p.facing);
@@ -259,15 +261,20 @@ function circle(
   const knock = s.attackStat(p, a.knockback ?? 0, 'knockback', slot);
   // Velocity that travels `knock` tiles under the per-step decay.
   const v0 = knock * 60 * (1 - s.cat.rules.knockbackDecay);
-  const ids = s.world.spatial.query(p.x, p.y, radius + 1, s.scratch).slice();
+  // It reaches enemy bodies (C4, body.ts), whose feet may stand up to `reach` south of it.
+  const m = s.cat.bodyMax;
+  const pad = radius + m.r;
+  const ids = s.world.spatial
+    .queryBox(p.x - pad, p.y - pad, p.x + pad, p.y + radius + m.reach, s.scratch)
+    .slice();
   for (const id of ids) {
     if (s.kinds.get(id) !== 'enemy') continue;
     const e = s.units.get(id) as EnemyEnt;
     if (e.hp <= 0 || (e.flying && !a.hitsFlyers)) continue;
+    if (!circleHitsBody(p.x, p.y, radius, e.x, e.y, s.cat.body(e.kind))) continue;
     let dx = e.x - p.x;
     let dy = e.y - p.y;
     const d = Math.sqrt(dx * dx + dy * dy);
-    if (d - e.r > radius) continue;
     s.damage({ source: p.id, target: e.id, amount: damage, kind: 'area', tags: [...atk.tags] });
     for (const fx of atk.effects) s.applyEffect(e.id, fx, p.id);
     if (v0 > 0) {

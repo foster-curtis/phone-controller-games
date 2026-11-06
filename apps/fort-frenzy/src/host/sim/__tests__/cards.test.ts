@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   cards as cardDefs,
   engineer,
+  flyer,
   quartermaster,
   rules,
   warden,
@@ -11,6 +12,7 @@ import {
 import type { RulesDef, StatId } from '../../../content/types';
 import { CARD_IDS, type CardId, type ClassId } from '../../../shared/ids';
 import { collectStatMods, statValue } from '../../systems/modifiers';
+import { groundBody } from '../body';
 import { harness, type Harness } from './harness';
 import type { PlayerEnt } from '../types';
 
@@ -214,7 +216,8 @@ describe('engineer cards', () => {
     const dealt = (picks: Pick[]) => {
       const h = game(['engineer'], picks);
       shoot(h);
-      const f = h.sim.spawnEnemy('flyer', 14, 16);
+      // Its body flies over its shadow (C4): the shot along y = 16 meets the body.
+      const f = h.sim.spawnEnemy('flyer', 14, 16 + groundBody(flyer.body).lo);
       f.hp = f.maxHp = 1e6;
       h.run(30);
       return f.maxHp - f.hp;
@@ -533,7 +536,8 @@ describe('quartermaster cards', () => {
       const h = game(['quartermaster'], picks);
       h.put(0, 10, 16);
       const a = h.sim.spawnEnemy('grunt', 12.5, 16);
-      const b = h.sim.spawnEnemy('grunt', 12.5, 17.1);
+      // North of it, clear of the bolts' fan (its body reaches up the screen, away from them, C4).
+      const b = h.sim.spawnEnemy('grunt', 12.5, 14.6);
       a.hp = 12;
       h.pads[0]!.tap('mainFires', { mainAim: { x: 1, y: 0 } });
       h.run(150);

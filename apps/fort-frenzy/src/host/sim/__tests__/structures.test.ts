@@ -19,6 +19,8 @@ const brute: EnemyDef = {
   speed: 1.0,
   radius: 0.45,
   flying: false,
+  // Bodies flat at the feet, so these scenarios keep FF8's circle hits (C4 bodies are body.test's).
+  body: { radius: 0.45, bottom: 0, top: 0 },
   budget: 4,
   ai: 'path',
   field: 'breaker',
@@ -40,6 +42,7 @@ const swarm: EnemyDef = {
   speed: 1.6,
   radius: 0.14,
   flying: false,
+  body: { radius: 0.14, bottom: 0, top: 0 },
   budget: 2,
   groupSize: 6,
   ai: 'path',
@@ -51,6 +54,7 @@ const flyer: EnemyDef = {
   id: 'flyer',
   radius: 0.3,
   flying: true,
+  body: { radius: 0.3, bottom: 0, top: 0 },
   field: 'none',
   ai: 'flyer',
 };

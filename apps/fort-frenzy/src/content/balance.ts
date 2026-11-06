@@ -388,6 +388,8 @@ export const structures: StructureDef[] = [arrowTower, bombTower, wall, snare, f
 // others scale from it. HP, damage and budget cost are §9.1's; reaches, cooldowns and wind-ups (the
 // tells, §9.6) are starting values for playtesting. The Colossus (§9.2) is a boss module (FF11): its
 // attacks, stagger and final phase run in src/host/sim/boss/colossus.ts from the params here.
+// `radius` is the feet (walking, collisions, enemy reach); `body` is what our attacks hit (C4): the
+// drawn torso, head and legs measured off each rig at rest, in tiles of drawn height (80 sprite units).
 
 /** Tiles/s of speed 1.0 (§9.1's relative speeds). */
 const SPEED = 1.3;
@@ -398,6 +400,9 @@ export const grunt = {
   speed: 1.3,
   radius: 0.32,
   flying: false,
+  // Drone: torso, head and legs, out to its head (the blade arm reaching past it, the back claw and
+  // the spine spikes left out).
+  body: { radius: 0.42, bottom: 0, top: 1.01 },
   budget: 1,
   ai: 'path',
   field: 'ground',
@@ -420,6 +425,8 @@ export const runner = {
   speed: 2 * SPEED,
   radius: 0.28,
   flying: false,
+  // Body, core and legs.
+  body: { radius: 0.44, bottom: 0, top: 0.57 },
   budget: 1,
   ai: 'runner',
   field: 'ground',
@@ -433,6 +440,8 @@ export const swarm = {
   speed: 1.2 * SPEED,
   radius: 0.15,
   flying: false,
+  // A mite at size 1 (packs draw them 0.8–1.2×).
+  body: { radius: 0.16, bottom: 0, top: 0.19 },
   budget: 3,
   groupSize: 8,
   ai: 'swarm',
@@ -465,6 +474,8 @@ export const brute = {
   speed: 0.6 * SPEED,
   radius: 0.5,
   flying: false,
+  // Torso, sunk head and legs (arms, fists and shoulder plates left out).
+  body: { radius: 0.54, bottom: 0, top: 1.5 },
   budget: 5,
   ai: 'brute',
   field: 'breaker',
@@ -490,6 +501,9 @@ export const flyer = {
   speed: 1.2 * SPEED,
   radius: 0.3,
   flying: true,
+  // Hull and head (rotors, masts and the thruster glow left out) at its flight height: the hull's
+  // underside flies 1.37 tiles over its shadow (C4: half of FF10's 2.74; render/clips/wasp.ts).
+  body: { radius: 0.43, bottom: 1.37, top: 1.76 },
   budget: 2,
   ai: 'flyer',
   field: 'none',
@@ -512,6 +526,8 @@ export const siege = {
   speed: 0.8 * SPEED,
   radius: 0.5,
   flying: false,
+  // Hull, dome and shell rack (the barrel and splayed legs left out).
+  body: { radius: 0.56, bottom: 0, top: 1.18 },
   budget: 4,
   ai: 'siege',
   field: 'ground',
@@ -536,6 +552,8 @@ export const hunter = {
   speed: 1.3 * SPEED,
   radius: 0.36,
   flying: false,
+  // Chest, head and legs (the tail left out).
+  body: { radius: 0.54, bottom: 0, top: 0.8 },
   budget: 3,
   ai: 'hunter',
   field: 'ground',
@@ -565,6 +583,8 @@ export const colossus = {
   speed: 0.45 * SPEED,
   radius: 0.9,
   flying: false,
+  // Kept low on purpose (C4): its legs, a bit bigger than its 0.9 feet; hip, core and head stay out.
+  body: { radius: 1, bottom: 0, top: 0.8 },
   budget: 10,
   ai: 'boss',
   field: 'breaker',

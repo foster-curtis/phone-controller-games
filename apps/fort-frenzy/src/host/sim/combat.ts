@@ -1,5 +1,7 @@
 // Structures and base archers (step 4, after the enemy AI), projectiles and danger markers (step 6)
-// (SPEC §3.5, §7, §15.3). Every hit goes through `applyDamage`.
+// (SPEC §3.5, §7, §15.3). Every hit goes through `applyDamage`. Our shots and shells hit enemy
+// bodies (body.ts, C4); theirs hit feet circles.
+import { bodyAimY, circleHitsBody, segmentHitsBody } from './body';
 import { rectDist } from './geometry';
 import { structureBehaviors } from './registry';
 import { shellAt } from './structures/mortar';
@@ -8,6 +10,7 @@ import {
   BASE_ID,
   type DangerMarker,
   type EnemyEnt,
+  type EntityId,
   type PlayerEnt,
   type ProjectileEnt,
   type Unit,
@@ -38,8 +41,9 @@ export function stepArchers(s: FullState): void {
     if (!a || !at || t < a.readyAt) continue;
     const target = s.nearestEnemy(at.x, at.y, range, atk.hitsFlyers);
     if (!target) continue;
+    // At its body (a Wasp's flies over its shadow, C4).
     const dx = target.x - at.x;
-    const dy = target.y - at.y;
+    const dy = bodyAimY(target.y, s.cat.body(target.kind)) - at.y;
     const l = Math.sqrt(dx * dx + dy * dy) || 1;
     b.archers.aim[i] = Math.atan2(dy, dx);
     a.readyAt = t + s.cat.steps(atk.cooldownMs / Math.max(0.05, s.attackStat(b, 1, 'attackSpeed')));
@@ -132,20 +136,42 @@ export function stepProjectiles(s: FullState): void {
 
     if (alive) {
       const len2 = sx * sx + sy * sy;
-      const half = Math.sqrt(len2) / 2;
-      const ids = w.spatial.query(x0 + sx / 2, y0 + sy / 2, half + p.r + 1, s.scratch);
+      const ours = p.side === 'ours';
+      let ids: EntityId[];
+      if (ours) {
+        // Ours hit enemy bodies (C4, body.ts): the feet of a body this step crosses stand up to
+        // `reach` south of it.
+        const m = s.cat.bodyMax;
+        const pad = p.r + m.r;
+        ids = w.spatial.queryBox(
+          (sx < 0 ? x1 : x0) - pad,
+          (sy < 0 ? y1 : y0) - pad,
+          (sx < 0 ? x0 : x1) + pad,
+          (sy < 0 ? y0 : y1) + p.r + m.reach,
+          s.scratch,
+        );
+      } else {
+        const half = Math.sqrt(len2) / 2;
+        ids = w.spatial.query(x0 + sx / 2, y0 + sy / 2, half + p.r + 1, s.scratch);
+      }
       let best: Unit | null = null;
       let bestT = Infinity;
       for (const id of ids) {
         if (p.hit.includes(id)) continue;
         const u = hittable(s, p, id);
         if (!u) continue;
-        const tc =
-          len2 > 0 ? Math.min(1, Math.max(0, ((u.x - x0) * sx + (u.y - y0) * sy) / len2)) : 0;
-        const dx = x0 + sx * tc - u.x;
-        const dy = y0 + sy * tc - u.y;
-        const rr = u.r + p.r;
-        if (dx * dx + dy * dy > rr * rr) continue;
+        let tc: number;
+        if (ours) {
+          const b = s.cat.body((u as EnemyEnt).kind);
+          tc = segmentHitsBody(x0, y0, sx, sy, u.x, u.y, b, p.r);
+          if (tc < 0) continue;
+        } else {
+          tc = len2 > 0 ? Math.min(1, Math.max(0, ((u.x - x0) * sx + (u.y - y0) * sy) / len2)) : 0;
+          const dx = x0 + sx * tc - u.x;
+          const dy = y0 + sy * tc - u.y;
+          const rr = u.r + p.r;
+          if (dx * dx + dy * dy > rr * rr) continue;
+        }
         if (tc < bestT) {
           best = u;
           bestT = tc;
@@ -190,13 +216,23 @@ function stepShell(s: FullState, p: ProjectileEnt): boolean {
   p.y = at.y;
   p.z = at.z;
   if (t < arc.landsAt) return true;
-  const ids = s.world.spatial.query(arc.to.x, arc.to.y, arc.radius + 1, s.scratch).slice();
+  // The blast reaches enemy bodies (C4), whose feet may stand up to `reach` south of it.
+  const m = s.cat.bodyMax;
+  const pad = arc.radius + m.r;
+  const ids = s.world.spatial
+    .queryBox(
+      arc.to.x - pad,
+      arc.to.y - pad,
+      arc.to.x + pad,
+      arc.to.y + arc.radius + m.reach,
+      s.scratch,
+    )
+    .slice();
   for (const id of ids) {
     const u = hittable(s, p, id);
     if (!u) continue;
-    const dx = u.x - arc.to.x;
-    const dy = u.y - arc.to.y;
-    if (Math.sqrt(dx * dx + dy * dy) - u.r > arc.radius) continue;
+    const b = s.cat.body((u as EnemyEnt).kind);
+    if (!circleHitsBody(arc.to.x, arc.to.y, arc.radius, u.x, u.y, b)) continue;
     s.damage({ source: p.source, target: u.id, amount: p.damage, kind: p.kind, tags: [...p.tags] });
     for (const fx of p.effects) s.applyEffect(u.id, fx, p.source);
   }

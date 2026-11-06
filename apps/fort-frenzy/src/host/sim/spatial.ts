@@ -109,21 +109,47 @@ export function createSpatialHash(
           }
         }
       }
-      // Results are short: insertion sort beats Array#sort's call overhead.
-      const n = out.length;
-      if (n > 24) out.sort(ascending);
-      else {
-        for (let i = 1; i < n; i++) {
-          const v = out[i]!;
-          let j = i - 1;
-          while (j >= 0 && out[j]! > v) {
-            out[j + 1] = out[j]!;
-            j--;
+      return sortIds(out);
+    },
+    queryBox(bx0: number, by0: number, bx1: number, by1: number, out: EntityId[]) {
+      out.length = 0;
+      query = (query + 1) >>> 0 || 1;
+      const x0 = cellX(bx0);
+      const x1 = cellX(bx1);
+      const y0 = cellY(by0);
+      const y1 = cellY(by1);
+      for (let cy = y0; cy <= y1; cy++) {
+        for (let cx = x0; cx <= x1; cx++) {
+          for (let e = head[cy * gw + cx]!; e !== -1; e = entNext[e]!) {
+            const i = entItem[e]!;
+            if (stamp[i] === query) continue;
+            stamp[i] = query;
+            const x = xs[i]!;
+            const y = ys[i]!;
+            const r = rs[i]!;
+            if (x + r >= bx0 && x - r <= bx1 && y + r >= by0 && y - r <= by1) out.push(ids[i]!);
           }
-          out[j + 1] = v;
         }
       }
-      return out;
+      return sortIds(out);
     },
   };
+}
+
+/** Results are short: insertion sort beats Array#sort's call overhead. */
+function sortIds(out: EntityId[]): EntityId[] {
+  const n = out.length;
+  if (n > 24) out.sort(ascending);
+  else {
+    for (let i = 1; i < n; i++) {
+      const v = out[i]!;
+      let j = i - 1;
+      while (j >= 0 && out[j]! > v) {
+        out[j + 1] = out[j]!;
+        j--;
+      }
+      out[j + 1] = v;
+    }
+  }
+  return out;
 }

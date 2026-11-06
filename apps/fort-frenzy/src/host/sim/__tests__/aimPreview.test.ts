@@ -1,8 +1,10 @@
 // Aim previews (SPEC §10.1, §15.2; FF7-fix-2, C3): for every class's main and super the preview's
 // geometry is the content's numbers through the player's modifiers, and the sim hits exactly the
 // previewed area (probes just inside and just past the reach and the edge, with and without a mod).
+// The probe Grunt's body is flattened to its feet circle so the probes measure the shape alone;
+// body.test.ts covers how a drawn body reaches into the same shapes (C4).
 import { describe, expect, it } from 'vitest';
-import { content } from '../../../content';
+import { content as baseContent, type Content } from '../../../content';
 import { commander, engineer, grunt, quartermaster, warden } from '../../../content/balance';
 import type { CharacterDef } from '../../../content/types';
 import type { CardId, ClassId } from '../../../shared/ids';
@@ -12,6 +14,12 @@ import type { HitShape } from '../classes/hitShape';
 import type { Modifier } from '../types';
 import { harness } from './harness';
 
+const content: Content = {
+  ...baseContent,
+  enemies: baseContent.enemies.map((e) =>
+    e.id === 'grunt' ? { ...e, body: { radius: e.radius, bottom: 0, top: 0 } } : e,
+  ),
+};
 const DEG = Math.PI / 180;
 const DEFS: Record<ClassId, CharacterDef> = { engineer, quartermaster, commander, warden };
 const AIM = { x: 1, y: 0 };
@@ -31,7 +39,7 @@ const BOOST: Modifier = {
 type Boost = boolean | CardId;
 
 function setup(cls: ClassId, boosted: Boost) {
-  const h = harness(1, 1, { classes: [cls] });
+  const h = harness(1, 1, { classes: [cls], content });
   if (typeof boosted === 'string') {
     h.toBuild();
     h.give(0, boosted);

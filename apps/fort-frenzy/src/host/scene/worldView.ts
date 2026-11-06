@@ -34,7 +34,14 @@ import { locomotionClip, locomotionSpeed, StatusSprites } from '../render/status
 import { Citadel, frameAt, type SentryId } from '../render/structures';
 import type { IconKey, ProjectileKind, ProjectileSprite, StatusLook } from '../render/types';
 import type { RenderWorld } from '../render/world';
-import { aimPreview, buildTile, placementValid, shieldOf } from '../sim';
+import {
+  aimPreview,
+  buildTile,
+  groundBody,
+  placementValid,
+  shieldOf,
+  type GroundBody,
+} from '../sim';
 import {
   BASE_ID,
   STEP_MS,
@@ -180,11 +187,16 @@ export class WorldView {
   private readonly aimFrame: GroundFrame = { sx: 0, sy: 0, kx: 0, ky: 0 };
   private t = 0;
   private openLanes = new Set<LaneId>();
+  /** Enemy body hitboxes on the ground (the sim's, for the hitbox overlay). */
+  private readonly bodies: Map<string, GroundBody>;
 
   constructor(
     private readonly w: RenderWorld,
     private readonly content: Content,
   ) {
+    this.bodies = new Map(
+      content.enemies.flatMap((e) => (e.body ? [[e.id, groundBody(e.body)] as const] : [])),
+    );
     this.map = new MapView(w, w.theme.map);
     this.citadel = new Citadel(w, CITADEL_AT.x, CITADEL_AT.y);
     this.support = new SupportView(w, content, (slot) => this.knights.get(slot) ?? null);
@@ -1028,6 +1040,13 @@ export class WorldView {
       }
       const b = cam.worldToScreen(w.base.x, w.base.y);
       marks.hitbox(b.sx, b.sy, w.base.r);
+      // What our attacks hit (C4): each enemy's body, over its feet circle (walking, enemy reach).
+      for (const e of w.enemies) {
+        const body = this.bodies.get(e.kind);
+        if (!body) continue;
+        const s = cam.worldToScreen(e.x, e.y);
+        marks.bodyHitbox(s.sx, s.sy, body);
+      }
     }
     if (f.overlays.range) {
       for (const p of w.players) {

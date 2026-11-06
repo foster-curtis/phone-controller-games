@@ -1,11 +1,12 @@
 // The v1 fixed camera (SPEC §3.2, §15.2): the whole 36 × 24 map, projected per §2.5. Every
 // world-to-screen conversion goes through a Camera, so v2's dynamic camera is a new implementation.
+import { GROUND_SQUASH } from '../../shared/projection';
 import type { Camera, ScreenPoint } from './types';
 
+/** Ground depth ratio: a tile is W wide and 0.6 W deep (shared with the sim's body hitboxes). */
+export { GROUND_SQUASH };
 /** Tile width W in screen px at k = 1 (§2.5). */
 export const TILE_W = 48;
-/** Ground depth ratio: a tile is W wide and 0.6 W deep. */
-export const GROUND_SQUASH = 0.6;
 /** Screen px per sprite unit at k = 1: art tiles are 80 units wide (§2.5). */
 export const UNIT_PX = TILE_W / 80;
 /** Playfield origin (top-left of tile 0,0), inside the TV-safe margin and the top HUD (§15.2). */

@@ -6,6 +6,7 @@ export { buildTile, placementValid, tileAt } from './building';
 export { throwTarget } from './classes/quartermaster';
 export { inSector, type Sector } from './classes/sector';
 export { hitShape, type HitShape } from './classes/hitShape';
+export { groundBody, type GroundBody } from './body';
 export { aimPreview } from './preview';
 export { squadSize } from './squad';
 export { fieldMedicRadius } from './modules/fieldMedic';

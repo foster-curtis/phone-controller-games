@@ -105,4 +105,35 @@ export class GroundMarks {
     const { rx, ry } = this.ctx.camera.groundEllipse(rTiles);
     this.overlay.lineStyle(1.5, color, 0.9).strokeEllipse(sx, sy, rx * 2, ry * 2);
   }
+
+  /**
+   * An enemy's body hitbox (C4, sim `body.ts`): its ground capsule, `lo`..`hi` tiles up the screen
+   * from the feet at (sx, sy), as a 0.6 stadium: the far end's upper half, the near end's lower half.
+   */
+  bodyHitbox(
+    sx: number,
+    sy: number,
+    b: { r: number; lo: number; hi: number },
+    color: number = theme.color.hostile.num,
+  ) {
+    const { rx, ry } = this.ctx.camera.groundEllipse(b.r);
+    const k = ry / b.r;
+    const yFar = sy - b.hi * k;
+    const yNear = sy - b.lo * k;
+    const g = this.overlay.lineStyle(1.5, color, 0.9);
+    g.beginPath();
+    g.moveTo(sx + rx, yNear);
+    for (let i = 0; i <= BODY_STEPS; i++) {
+      const a = (Math.PI * i) / BODY_STEPS;
+      g.lineTo(sx + Math.cos(a) * rx, yFar - Math.sin(a) * ry);
+    }
+    for (let i = 0; i <= BODY_STEPS; i++) {
+      const a = Math.PI + (Math.PI * i) / BODY_STEPS;
+      g.lineTo(sx + Math.cos(a) * rx, yNear - Math.sin(a) * ry);
+    }
+    g.strokePath();
+  }
 }
+
+/** Vertices per half ellipse of a body hitbox. */
+const BODY_STEPS = 12;

@@ -54,7 +54,9 @@ describe('aimed melee mains (FF7-fix-3)', () => {
       it(`${cls}: an aimed release (${label}) hits the enemy in the aim and misses one behind`, () => {
         const h = setup(cls);
         const ahead = grunt(h, ax * reach, ay * reach);
-        const behind = grunt(h, -ax * reach, -ay * reach);
+        // Two tiles further out: a body reaches up the screen from its feet (C4), so one just
+        // below-right of him would show its head in an up-left arc.
+        const behind = grunt(h, -ax * (reach + 2), -ay * (reach + 2));
         const hp0 = ahead.hp;
         fireMain(h, cls, { x: ax, y: ay });
         expect(ahead.hp).toBeLessThan(hp0);

@@ -4,6 +4,7 @@
 import type { AttackDef, CharacterDef, EffectApply } from '../../../content/types';
 import type { FullState } from '../state';
 import type { AttackEvent, PlayerEnt } from '../types';
+import { sectorHitsBody } from '../body';
 import { sectorGeometry } from './hitShape';
 import { inSector, type Sector } from './sector';
 
@@ -39,7 +40,8 @@ function hitEnemies(
   // A snapshot: hooks may spawn or kill while we hit.
   for (const e of s.world.enemies.slice()) {
     if (e.hp <= 0 || (e.flying && !a.hitsFlyers)) continue;
-    if (!inSector(sec, e.x, e.y, e.r)) continue;
+    // Enemy bodies (C4, body.ts); players and towers below by their feet.
+    if (!sectorHitsBody(sec, e.x, e.y, s.cat.body(e.kind))) continue;
     s.damage({ source: p.id, target: e.id, amount: damage, kind, tags: [...atk.tags] });
     for (const fx of atk.effects) s.applyEffect(e.id, fx, p.id);
   }
