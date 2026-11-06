@@ -1136,3 +1136,8 @@ input {
   text-align: center;
   padding: var(--space-3) 0;
 }
+
+/* Version tag (src/shared/version.ts): join and lobby only, never over the controls. */
+body:not(:has([data-screen='joining'], [data-screen='lobby'])) .version-tag {
+  display: none;
+}

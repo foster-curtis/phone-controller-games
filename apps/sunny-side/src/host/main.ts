@@ -10,6 +10,7 @@ import {
 } from '@pcg/game-kit';
 import * as Phaser from 'phaser';
 import { theme } from '../shared/theme';
+import { mountVersionTag } from '../shared/version';
 import '../styles/brand.css';
 import { debugEnabled, type PcgDebugApi } from './debug';
 import { createGameRuntime } from './game';
@@ -31,6 +32,7 @@ import {
 } from './scenes/ui';
 
 const debug = debugEnabled();
+mountVersionTag();
 
 const runtime = createGameRuntime({
   debug,

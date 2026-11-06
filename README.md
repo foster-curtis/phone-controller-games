@@ -43,7 +43,7 @@ With `dev:lan:<game>`, open `http://<laptop-LAN-IP>:5173` on the TV and
 While working on one game, run only that game's checks:
 
 ```sh
-pnpm check:sunny-side     # its typecheck, lint, format:check, test, build, check:bundle, check:routes
+pnpm check:sunny-side     # its typecheck, lint, format:check, test, build, check:bundle, check:routes, check:changeset
 pnpm build:sunny-side     # Vite build
 pnpm e2e:sunny-side       # Playwright (Chromium)
 ```
@@ -65,3 +65,16 @@ icons and the brand `<head>`. Without a name they check every game app (any `app
 Fort Frenzy generates its asset manifest, icon sprite and class portraits into the gitignored
 `apps/fort-frenzy/generated/` with `pnpm --filter @pcg/fort-frenzy assets`; its `dev`, `build`,
 `typecheck`, `test` and `e2e` scripts run that first.
+
+## Versions
+
+Each game, the relay and each package has a semver version and a `CHANGELOG.md`, managed by
+[Changesets](https://github.com/changesets/changesets). Rules are in `PLATFORM.md` §5.
+
+```sh
+pnpm changeset            # with each change: note which packages changed and major, minor or patch
+pnpm check:changeset      # fails if this branch changed a package without a note
+pnpm changeset version    # on deploy to main: bump versions and write the changelogs, then commit
+```
+
+The games show their version in a corner of the TV and on the phone's join and lobby screens.

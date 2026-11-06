@@ -4,12 +4,14 @@
 // debug panel and `window.__pcg`. `?ui=<screen>` and `?gallery=1` stay dev pages.
 import { createHostWakeLock, debugEnabled, watchVisibility } from '@pcg/game-kit';
 import '../styles/brand.css';
+import { mountVersionTag } from '../shared/version';
 
 const params = new URLSearchParams(location.search);
 const debug = debugEnabled(import.meta.env.DEV);
 const tv = document.getElementById('tv') ?? document.body;
 
 async function startTv() {
+  mountVersionTag();
   const [{ createRuntime }, { createWorldGame }, { createTvOverlay }, { fitToWindow }] =
     await Promise.all([
       import('./game'),

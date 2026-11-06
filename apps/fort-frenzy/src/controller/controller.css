@@ -1894,3 +1894,8 @@ button {
   width: 130px;
   height: 169px;
 }
+
+/* Version tag (src/shared/version.ts): join, name and lobby only, never over the controls. */
+body:not(:has(.screen.join, .screen.name, .screen.lobby)) .version-tag {
+  display: none;
+}

@@ -46,6 +46,7 @@ every message goes through a shared, game-agnostic WebSocket **relay**.
 | Fort Frenzy design and technical design                   | `apps/fort-frenzy/SPEC.md` (§15 is the technical design)                                            |
 | Fort Frenzy build plan, freeze points, build decisions    | `apps/fort-frenzy/BUILD_PLAN.md` (§3 milestones and freeze points, §8 build decisions)              |
 | Fort Frenzy asset pipeline (manifest, icons, portraits)   | `apps/fort-frenzy/scripts/build-atlases.ts` → gitignored `generated/`; licenses in `assets/`        |
+| Versions, changelogs, major/minor/patch rules             | `PLATFORM.md` §5, `.changeset/` (config and pending notes), each package's `CHANGELOG.md`           |
 | Lint boundary rules                                       | `eslint.config.js`                                                                                  |
 | Build checks                                              | `scripts/check-bundle.mjs`, `scripts/check-routes.mjs`                                              |
 | CI                                                        | `.github/workflows/ci.yml` (runs `pnpm check` on every push)                                        |
@@ -68,19 +69,23 @@ pnpm install                       # install the workspace
 pnpm dev:<game>                    # relay on :8787 + the game's Vite on :5173 (phones at /play)
 pnpm dev:lan:<game>                # same, with Vite bound to the LAN for real phones
 pnpm dev:relay                     # the relay alone
-pnpm check:<game>                  # that game's gate: typecheck, lint, format:check, test, build, check:bundle, check:routes
+pnpm check:<game>                  # that game's gate: typecheck, lint, format:check, test, build, check:bundle, check:routes, check:changeset
 pnpm build:<game>                  # that game's Vite build
 pnpm e2e:<game>                    # that game's Playwright suite (Sunny Side: own relay on 8788, Vite on 5174)
 pnpm --filter @pcg/relay test      # one package's tests (also @pcg/net-client, @pcg/controller-kit, @pcg/game-kit, @pcg/sunny-side)
 pnpm check                         # the full gate, every package (CI runs this)
 pnpm e2e                           # every app's Playwright suite, one app at a time
 pnpm format                        # Prettier --write
+pnpm changeset                     # add a version note for your change (see Versioning)
+pnpm check:changeset               # fails if this branch changed a package without a note
+pnpm changeset version             # on deploy only: bump versions, write the CHANGELOG.md files
 ```
 
 - **Stay in your app.** While working on one game, run only that game's `check:<game>`, `build:<game>`
   and `e2e:<game>`. Don't run the full `pnpm check` / `pnpm e2e`, or another game's build or e2e.
 - **Full gate before `main`.** Before merging or pushing to `main` (a deploy), run `pnpm check` and
-  `pnpm e2e`. Both must pass. CI runs `pnpm check` on every push.
+  `pnpm e2e`. Both must pass. CI runs `pnpm check` on every push. Then run `pnpm changeset version`
+  and commit the bumps with the deploy (see Versioning).
 - **Shared code means the full gate.** A change to `apps/relay`, `packages/**`, or root config
   (`eslint.config.js`, `tsconfig.base.json`, `scripts/`, `package.json`) affects every game, so run the
   full `pnpm check` and `pnpm e2e`.
@@ -130,6 +135,24 @@ These rules are enforced by ESLint or by `pnpm check`. Don't work around them.
 - **Where a decision goes:** rules every game shares go in `PLATFORM.md`. Relay and net-client behavior
   goes in `apps/relay/SPEC.md`. Everything game-specific goes in that game's `SPEC.md` (and its build
   plan, once it has one) in its app folder. Each of these has its own decision log.
+
+## Versioning
+
+Every app and package has a semver version and a `CHANGELOG.md`, managed by Changesets. The rules and
+the major/minor/patch table are in `PLATFORM.md` §5.
+
+- **Add a note with every change.** When you change a package's shipped code, run
+  `pnpm changeset --<level> <@pcg/package,...> -m "<one line for the changelog>"` (or plain
+  `pnpm changeset` for prompts) and commit the `.changeset/*.md` file with your work. Name only the
+  packages you edited. Apps that depend on a changed package get their patch bump automatically.
+  Tests, fixtures, e2e and Markdown need no note. A pure refactor can use `pnpm changeset --empty`.
+- **Pick the level from what players notice:** major breaks compatibility (old phones vs. new TV, a
+  `PROTOCOL_VERSION` bump, lost saves); minor adds a feature, mode or content; patch is a fix, balance
+  tweak or polish. In doubt between two, ask the user.
+- **Don't bump versions yourself.** Never edit a `version` field or a `CHANGELOG.md` by hand, and don't
+  run `pnpm changeset version` on a branch. It runs once, on deploy to `main`.
+- `check:<game>` ends with `check:changeset`, which fails if your branch changed a package without a
+  note. The note must be committed or staged.
 
 ## Code conventions
 
