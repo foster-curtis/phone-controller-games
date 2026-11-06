@@ -9,6 +9,7 @@ RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/relay/package.json apps/relay/
 COPY apps/fort-frenzy/package.json apps/fort-frenzy/
+COPY apps/say-cheese/package.json apps/say-cheese/
 COPY apps/sunny-side/package.json apps/sunny-side/
 COPY packages/controller-kit/package.json packages/controller-kit/
 COPY packages/game-kit/package.json packages/game-kit/

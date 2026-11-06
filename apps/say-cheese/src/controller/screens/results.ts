@@ -1,0 +1,65 @@
+// Results and match end (SPEC §6.7): this phone's round score plus standings; the leader sees their
+// buttons (SPEC §6.5).
+import { el } from '@pcg/controller-kit';
+import type { Screen, Standing } from '../../shared/messages';
+import type { Ctx } from '../ctx';
+import { button, chip, heading, para, renderedView, type View } from './view';
+
+function standingsList(rows: readonly Standing[], winners: readonly string[] = []): HTMLElement {
+  return el(
+    'ol',
+    { class: 'standings' },
+    ...rows.map((r) =>
+      el(
+        'li',
+        { class: r.left || !r.connected ? 'away' : '' },
+        winners.includes(r.playerId) ? el('span', { class: 'crown', text: '★' }) : null,
+        chip(r.name, r.color),
+        el('span', { class: 'score-num', text: String(r.score) }),
+      ),
+    ),
+  );
+}
+
+export function resultsView(first: Screen, ctx: Ctx): View {
+  return renderedView('results', first, (s) => {
+    const mine = s.seats[0];
+    let line: string;
+    if (s.role === 'photographer') {
+      line = s.photographerDelta === 0 ? 'No catches. No change.' : `You: ${s.photographerDelta}`;
+    } else {
+      const c = s.caught.find((x) => mine && x.name === mine.name && x.color === mine.color);
+      line = c && c.count > 0 ? `Caught ${c.count}×` : 'Not caught!';
+    }
+    return [
+      heading('Round results'),
+      el('p', { class: 'pill', text: line }),
+      standingsList(s.standings),
+      s.isLeader
+        ? button(
+            s.last ? 'Final results' : 'Next round',
+            () => ctx.send({ t: 'leader', action: 'next' }),
+            { id: 'next' },
+          )
+        : para('Watch the TV', 'caption'),
+    ];
+  });
+}
+
+export function matchEndView(first: Screen, ctx: Ctx): View {
+  return renderedView('matchEnd', first, (s) => [
+    heading('Game over'),
+    standingsList(s.standings, s.winners),
+    s.isLeader
+      ? el(
+          'div',
+          { class: 'leader-row' },
+          button('Rematch', () => ctx.send({ t: 'leader', action: 'rematch' }), { id: 'rematch' }),
+          button('Back to lobby', () => ctx.send({ t: 'leader', action: 'lobby' }), {
+            id: 'lobby',
+            cls: 'btn--quiet',
+          }),
+        )
+      : para('Watch the TV', 'caption'),
+  ]);
+}

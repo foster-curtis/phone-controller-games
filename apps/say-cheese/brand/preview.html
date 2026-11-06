@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Say Cheese! brand kit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Permanent+Marker&family=Geist:wght@400;600&family=JetBrains+Mono:wght@600&display=swap">
+<link rel="stylesheet" href="../src/styles/brand.css">
+<style>
+  body { padding: 32px; }
+  .sheet { max-width: 1200px; margin: 0 auto; }
+  .sec { margin: 0 0 48px; }
+  .sec > h3 { font: 600 14px/1 var(--font-sans); color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 16px; }
+  .tv { position: relative; aspect-ratio: 16 / 9; background: var(--background); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .phone { position: relative; width: 300px; height: 620px; background: var(--background); border: 1px solid var(--border); border-radius: 32px; overflow: hidden; flex: none; }
+  .row { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .sw { width: 150px; }
+  .sw i { display: block; height: 64px; border-radius: 8px; border: 1px solid var(--border); }
+  .sw b { display: block; font: 600 14px/1.4 var(--font-sans); margin-top: 6px; }
+  .sw span { font: 600 12px/1.4 var(--font-mono); color: var(--muted); }
+  .chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px 8px; border-radius: 999px; font: 400 22px/1 var(--font-marker); box-shadow: 0 0 0 2px var(--brand-ink); }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+<section class="sec">
+  <h3>Title / lobby (TV)</h3>
+  <div class="tv">
+    <div class="rays rays--strong" style="left:-10%;top:-60%;width:120%;height:220%;inset:auto"></div>
+    <div style="position:absolute;left:7%;top:12%">
+      <div class="lockup" style="font-size:9vw;max-width:none">
+        <span class="say">Say</span><span class="cheese">Cheese!</span>
+      </div>
+      <p class="marker-tv" style="margin:32px 0 0;color:var(--print)">Stay out of the shot.</p>
+    </div>
+    <div class="print" style="position:absolute;right:8%;top:14%;width:26%;padding:7% 3% 0;text-align:center">
+      <div style="font:600 13px/1 var(--font-sans);letter-spacing:.1em;color:var(--brand-gray)">ROOM CODE</div>
+      <div class="code-tv" style="font-size:4.2vw;margin-top:12px;color:var(--print-on)">KXQT</div>
+      <div class="print-caption" style="font-size:1.6vw">say-cheese.fostercurtis.dev</div>
+    </div>
+    <div style="position:absolute;left:7%;bottom:9%;display:flex;gap:14px;flex-wrap:wrap">
+      <span class="chip" style="background:var(--player-cobalt);color:var(--player-cobalt-on)">Maya ✓</span>
+      <span class="chip" style="background:var(--player-jade);color:var(--player-jade-on)">Jo ✓</span>
+      <span class="chip" style="background:var(--player-lilac);color:var(--player-lilac-on)">Sam</span>
+      <span class="chip" style="background:var(--player-sky);color:var(--player-sky-on)">Priya ✓</span>
+      <span class="chip" style="background:var(--surface-strong);color:var(--muted);box-shadow:none;font-family:var(--font-sans);font-size:16px">no camera · Ben</span>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <h3>Review (TV)</h3>
+  <div class="tv">
+    <div class="rays" style="left:30%;top:-40%;width:90%;height:180%;inset:auto"></div>
+    <div style="position:absolute;left:5%;top:7%">
+      <div class="h2" style="color:var(--pink)">Busted?</div>
+      <div class="caption" style="color:var(--muted);margin-top:6px">Maya is tagging</div>
+    </div>
+    <div class="print print--back" style="position:absolute;left:44%;top:12%;width:38%;height:72%"></div>
+    <div class="print" style="position:absolute;left:38%;top:9%;width:46%">
+      <div class="print-image developing">
+        <svg viewBox="0 0 400 300" style="display:block;width:100%;height:100%">
+          <rect width="400" height="300" fill="#d9cdb8"/><rect y="210" width="400" height="90" fill="#8a6d52"/>
+          <rect x="20" y="40" width="90" height="110" fill="#9fb7c9"/><rect x="250" y="150" width="140" height="70" rx="12" fill="#5a4b6e"/>
+          <circle cx="175" cy="110" r="26" fill="#c9926f"/><rect x="148" y="136" width="56" height="100" rx="20" fill="#3b6ea5"/>
+          <circle cx="305" cy="118" r="22" fill="#7a5238"/><rect x="282" y="140" width="48" height="60" rx="18" fill="#e5e1d8"/>
+          <rect x="50" y="200" width="40" height="18" rx="8" fill="#c9926f"/>
+        </svg>
+        <div class="tag-ring" style="left:44%;top:37%;--c:var(--player-cobalt)"></div>
+        <div class="tag-label tag-name" style="left:44%;top:47%;--c:var(--player-cobalt);--c-on:var(--player-cobalt-on);font-size:2vw">Jo</div>
+        <div class="tag-ring" style="left:76%;top:40%;--c:var(--player-bone)"></div>
+        <div class="tag-label tag-name" style="left:76%;top:50%;--c:var(--player-bone);--c-on:var(--player-bone-on);font-size:2vw">Priya</div>
+        <div class="tag-ring" style="left:17%;top:70%"></div>
+        <div class="tag-label tag-name" style="left:17%;top:80%;font-size:2vw">?</div>
+      </div>
+      <div class="print-caption" style="font-size:2.4vw">Photo 4 / 15</div>
+    </div>
+    <div style="position:absolute;left:5%;bottom:10%;display:flex;flex-direction:column;gap:14px;align-items:flex-start">
+      <div class="marker-tv" style="font-size:2.6vw">Caught!</div>
+      <span class="pill" style="font-size:1.8vw">Jo ×3</span>
+      <span class="pill" style="font-size:1.8vw">Priya ×1</span>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <h3>Phone</h3>
+  <div class="row">
+    <div class="phone" style="background:#000">
+      <div class="viewfinder"></div>
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px">
+        <div style="font:400 120px/1 var(--font-display);color:rgba(255,255,255,.18)">7</div>
+        <div class="caption" style="color:rgba(255,255,255,.3)">of 15 · tap anywhere</div>
+      </div>
+    </div>
+    <div class="phone">
+      <div style="padding:20px;display:flex;flex-direction:column;gap:20px;align-items:center;text-align:center;height:100%;box-sizing:border-box;justify-content:center">
+        <div class="lockup" style="font-size:44px"><span class="say">Say</span><span class="cheese">Cheese!</span></div>
+        <p class="body" style="margin:0">You're the photographer. Check the preview, then close your eyes.</p>
+        <div class="print" style="width:200px;--shadow-pop:var(--shadow-pop-sm)"><div class="print-image" style="background:#3a4250"></div><div class="print-caption" style="font-size:16px">preview</div></div>
+        <button class="btn">I'm ready</button>
+      </div>
+    </div>
+    <div class="phone">
+      <div style="padding:16px">
+        <div class="print" style="transform:none;--shadow-pop:none">
+          <div class="print-image" style="background:#cdbfa8">
+            <div class="tag-ring" style="left:46%;top:40%;--c:var(--player-cobalt);--tag-stroke:var(--tag-stroke-phone);--tag-keyline:1.5px"></div>
+          </div>
+          <div class="print-caption" style="font-size:15px">Photo 4 / 15</div>
+        </div>
+      </div>
+      <div style="position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--border);border-radius:20px 20px 0 0;padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <span class="chip" style="background:var(--player-cobalt);color:var(--player-cobalt-on);justify-content:center">Jo</span>
+        <span class="chip" style="background:var(--player-jade);color:var(--player-jade-on);justify-content:center">Sam</span>
+        <span class="chip" style="background:var(--player-bone);color:var(--player-bone-on);justify-content:center;opacity:.45">Priya ✓</span>
+        <span class="chip" style="background:var(--player-lilac);color:var(--player-lilac-on);justify-content:center">Ben</span>
+        <span class="chip" style="background:var(--tag-unknown);color:var(--tag-unknown-on);justify-content:center;grid-column:span 2">? Unknown</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <h3>Palette</h3>
+  <div class="row">
+    <div class="sw"><i style="background:var(--brand-ink)"></i><b>Ink</b><span>#14161a</span></div>
+    <div class="sw"><i style="background:var(--print)"></i><b>Print</b><span>#fff6e6</span></div>
+    <div class="sw"><i style="background:var(--accent)"></i><b>Flash amber</b><span>#e8a33d</span></div>
+    <div class="sw"><i style="background:var(--pink)"></i><b>Flash pink</b><span>#ff5fa2 · decor only</span></div>
+    <div class="sw"><i style="background:var(--flash)"></i><b>Flash white</b><span>#ffffff</span></div>
+    <div class="sw"><i style="background:var(--danger)"></i><b>Danger</b><span>#e05252</span></div>
+  </div>
+  <div class="row" style="margin-top:20px">
+    <div class="sw"><i style="background:var(--player-crimson)"></i><b>Crimson</b></div>
+    <div class="sw"><i style="background:var(--player-cobalt)"></i><b>Cobalt</b></div>
+    <div class="sw"><i style="background:var(--player-jade)"></i><b>Jade</b></div>
+    <div class="sw"><i style="background:var(--player-berry)"></i><b>Berry</b></div>
+    <div class="sw"><i style="background:var(--player-bone)"></i><b>Bone</b></div>
+    <div class="sw"><i style="background:var(--player-sky)"></i><b>Sky</b></div>
+    <div class="sw"><i style="background:var(--player-lilac)"></i><b>Lilac (new)</b></div>
+    <div class="sw"><i style="background:var(--player-forest)"></i><b>Forest</b></div>
+    <div class="sw"><i style="background:var(--tag-unknown)"></i><b>Unknown</b></div>
+  </div>
+</section>
+
+<section class="sec">
+  <h3>Type and mark</h3>
+  <div class="row" style="align-items:center;gap:40px">
+    <div>
+      <div class="banner" style="font-size:56px">Bungee</div>
+      <div class="marker-tv" style="margin-top:8px">Permanent Marker</div>
+      <div class="body" style="margin-top:8px">Geist for body and controls</div>
+      <div class="code" style="margin-top:8px">KXQT · JetBrains Mono</div>
+    </div>
+    <img src="mark.svg" width="128" height="128" alt="">
+    <img src="mark.svg" width="32" height="32" alt="">
+    <img src="mark-small.svg" width="16" height="16" alt="">
+  </div>
+</section>
+
+</div>
+</body>
+</html>
