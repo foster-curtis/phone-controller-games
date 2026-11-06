@@ -858,7 +858,7 @@ Rules:
   - [x] Victory/defeat/summary/end options, late joins
   - [x] Snapshot + resume + device-ID claim
   - [x] Resume e2e (specs written, typechecked and linted; run by the orchestrator's test-runner)
-  - [ ] Merged to `main`
+  - [x] Merged to `main`
 - FF15 Soak + perf
   - [ ] Soak + determinism over full runs
   - [ ] Bench at real peak + stress mode + perf fixes
