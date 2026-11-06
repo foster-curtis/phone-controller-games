@@ -1667,6 +1667,9 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   600 steps, entity counts; also in `window.__pcgStress`). `&peak=synthetic`, `&seed=N`, `&fps=N`.
   `e2e/stress.spec.ts` checks it runs with no console errors or fallback shapes (not run by FF15: the orchestrator
   runs e2e).
+- [FF15-fix-1] decision: the stress overlay's `RenderWorld.partCount` read `.list` off every rig-root child, but the
+  extras graphics (the Ranger's string) has none and threw each frame in `?debug=1&stress=1`; it now counts through
+  `rigMath.ts` `rigPartCount` (part-set children only), unit-tested in `render/__tests__/partCount.test.ts`.
 - [FF15] decision: deleted FF3-fix-2's unused `THREAD_ALPHA` (`render/legibility.ts`) and its floor-contrast
   assertion ([orch] cleanup).
 - [FF15] decision: after rebasing on FF14, FF10-fix-2 and FF7-fix-4 (a79b3a7): the perf files swapped back to main's

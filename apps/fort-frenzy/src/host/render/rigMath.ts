@@ -101,3 +101,16 @@ export function attachPoint(
   const m = mats.get(a.part);
   return m ? apply(m, a.at[0], a.at[1]) : [a.at[0], a.at[1]];
 }
+
+/**
+ * Rig parts under a rig root (the stress overlay): the images of its part-set containers. Other
+ * children (the code-drawn extras graphics, the Ranger's string) have no `list` and count none.
+ */
+export function rigPartCount(root: { readonly list: readonly unknown[] }): number {
+  let n = 0;
+  for (const c of root.list) {
+    const list = (c as { list?: unknown }).list;
+    if (Array.isArray(list)) n += list.length;
+  }
+  return n;
+}
