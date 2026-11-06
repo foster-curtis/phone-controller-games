@@ -34,10 +34,44 @@ function statMods(mods: readonly Modifier[]): StatMod[] {
   return out;
 }
 
-/** Recomputes `u.stats` from `base` and the unit's modifiers; keeps HP within the new max. */
+const STAT_INDEX = new Map<string, number>(STAT_IDS.map((id, i) => [id, i]));
+const sumPct = new Float64Array(STAT_IDS.length);
+const sumAdd = new Float64Array(STAT_IDS.length);
+
+function sumUnscoped(stats: readonly StatMod[] | undefined) {
+  if (!stats) return;
+  for (const s of stats) {
+    if (s.scope !== undefined) continue;
+    const i = STAT_INDEX.get(s.stat);
+    if (i === undefined) continue;
+    if (s.addPct !== undefined) sumPct[i] = sumPct[i]! + s.addPct;
+    if (s.add !== undefined) sumAdd[i] = sumAdd[i]! + s.add;
+  }
+}
+
+const clamp = (v: number, lo = -Infinity, hi = Infinity) => Math.min(hi, Math.max(lo, v));
+
+/**
+ * Recomputes `u.stats` from `base` and the unit's modifiers; keeps HP within the new max.
+ *
+ * FF15 perf: one pass over the mods into per-stat sums (was `statValue` per stat over a flattened
+ * copy). The sums add in the same mod order and the formula is `statValue`'s, so results are exact.
+ */
 export function refreshStats(u: Unit, base: StatBlock, effects: EffectTable, caps: Caps): void {
-  const mods = statMods(modifiersOf(u, effects));
-  for (const id of STAT_IDS) u.stats[id] = statValue(base[id], mods, id, caps[id]);
+  sumPct.fill(0);
+  sumAdd.fill(0);
+  for (const m of u.mods) sumUnscoped(m.stats);
+  for (const e of u.effects) {
+    const def = effects[e.def];
+    if (def) sumUnscoped(def.modifier(e.strength * e.stacks).stats);
+  }
+  for (let i = 0; i < STAT_IDS.length; i++) {
+    const id = STAT_IDS[i]!;
+    const cap = caps[id];
+    u.stats[id] =
+      base[id] * (1 + clamp(sumPct[i]!, cap?.pctMin, cap?.pctMax)) +
+      clamp(sumAdd[i]!, cap?.addMin, cap?.addMax);
+  }
   u.maxHp = u.stats.maxHp;
   if (u.hp > u.maxHp) u.hp = u.maxHp;
 }

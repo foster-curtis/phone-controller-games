@@ -42,6 +42,9 @@ import {
   type World,
 } from './types';
 
+/** Shared empty hook list (callers only iterate it). */
+const NO_HOOKS: never[] = [];
+
 export function newAttack(): AttackState {
   return { readyAt: 0, queued: false, aim: { x: 0, y: 0 }, windupEndsAt: null };
 }
@@ -389,7 +392,12 @@ export function createState(start: RunStart, cat: Catalog): FullState {
     },
     unit: (id) => units.get(id) ?? null,
     modifiers: (u) => modifiersOf(u, effectDefs),
-    hooks: (u, key) => hookList([modifiersOf(u, effectDefs)], key),
+    hooks(u, key) {
+      // FF15 perf: most units have no effects (and many no mods) on most steps, so skip the copies.
+      if (u.effects.length > 0) return hookList([modifiersOf(u, effectDefs)], key);
+      if (u.mods.length === 0) return NO_HOOKS;
+      return hookList([u.mods], key);
+    },
     attackStat: (u, b, stat: StatId, scope) => attackStat(u, b, stat, scope, effectDefs, caps),
     player: (slot) => world.players.find((p) => p.slot === slot),
     targetable: (p) => p.respawnAt === null && p.connected && p.hp > 0,
@@ -402,7 +410,11 @@ export function createState(start: RunStart, cat: Catalog): FullState {
         if (e.hp <= 0 || (e.flying && !hitsFlyers)) continue;
         const dx = e.x - x;
         const dy = e.y - y;
-        const d = Math.sqrt(dx * dx + dy * dy) - e.r;
+        const q = dx * dx + dy * dy;
+        // Clearly out of range: skip the root (FF15 perf; the margin keeps every kept result exact).
+        const lim = range + e.r + 1e-6;
+        if (q > lim * lim) continue;
+        const d = Math.sqrt(q) - e.r;
         if (d <= range && d < bestD) {
           best = e;
           bestD = d;
