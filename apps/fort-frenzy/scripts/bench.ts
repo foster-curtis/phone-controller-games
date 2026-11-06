@@ -10,6 +10,8 @@
 //   projectiles (sim/peak.ts).
 // - `peak`: the same counts with the whole roster scattered over the field.
 // - `run2`, `run6`: whole autopilot runs (waves 1–15, soak class rotations), every step timed.
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { stateHash } from '../src/host/sim/index';
 import { peakLoad, type PeakKind } from '../src/host/sim/peak';
 import { soakClasses, soakRun } from '../src/host/sim/soak';
@@ -97,10 +99,14 @@ const scenarios: { name: string; run(): Outcome }[] = [
   { name: 'run6', run: () => run(6, 1) },
 ];
 
+// One scenario per process (FF15): a scenario run after another in the same process measured up to
+// 3× slower (heap and JIT state left by the first sim), and the TV only ever runs one sim.
 const only = process.argv.slice(2);
+const names = only.length > 0 ? only : scenarios.map((s) => s.name);
 let over = false;
-for (const sc of scenarios) {
-  if (only.length > 0 && !only.includes(sc.name)) continue;
+if (names.length === 1) {
+  const sc = scenarios.find((s) => s.name === names[0]);
+  if (!sc) throw new Error(`bench: unknown scenario '${names[0]}'`);
   const o = sc.run();
   const s = stats(o.times);
   const ok = s.mean <= BUDGET_MS && (!o.peak || s.p99 <= BUDGET_MS);
@@ -109,5 +115,16 @@ for (const sc of scenarios) {
     `bench ${sc.name.padEnd(5)} mean ${s.mean.toFixed(3)} ms  p99 ${s.p99.toFixed(3)} ms  ` +
       `max ${s.max.toFixed(3)} ms  (${o.times.length} steps; ${o.counts})${ok ? '' : `  OVER ${BUDGET_MS} ms`}`,
   );
+} else {
+  for (const name of names) {
+    const r = spawnSync(
+      process.execPath,
+      [...process.execArgv, fileURLToPath(import.meta.url), name],
+      {
+        stdio: 'inherit',
+      },
+    );
+    if (r.status !== 0) over = true;
+  }
 }
 if (over) process.exit(1);

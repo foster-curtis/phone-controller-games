@@ -5,7 +5,7 @@
 import { STAT_IDS, type StatId, type StatMod } from '../../content/types';
 import type { EffectId } from '../../shared/ids';
 import { statValue, type StatCap } from '../systems/modifiers';
-import type { EffectDef, Modifier, StatBlock, Unit } from './types';
+import type { EffectDef, Modifier, StatBlock, StatusEffect, Unit } from './types';
 
 export type EffectTable = Partial<Record<EffectId, EffectDef>>;
 export type Caps = Partial<Record<StatId, StatCap>>;
@@ -17,13 +17,29 @@ export function statBlock(values: Partial<StatBlock>): StatBlock {
   return out;
 }
 
+const effectMods = new WeakMap<StatusEffect, { k: number; def: EffectDef; m: Modifier }>();
+
+/**
+ * An effect's modifier at its current strength × stacks, made once per effect and strength
+ * (FF15 perf: auras re-made it for every unit, every step, in both hooks and stats). Effect
+ * modifiers are pure functions of the strength, so the same object serves until it changes.
+ */
+function effectModifier(def: EffectDef, e: StatusEffect): Modifier {
+  const k = e.strength * e.stacks;
+  const hit = effectMods.get(e);
+  if (hit && hit.k === k && hit.def === def) return hit.m;
+  const m = def.modifier(k);
+  effectMods.set(e, { k, def, m });
+  return m;
+}
+
 /** The unit's modifiers in attach order, then one per status effect in application order (§15.3). */
 export function modifiersOf(u: Unit, effects: EffectTable): readonly Modifier[] {
   if (u.effects.length === 0) return u.mods;
   const out = u.mods.slice();
   for (const e of u.effects) {
     const def = effects[e.def];
-    if (def) out.push(def.modifier(e.strength * e.stacks));
+    if (def) out.push(effectModifier(def, e));
   }
   return out;
 }
@@ -63,7 +79,7 @@ export function refreshStats(u: Unit, base: StatBlock, effects: EffectTable, cap
   for (const m of u.mods) sumUnscoped(m.stats);
   for (const e of u.effects) {
     const def = effects[e.def];
-    if (def) sumUnscoped(def.modifier(e.strength * e.stacks).stats);
+    if (def) sumUnscoped(effectModifier(def, e).stats);
   }
   for (let i = 0; i < STAT_IDS.length; i++) {
     const id = STAT_IDS[i]!;

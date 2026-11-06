@@ -1669,6 +1669,20 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   runs e2e).
 - [FF15] decision: deleted FF3-fix-2's unused `THREAD_ALPHA` (`render/legibility.ts`) and its floor-contrast
   assertion ([orch] cleanup).
+- [FF15] decision: after rebasing on FF14, FF10-fix-2 and FF7-fix-4 (a79b3a7): the perf files swapped back to main's
+  give the same 28 full-soak fingerprints and bench state hashes (boss `45404242`, peak `7fa00508`) as FF15's, so
+  the perf pass is still exact on the body hitboxes. Profiled with bodies: `queryBox` + `segmentHitsBody` ≈ 4–5% of
+  the peak step, left as they are. At peak ~350 KB is allocated a step, a 0.4 ms scavenge every ~30 steps, which is
+  what sets the p99; (6) effect modifiers (auras, morale, haste) are now made once per effect and strength
+  (`stats.ts` `effectModifier`, a WeakMap; they are pure in the strength) instead of per unit per step in both
+  `hooks()` and `refreshStats` (~9% of the allocations).
+- [FF15] decision: the bench runs each scenario in its own process (`peak` measured after `boss` in one process ran
+  up to 3× slower, mean 1.4 ms, from the heap and JIT state the first sim left; the TV runs one sim).
+- [FF15] bench (2026-11-06, machine shared with other agents' runs, CPU ~25–30% busy, numbers swing ±50% run to run):
+  main a79b3a7 boss mean 1.23 ms, p99 5.97 ms; peak mean 0.73, p99 2.11 (both over). FF15: boss mean 0.40–0.55 ms,
+  p99 1.0–1.9 ms; peak mean 0.45–0.51 ms, p99 1.4–1.5 ms; whole runs: 2 players mean 0.03 ms, 6 players 0.21 ms.
+- [FF15] soak full form (`pnpm --filter @pcg/fort-frenzy soak`, rebased on a79b3a7): 28 runs × 2, 0 failed, every
+  rerun identical, 1,878.7 s (31 min) under that load (195 s on a quieter machine before the rebase).
 
 ## 9. Final handoff
 
