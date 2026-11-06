@@ -1632,6 +1632,11 @@ interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: num
 - **Performance budget**, measured by an early performance test at peak load (6 knights, 30 footmen,
   150 enemies, 100 projectiles, 60 structures; about 1,300 rig parts in one atlas) on an integrated GPU
   laptop (Intel Iris Xe class) at 1080p: whole frame ≤ 16.7 ms, one sim step ≤ 2 ms, bloom ≤ 2 ms.
+  The TV measures it in its stress mode, `?debug=1&stress=1` (FF15): the real sim and World scene
+  with no phones, six autopilot knights (every class) on wave 15 against the Colossus Mk III held in
+  its final phase, Swarm packs topping the crowd up to 150, 60 towers, 30 footmen and 100 projectiles
+  (`&peak=synthetic` scatters the whole roster instead), with an overlay of frame time, CPU render
+  submit, bloom (GPU timer query, else bloom on − off) and the sim step's mean and p99.
 
 ### 15.3 Simulation
 
@@ -2187,6 +2192,15 @@ interface RunSnapshot {
   fall back toward the base when hurt) plays waves 1–15 headless with invincible players: no exceptions,
   and the run completes. A benchmark at peak entity counts checks the 2 ms step budget (§15.2); it runs
   on demand, not in the CI gate. The autopilot seeds the solo-mode bots (§13).
+  - The soak (FF15, `sim/soak.ts`) holds the Citadel at full HP too, so every class mix reaches wave 15;
+    each player picks a card from every offer and tries one team-shop item a wave (in a rotation), so
+    card and shop hooks run. The full form (`pnpm --filter @pcg/fort-frenzy soak`) plays two seeds ×
+    (2 players in all 10 class pairs, 6 players in the 4 rotations of the class list), each run twice:
+    it fails on an exception, a run that doesn't end in victory at wave 15, or a rerun whose state
+    hashes differ. Vitest runs a short form (one whole 2-player run and the 6-player boss waves, twice).
+  - The benchmark (`pnpm --filter @pcg/fort-frenzy bench`) holds the §15.2 counts at the real peak
+    (wave 15, the Colossus Mk III in its final phase, Swarm packs) and with the whole roster scattered,
+    and times whole runs; it fails when a peak's p99 step (or any mean) is over 2 ms.
 - **Unit tests:**
   - wave generator: spends within ±1 of the budget, allowed types only, guaranteed spawns present,
     Flyer substitution, open lanes only, spread across the duration, same seed same wave, scaling

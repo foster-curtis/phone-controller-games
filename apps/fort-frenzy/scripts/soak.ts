@@ -1,7 +1,8 @@
 // The full soak (SPEC §15.9, FF15): the content's whole run headless (waves 1–15), autopilot and
-// invincible, for two seeds × (2 players in every class pair, 6 players in every class rotation),
-// each run twice. Fails on an exception, a run that doesn't end in its summary, or a rerun whose state
-// hashes differ. Prints one fingerprint per run, so perf work can show the hashes didn't move.
+// invincible, the Citadel held, for two seeds × (2 players in every class pair, 6 players in every
+// class rotation), each run twice. Fails on an exception, a run that doesn't end in victory at wave
+// 15, or a rerun whose state hashes differ. Prints one fingerprint per run, so perf work can show the
+// hashes didn't move.
 //
 //   pnpm --filter @pcg/fort-frenzy soak [--quick]     (--quick: first seed, first mix of each count)
 import { soakMixes, soakRun, type SoakResult } from '../src/host/sim/soak';
@@ -44,7 +45,7 @@ for (const seed of quick ? SEEDS.slice(0, 1) : SEEDS) {
       const s = Number(process.hrtime.bigint() - t1) / 1e9;
       const same =
         a.hashes.length === b.hashes.length && a.hashes.every((x, i) => x === b.hashes[i]);
-      const ok = same && a.phase === 'summary' && a.wave === 15;
+      const ok = same && a.phase === 'summary' && a.result === 'victory' && a.wave === 15;
       if (!ok) failed++;
       console.log(
         `soak seed ${seed} ${classes.join('/').padEnd(52)} ${a.steps} steps, wave ${a.wave} ` +

@@ -1627,6 +1627,48 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   real bodies 0.54 ms, p99 1.4 ms (more footmen survive the run: 20 vs 4).
 - [FF7-fix-4] contract+: `src/shared/messages.ts` `AIM_DEAD_ZONE` (0.12, the kit's aimed dead zone as a fraction of the clamp; a test pins it to `AIMED_DEFAULTS`) and `src/host/sim/types.ts` optional `AttackState.held` (`'out' | 'cancelled' | null`); SPEC §10.1, §15.7, §15.11 #51 updated.
 - [FF7-fix-4] decision: the fix is in the sim (`players.ts` `heldAim`), not the phone: the tuple and its aiming flag are unchanged, and the TV keeps reading `PlayerEnt.mainAim`/`superAim` (null = no preview), so render is untouched. A held aim is `out` once its stick reads past the dead zone and `cancelled` once it reads back at or under it; cancelled hides the preview until the aiming flag drops (the brief's "stays hidden until a new press"). An aim that has not yet read past the dead zone shows nothing, so a slow drag rounding to the edge (stick ints) can't latch a cancel. Known edge: dragging out again after a cancel and releasing still fires (the phone's rule, unchanged) with no line shown; ask at C4 if the line should come back instead.
+- [FF15] decision: soak = `sim/soak.ts` `soakRun`: autopilot in every slot, invincible, and the Citadel held at full
+  HP (without it 6 of the 28 full-form runs fell at waves 9–14, so weak mixes never reached the boss); each player
+  picks a card from every offer (`(wave + slot) % offer`) and tries one team-shop item a wave in a rotation (refused
+  when unaffordable), so card and shop hooks run. Full form `pnpm --filter @pcg/fort-frenzy soak` (`scripts/soak.ts`):
+  seeds 1 and 2 × (2 players in all 10 class pairs, same class twice included; 6 players in the 4 rotations of
+  `CLASS_IDS`, so every class plays every slot), each run twice, state hash every 60 steps; fails on a throw, a run
+  not ending in victory at wave 15, or differing rerun hashes; prints a per-run hash fingerprint. Short form in
+  Vitest (`sim/__tests__/soak.test.ts`): one whole 2-player run and the 6-player boss waves (content waves 14–15).
+- [FF15] decision: soak finding (autopilot, not a game rule): seed 2 Warden + Quartermaster stalled wave 6 for the
+  whole hour cap: the invincible Warden stood under three Flyers it can't hit (holding their aggro), and the
+  Quartermaster's shots hit a Warden wall on its line. The autopilot now picks only enemies its main attack can hit
+  (`hitsFlyers`) and sidesteps (sides switch every 2 s) while a `blockedBy` wall or tower is on its line of fire.
+- [FF15] decision: bench (`scripts/bench.ts`, loads in `sim/peak.ts`, shared with the stress mode): `boss` is the real
+  peak (wave 15, the Colossus Mk III held at 45% HP so its final phase runs, Swarm packs through the `spawn` debug
+  command up to 150 enemies, 60 lattice towers (2 pulse : 1 mortar) healed each step, two Commanders' squads to 30
+  footmen, 100 projectiles, 6 knights of every class); `peak` is the same counts with the whole roster scattered
+  (FF6/FF10's crowd; its footmen now belong to Commanders: on main the bench threw `slot 0 has no squad` since FF9);
+  `run2`/`run6` time whole soak runs. Exits 1 when a peak's p99 or any mean is over 2 ms (was the mean only); each
+  peak line prints the final state hash. `pnpm bench boss peak` runs a subset.
+- [FF15] decision: perf, sim (every result exact: the 28 full-soak fingerprints and both bench state hashes are the
+  same before and after): (1) soft separation finds its pairs on its own center-binned grid over typed copies of the
+  bodies (was a spatial-hash query, sort and Map lookup per body, ~37% of the boss-peak step in dense Swarm packs),
+  still visiting each body's overlapping higher-id neighbors in ascending id order, so pushes sum in the same order;
+  (2) `hooks()` skips the modifier copy for units with no effects (a shared empty list with no mods either);
+  (3) `refreshStats` sums each stat in one pass over the mods (same order and formula as `statValue`);
+  (4) `nearestEnemy` skips the square root for enemies clearly out of range (a 1e-6 margin keeps kept results exact);
+  (5) movement knows players by position (no Map lookup); the autopilot finds the Armory tile once (was a whole-map
+  scan per sample, inside the timed step). The orch's suspects measured small at peak: hunted-field builds ~4% of
+  the step, the Colossus < 1%, card and passive hooks ~2%; left as they are.
+- [FF15] decision: perf, render: `RigSprite` poses parts without a per-part array, skips the per-frame order copy and
+  join when the clip has no order swap (all but the Colossus legs) and builds an empty sample only with no clip; the
+  stress overlay rewrites its DOM text every 15 frames. No visual change. `scene/worldView.ts` left alone (FF7-fix-4
+  and FF10-fix-2 edit it in parallel). GPU and frame numbers are the user's at C4 (software GL here, FF3 decision).
+- [FF15] decision: in-game stress mode `?debug=1&stress=1` (`host/stress.ts`): no relay or session (FF14 owns `net/`
+  and the lifecycle), the `boss` peak load stepped by its own fixed-step loop on a 60 Hz timer as in a run, the real
+  World scene (new optional `SceneHost.onWorld` hands over the RenderWorld) and FF3's overlay, moved to
+  `render/stressOverlay.ts` (the gallery's `&stress=1` uses it too) with a sim line (step mean and p99 over the last
+  600 steps, entity counts; also in `window.__pcgStress`). `&peak=synthetic`, `&seed=N`, `&fps=N`.
+  `e2e/stress.spec.ts` checks it runs with no console errors or fallback shapes (not run by FF15: the orchestrator
+  runs e2e).
+- [FF15] decision: deleted FF3-fix-2's unused `THREAD_ALPHA` (`render/legibility.ts`) and its floor-contrast
+  assertion ([orch] cleanup).
 
 ## 9. Final handoff
 
