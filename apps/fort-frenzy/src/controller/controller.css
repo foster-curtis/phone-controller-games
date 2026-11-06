@@ -344,6 +344,15 @@ button {
   height: 40px;
 }
 
+.status-choices {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.status-choices[hidden] {
+  display: none;
+}
+
 .claim {
   display: flex;
   flex-direction: column;

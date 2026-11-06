@@ -12,7 +12,14 @@ import {
 } from '@pcg/game-kit';
 import type { ConnectionStatus, HostClient } from '@pcg/net-client';
 import { DIFFICULTY_IDS, THEME_IDS, type LaneId } from '../shared/ids';
-import { connectSession, createRelayClient, type Session } from './net';
+import { GAME_ID } from '../shared/messages';
+import {
+  connectSession,
+  createRelayClient,
+  localSnapshotStore,
+  type Session,
+  type SnapshotStore,
+} from './net';
 import type { FrameInput, Overlays, Pos } from './scene/worldView';
 import { STEP_MS, type EntityId, type SimEvent, type World } from './sim/types';
 import { buildTvView } from './tv';
@@ -25,8 +32,15 @@ export const MAX_FRAME_MS = 250;
 export const MAX_SPEED = 8;
 const ANNOUNCE_MS = 6000;
 
+/** The net-client's host token key (relay SPEC §3.1 storage keys): dropped to close the room. */
+const HOST_TOKEN_KEY = `pcg:hostToken:${GAME_ID}`;
+
 export interface RuntimeOptions {
   client?: HostClient;
+  /** Makes the relay client for a new room after "Return to home" (default: the real relay). */
+  createClient?: () => HostClient;
+  /** Resume snapshot storage (default `localStorage`, §15.8). */
+  store?: SnapshotStore;
   /** Page origin for the join URL (LAN host in dev). */
   origin: string;
   /** Seed for the next run; null = random. */
@@ -75,36 +89,47 @@ export interface Runtime {
   setVisible(visible: boolean): void;
   tvView(): TvView;
   readonly world: World | null;
+  /** Writes the resume snapshot now (`pagehide`, §15.8). */
+  saveNow(): void;
+  /** Closes the room and goes back to the home screen ("Return to home", §4). */
+  goHome(): void;
 }
 
 export function createRuntime(opts: RuntimeOptions): Runtime {
   const now = opts.now ?? (() => performance.now());
-  const client = opts.client ?? createRelayClient();
+  const makeClient = opts.createClient ?? createRelayClient;
+  const store = opts.store ?? localSnapshotStore();
+  let client = opts.client ?? makeClient();
   let runId = 0;
   const stats: RunStats = { enemyDeaths: 0, shots: 0, playerDeaths: 0, steps: 0 };
   const laneWarnings = new Map<LaneId, number>();
   let announcements: { a: Announcement; at: number }[] = [];
   let annId = 0;
 
-  const { session } = connectSession(client, {
-    now,
-    build: opts.build,
-    seed: () => runtime.nextSeed ?? Math.floor(Math.random() * 0x7fffffff),
-    onRunStart: () => {
-      runId++;
-      loop.reset();
-      prev.clear();
-      events = [];
-      laneWarnings.clear();
-      announcements = [];
-      stats.enemyDeaths = stats.playerDeaths = stats.steps = stats.shots = 0;
-    },
-    onRunEnd: () => {
-      runId++;
-      prev.clear();
-      events = [];
-    },
-  });
+  const connect = (c: HostClient) =>
+    connectSession(c, {
+      now,
+      build: opts.build,
+      store,
+      seed: () => runtime.nextSeed ?? Math.floor(Math.random() * 0x7fffffff),
+      onRunStart: () => {
+        runId++;
+        loop.reset();
+        prev.clear();
+        events = [];
+        laneWarnings.clear();
+        announcements = [];
+        stats.enemyDeaths = stats.playerDeaths = stats.steps = stats.shots = 0;
+      },
+      onRunEnd: () => {
+        runId++;
+        prev.clear();
+        events = [];
+      },
+      // After the leader's ack has gone out.
+      onHome: () => queueMicrotask(() => runtime.goHome()),
+    });
+  let { session, off } = connect(client);
 
   const loop: FixedStep = createFixedStep({
     stepMs: STEP_MS,
@@ -116,13 +141,27 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
   let pausedAll = false;
 
   let room: { code: string; joinUrl: string; qr: QrMatrix | null } | null = null;
-  const home: { rows: HomeRow[]; focus: number } = {
-    rows: [
+  const home: { rows: HomeRow[]; focus: number } = { rows: [], focus: 0 };
+  /** Home rows: Resume / New run while a saved run waits (§15.8), else create, theme, difficulty. */
+  const homeRows = (): HomeRow[] => {
+    const r = session.restoring;
+    if (r) {
+      return [
+        { id: 'resume', wave: r.wave, savedAgoMs: Math.max(0, Date.now() - r.savedAt) },
+        { id: 'newRun' },
+      ];
+    }
+    return [
       { id: 'create' },
       { id: 'theme', theme: session.settings.theme },
       { id: 'difficulty', difficulty: session.settings.difficulty },
-    ],
-    focus: 0,
+    ];
+  };
+  /** A saved run: reclaim the room at once so the phones stay joined (§11.5). */
+  const offerResume = () => {
+    home.focus = 0;
+    if (session.restoring)
+      runtime.createRoom().catch((e: unknown) => console.error('host: could not reclaim', e));
   };
 
   const capture = (w: World) => {
@@ -173,8 +212,12 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
     list[(list.indexOf(cur) + dir + list.length) % list.length]!;
 
   const runtime: Runtime = {
-    session,
-    client,
+    get session() {
+      return session;
+    },
+    get client() {
+      return client;
+    },
     get code() {
       return client.code;
     },
@@ -198,7 +241,9 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
 
     async createRoom() {
       if (room) return;
-      const r = await client.start();
+      const c = client;
+      const r = await c.start();
+      if (c !== client) return; // went home meanwhile
       const url = joinUrl(opts.origin, r.code);
       room = { code: r.code, joinUrl: url, qr: qrMatrix(url) };
     },
@@ -212,16 +257,41 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
           session.setSettings({
             difficulty: cycle(DIFFICULTY_IDS, session.settings.difficulty, intent.dir),
           });
-        home.rows = [
-          { id: 'create' },
-          { id: 'theme', theme: session.settings.theme },
-          { id: 'difficulty', difficulty: session.settings.difficulty },
-        ];
+      } else if (intent.row === 'resume') {
+        session.resume();
+        home.focus = 0;
+      } else if (intent.row === 'newRun') {
+        session.newRun();
+        home.focus = 0;
       } else if (intent.row === 'create') {
         runtime
           .createRoom()
           .catch((e: unknown) => console.error('host: could not create a room', e));
       }
+    },
+
+    saveNow() {
+      session.saveNow();
+    },
+
+    goHome() {
+      // Every phone leaves, the relay forgets the room (no host token to reclaim it), and the next
+      // Create starts a new room code (§4).
+      for (const m of session.party.members) if (m.connected) client.kick(m.playerId);
+      session.endRun();
+      off();
+      client.close();
+      try {
+        globalThis.sessionStorage?.removeItem(HOST_TOKEN_KEY);
+      } catch {
+        /* storage off */
+      }
+      const settings = { ...session.settings };
+      client = makeClient();
+      ({ session, off } = connect(client));
+      session.setSettings(settings);
+      room = null;
+      home.focus = 0;
     },
 
     tick(elapsedMs) {
@@ -265,6 +335,8 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
     },
 
     tvView() {
+      home.rows = homeRows();
+      home.focus = Math.min(home.focus, home.rows.length - 1);
       return buildTvView({
         ctx: session.view(),
         loading: runtime.loading,
@@ -276,5 +348,6 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
       });
     },
   };
+  offerResume();
   return runtime;
 }

@@ -27,3 +27,13 @@ export {
 export { extraDischarges, itemState, shownTo, type ShopItemState } from './shop';
 export { canSpawnFor, guaranteedRare, offerFor } from './cards';
 export { shieldOf } from './cards/effects';
+export {
+  parseSnapshot,
+  resumeStart,
+  takeSnapshot,
+  SNAPSHOT_KEY,
+  SNAPSHOT_MAX_AGE_MS,
+  SNAPSHOT_VERSION,
+  type RunSnapshot,
+  type SnapshotMeta,
+} from './snapshot';

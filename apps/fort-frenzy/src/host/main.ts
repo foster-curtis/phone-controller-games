@@ -124,6 +124,8 @@ async function startTv() {
     last = t;
   }, 1000 / 60);
   watchVisibility((visible) => runtime.setVisible(visible));
+  // A reload or a closed tab keeps the latest build-phase state (§15.8).
+  window.addEventListener('pagehide', () => runtime.saveNow());
   void createHostWakeLock().request();
 
   if (debug) {

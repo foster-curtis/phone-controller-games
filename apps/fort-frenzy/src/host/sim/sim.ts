@@ -12,6 +12,7 @@ import { stepDeaths, stepEffects, stepPhases, stepSpawner } from './lifecycle';
 import { rebuildSpatial, stepMovement } from './movement';
 import { stepPlayers } from './players';
 import { aiKinds } from './registry';
+import { restoreSnapshot } from './snapshot';
 import { createState, neutralInput, type FullState } from './state';
 import type {
   EnemyEnt,
@@ -108,6 +109,8 @@ function stepEnemies(s: FullState) {
 export function createSim(start: RunStart, opts: SimOptions = {}): Sim {
   const content = opts.content ?? defaultContent;
   const s = createState(start, createCatalog(content, start.settings.difficulty));
+  // A resumed run starts in the snapshot's build phase (§11.5, §15.8; FF14).
+  if (start.snapshot) restoreSnapshot(s, start.snapshot);
   const sources = new Map(opts.sources ?? []);
   const obs = opts.observer;
   let queue: SimCommand[] = [];

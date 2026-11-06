@@ -151,6 +151,11 @@ export function fitStructure(s: FullState, st: StructureEnt): void {
   if (st.discharges !== null) st.discharges += extraDischarges(s.cat.content, s.world.team);
 }
 
+/** The base and its archers get the team's upgrades (a resumed run, FF14). */
+export function refitBase(s: FullState): void {
+  refit(s, s.world.base, targetsOf('base'));
+}
+
 /** A new soldier gets the squad upgrades. */
 export function fitSoldier(s: FullState, u: Unit): void {
   refit(s, u, targetsOf('soldier'));

@@ -6,7 +6,13 @@ import { GAME_ID } from '../../shared/messages';
 import { createSession, type Session, type SessionDeps } from './session';
 
 export { PhoneInputSource, tupleToInput, INPUT_STALE_MS } from './input';
-export { createSession, MAX_PARTY, type Session, type SessionDeps } from './session';
+export { createSession, MAX_PARTY, type RoomInfo, type Session, type SessionDeps } from './session';
+export {
+  localSnapshotStore,
+  memorySnapshotStore,
+  SAVE_DEBOUNCE_MS,
+  type SnapshotStore,
+} from './resume';
 export * from './views';
 
 /** Relay room size (§15.6). */
@@ -33,6 +39,7 @@ export function connectSession(
   const offs = [
     client.onMessage((from, data) => session.handleMessage(from, data)),
     client.onPeer((c) => session.handlePeer(c)),
+    client.onRoom((r) => session.handleRoom(r)),
   ];
   return { session, off: () => offs.forEach((o) => o()) };
 }

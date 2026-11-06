@@ -104,6 +104,8 @@ export interface StateExtras {
   /** A Commander's soldier (his class's `squad.soldier` stats); `index` defaults to the next free. */
   readonly addSoldier: (owner: number, x: number, y: number, index?: number) => SoldierEnt;
   readonly isBlocker: (kind: StructureId) => boolean;
+  /** A player at their respawn point (run start, a late join, FF14). */
+  readonly addPlayer: (slot: RunSlot) => PlayerEnt;
 }
 
 export type FullState = SimState & StateExtras;
@@ -284,7 +286,7 @@ export function createState(start: RunStart, cat: Catalog): FullState {
     baseStats.set(u.id, stats);
   };
 
-  function addPlayer(slot: RunSlot) {
+  function addPlayer(slot: RunSlot): PlayerEnt {
     const def = cat.character(slot.classId);
     const at = respawnPoint(slot.slot);
     const stats = statBlock({
@@ -352,6 +354,7 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       prev: { mainFires: 0, superFires: 0, actionTaps: 0, radialCommits: 0 },
       baseline: true,
     });
+    return p;
   }
 
   for (const slot of [...start.slots].sort((a, b) => a.slot - b.slot)) addPlayer(slot);
@@ -371,6 +374,7 @@ export function createState(start: RunStart, cat: Catalog): FullState {
     rebuildFields,
     respawnPoint,
     isBlocker,
+    addPlayer,
     tick: () => world.tick,
     rng(label) {
       let r = streams.get(label);

@@ -457,6 +457,10 @@ Crates therefore have two uses: building or repairing.
   2. **Change classes:** players return to class select.
   3. **Return to home:** the TV goes back to the pre-lobby home page. The room closes, and players
      rejoin through a new room code.
+  - (FF14) Play again marks every connected player Ready in the lobby, so the 3-second countdown
+    starts at once with two or more of them. Return to home removes every phone from the room (they
+    show "The TV went home" with a button back to the code screen) and forgets the room, so the next
+    Create gets a new code.
 - The resume snapshot (§11.5) is cleared when the run ends.
 - Each wave has two phases:
   - **Build/shop phase:** no enemies. Players build, shop and pick upgrades.
@@ -2051,7 +2055,12 @@ interface MeView {
   intent maps to `party.setColor`: lobby only and not while that player is ready (ack `phase`), a color
   another member holds acks `taken` (no swap), an unknown player or color acks `invalid`. Relay `peer left` → a `presence` command
   makes the character dazed (§11.3); `rejoined` or a key match restores it. A phone joining during combat
-  gets `waiting` and becomes a late join at the next build phase.
+  gets `waiting` and becomes a late join at the next build phase: in a build phase it enters a name,
+  picks a class and taps Ready, which takes the next free slot (`party.joinLate`, then the sim's `join`
+  command) and spawns the knight at the base with a card offer. A resume (§15.8) rebuilds the party
+  from the snapshot with `party.restore` (every slot away, matched by key or device ID), and
+  `party.claim` lets an unknown phone take a slot no phone has matched; `party.screen` returns `claim`
+  for it while such slots exist.
 - **Versioning:** `PROTOCOL_VERSION` bumps on any breaking change to `messages.ts`; additive fields don't
   bump it. `messages.ts` is a frozen contract (§15.11).
 
@@ -2109,7 +2118,7 @@ interface RunSnapshot {
   wave: number; base: { hp: number; repairs: number }; coins: number;
   shop: Record<ShopItemId, number>;                  // tier owned (archer upgrades: 0 or 1 each)
   structures: { id: StructureId; tile: [number, number]; hp: number | null;
-    dischargesUsed?: number; fortified?: boolean }[];
+    dischargesUsed?: number; fortified?: boolean; owner?: number }[];   // owner: builder's slot (FF14)
   cratePiles: { x: number; y: number; n: number }[];
   slots: { slot: number; playerKey: string; deviceId: string; name: string; color: PlayerColorId;
     classId: ClassId; hp: number; crates: number; kits: number; lastBuilt: StructureId | null;
@@ -2117,6 +2126,7 @@ interface RunSnapshot {
     squad?: { size: number; veterans: number[]; flag: [number, number] | null } }[];
   leaderKey: string | null;
   wishlist: { item: ShopItemId; slot: number }[];
+  runMs?: number;                                    // run time before the save (FF14: summary duration)
 }
 ```
 
@@ -2125,6 +2135,17 @@ interface RunSnapshot {
   driven by keyboard or gamepad; the leader's phone can choose too. If the relay hands back a new room
   instead, the TV shows the new code; rejoining phones are matched by device ID, and any others see the
   `claim` screen listing free slots.
+- **What a resume restores** (FF14): the build phase of the saved wave with its full build timer; the
+  knights stand at the base; cooldowns and super charge start over; everything in the snapshot comes
+  back as saved. A saved run reclaims (or creates) the room as soon as the TV loads, and the TV's home
+  screen shows the Resume / New run rows with the room code. New run drops the snapshot and goes to the
+  lobby with the phones that are there. Any phone with no slot sees `claim` while a restored slot is
+  still unmatched, in the same room or a new one.
+- **Implementation:** `sim/snapshot.ts` takes (`takeSnapshot`), checks (`parseSnapshot`) and restores
+  (`restoreSnapshot`, run by `createSim` when `RunStart.snapshot` is set) snapshots; the host's
+  `net/resume.ts` does the storage and `net/session.ts` the timing. A restore is deterministic: two
+  restores of one snapshot hash the same and play on identically, and the restored world gives the same
+  snapshot back.
 - A resume starts a new replay segment that begins from the snapshot (§15.9).
 
 ### 15.9 Testing
@@ -2251,3 +2272,4 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 46 | 2026-11-03 | Flow-field shape | 8-neighbor octile fields with no corner cutting, and steering at the farthest tile down the chain a body-wide corridor reaches without a costlier tile | Enemies went straight up the field and then along the back; they should head for the Citadel on a direct diagonal (Foster, C3) |
 | 47 | 2026-11-03 | Aimed melee mains | The Warden's slam and the Commander's slash are aimed buttons (§10.1): a quick tap (≤ 150 ms in the dead zone) still fires at once, auto-aimed at the nearest enemy in range or straight ahead; a drag aims and the release lands the same arc (slam 1.75 tiles, 102°; slash 1.4 tiles, 110°) toward the aim; back in the dead zone cancels. While aiming the TV draws each arc as the filled amber ground cone from the shared `hitShape` | C3 follow-up (Foster): "the warden's attack should be aimed, as well as the commander's slash", with the slash's arc shown while aiming; tap buttons held nothing, so they had no preview |
 | 48 | 2026-11-04 | Balance sheet | Every number that affects balance (HP, damage, ranges, areas, timers, speeds, costs, wave budgets, AI and card tuning) lives in one file, `src/content/balance.ts` (was eight domain files plus constants inside the sim: AI, squad, card offers, damage-over-time, shell flights, projectile radius); card and passive modules read every param from it with no code fallbacks, and content.test checks it is complete; the map stays in `map.ts` (§15.4) | One place to tune for balance (Foster) |
+| 49 | 2026-11-05 | Resume details | A resume restores the saved build phase with a full build timer, knights at the base, cooldowns reset; the snapshot adds the structures' `owner` and the run time `runMs`; phones re-send `hello` when the TV comes back; any slot no phone has matched is claimable in the same or a new room; Return to home kicks every phone and drops the host token (§4, §15.8) | The snapshot's frozen shape holds no positions or timers; a reloaded TV has no party until phones say hello; the claim screen covers a phone that lost its storage either way (FF14) |

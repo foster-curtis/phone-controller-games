@@ -181,6 +181,16 @@ export function createApp(opts: AppOptions): App {
     router.showLocal('removed', view.el, view);
   };
 
+  const showHome = () => {
+    sender.neutral();
+    sender.stop();
+    const view = createNote('The TV went home', 'Join the new room with the code on the TV.', {
+      label: 'JOIN AGAIN',
+      run: () => opts.onCode?.(''),
+    });
+    router.showLocal('home', view.el, view);
+  };
+
   const session =
     opts.session ??
     (() => {
@@ -231,9 +241,17 @@ export function createApp(opts: AppOptions): App {
       if (s === 'closed' && !state.me) showJoin();
     }),
     client.onHostStatus((s) => {
-      if (s === 'present') state = resetRevs(state);
+      if (s !== 'present') return;
+      state = resetRevs(state);
+      // A reloaded TV reclaimed the room with no party in memory: say hello again so it can match
+      // this phone to its saved slot (§11.5, FF14).
+      needHello = true;
+      if (client.status === 'open') hello();
     }),
-    client.onKicked(showRemoved),
+    client.onKicked(() =>
+      // "Return to home" closes the room for everyone (§4); a lobby removal is the other kick.
+      state.team?.phase === 'summary' ? showHome() : showRemoved(),
+    ),
     client.onError((e) => {
       joinError = ERROR_TEXT[e.code] ?? e.message;
       if (!state.me) showJoin();

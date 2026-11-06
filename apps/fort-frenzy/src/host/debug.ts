@@ -3,9 +3,18 @@
 // range / flow-field overlays, download a replay; an uncaught error offers the download), and the
 // `window.__pcg` hooks the e2e suite drives. Never shown to players.
 import { installDebug } from '@pcg/game-kit';
-import { ENEMY_IDS, LANE_IDS, type ClassId, type PlayerColorId } from '../shared/ids';
+import {
+  ENEMY_IDS,
+  LANE_IDS,
+  type CardId,
+  type ClassId,
+  type PlayerColorId,
+  type StructureId,
+} from '../shared/ids';
 import type { TeamView } from '../shared/messages';
 import type { Runtime } from './game';
+import { localSnapshotStore } from './net/resume';
+import type { RunSnapshot } from './sim/snapshot';
 import type { Phase, SimCommand } from './sim/types';
 import type { TvScreen, TvView } from './ui/types';
 
@@ -56,6 +65,14 @@ export interface FfDebugApi {
   command(cmd: SimCommand): void;
   seed(): number | null;
   replay(): unknown;
+  /** Structures in the run (FF14 resume checks). */
+  structures(): { kind: StructureId; tile: [number, number]; hp: number }[];
+  /** Each run slot's cards and private offer (FF14 resume checks). */
+  cards(): { slot: number; cards: Partial<Record<CardId, number>>; offer: CardId[] | null }[];
+  /** Places a structure directly (bypasses the rules and the replay log; e2e setup only). */
+  place(kind: StructureId, col: number, row: number, slot: number): void;
+  /** The resume snapshot in storage, or null (§15.8). */
+  saved(): RunSnapshot | null;
   /** Canvas and overlay boxes in CSS px (they must match: one shared fit). */
   boxes(): { canvas: DOMRect | null; overlay: DOMRect | null };
   fallbacks(): number;
@@ -115,6 +132,22 @@ export function installFfDebug(rt: Runtime, fallbacks: () => number): void {
     command: (cmd) => rt.session.command(cmd),
     seed: () => rt.session.start?.seed ?? rt.nextSeed,
     replay: () => rt.session.recorder?.recording() ?? null,
+    structures: () =>
+      (rt.world?.structures ?? []).map((s) => ({
+        kind: s.kind,
+        tile: [s.tile[0], s.tile[1]],
+        hp: s.hp,
+      })),
+    cards: () =>
+      (rt.world?.players ?? []).map((p) => ({
+        slot: p.slot,
+        cards: { ...p.cards },
+        offer: p.offer ? [...p.offer] : null,
+      })),
+    place: (kind, col, row, slot) => {
+      rt.session.sim?.place(kind, col, row, slot);
+    },
+    saved: () => localSnapshotStore().load(Date.now()),
     boxes: () => ({
       canvas: document.querySelector('#tv canvas')?.getBoundingClientRect() ?? null,
       overlay: document.getElementById('tv-ui')?.getBoundingClientRect() ?? null,

@@ -450,3 +450,56 @@ describe('color change (§11.1, §15.6 `color` intent)', () => {
     expect(new Set(p.members.map((m) => m.color)).size).toBe(6);
   });
 });
+
+describe('resume (FF14, §11.5, §15.8)', () => {
+  const slots = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      slot: i,
+      key: `old${i}`,
+      deviceId: `d${i}`,
+      name: `P${i}`,
+      color: COLORS[i]!,
+      classId: 'engineer' as const,
+    }));
+
+  it('restores the slots away, matches phones by key or device ID, keeps the saved leader', () => {
+    const p = party();
+    p.restore(slots(3), 'old1', { claimable: true });
+    expect(p.stage).toBe('build');
+    expect(p.members.every((m) => !m.connected && m.slot !== null)).toBe(true);
+    expect(p.connect({ playerId: 'a', key: 'old1' })).toMatchObject({ kind: 'rejoined' });
+    expect(p.leaderId).toBe('a');
+    expect(p.connect({ playerId: 'b', key: 'new', deviceId: 'd0' })).toMatchObject({
+      kind: 'rejoined',
+    });
+    expect(p.member('b')).toMatchObject({ slot: 0, key: 'new', connected: true });
+    expect(p.claimable().map((m) => m.slot)).toEqual([2]);
+  });
+
+  it('an unknown phone claims a free slot, even with every color held', () => {
+    const p = party();
+    p.restore(slots(6), null, { claimable: true });
+    expect(p.connect({ playerId: 'z', key: 'kz', deviceId: 'dz' })).toMatchObject({
+      kind: 'joined',
+    });
+    expect(p.screen('z')).toBe('claim');
+    expect(p.claim('z', 9)).toEqual({ ok: false, reason: 'invalid' });
+    expect(p.claim('z', 4)).toEqual({ ok: true });
+    expect(p.members.length).toBe(6);
+    expect(p.member('z')).toMatchObject({ slot: 4, color: 'rose', key: 'kz', connected: true });
+    expect(p.claimable().map((m) => m.slot)).toEqual([0, 1, 2, 3, 5]);
+    // A claimed slot is gone from the list.
+    p.connect({ playerId: 'y' });
+    expect(p.claim('y', 4)).toEqual({ ok: false, reason: 'invalid' });
+  });
+
+  it('without claims a stranger is a late joiner, and endRun closes the claims', () => {
+    const p = party();
+    p.restore(slots(2), null);
+    p.connect({ playerId: 'z' });
+    expect(p.screen('z')).toBe('name');
+    p.restore(slots(2), null, { claimable: true });
+    p.endRun();
+    expect(p.claimable()).toEqual([]);
+  });
+});

@@ -235,6 +235,25 @@
 #tv-ui .row.primary.focus {
   --edge: var(--select);
 }
+#tv-ui .home .homeroom {
+  left: 96px;
+  top: 760px;
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  white-space: nowrap;
+}
+#tv-ui .home .homeroom .code {
+  font: 700 56px/1 var(--font-mono);
+  letter-spacing: 8px;
+}
+#tv-ui .home .homeroom .url {
+  color: var(--muted);
+  font-size: 24px;
+}
+#tv-ui .hud-wave .room {
+  letter-spacing: 2px;
+}
 #tv-ui .home .hint {
   left: 96px;
   top: 906px;

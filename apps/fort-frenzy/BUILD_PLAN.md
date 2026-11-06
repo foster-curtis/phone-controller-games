@@ -855,9 +855,9 @@ Rules:
   - [x] Player + cues + unlock
   - [x] Merged to `main`
 - FF14 Lifecycle + resume
-  - [ ] Victory/defeat/summary/end options, late joins
-  - [ ] Snapshot + resume + device-ID claim
-  - [ ] Resume e2e
+  - [x] Victory/defeat/summary/end options, late joins
+  - [x] Snapshot + resume + device-ID claim
+  - [x] Resume e2e (specs written, typechecked and linted; run by the orchestrator's test-runner)
   - [ ] Merged to `main`
 - FF15 Soak + perf
   - [ ] Soak + determinism over full runs
@@ -1565,6 +1565,32 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   unused (`rules.dots` replaces them). SPEC §15.4 sketch updated.
 - [orch] decision (user, early C4 notes, 2026-11-05): FF7-fix-4 (aim line on cancel) and FF10-fix-2 (Wasp height, body hitboxes incl. the Colossus) run in parallel with FF14 ∥ FF15; the user is re-picking the SFX themselves, so no fix milestone touches audio picks.
 - [orch] decision: since the Changesets setup on main, every FF branch that changes shipped code commits a `.changeset/*.md` note (`pnpm changeset --<level> @pcg/fort-frenzy -m "…"`); FF14 minor, FF15 and fixes patch.
+- [FF14] contract+: `src/host/sim/snapshot.ts` `SnapshotStructure.owner?` and `RunSnapshot.runMs?` (plus the
+  `takeSnapshot` / `parseSnapshot` / `resumeStart` / `restoreSnapshot` functions); `src/host/party/index.ts`
+  `PartyScreen` gains `'claim'`, new `RestoredSlot` and `Party.restore` / `claimable` / `claim`. SPEC §15.6, §15.8 updated.
+- [FF14] decision: the snapshot round-trip test checks that a restored world gives the same snapshot back and that
+  every restore of one snapshot has the same state hash (and plays on identically); the live world's hash can't
+  match, since the frozen snapshot holds no positions, cooldowns or tick.
+- [FF14] decision: a resume restores the build phase with its full timer and the knights at the base (the
+  snapshot holds neither); combat progress since the build start is lost (§11.5).
+- [FF14] decision: the sim's `join` command takes a late joiner in any phase; the party alone gates late joins to
+  the build phase, so the two never disagree about who is in.
+- [FF14] decision: a late joiner joins by tapping Ready on the lobby screen in a build phase (name, class, Ready),
+  not automatically.
+- [FF14] decision: phones send `hello` again when the TV comes back (`host` `back`), since a reloaded TV has no
+  party in memory and matches saved slots by the relay key from the reclaim roster.
+- [FF14] decision: claims are open for any restored slot no phone has matched, in a reclaimed room as well as a new
+  one; an unknown phone sees `claim` while such a slot exists.
+- [FF14] decision: the snapshot autosave checks every 250 ms in the build phase and writes only when the snapshot
+  changed (one rule covers commands, crates moved and debug changes); build start and `pagehide` write at once.
+- [FF14] decision: Play again marks every connected player Ready (auto-start); Return to home kicks every phone,
+  closes the client and drops the `pcg:hostToken:fort-frenzy` session key so the next Create gets a new code; the
+  phone shows "The TV went home" for a kick while the summary is up.
+- [FF14] decision: the TV shows the Resume / New run choice on the home screen (rows from `HomeRow`), with the
+  room code once the relay answers; the build HUD shows the room code for late joiners. `TvScreen` `restoring`
+  stays unused.
+- [FF14] decision: replays build an input source for every slot in the recording (late joiners have no start
+  slot).
 
 ## 9. Final handoff
 

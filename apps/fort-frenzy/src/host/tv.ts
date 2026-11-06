@@ -23,7 +23,8 @@ export interface TvInput {
 export function tvScreen(input: Pick<TvInput, 'ctx' | 'loading' | 'room'>): TvScreen {
   const w = input.ctx.world;
   if (input.loading !== null) return 'loading';
-  if (!input.room) return 'home';
+  // A saved run: the home screen offers Resume / New run while the room is reclaimed (§15.8).
+  if (!input.room || input.ctx.restoring) return 'home';
   if (!w) return 'lobby';
   switch (w.phase) {
     case 'countdown':
@@ -50,7 +51,7 @@ export function buildTvView(input: TvInput): TvView {
   const { ctx } = input;
   const w = ctx.world;
   const screen = tvScreen(input);
-  const team = input.room ? teamView(ctx) : null;
+  const team = input.room && screen !== 'home' ? teamView(ctx) : null;
   const tvPlayer = (playerId: string): TvPlayer | null => {
     const r = team?.roster.find((p) => p.playerId === playerId);
     return r ? { playerId: r.playerId, name: r.name, color: r.color } : null;

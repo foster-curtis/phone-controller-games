@@ -2,11 +2,12 @@
 // a `ref` (the intent ack, BUILD_PLAN §8 FF1).
 import type { AckReason } from '../../shared/messages';
 import { buildAtFeet } from './building';
-import { pickCard } from './cards';
+import { offerFor, pickCard } from './cards';
 import { dropAll, give } from './crates';
 import { buy, request } from './shop';
 import { spawnGroup, startBuild } from './lifecycle';
 import { releaseAll } from './players';
+import { fillSquads } from './squad';
 import type { FullState } from './state';
 import type { PlayerEnt, SimCommand } from './types';
 
@@ -19,6 +20,7 @@ function daze(s: FullState, p: PlayerEnt) {
 function apply(s: FullState, cmd: SimCommand): AckReason | null {
   const w = s.world;
   if (cmd.c === 'debug') return debug(s, cmd);
+  if (cmd.c === 'join') return join(s, cmd);
   const p = s.player(cmd.slot);
   if (!p) return 'invalid';
   switch (cmd.c) {
@@ -61,10 +63,30 @@ function apply(s: FullState, cmd: SimCommand): AckReason | null {
     case 'give':
       if (p.respawnAt !== null || !p.connected) return 'invalid';
       return give(s, p);
-    case 'join':
-      // Late joins (FF14).
-      return 'invalid';
   }
+}
+
+/**
+ * A late join (§11.2, FF14): a new knight at the base with a card offer (build phase) and, for a
+ * Commander, his squad. The party only opens late joins in the build phase, so the sim takes the
+ * command whenever it lands (BUILD_PLAN §8) and the two never disagree about who is in.
+ */
+function join(s: FullState, cmd: Extract<SimCommand, { c: 'join' }>): AckReason | null {
+  if (s.player(cmd.slot) || !Number.isInteger(cmd.slot) || cmd.slot < 0) return 'invalid';
+  const p = s.addPlayer({
+    slot: cmd.slot,
+    name: cmd.name,
+    color: cmd.color,
+    classId: cmd.classId,
+    connected: true,
+  });
+  if (s.world.phase === 'build') {
+    p.offer = offerFor(s.cat, s.world, p);
+    p.picked = null;
+    fillSquads(s);
+  }
+  s.emit({ e: 'lateJoin', slot: p.slot, classId: p.classId });
+  return null;
 }
 
 function debug(s: FullState, cmd: Extract<SimCommand, { c: 'debug' }>): AckReason | null {

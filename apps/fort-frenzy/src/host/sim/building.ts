@@ -88,7 +88,11 @@ export function placementValid(
 
 /** Attaches Fortify to the tower on `tile`: the flag and its damage reduction. */
 function attachFortify(s: FullState, tile: Tile): StructureEnt {
-  const st = structureOn(s.world, tile)!;
+  return fortifyTower(s, structureOn(s.world, tile)!);
+}
+
+/** Fortify on a tower (a build, or a resumed run's snapshot, FF14). */
+export function fortifyTower(s: FullState, st: StructureEnt): StructureEnt {
   const def = s.cat.structure('fortify');
   st.fortified = true;
   st.mods.push({ id: 'fortify', stats: [{ stat: 'damageReduction', add: def.defense ?? 0 }] });

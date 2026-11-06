@@ -1,8 +1,11 @@
 // The host's side of the phones (SPEC §11, §15.6): hello and versions, the party bridge (lobby,
 // presence, identity), phone input with receive-time staleness, intents → party calls or sim commands
 // with `ack` reasons, and the throttled `team` (≤ 5 Hz, broadcast) and `me` (≤ 10 Hz per phone) state
-// sync, sent on change and in full on every hello. Owns the run's sim while one is going. No Phaser,
-// no relay client: the runtime passes `send` and `kick`.
+// sync, sent on change and in full on every hello. Owns the run's sim while one is going, and its
+// lifecycle (FF14): late joins at the build phase, the end-of-run options, and the resume snapshot
+// (§11.5, §15.8: saved at each build start and on build-phase changes, offered after a reload,
+// restored into the same or a new room). No Phaser, no relay client: the runtime passes `send` and
+// `kick`.
 import { content as defaultContent, type Content } from '../../content';
 import { PLAYER_COLOR_IDS, type ClassId, type PlayerColorId } from '../../shared/ids';
 import {
@@ -14,9 +17,17 @@ import {
   type RunSummary,
 } from '../../shared/messages';
 import { createParty } from '../party';
-import { createSim, RunRecorder, type Sim } from '../sim';
+import {
+  createSim,
+  resumeStart,
+  RunRecorder,
+  takeSnapshot,
+  type RunSnapshot,
+  type Sim,
+} from '../sim';
 import type { RunSettings, RunStart, SimCommand, World } from '../sim/types';
 import { PhoneInputSource } from './input';
+import { SAVE_DEBOUNCE_MS, type SnapshotStore } from './resume';
 import { buildSummary, meView, teamView, type FfParty, type ViewCtx } from './views';
 
 /** Game cap (§11.1); the relay room holds 8 for rejoin headroom (§15.6). */
@@ -28,16 +39,28 @@ export interface SessionDeps {
   send(msg: HostMsg, to?: string): void;
   kick(playerId: string): void;
   content?: Content;
-  /** Wall clock, ms (input staleness and send throttling). */
+  /** Monotonic ms (input staleness, send throttling, run duration). */
   now?: () => number;
+  /** Wall-clock ms for the snapshot's `savedAt` and its 12 h expiry (default `Date.now`). */
+  wallClock?: () => number;
   /** Seed for the next run (default: random). */
   seed?: () => number;
-  /** Commit hash recorded in replays. */
+  /** Commit hash recorded in replays and snapshots. */
   build?: string;
-  /** A run started (the runtime resets its loop and the World scene). */
+  /** Resume snapshot storage (§15.8); none = no snapshots. */
+  store?: SnapshotStore;
+  /** A run started or resumed (the runtime resets its loop and the World scene). */
   onRunStart?(sim: Sim, start: RunStart): void;
   /** Back in the lobby. */
   onRunEnd?(): void;
+  /** The leader chose "Return to home" (§4): the runtime closes the room. */
+  onHome?(): void;
+}
+
+/** A relay room handed to the host (create or reclaim). */
+export interface RoomInfo {
+  reclaimed: boolean;
+  roster: readonly { playerId: string; playerKey: string; connected: boolean }[];
 }
 
 export interface Session {
@@ -50,20 +73,32 @@ export interface Session {
   readonly summary: RunSummary | null;
   /** A phone runs a newer protocol than this TV (§15.6 banner). */
   readonly outdated: boolean;
+  /** A saved run waiting for Resume or New run (§11.5), or null. */
+  readonly restoring: { wave: number; savedAt: number } | null;
   handlePeer(change: {
     event: 'joined' | 'left' | 'rejoined';
     playerId: string;
     playerKey: string;
   }): void;
+  /** The relay gave the TV a room: a reclaim's roster tells the host the phones' keys. */
+  handleRoom(room: RoomInfo): void;
   handleMessage(from: string, data: unknown): void;
   /** After every sim step: acks for this step's commands, party stage, the summary. */
   afterStep(): void;
-  /** Sends `team` / `me` snapshots that changed, within the rate limits. */
+  /** Sends `team` / `me` snapshots that changed, within the rate limits; saves the snapshot. */
   flush(): void;
   /** Starts a run from the party (leader force-start or everyone ready). */
   startRun(): AckReason | null;
   /** Back to the lobby (names, colors and classes kept). */
   endRun(): void;
+  /** Restores the saved run: the build phase of its wave (§11.5). */
+  resume(): AckReason | null;
+  /** Drops the saved run: the lobby, with the phones that are here. */
+  newRun(): AckReason | null;
+  /** Writes the snapshot now if the run is in a build phase (`pagehide`, §15.8). */
+  saveNow(): void;
+  /** The snapshot the host would save now (build phase only), or null. */
+  snapshot(): RunSnapshot | null;
   /** A TV-side command (debug panel), logged like any other. */
   command(cmd: SimCommand): void;
   /** Lobby removal from the TV (§11.1). */
@@ -82,6 +117,8 @@ interface SyncState {
 export function createSession(deps: SessionDeps): Session {
   const content = deps.content ?? defaultContent;
   const now = deps.now ?? (() => performance.now());
+  const wall = deps.wallClock ?? (() => Date.now());
+  const store = deps.store ?? null;
   const party: FfParty = createParty<PlayerColorId, ClassId>({
     colors: PLAYER_COLOR_IDS,
     maxPlayers: MAX_PARTY,
@@ -103,6 +140,10 @@ export function createSession(deps: SessionDeps): Session {
   let runStartedAt = 0;
   let outdated = false;
 
+  // The resume snapshot (§15.8).
+  let saved: RunSnapshot | null = store?.load(wall()) ?? null;
+  let lastSave = { json: '', at: -Infinity, phase: '' as World['phase'] | '' };
+
   let rev = 0;
   let team: SyncState = { json: '', at: -Infinity };
   const mes = new Map<string, SyncState>();
@@ -113,6 +154,7 @@ export function createSession(deps: SessionDeps): Session {
     settings,
     world: sim?.world ?? null,
     summary,
+    restoring: saved && !sim ? { wave: saved.wave, savedAt: saved.savedAt } : null,
   });
 
   const sendTeam = (to?: string) => {
@@ -136,8 +178,43 @@ export function createSession(deps: SessionDeps): Session {
 
   const slotOf = (playerId: string) => party.member(playerId)?.slot ?? null;
 
+  // A saved run: its slots wait for their phones (key, then device ID, or a claim) until Resume.
+  if (saved) {
+    Object.assign(settings, {
+      theme: saved.settings.theme,
+      difficulty: saved.settings.difficulty,
+    });
+    party.restore(
+      saved.slots.map((s) => ({
+        slot: s.slot,
+        key: s.playerKey || null,
+        deviceId: s.deviceId || null,
+        name: s.name,
+        color: s.color,
+        classId: s.classId,
+      })),
+      saved.leaderKey,
+      { claimable: true },
+    );
+  }
+
+  /** The sim, its recorder and the phones' input sources for a run start (new or resumed). */
+  function begin(next: RunStart, elapsedMs: number) {
+    start = next;
+    sources.clear();
+    for (const s of next.slots) sources.set(s.slot, new PhoneInputSource(now));
+    // A resume is a new replay segment: its RunStart carries the snapshot (§15.8, §15.9).
+    recorder = new RunRecorder(next, deps.build ?? 'dev');
+    sim = createSim(next, { content, sources, observer: recorder });
+    summary = null;
+    pending.clear();
+    runStartedAt = now() - elapsedMs;
+    lastSave = { json: '', at: -Infinity, phase: '' };
+    deps.onRunStart?.(sim, next);
+  }
+
   function startRun(): AckReason | null {
-    if (sim) return 'phase';
+    if (sim || saved) return 'phase';
     const r = party.startRun();
     if (!r.ok) return r.reason;
     if (r.slots.length === 0) {
@@ -145,25 +222,40 @@ export function createSession(deps: SessionDeps): Session {
       return 'invalid';
     }
     const seed = deps.seed?.() ?? Math.floor(Math.random() * 0x7fffffff);
-    start = {
-      seed,
-      settings: { ...settings },
-      slots: r.slots.map((s) => ({
-        slot: s.slot,
-        name: s.name,
-        color: s.color,
-        classId: s.classId,
-        connected: s.connected,
-      })),
-    };
-    sources.clear();
-    for (const s of r.slots) sources.set(s.slot, new PhoneInputSource(now));
-    recorder = new RunRecorder(start, deps.build ?? 'dev');
-    sim = createSim(start, { content, sources, observer: recorder });
-    summary = null;
-    pending.clear();
-    runStartedAt = now();
-    deps.onRunStart?.(sim, start);
+    begin(
+      {
+        seed,
+        settings: { ...settings },
+        slots: r.slots.map((s) => ({
+          slot: s.slot,
+          name: s.name,
+          color: s.color,
+          classId: s.classId,
+          connected: s.connected,
+        })),
+      },
+      0,
+    );
+    return null;
+  }
+
+  function resume(): AckReason | null {
+    if (sim || !saved) return 'phase';
+    const snap = saved;
+    saved = null;
+    const connected = (slot: number) => party.members.some((m) => m.slot === slot && m.connected);
+    begin(resumeStart(snap, connected), snap.runMs ?? 0);
+    party.setStage('build');
+    return null;
+  }
+
+  function newRun(): AckReason | null {
+    if (sim || !saved) return 'phase';
+    saved = null;
+    store?.clear();
+    party.endRun();
+    // The saved run's absent players go; the phones that are here keep their names and classes.
+    for (const m of [...party.members]) if (!m.connected) party.remove(null, m.playerId);
     return null;
   }
 
@@ -175,12 +267,28 @@ export function createSession(deps: SessionDeps): Session {
     summary = null;
     pending.clear();
     sources.clear();
+    store?.clear();
     deps.onRunEnd?.();
   }
 
   const maybeAutoStart = () => {
-    if (!sim && party.canAutoStart()) startRun();
+    if (!sim && !saved && party.canAutoStart()) startRun();
   };
+
+  /** The end-of-run options (§4), chosen by the leader's phone on the summary. */
+  function endOption(option: 'again' | 'classes' | 'home') {
+    if (option === 'home') {
+      endRun();
+      deps.onHome?.();
+      return;
+    }
+    endRun();
+    // Play again: every player keeps their class and goes straight to Ready.
+    if (option === 'again') {
+      for (const m of party.members) if (m.connected) party.setReady(m.playerId, true);
+      maybeAutoStart();
+    }
+  }
 
   /** Queues a sim command for this intent; the `command` event acks it after the step. */
   const toSim = (from: string, seq: number, cmd: SimCommand) => {
@@ -189,6 +297,17 @@ export function createSession(deps: SessionDeps): Session {
     pending.set(ref, { to: from, seq });
     sim.command({ ...cmd, ref } as SimCommand);
   };
+
+  /** A late joiner taps Ready in a build phase (§11.2): the next free slot, at the base. */
+  function lateJoin(from: string, seq: number) {
+    const r = party.joinLate(from);
+    if (!r.ok) return ack(from, seq, r.reason);
+    const { slot, name, color, classId } = r.slot;
+    const src = new PhoneInputSource(now);
+    sources.set(slot, src);
+    sim!.setSource(slot, src);
+    toSim(from, seq, { c: 'join', slot, name, color, classId });
+  }
 
   function intent(from: string, seq: number, i: Intent) {
     const m = party.member(from);
@@ -208,24 +327,29 @@ export function createSession(deps: SessionDeps): Session {
         return res(party.setColor(from, i.color));
       case 'ready':
         if (!sim) {
+          if (saved) return ack(from, seq, 'phase');
           res(party.setReady(from, i.ready));
           maybeAutoStart();
           return;
         }
-        if (slot === null) return ack(from, seq, 'phase');
+        if (slot === null) return i.ready ? lateJoin(from, seq) : ack(from, seq, null);
         return toSim(from, seq, { c: 'ready', slot, ready: i.ready });
       case 'leader': {
         if (!party.isLeader(from)) return ack(from, seq, 'notLeader');
         switch (i.action) {
           case 'start': {
-            if (sim) return ack(from, seq, 'phase');
+            if (sim || saved) return ack(from, seq, 'phase');
             const can = party.canForceStart(from);
             if (!can.ok) return ack(from, seq, can.reason);
             return ack(from, seq, startRun());
           }
+          case 'resume':
+            return ack(from, seq, resume());
+          case 'newRun':
+            return ack(from, seq, newRun());
           case 'theme':
           case 'difficulty':
-            if (sim) return ack(from, seq, 'phase');
+            if (sim || saved) return ack(from, seq, 'phase');
             if (i.action === 'theme') settings.theme = i.theme;
             else settings.difficulty = i.difficulty;
             return ack(from, seq, null);
@@ -235,14 +359,11 @@ export function createSession(deps: SessionDeps): Session {
             return res(r);
           }
           case 'end':
-            // FF14 brings the three end options; the slice returns to the lobby.
             if (sim?.world.phase !== 'summary') return ack(from, seq, 'phase');
-            endRun();
-            return ack(from, seq, null);
-          default:
-            // resume / newRun: FF14.
-            return ack(from, seq, 'invalid');
+            ack(from, seq, null);
+            return endOption(i.option);
         }
+        return ack(from, seq, 'invalid');
       }
       case 'build':
         if (slot === null) return ack(from, seq, 'phase');
@@ -265,8 +386,13 @@ export function createSession(deps: SessionDeps): Session {
       case 'give':
         if (slot === null) return ack(from, seq, 'phase');
         return toSim(from, seq, { c: 'give', slot });
-      case 'claim':
-        return ack(from, seq, 'invalid');
+      case 'claim': {
+        // Resume into a new room (§15.8): an unmatched phone takes a free restored slot.
+        const r = party.claim(from, i.slot);
+        if (!r.ok) return ack(from, seq, r.reason);
+        if (sim) sim.command({ c: 'presence', slot: i.slot, connected: true });
+        return ack(from, seq, null);
+      }
     }
   }
 
@@ -291,6 +417,50 @@ export function createSession(deps: SessionDeps): Session {
     sendMe(from);
   }
 
+  /** The snapshot of the run now, in its build phase (§11.5); null otherwise. */
+  function snapshot(): RunSnapshot | null {
+    const w = sim?.world;
+    if (!w || w.phase !== 'build') return null;
+    const leader = party.leaderId === null ? null : party.member(party.leaderId);
+    return takeSnapshot(w, content, {
+      savedAt: wall(),
+      build: deps.build ?? 'dev',
+      runMs: Math.max(0, Math.round(now() - runStartedAt)),
+      leaderKey: leader?.key ?? null,
+      ids: (slot) => {
+        const m = party.members.find((x) => x.slot === slot);
+        return { playerKey: m?.key ?? '', deviceId: m?.deviceId ?? '' };
+      },
+    });
+  }
+
+  /** At each build start at once, then build-phase changes at most every 250 ms (§15.8). */
+  function autosave(force = false) {
+    const w = sim?.world;
+    if (!store || !w) return;
+    if (w.phase === 'victory' || w.phase === 'defeat' || w.phase === 'summary') {
+      // The run is over: no resume (§4).
+      if (lastSave.phase !== w.phase) store.clear();
+      lastSave.phase = w.phase;
+      return;
+    }
+    if (w.phase !== 'build') {
+      lastSave.phase = w.phase;
+      return;
+    }
+    const t = now();
+    const buildStart = lastSave.phase !== 'build';
+    if (!force && !buildStart && t - lastSave.at < SAVE_DEBOUNCE_MS) return;
+    const snap = snapshot()!;
+    // Compare without the clock, so an unchanged build phase isn't rewritten.
+    const json = JSON.stringify({ ...snap, savedAt: 0, runMs: 0 });
+    lastSave.at = t;
+    lastSave.phase = 'build';
+    if (json === lastSave.json && !force) return;
+    lastSave.json = json;
+    store.save(snap);
+  }
+
   return {
     party,
     content,
@@ -310,6 +480,9 @@ export function createSession(deps: SessionDeps): Session {
     get outdated() {
       return outdated;
     },
+    get restoring() {
+      return ctx().restoring ?? null;
+    },
 
     handlePeer({ event, playerId, playerKey }) {
       if (event !== 'left') {
@@ -321,6 +494,11 @@ export function createSession(deps: SessionDeps): Session {
       const m = party.disconnect(playerId);
       if (sim && m && m.slot !== null)
         sim.command({ c: 'presence', slot: m.slot, connected: false });
+    },
+
+    handleRoom(room) {
+      // Phones that stayed joined through a TV reload: their keys match the saved slots (§11.5).
+      for (const r of room.roster) keys.set(r.playerId, r.playerKey);
     },
 
     handleMessage(from, data) {
@@ -353,6 +531,7 @@ export function createSession(deps: SessionDeps): Session {
     },
 
     flush() {
+      autosave();
       const t = now();
       if (t - team.at >= TEAM_MIN_MS) {
         const json = JSON.stringify(teamView(ctx()));
@@ -369,6 +548,10 @@ export function createSession(deps: SessionDeps): Session {
 
     startRun,
     endRun,
+    resume,
+    newRun,
+    saveNow: () => autosave(true),
+    snapshot,
     command(cmd) {
       sim?.command(cmd);
     },

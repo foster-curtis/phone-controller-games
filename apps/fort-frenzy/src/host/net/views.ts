@@ -26,6 +26,8 @@ export interface ViewCtx {
   /** The run's world, null in the lobby. */
   world: World | null;
   summary: RunSummary | null;
+  /** A saved run waits for Resume or New run (§11.5, FF14). */
+  restoring?: { wave: number; savedAt: number } | null;
 }
 
 const msLeft = (w: World) =>
@@ -71,7 +73,7 @@ function nextWave(ctx: ViewCtx, w: World): TeamView['nextWave'] {
 
 export function teamView(ctx: ViewCtx): TeamView {
   const { party, content, world: w } = ctx;
-  const phase = teamPhase(w);
+  const phase: TeamPhase = ctx.restoring ? 'restoring' : teamPhase(w);
   const roster = party.members.map((m) => {
     const p = playerOf(w, m);
     return {
@@ -87,7 +89,7 @@ export function teamView(ctx: ViewCtx): TeamView {
     party.members.find((m) => m.slot === slot)?.playerId ?? String(slot);
   return {
     phase,
-    wave: w?.wave ?? 0,
+    wave: w?.wave ?? ctx.restoring?.wave ?? 0,
     buildEndsInMs: w && w.phase === 'build' ? msLeft(w) : null,
     coins: w?.team.coins ?? 0,
     baseHp: w ? Math.ceil(w.base.hp) : 0,
@@ -213,6 +215,22 @@ export function meView(ctx: ViewCtx, m: FfMember | null, full = false): MeView {
     ready: m.ready,
   };
   const screen = party.screen(m.playerId);
+  // Resume into a new room (§15.8, FF14): an unknown phone picks one of the free slots.
+  if (screen === 'claim') {
+    return {
+      ...base,
+      screen: 'claim',
+      claim: party
+        .claimable()
+        .flatMap((c) =>
+          c.slot !== null && c.classId !== null
+            ? [{ slot: c.slot, name: c.name, classId: c.classId }]
+            : [],
+        ),
+    };
+  }
+  // A saved run waits for Resume or New run: every phone shows "TV is restoring…" (§15.8).
+  if (ctx.restoring) return { ...base, screen: 'restoring', slot: m.slot };
   if (screen !== 'run') return { ...base, screen: screen ?? 'name' };
   const p = playerOf(w, m);
   if (!w || !p) return { ...base, screen: 'waiting' };
