@@ -869,8 +869,8 @@ Rules:
   - [x] Merged to `main`
   - [x] FF15-fix-1: stress overlay counts rig parts only in part sets (crash on code-drawn extras)
 - [x] **User approved C4** (full run, pacing, balance): notes fixed in FF7-fix-5, FF7-fix-6, FF14-fix-1 (team pause), FF11-fix-1 (Colossus stun resistance after the playtest balance), plus the user's playtest balance (0fbe288) with its tests updated
-- [ ] Final Workspace checks green on `main`
-- [ ] Final handoff printed
+- [x] Final Workspace checks green on `main` (2026-11-07: pnpm check 1,681 tests, pnpm e2e 90 specs, relay image healthz)
+- [x] Final handoff printed
 
 ## 7. Blockers
 
