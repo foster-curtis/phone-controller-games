@@ -17,6 +17,8 @@ import { harness } from '../../sim/__tests__/harness';
 import { tupleToInput } from '../input';
 
 type Gesture = Parameters<ReturnType<typeof aimGesture>['step']>[1];
+/** A gesture input without its time (the rig stamps it); distributes over the union. */
+type Untimed = Gesture extends infer G ? (G extends unknown ? Omit<G, 't'> : never) : never;
 
 /** Absolute angle between two directions, radians. */
 const turn = (a: number, b: number) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
@@ -33,7 +35,7 @@ function rig(key: AttackKey) {
   const fired: { angle: number }[] = [];
   const shots = () => fired;
   /** Feeds one gesture input on the phone, then one sim step with the resulting tuple. */
-  const feed = (i: Omit<Gesture, 't'>, dt = 20) => {
+  const feed = (i: Untimed, dt = 20) => {
     t += dt;
     const r = m.step(st, { ...i, t } as Gesture);
     st = r.state;
