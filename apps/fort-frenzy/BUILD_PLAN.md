@@ -861,6 +861,7 @@ Rules:
   - [x] Snapshot + resume + device-ID claim
   - [x] Resume e2e (specs written, typechecked and linted; run by the orchestrator's test-runner)
   - [x] Merged to `main`
+  - [x] FF14-fix-1: C4 team pause from the phone top bar (any player pauses/resumes; TV overlay)
 - FF15 Soak + perf
   - [x] Soak + determinism over full runs
   - [x] Bench at real peak + stress mode + perf fixes
@@ -1725,6 +1726,10 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
 - [FF14-fix-1] decision: the summary's run time leaves the pause out (`runStartedAt` moves on by the paused time);
   `__pcg.stats()` gains `pausedBy` (name or null) and `steps` (the runtime's step count) for `e2e/pause.spec.ts`.
   The phone dev harness gains `combat-paused` and `build-paused` samples.
+- [FF14-fix-1] note: rebased on a2ed55f (FF7-fix-5, FF7-fix-6; SPEC rows renumbered: team pause is #54).
+  `check:fort-frenzy` tests fail only on the 6 pre-existing tests FF7-fix-6 logged (old numbers pinned against
+  0fbe288's balance); every pause test and every other gate step (typecheck, lint, format, build, bundle 32.6 KB
+  with no Phaser, routes, changeset) and I pass. `e2e/pause.spec.ts` is written, typechecked and linted, not run.
 
 ## 9. Final handoff
 
