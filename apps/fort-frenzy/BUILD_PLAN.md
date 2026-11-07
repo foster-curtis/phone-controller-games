@@ -868,7 +868,7 @@ Rules:
   - [x] Bench at real peak + stress mode + perf fixes
   - [x] Merged to `main`
   - [x] FF15-fix-1: stress overlay counts rig parts only in part sets (crash on code-drawn extras)
-- [ ] **User approved C4** (full run, pacing, balance)
+- [x] **User approved C4** (full run, pacing, balance): notes fixed in FF7-fix-5, FF7-fix-6, FF14-fix-1 (team pause), FF11-fix-1 (Colossus stun resistance after the playtest balance), plus the user's playtest balance (0fbe288) with its tests updated
 - [ ] Final Workspace checks green on `main`
 - [ ] Final handoff printed
 
