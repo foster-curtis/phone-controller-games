@@ -288,8 +288,8 @@ export const warden = {
     effects: [{ effect: 'stun', strength: 1, durationMs: 1800 }],
   },
   input: { main: 'aimed', super: 'aimed' },
-  /** 160 damage fills it: the slam hits groups, so the stomp comes round often. */
-  superChargeRate: 0.00625,
+  /** ~185 damage fills it (160 before FF11-fix-1): the slam hits groups, so the stomp comes round often. */
+  superChargeRate: 0.0054,
   passive: { module: 'mason', params: { radius: 2.5, hpPerSec: 10 } },
   // Arc order left, up, right.
   build: ['wall', 'snare', 'fortify'],
@@ -634,9 +634,11 @@ export const colossus = {
       runners: 5,
       // Stagger: damage fills `staggerPerHp` meters per max HP; a counted stun adds `staggerStun`,
       // at most one per `stunLockMs`; full = `staggerMs` on one knee taking +`staggerBonus` damage.
+      // Back on its feet, stuns don't count for `stunImmuneMs` (FF11-fix-1: no Warden stun-lock).
       staggerPerHp: 3,
       staggerStun: 0.25,
       stunLockMs: 2500,
+      stunImmuneMs: 4000,
       staggerMs: 3000,
       staggerBonus: 0.5,
       // Grunt and Swarm escorts walk in with Mk II and III (§9.2 wave 10).

@@ -1730,6 +1730,22 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   `check:fort-frenzy` tests fail only on the 6 pre-existing tests FF7-fix-6 logged (old numbers pinned against
   0fbe288's balance); every pause test and every other gate step (typecheck, lint, format, build, bundle 32.6 KB
   with no Phaser, routes, changeset) and I pass. `e2e/pause.spec.ts` is written, typechecked and linted, not run.
+- [FF11-fix-1] note (root cause): the Colossus wasn't stun-locked. Under 0fbe288's stomp the Warden-only loop
+  still staggered it 3 s in every ~8.7 s (~35%), but its 25-damage stomps (+50% while down) killed the boss
+  mid-stagger at ~32 s; a dead boss is never ticked again, so its `staggeredUntil` stayed set and the test read
+  every frame after as staggered (the 1741-frame "run"). Under the old 45 damage it happened to die just after
+  standing up. The test now keeps the boss at full HP each frame.
+- [FF11-fix-1] decision (C4 note, SPEC §9.2, §15.11 #55): stun resistance as one rule, the simplest: when a
+  stagger ends, stuns don't count into the meter for `stunImmuneMs` = 4000 (balance.ts `colossus.boss.params`);
+  damage still fills it, and the existing one-stun-per-`stunLockMs` lockout stays. No diminishing returns: the
+  boss never takes the stun itself, so there is no duration to shrink. Kept in `boss.ready.stun` (the per-key
+  ready map), so no contract change. No TV visual: there is no immunity status look.
+- [FF11-fix-1] decision: Warden `superChargeRate` 0.00625 → 0.0054 (~185 damage fills it, ~16% more); the stomp's
+  25 damage / 1800 ms stun is unchanged. The Warden-only loop now staggers it 3 s in every 10 s (~30%).
+- [FF11-fix-1] decision: boss.test's gap between stagger runs is now ≥ `stunImmuneMs` (240 steps, was 120): the
+  rule guarantees it in a Warden-only loop, since the stomp's damage alone (~0.04 of the meter per stomp) can't
+  fill the meter in 4 s. Run length (≤ 3 s) and the under-half share are unchanged. New test: a stomp inside the
+  window fills only its damage share, one after it adds `staggerStun` again.
 
 ## 9. Final handoff
 

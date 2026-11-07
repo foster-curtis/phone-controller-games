@@ -911,6 +911,9 @@ it is a giant walker mech with a glowing core in its chest (§2.1); its art is s
   lock the boss down.
 - When the meter is full, the Colossus is staggered for about 3 seconds and takes bonus damage. Then the
   meter resets.
+- **Stun resistance:** for 4 seconds after it gets back up, Warden stuns don't fill the meter at all
+  (damage still does), so a Warden-only team can stagger it now and then but never keep it down
+  (§15.11 #55). The TV shows nothing for this window: there's no immunity status look.
 
 **Boss wave rules**
 - A large boss HP bar runs along the bottom edge of the TV, where enemies enter (§2.6).
@@ -1810,7 +1813,8 @@ interface BossBehavior {
   onDamage?(ctx: SimCtx, boss: EnemyEnt, r: DamageResult): void;  // stagger meter
 }
 // FF11: `EnemyEnt.boss` also keeps the attack winding up, `act?: BossAct | null` (kind, startedAt,
-// at, x, y, target, marker), per-attack `ready?: Record<string, number>` ticks and `stunAt?` (the
+// at, x, y, target, marker), per-attack `ready?: Record<string, number>` ticks (the Colossus also
+// keeps `ready.stun`, when stuns count again after a stagger; FF11-fix-1) and `stunAt?` (the
 // last stun the meter counted). Content's `boss: { module, params }` names a `bosses` registry entry
 // (ai `'boss'`); the pipeline calls `onDamage` for a boss target (stage 7). Boss-wave rules shared
 // by every boss (spawn up the wave's first lane, the Mk, death collapsing the wave) live in
@@ -2359,3 +2363,4 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 52 | 2026-11-06 | Ranger aim bar | The Ranger's single-bolt aim preview is a transparent amber bar on the ground, the bolt's range long and its hitbox wide (2 × `rules.projectileRadius`), with the cones' fill and edge; the dashed world-UI line is gone (§10.1, §15.2; revises #41) | C4 note (Foster): "The Ranger's aim line should match the style of the other players: it should be a transparent amber bar that is the width of the bolt's hitbox." |
 | 53 | 2026-11-06 | Aimed cancel and re-aim | Reverses #51's latch: a held aimed main or super cancels only on a release inside the center dead zone, now 25% of the drag radius (17.5 px, was 12%) as a thumb's grace window; the TV hides the aim line only while the aim is in it, and dragging out again, still held, re-arms the attack and shows the line again; a release outside fires along the shown aim (§10.1, §15.7) | C4 note (Foster): "Aimed attacks should only cancel if the player moves the stick to the middle of the button area and releases it … have a small grace window … If they continue to hold down the button and drag their finger again, it should re-initialize the aimed attack" |
 | 54 | 2026-11-06 | Team pause | Reverses "No pausing in v1" (§11.3): a pause button in the phone's top bar during a run; any player pauses the whole run for everyone and the TV, any player resumes; the TV and every phone show who paused; presses made while paused never fire, and resume is immediate (§10.5, §15.6) | C4 note (Foster): "Add a pause button on the controller on the top bar. When one player pauses, it should pause for all players and the host." |
+| 55 | 2026-11-07 | Colossus stun resistance and Warden charge | For `stunImmuneMs` (4 s) after a stagger ends, stuns don't count into the Colossus's meter (damage still does); the Warden's super charges at 0.0054 per damage (~185 damage fills it, was 160); the stomp's 25 damage / 1.8 s stun on other enemies is unchanged (§9.2, content) | C4 note (Foster): "Stun resistance works great, or charge the warden's super a little more slowly. Maybe a little of both." A Warden-only team staggers it about 30% of the time (was ~35%), with at least 4 s between staggers |

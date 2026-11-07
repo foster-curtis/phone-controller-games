@@ -9,7 +9,8 @@
 //   every slam, and Runner calls from the spires.
 // It can't be stunned or knocked back. A hidden stagger meter fills a little with all damage and
 // more with a stun (one per lockout, so stuns alone can't lock it down); full = 3 s on one knee
-// taking bonus damage, the attack winding up called off, then the meter starts again from 0.
+// taking bonus damage, the attack winding up called off, then the meter starts again from 0 and
+// stuns don't count for a while after it stands up (FF11-fix-1: no Warden stun-lock).
 // Tuning comes from the content's `boss.params` (content/balance.ts). Imports only types, internal,
 // geometry and the shared AI steps (registry rule, BUILD_PLAN §8 FF6).
 import type { EnemyDef } from '../../../content/types';
@@ -58,6 +59,7 @@ export interface ColossusTuning {
   staggerPerHp: number;
   staggerStun: number;
   stunLockMs: number;
+  stunImmuneMs: number;
   staggerMs: number;
   staggerBonus: number;
   escortGrunts: number;
@@ -92,6 +94,7 @@ export const COLOSSUS_TUNING_KEYS = [
   'staggerPerHp',
   'staggerStun',
   'stunLockMs',
+  'stunImmuneMs',
   'staggerMs',
   'staggerBonus',
   'escortGrunts',
@@ -162,8 +165,8 @@ function cancel(s: SimState, e: EnemyEnt) {
 }
 
 /**
- * The Colossus's own hooks (on its `mods`): stuns refused but counted into the meter, bonus damage
- * taken while staggered, and its multipliers against walls and the Citadel (pipeline stage 2).
+ * The Colossus's own hooks (on its `mods`): stuns refused but counted into the meter (not while
+ * staggered or for `stunImmuneMs` after), bonus damage taken while staggered, and its multipliers against walls and the Citadel (pipeline stage 2).
  */
 function colossusModifier(): Modifier {
   return {
@@ -177,6 +180,8 @@ function colossusModifier(): Modifier {
         if (!b || b.staggeredUntil !== null) return false;
         const T = tuning(s.cat.enemy(e.kind));
         const t = s.tick();
+        // Just back on its feet: stuns don't count (`ready.stun`, set as the stagger ends).
+        if (!ready(e, 'stun', t)) return false;
         if (
           b.stunAt === null ||
           b.stunAt === undefined ||
@@ -599,6 +604,7 @@ export const colossus: BossBehavior = {
         return;
       }
       b.staggeredUntil = null;
+      setReady(e, 'stun', t + s.cat.steps(T.stunImmuneMs));
       s.emit({ e: 'stagger', id: e.id, on: false });
     }
     if (b.mk >= 3 && !b.finalPhase && e.hp < e.maxHp * T.finalAt) {

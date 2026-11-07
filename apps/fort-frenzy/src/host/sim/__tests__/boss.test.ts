@@ -270,8 +270,10 @@ describe('Colossus stagger', () => {
     const hits = { staggered: new Set<number>(), standing: new Set<number>() };
     for (let i = 0; i < 60 * 60; i++) {
       // The Warden stays at its side with a full super, stomping as often as the cooldown lets him.
+      // The boss is kept alive: a dead one keeps its last `staggeredUntil` (FF11-fix-1).
       h.put(0, b.x, b.y + 1.5);
       h.p(0).superCharge = 1;
+      b.hp = b.maxHp;
       if (i % 10 === 0) h.pads[0]!.tap('superFires');
       h.run(1);
       const st = b.boss!.staggeredUntil !== null;
@@ -279,7 +281,8 @@ describe('Colossus stagger', () => {
       for (const d of h.events('damage'))
         if (d.target === b.id) (st ? hits.staggered : hits.standing).add(d.amount);
     }
-    // Stagger runs: each ≤ 3 s, with at least 2 s on its feet between them, under half the time.
+    // Stagger runs: each ≤ 3 s, with at least the stun immunity (4 s) on its feet between them (the
+    // stomp's damage alone can't fill the meter that fast), under half the time.
     const runs: { from: number; to: number }[] = [];
     on.forEach((v, i) => {
       if (v && (i === 0 || !on[i - 1])) runs.push({ from: i, to: i });
@@ -288,12 +291,48 @@ describe('Colossus stagger', () => {
     expect(runs.length).toBeGreaterThanOrEqual(2);
     for (const r of runs) expect(r.to - r.from + 1).toBeLessThanOrEqual(T.staggerMs * 0.06 + 1);
     for (let i = 1; i < runs.length; i++)
-      expect(runs[i]!.from - runs[i - 1]!.to).toBeGreaterThanOrEqual(120);
+      expect(runs[i]!.from - runs[i - 1]!.to).toBeGreaterThanOrEqual(T.stunImmuneMs * 0.06);
     expect(on.filter(Boolean).length / on.length).toBeLessThan(0.5);
     // Never stunned itself; bonus damage only while staggered.
     expect(b.effects.some((e) => e.def === 'stun')).toBe(false);
     expect([...hits.standing]).toContain(stomp);
     expect([...hits.staggered]).toContain(stomp * (1 + T.staggerBonus));
+  });
+
+  it('just back on its feet it ignores stuns for stunImmuneMs, then counts them again', () => {
+    const { h, b } = lone(5, 18, 12, { classes: ['warden'], invincible: true });
+    const stomp = content.characters.find((c) => c.id === 'warden')!.super.damage;
+    /** One stomp from beside it; returns how much the stun (not the damage) filled the meter. */
+    const stompOnce = (): number => {
+      const before = b.boss!.stagger;
+      let dealt = 0;
+      h.put(0, b.x, b.y + 1.5);
+      h.p(0).superCharge = 1;
+      h.p(0).super.readyAt = 0;
+      h.pads[0]!.tap('superFires');
+      h.until(() => {
+        h.put(0, b.x, b.y + 1.5);
+        const hits = h.events('damage').filter((d) => d.target === b.id);
+        for (const d of hits) dealt += d.amount;
+        return hits.some((d) => d.amount === stomp);
+      }, 60);
+      return b.boss!.stagger - before - (dealt / b.maxHp) * T.staggerPerHp;
+    };
+    // A stagger ending now.
+    b.boss!.stunAt = null;
+    b.boss!.staggeredUntil = h.sim.world.tick;
+    h.until(() => h.events('stagger').some((e) => !e.on), 5);
+    const stoodAt = h.sim.world.tick - 1;
+    expect(b.boss!.ready!.stun).toBe(stoodAt + T.stunImmuneMs * 0.06);
+    // Stomped inside the window: the damage fills a little, the stun not at all.
+    expect(stompOnce()).toBeCloseTo(0, 6);
+    expect(b.boss!.stunAt).toBeNull();
+    expect(h.sim.world.tick - stoodAt).toBeLessThan(T.stunImmuneMs * 0.06);
+    // Past the window the stun counts again.
+    h.until(() => h.sim.world.tick >= b.boss!.ready!.stun!, T.stunImmuneMs * 0.06);
+    expect(stompOnce()).toBeCloseTo(T.staggerStun, 6);
+    expect(b.boss!.stunAt).not.toBeNull();
+    expect(b.effects.some((e) => e.def === 'stun')).toBe(false);
   });
 
   it('damage alone fills the meter and staggers it, calling off its wind-up', () => {
