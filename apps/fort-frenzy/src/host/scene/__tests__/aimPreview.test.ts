@@ -87,7 +87,14 @@ describe('drawAimPreview', () => {
 
   it('a circle is a filled 0.6 ground ellipse of the hit radius', () => {
     const ground = fakeGfx();
-    drawAimPreview(ground.g, { kind: 'circle', radius: 3.5 }, frame, 0, amber, content.rules!.projectileRadius);
+    drawAimPreview(
+      ground.g,
+      { kind: 'circle', radius: 3.5 },
+      frame,
+      0,
+      amber,
+      content.rules!.projectileRadius,
+    );
     const { rx, ry } = cam.groundEllipse(3.5);
     expect(ground.r.ellipses.length).toBe(1);
     const want = [s0.sx, s0.sy, rx * 2, ry * 2];
