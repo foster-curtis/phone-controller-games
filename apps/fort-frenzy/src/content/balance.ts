@@ -27,7 +27,7 @@ import type {
 
 export const base = {
   hp: 1000,
-  repairPerCrate: 25,
+  repairPerCrate: 20,
   stages: [0.66, 0.33, 0.1],
   alarmAt: 0.25,
   archers: {
@@ -121,16 +121,17 @@ export const engineer = {
   // FF3-fix-1; BUILD_PLAN §8 FF7).
   main: {
     shape: 'projectile',
-    damage: 34,
+    damage: 30,
     range: 9,
     cooldownMs: 600,
-    speed: 26,
+    speed: 22,
     hitsFlyers: true,
+    blockedBy: ['wall', 'tower'],
   },
   // A wide circle around the Engineer: light area damage and knockback (§8). Radius 3 → 3.5 (C3).
   super: {
     shape: 'circle',
-    damage: 25,
+    damage: 20,
     range: 0,
     radius: 3.5,
     cooldownMs: 500,
@@ -158,7 +159,7 @@ export const quartermaster = {
   // at render PROJECTILE_SPEEDS['nanite-bolt'] (20 t/s, FF3-fix-1).
   main: {
     shape: 'projectile',
-    damage: 9,
+    damage: 12,
     range: 6.5,
     cooldownMs: 700,
     count: 4,
@@ -180,7 +181,7 @@ export const quartermaster = {
     effects: [{ effect: 'tower_defense', strength: 0.3, durationMs: 6000 }],
   },
   input: { main: 'aimed', super: 'aimed' },
-  superChargeRate: 0.006,
+  superChargeRate: 0.005,
   // Field Medic heals nearby players every second in combat; its healing charges the super at
   // `chargeRate` per HP healed, slower than damage does (§8).
   passive: {
@@ -210,7 +211,7 @@ export const commander = {
   main: {
     shape: 'arc',
     damage: 28,
-    range: 1.4,
+    range: 1.6,
     arcDeg: 110,
     cooldownMs: 550,
     hitsFlyers: false,
@@ -246,7 +247,7 @@ export const commander = {
       radius: 0.24,
       attack: { shape: 'arc', damage: 8, range: 0.5, cooldownMs: 900, hitsFlyers: false },
     },
-    followRadius: 1.3,
+    followRadius: 1.4,
     aggro: { radius: 3, leash: 5 },
     hurry: { at: 3, factor: 1.3 },
     formation: { flagRing: 0.8, followSpread: 0.6 },
@@ -278,13 +279,13 @@ export const warden = {
   },
   super: {
     shape: 'arc',
-    damage: 45,
-    range: 3.7,
+    damage: 25,
+    range: 4.7,
     arcDeg: 85,
     cooldownMs: 600,
     windupMs: 320,
     hitsFlyers: false,
-    effects: [{ effect: 'stun', strength: 1, durationMs: 1400 }],
+    effects: [{ effect: 'stun', strength: 1, durationMs: 1800 }],
   },
   input: { main: 'aimed', super: 'aimed' },
   /** 160 damage fills it: the slam hits groups, so the stomp comes round often. */
@@ -307,7 +308,7 @@ export const arrowTower = {
   id: 'arrow_tower',
   cost: 2,
   hp: 250,
-  pathCost: 30,
+  pathCost: 10,
   blocksProjectiles: true,
   // Long range, single target, hits Flyers (§8).
   attack: {
@@ -330,7 +331,7 @@ export const bombTower = {
   id: 'bomb_tower',
   cost: 3,
   hp: 220,
-  pathCost: 30,
+  pathCost: 10,
   blocksProjectiles: true,
   attack: {
     shape: 'projectile',
@@ -363,8 +364,8 @@ export const snare = {
   hp: null,
   pathCost: 1,
   blocksProjectiles: false,
-  discharges: 5,
-  rearmMs: 500,
+  discharges: 8,
+  rearmMs: 1000,
   slow: { effect: 'slow', strength: 0.4, durationMs: 2000 },
   // The inner half of an enemy's body must be on the net.
   triggerFraction: 0.5,
@@ -448,7 +449,7 @@ export const swarm = {
   field: 'ground',
   attack: {
     shape: 'arc',
-    damage: 4,
+    damage: 5,
     range: 0.3,
     cooldownMs: 800,
     windupMs: 150,
@@ -549,7 +550,7 @@ export const siege = {
 export const hunter = {
   id: 'hunter',
   hp: 200,
-  speed: 1.3 * SPEED,
+  speed: 1.5 * SPEED,
   radius: 0.36,
   flying: false,
   // Chest, head and legs (the tail left out).
@@ -640,7 +641,7 @@ export const colossus = {
       staggerBonus: 0.5,
       // Grunt and Swarm escorts walk in with Mk II and III (§9.2 wave 10).
       escortGrunts: 2,
-      escortSwarms: 1,
+      escortSwarms: 4,
     },
   },
 } satisfies EnemyDef;
@@ -663,7 +664,7 @@ const THREE: LaneId[] = ['bottom', 'left', 'right'];
 export const waves: WaveDef[] = [
   {
     n: 1,
-    budget: 8,
+    budget: 12,
     allowed: ['grunt'],
     lanes: ONE,
     guaranteed: [{ enemy: 'grunt', count: 1 }],
@@ -671,7 +672,7 @@ export const waves: WaveDef[] = [
   },
   {
     n: 2,
-    budget: 12,
+    budget: 16,
     allowed: ['grunt', 'runner'],
     lanes: ONE,
     guaranteed: [{ enemy: 'runner', count: 2 }],
@@ -679,7 +680,7 @@ export const waves: WaveDef[] = [
   },
   {
     n: 3,
-    budget: 16,
+    budget: 22,
     allowed: ['grunt', 'runner', 'swarm'],
     lanes: TWO,
     guaranteed: [{ enemy: 'swarm', count: 1, lane: 'left' }],
@@ -687,7 +688,7 @@ export const waves: WaveDef[] = [
   },
   {
     n: 4,
-    budget: 22,
+    budget: 26,
     allowed: ['grunt', 'runner', 'swarm', 'brute'],
     lanes: TWO,
     guaranteed: [{ enemy: 'brute', count: 1 }],
@@ -695,7 +696,7 @@ export const waves: WaveDef[] = [
   },
   {
     n: 5,
-    budget: 12,
+    budget: 20,
     allowed: ['grunt'],
     lanes: TWO,
     guaranteed: [],
@@ -704,7 +705,7 @@ export const waves: WaveDef[] = [
   },
   {
     n: 6,
-    budget: 26,
+    budget: 30,
     allowed: ['grunt', 'runner', 'swarm', 'brute', 'flyer'],
     lanes: TWO,
     guaranteed: [{ enemy: 'flyer', count: 2 }],
@@ -712,7 +713,7 @@ export const waves: WaveDef[] = [
   },
   {
     n: 7,
-    budget: 30,
+    budget: 34,
     allowed: ['grunt', 'runner', 'swarm', 'brute', 'flyer', 'siege'],
     lanes: TWO,
     guaranteed: [{ enemy: 'siege', count: 1 }],
@@ -720,7 +721,7 @@ export const waves: WaveDef[] = [
   },
   {
     n: 8,
-    budget: 34,
+    budget: 40,
     allowed: ['grunt', 'runner', 'swarm', 'brute', 'flyer', 'siege', 'hunter'],
     lanes: THREE,
     guaranteed: [{ enemy: 'hunter', count: 2, lane: 'right' }],
@@ -728,7 +729,7 @@ export const waves: WaveDef[] = [
   },
   {
     n: 9,
-    budget: 40,
+    budget: 46,
     allowed: ['grunt', 'runner', 'swarm', 'brute', 'flyer', 'siege', 'hunter'],
     lanes: THREE,
     guaranteed: [],
@@ -736,7 +737,7 @@ export const waves: WaveDef[] = [
   },
   {
     n: 10,
-    budget: 28,
+    budget: 30,
     allowed: ['grunt', 'swarm'],
     lanes: THREE,
     guaranteed: [],
@@ -745,7 +746,7 @@ export const waves: WaveDef[] = [
   },
   {
     n: 11,
-    budget: 46,
+    budget: 58,
     allowed: ['grunt', 'runner', 'swarm', 'brute', 'flyer', 'siege', 'hunter'],
     lanes: THREE,
     guaranteed: [],
@@ -753,7 +754,7 @@ export const waves: WaveDef[] = [
   },
   {
     n: 12,
-    budget: 58,
+    budget: 68,
     allowed: ['grunt', 'runner', 'swarm', 'brute', 'flyer', 'siege', 'hunter'],
     lanes: THREE,
     guaranteed: [
@@ -764,7 +765,7 @@ export const waves: WaveDef[] = [
   },
   {
     n: 13,
-    budget: 54,
+    budget: 72,
     allowed: ['grunt', 'runner', 'swarm', 'brute', 'flyer', 'siege', 'hunter'],
     lanes: THREE,
     guaranteed: [],
@@ -772,7 +773,7 @@ export const waves: WaveDef[] = [
   },
   {
     n: 14,
-    budget: 68,
+    budget: 76,
     allowed: ['grunt', 'runner', 'swarm', 'brute', 'flyer', 'siege', 'hunter'],
     lanes: THREE,
     guaranteed: [
@@ -784,7 +785,7 @@ export const waves: WaveDef[] = [
   },
   {
     n: 15,
-    budget: 34,
+    budget: 44,
     allowed: ['grunt', 'runner', 'swarm'],
     lanes: THREE,
     guaranteed: [{ enemy: 'runner', count: 4 }],
