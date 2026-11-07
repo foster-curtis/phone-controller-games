@@ -116,6 +116,23 @@ for (const sample of ['combat-warden', 'combat-commander'] as const) {
       expect(sender.get('flags') & 1).toBe(0);
     });
 
+    it('back in the grace zone, then dragged out again: re-armed, the release fires (FF7-fix-5)', () => {
+      const { sender, layout, fire } = combat(sample);
+      const { cx, cy } = layout.main;
+      fire('pointerdown', cx, cy);
+      fire('pointermove', cx + 40, cy);
+      // A thumb back near the middle, not on it: inside the 17.5 px grace zone.
+      fire('pointermove', cx + 9, cy - 9);
+      expect(sender.get('mainX') ** 2 + sender.get('mainY') ** 2).toBeLessThanOrEqual(25 ** 2);
+      fire('pointermove', cx, cy + 50);
+      expect(sender.get('flags') & 1).toBe(1);
+      expect([sender.get('mainX'), sender.get('mainY')]).toEqual([0, 71]);
+      t += 300;
+      fire('pointerup', cx, cy + 50);
+      expect(sender.get('mainFires')).toBe(1);
+      expect([sender.get('mainX'), sender.get('mainY')]).toEqual([0, 71]);
+    });
+
     it('a hold past 150 ms that never leaves the dead zone is not a tap (cancels)', () => {
       const { sender, layout, fire } = combat(sample);
       fire('pointerdown', layout.main.cx, layout.main.cy);

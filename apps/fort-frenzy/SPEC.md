@@ -1117,9 +1117,12 @@ viewport. Sizes are fixed in px, with the minimums listed.
   (Warden slam and stomp, Commander slash, Artificer shot and super), a filled amber 0.6 ellipse for
   circles. Bars, cones and circles lie on
   the ground under the units, dim enough to stay out of the bloom. A super previews only once charged.
-- **Release outside the dead zone:** fires in the aimed direction.
-- **Slide back into the dead zone, then release:** cancels. The TV's aim line hides as soon as the aim is
-  back in the dead zone and stays hidden for the rest of that hold (C4, §15.11 #51).
+- **Dead zone** (the center grace zone): 25% of the drag radius around where the finger landed (17.5 px),
+  so a thumb back near the middle counts without finding the exact center (C4, §15.11 #53).
+- **Release outside the dead zone:** fires in the aimed direction, the direction the TV shows.
+- **Slide back into the dead zone, then release:** cancels. The TV's aim line hides while the aim is in the
+  dead zone; dragging out again, still held, re-arms the attack and the aim line shows again (C4,
+  §15.11 #51, #53).
 
 **Firing:** every attack fires **on release**, once per release.
 - Holding an aimed button only shows the aim line on the TV until release.
@@ -2110,10 +2113,13 @@ interface MeView {
 - **Gestures** (`controller-kit`, pure state machines with DOM adapters, unit-tested without a DOM):
   - **Aimed button:** down → `pending`; released within 150 ms inside the dead zone → `tap` (fire,
     aim 0,0); dragged out → `aiming` (aim flag set, vector clamped to 70 px); released outside the dead
-    zone → `fire` with the aim; released inside it after aiming → `cancel`. The tuple is unchanged; the
-    sim hides the held aim (`PlayerEnt.mainAim`/`superAim` null, tracked in `AttackState.held`) once an
-    aim that left the dead zone (`AIM_DEAD_ZONE` = 0.12 of the clamp, `shared/messages.ts`) comes back
-    into it, until the aiming flag drops (FF7-fix-4).
+    zone → `fire` with the aim; released inside it after aiming → `cancel`. Fort Frenzy passes its dead
+    zone to the kit (`controller/input.ts` `aimGesture`: `AIM_DEAD_ZONE` = 0.25 of the clamp,
+    `shared/messages.ts`; the kit default stays 12%). The tuple is unchanged; the sim hides the held aim
+    (`PlayerEnt.mainAim`/`superAim` null; `AttackState.held` `cancelled`) while the aiming flag is set
+    and the aim is inside `AIM_DEAD_ZONE`, and shows it again once it is back out (FF7-fix-5, was a
+    latch for the rest of the hold in FF7-fix-4). The phone's tuple ints (`aimInts`) round onto the
+    same side of the zone as its own px test, so the TV shows a line exactly when a release would fire.
   - **Tap button:** fires on release (§10.1).
   - **Radial button:** a tap within 150 ms → `tap`; held 0.4 s or dragged out → `open` (radial flag,
     slot by drag direction among enabled slots, 8 px hysteresis between slots); released on a slot →
@@ -2314,3 +2320,4 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 50 | 2026-11-05 | Wasp height and body hitboxes | The Wasp flies at half its height (its hull 1.37 tiles over its shadow, was 2.74); our attacks hit an enemy's drawn body (torso, head and legs, a ground capsule up the screen from its feet; arms, tails, rotors and barrels left out; the Wasp at its flight height), the Colossus kept low (its legs, radius 1.0, up to 0.8 tiles); enemy attacks, walking and ground effects keep feet circles | Early C4 notes (Foster): the Wasp flew too high, and aiming at an enemy's head missed because only its feet counted |
 | 51 | 2026-11-05 | Aim line on cancel | Once a held aimed main or super is back in the dead zone (a release would cancel), the TV hides its aim line at once and keeps it hidden until the button is let go, even if the thumb drags out again; when a release fires or cancels is unchanged (§10.1, §15.7) | Early C4 note (Foster): "it still shows the aim line until the player releases the button" |
 | 52 | 2026-11-06 | Ranger aim bar | The Ranger's single-bolt aim preview is a transparent amber bar on the ground, the bolt's range long and its hitbox wide (2 × `rules.projectileRadius`), with the cones' fill and edge; the dashed world-UI line is gone (§10.1, §15.2; revises #41) | C4 note (Foster): "The Ranger's aim line should match the style of the other players: it should be a transparent amber bar that is the width of the bolt's hitbox." |
+| 53 | 2026-11-06 | Aimed cancel and re-aim | Reverses #51's latch: a held aimed main or super cancels only on a release inside the center dead zone, now 25% of the drag radius (17.5 px, was 12%) as a thumb's grace window; the TV hides the aim line only while the aim is in it, and dragging out again, still held, re-arms the attack and shows the line again; a release outside fires along the shown aim (§10.1, §15.7) | C4 note (Foster): "Aimed attacks should only cancel if the player moves the stick to the middle of the button area and releases it … have a small grace window … If they continue to hold down the button and drag their finger again, it should re-initialize the aimed attack" |

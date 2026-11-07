@@ -54,9 +54,10 @@ export function releaseAll(p: PlayerEnt): void {
 }
 
 /**
- * The held aim the TV previews (FF7-fix-4, SPEC §15.7): once a hold that left the dead zone comes back
- * into it, a release would cancel, so the preview hides there and stays hidden until the button is
- * let go. Only what the TV shows changes; when a release fires or cancels is still the phone's rule.
+ * The held aim the TV previews (FF7-fix-5, C4, SPEC §15.7): shown while the aim is outside the center
+ * grace zone, hidden while it is back inside (a release there would cancel), shown again when the thumb
+ * drags out (a release there fires along it). Fire or cancel is still the phone's rule; its tuple ints
+ * land on the same side of the zone as its own test (controller `aimInts`).
  */
 function heldAim(st: AttackState, aiming: boolean, raw: Vec2): Vec2 | null {
   if (!aiming) {
@@ -64,10 +65,11 @@ function heldAim(st: AttackState, aiming: boolean, raw: Vec2): Vec2 | null {
     return null;
   }
   const v = cleanVec(raw.x, raw.y);
-  const inside = Math.hypot(v.x, v.y) <= AIM_DEAD_ZONE;
-  if (!inside && st.held == null) st.held = 'out';
-  else if (inside && st.held === 'out') st.held = 'cancelled';
-  return st.held === 'out' ? v : null;
+  // The epsilon absorbs float error in ints / 100; the nearest outside int aim is far above it.
+  const inside = Math.hypot(v.x, v.y) <= AIM_DEAD_ZONE + 1e-9;
+  if (!inside) st.held = 'out';
+  else if (st.held === 'out') st.held = 'cancelled';
+  return inside ? null : v;
 }
 
 export function stepPlayers(s: FullState): void {

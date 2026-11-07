@@ -99,8 +99,9 @@ export interface AttackState {
   /** A player's wound-up attack lands in this direction (FF8; `aim` keeps queueing presses). */
   windupAim?: Vec2 | null;
   /**
-   * A player's held aim (FF7-fix-4): `out` once it left the dead zone, `cancelled` once it came back
-   * (a release would cancel; the aim line stays hidden until the button is let go), null when not held.
+   * A player's held aim (FF7-fix-4, FF7-fix-5): `out` while it is outside the dead zone, `cancelled`
+   * while it is back inside (a release would cancel; the aim line hides until the thumb drags out
+   * again), null when not held.
    */
   held?: 'out' | 'cancelled' | null;
 }

@@ -824,6 +824,7 @@ Rules:
   - [x] FF7-fix-3: C3 follow-up: Warden slam and Commander slash aimed, cone/arc previews
   - [x] FF7-fix-4: early C4 note: the aim line hides as soon as a held aimed attack cancels
   - [x] FF7-fix-6: C4 Ranger aim preview is a transparent amber bar the width of the bolt hitbox
+  - [x] FF7-fix-5: C4 aimed cancel only on release in a center grace zone; dragging out again re-arms and re-shows the aim
 - [x] **User approved C2** (slice on real phones and TV): notes fixed in FF7-fix-1; Citadel collapse deferred to v2; feel and visual notes re-judged at C3
 - FF8 Warden + structures
   - [x] Warden kit + clips
@@ -1696,6 +1697,10 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   branch: 6 tests pin the old numbers (c3-tuning Warden slam/stomp, speeds bolt render speed, boss Warden stun
   loop, shop + structures snare discharges). Out of this note's scope, left for the orchestrator; every other
   gate step (typecheck, lint, format, build, bundle, routes, changeset) passes.
+- [FF7-fix-5] decision (C4 note, SPEC §15.11 #53, reverses FF7-fix-4's latch): `players.ts` `heldAim` shows the held aim whenever the aiming flag is set and the aim is outside `AIM_DEAD_ZONE`, hides it while inside; `AttackState.held` is now `out`/`cancelled` for where the aim is right now, not a latch. The phone's fire/cancel rule (the kit's aimed machine) was already "release inside = cancel, outside = fire", so only the grace zone and the encoding changed on the phone.
+- [FF7-fix-5] decision: grace zone widened from 0.12 (8.4 px, about 1.3 mm, too tight to find with a thumb) to 0.25 of the 70 px clamp (17.5 px). Passed from the app (`controller/input.ts` `aimGesture()`, used by the floating aim zones and `bindAttack`), kit defaults untouched. `AIM_DEAD_ZONE` in the frozen `shared/messages.ts` changed value only (no shape change, as the brief allows); its pinning test now checks `aimGesture().config.deadZonePx === AIM_DEAD_ZONE * AIM_MAX_PX` (`host/net/__tests__/aimAgree.test.ts`). It also sets how far a drag must go before aiming starts and the radius a quick tap may wobble in.
+- [FF7-fix-5] decision: phone and TV agree at the zone edge through the tuple: `aimInts` rounds a px aim inside the zone toward zero and one outside away from zero when plain rounding would land on the edge, so the TV's int test matches the phone's px test exactly (a sweep around the edge in `aimAgree.test.ts` drives the real machine → encoders → `tupleToInput` → sim). The fire carries the same ints, so it goes along the shown aim.
+- [FF7-fix-5] decision: Acceptance (c) "release inside the zone right after pressing → no attack" is tested as a press that never leaves the zone and is released after the 150 ms tap window. A quick tap (≤ 150 ms, inside the zone) still fires auto-aimed (SPEC §10.1, #47); the note doesn't mention taps, so that stays.
 
 ## 9. Final handoff
 

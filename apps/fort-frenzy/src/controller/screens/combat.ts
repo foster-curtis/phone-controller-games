@@ -4,7 +4,6 @@
 import {
   RADIAL_DEFAULTS,
   SLOT_DOWN,
-  aimedGesture,
   bindGesture,
   createJoystick,
   el,
@@ -21,6 +20,7 @@ import { mountAimZones, type AimZones } from '../aimZones';
 import { ChargeRing, RoundButton, StatusStrip } from '../components';
 import { CLASS_INFO, actionIcon, giveIcon } from '../copy';
 import {
+  aimGesture,
   encodeAimed,
   encodeAimedState,
   encodeRadial,
@@ -84,7 +84,7 @@ export function bindAttack(
   mode: 'tap' | 'aim',
 ): GestureBinding<unknown> {
   if (mode === 'aim') {
-    return bindGesture(btn, aimedGesture(), {
+    return bindGesture(btn, aimGesture(), {
       onState: (st) => {
         encodeAimedState(sender, key, st);
         sender.touch(key, st.phase !== 'idle');

@@ -39,10 +39,12 @@ export const INPUT_FLAG_SUPER_AIMING = 2;
 export const INPUT_FLAG_RADIAL_OPEN = 4;
 
 /**
- * Aimed-button dead zone as a fraction of the aim clamp (the kit's aimed rule, 12% of `maxPx`). A held
- * aim back inside it cancels on release, so the TV hides its aim line (FF7-fix-4, SPEC §15.7).
+ * Aimed-button dead zone (the center grace zone) as a fraction of the aim clamp; the phone passes it
+ * to the kit's aimed gesture (FF7-fix-5, C4: 25%, widened from the kit's 12% for a thumb). A release
+ * inside it cancels, so the TV hides the aim line while a held aim is inside and shows it again once
+ * the aim is back out (SPEC §10.1, §15.7).
  */
-export const AIM_DEAD_ZONE = 0.12;
+export const AIM_DEAD_ZONE = 0.25;
 
 /**
  * Phone → host input (SPEC §10.1, §11.4). Sticks and aims are ints −100..100, dead zone applied on
