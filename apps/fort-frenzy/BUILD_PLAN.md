@@ -1747,9 +1747,8 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   rule guarantees it in a Warden-only loop, since the stomp's damage alone (~0.04 of the meter per stomp) can't
   fill the meter in 4 s. Run length (≤ 3 s) and the under-half share are unchanged. New test: a stomp inside the
   window fills only its damage share, one after it adds `staggerStun` again.
-- [FF11-fix-1] note: Acceptance: boss.test 18/18, soak passes, I passes, bench boss p99 1.08 ms; in
-  `check:fort-frenzy` every step passes except tests, which fail only on the 5 remaining pre-existing balance
-  pins FF7-fix-6 logged (c3-tuning, speeds, shop, structures ×2; left to `build/c4-balance-tests`).
+- [FF11-fix-1] note: Acceptance after rebasing on cf95d88 (the balance-test fixes): `check:fort-frenzy` fully
+  green (984 tests), boss.test 18/18, soak passes, I passes, bench boss p99 1.48 ms.
 
 ## 9. Final handoff
 
