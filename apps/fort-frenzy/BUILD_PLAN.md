@@ -1692,6 +1692,10 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   fill and 2 px `AIM_EDGE_ALPHA` edge), the shape's range long and 2 × `rules.projectileRadius` (the fired bolt's
   `r`, same ground projection) wide; `drawAimPreview` drops its unused `ui` Graphics and takes the bolt radius from
   `worldView` (no sim change; `hitShape` untouched). The Ranger's super is a circle, so it is left as is.
+- [FF7-fix-6] note: `check:fort-frenzy` tests fail on `main` 0fbe288 ("balance updates after playtest") before this
+  branch: 6 tests pin the old numbers (c3-tuning Warden slam/stomp, speeds bolt render speed, boss Warden stun
+  loop, shop + structures snare discharges). Out of this note's scope, left for the orchestrator; every other
+  gate step (typecheck, lint, format, build, bundle, routes, changeset) passes.
 
 ## 9. Final handoff
 
