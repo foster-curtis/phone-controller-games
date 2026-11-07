@@ -72,4 +72,6 @@ export interface TvView {
   nextWaveNew: EnemyId[];
   /** A phone runs a newer protocol: "Refresh the TV" (§15.6). */
   outdatedBanner: boolean;
+  /** A player paused the run from their phone (FF14-fix-1): the "Paused" overlay names them. */
+  paused?: TvPlayer | null;
 }

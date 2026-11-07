@@ -84,7 +84,8 @@ export type Intent =
   | { k: 'request'; item: ShopItemId; on: boolean }
   | { k: 'card'; card: CardId }
   | { k: 'give' } // §10.2 Give crate button
-  | { k: 'claim'; slot: number }; // resume into a new room
+  | { k: 'claim'; slot: number } // resume into a new room
+  | { k: 'pause'; paused: boolean }; // team pause from any run phone (C4, FF14-fix-1)
 
 export type IntentKind = Intent['k'];
 
@@ -176,6 +177,13 @@ export interface TeamShopRow {
   holdToConfirm: boolean;
 }
 
+/** Who paused the run (C4 team pause, SPEC §11.3, FF14-fix-1). */
+export interface TeamPause {
+  playerId: string;
+  name: string;
+  color: PlayerColorId;
+}
+
 /** Team state every phone shows (SPEC §15.6). Full snapshot, broadcast on change, ≤ 5 Hz. */
 export interface TeamView {
   phase: TeamPhase;
@@ -192,6 +200,8 @@ export interface TeamView {
   wishlist: { item: ShopItemId; by: string }[];
   nextWave: { enemies: { id: EnemyId; count: number }[]; boss: boolean } | null; // §4
   summary: RunSummary | null;
+  /** A player paused the run (FF14-fix-1); absent or null = running. */
+  paused?: TeamPause | null;
 }
 
 export type MeScreen =
@@ -361,6 +371,8 @@ export function isIntent(v: unknown): v is Intent {
       return true;
     case 'claim':
       return isNat(v.slot);
+    case 'pause':
+      return isBool(v.paused);
     default:
       return false;
   }
@@ -424,6 +436,9 @@ const isShopRow = (r: unknown): r is TeamShopRow =>
   isBool(r.qmOnly) &&
   isBool(r.holdToConfirm);
 
+const isTeamPause = (p: unknown): p is TeamPause =>
+  isObj(p) && isStr(p.playerId) && isStr(p.name) && isColorId(p.color);
+
 export function isTeamView(v: unknown): v is TeamView {
   if (!isObj(v)) return false;
   const next = v.nextWave;
@@ -450,7 +465,8 @@ export function isTeamView(v: unknown): v is TeamView {
           next.enemies,
           (e): e is { id: EnemyId; count: number } => isObj(e) && isEnemyId(e.id) && isNat(e.count),
         ))) &&
-    orNull(isRunSummary)(v.summary)
+    orNull(isRunSummary)(v.summary) &&
+    (v.paused === undefined || orNull(isTeamPause)(v.paused))
   );
 }
 

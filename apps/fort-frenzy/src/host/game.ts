@@ -12,7 +12,7 @@ import {
 } from '@pcg/game-kit';
 import type { ConnectionStatus, HostClient } from '@pcg/net-client';
 import { DIFFICULTY_IDS, THEME_IDS, type LaneId } from '../shared/ids';
-import { GAME_ID } from '../shared/messages';
+import { GAME_ID, type TeamPause } from '../shared/messages';
 import {
   connectSession,
   createRelayClient,
@@ -73,6 +73,11 @@ export interface Runtime {
   readonly stats: RunStats;
   /** Every connected run player is gone: the sim waits (§11.3). */
   readonly pausedAll: boolean;
+  /**
+   * A player paused the run from their phone (C4, FF14-fix-1): no sim steps, wall time or `advance`,
+   * and the TV's render clock stops too. Independent of `pausedAll` and the hidden-tab pause.
+   */
+  readonly paused: TeamPause | null;
   /** Atlas load progress while loading; null once the World scene is ready. */
   loading: number | null;
   createRoom(): Promise<void>;
@@ -234,6 +239,9 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
     get pausedAll() {
       return pausedAll;
     },
+    get paused() {
+      return session.paused;
+    },
     loading: 0,
     get world() {
       return session.sim?.world ?? null;
@@ -300,7 +308,8 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
       if (sim) {
         // Everyone in the run dropped at once: hold the sim until someone is back (§11.3).
         pausedAll = session.connectedInRun() === 0;
-        if (!pausedAll) loop.advance(dt * runtime.speed, step);
+        // A team pause holds it too; the two are independent (FF14-fix-1).
+        if (!pausedAll && !session.paused) loop.advance(dt * runtime.speed, step);
       }
       session.flush();
       const t = now();
@@ -309,7 +318,7 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
     },
 
     advance(steps) {
-      for (let i = 0; i < steps && session.sim; i++) step();
+      for (let i = 0; i < steps && session.sim && !session.paused; i++) step();
       session.flush();
     },
 
@@ -322,7 +331,8 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
         // Render interpolation: how far into the next step the loop's clock is.
         alpha: Math.min(0.999, loop.accumulator / STEP_MS),
         events,
-        dtMs: visible ? Math.min(Math.max(0, renderMs), MAX_FRAME_MS) : 0,
+        // Paused, the TV's render-only motion (particles, pulses) holds still with the sim.
+        dtMs: visible && !session.paused ? Math.min(Math.max(0, renderMs), MAX_FRAME_MS) : 0,
         overlays: runtime.overlays,
       };
       events = [];

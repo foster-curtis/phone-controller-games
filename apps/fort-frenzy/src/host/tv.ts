@@ -103,5 +103,6 @@ export function buildTvView(input: TvInput): TvView {
         : [],
     nextWaveNew: w ? newEnemies(ctx.content, w.wave) : [],
     outdatedBanner: input.outdated,
+    paused: team?.paused ? { ...team.paused } : null,
   };
 }

@@ -1,6 +1,7 @@
 // Phone input on the host (SPEC §11.4, §15.6): the input tuple becomes a `PlayerInput`, stamped with
 // its receive time. Older than 250 ms, the phone reads as neutral (sticks zeroed, flags cleared), but
-// its press counters still apply when they arrive, so a release is never lost.
+// its press counters still apply when they arrive, so a release is never lost. Presses made while the
+// team is paused are swallowed (`hold` / `release`, FF14-fix-1), so nothing fires on resume.
 import { neutralInput } from '../sim';
 import type { InputSource, PlayerInput } from '../sim/types';
 import {
@@ -34,10 +35,25 @@ export function tupleToInput(t: InputTuple): PlayerInput {
   };
 }
 
+const COUNTERS = ['mainFires', 'superFires', 'actionTaps', 'radialCommits'] as const;
+type Counters = Record<(typeof COUNTERS)[number], number>;
+
+const countersOf = (i: PlayerInput): Counters => ({
+  mainFires: i.mainFires,
+  superFires: i.superFires,
+  actionTaps: i.actionTaps,
+  radialCommits: i.radialCommits,
+});
+
 /** One phone's latest sample with receive-time staleness (§15.6). The clock is injectable for tests. */
 export class PhoneInputSource implements InputSource {
   private latest: PlayerInput = neutralInput();
   private at = -Infinity;
+  /** Presses made during team pauses, subtracted from the phone's counters (FF14-fix-1). */
+  private readonly off: Counters = { mainFires: 0, superFires: 0, actionTaps: 0, radialCommits: 0 };
+  private shifted = false;
+  /** The counters when a pause began, or null while running. */
+  private heldAt: Counters | null = null;
 
   constructor(
     private readonly now: () => number = () => performance.now(),
@@ -55,15 +71,35 @@ export class PhoneInputSource implements InputSource {
     return this.at;
   }
 
+  /** A team pause began: presses from now until `release` never reach the sim (no buffered actions). */
+  hold(): void {
+    this.heldAt ??= countersOf(this.latest);
+  }
+
+  /** The pause ended: whatever the phone counted meanwhile is swallowed. */
+  release(): void {
+    const from = this.heldAt;
+    if (!from) return;
+    this.heldAt = null;
+    for (const k of COUNTERS) {
+      // A phone reload mid-pause restarts its counters: nothing to swallow then.
+      const n = Math.max(0, this.latest[k] - from[k]);
+      this.off[k] += n;
+      if (n > 0) this.shifted = true;
+    }
+  }
+
   sample(_tick: number): PlayerInput {
-    if (this.now() - this.at <= this.staleMs) return this.latest;
     const l = this.latest;
-    return {
-      ...neutralInput(),
-      mainFires: l.mainFires,
-      superFires: l.superFires,
-      actionTaps: l.actionTaps,
-      radialCommits: l.radialCommits,
-    };
+    const c = countersOf(l);
+    if (this.shifted) {
+      for (const k of COUNTERS) {
+        // A phone reload restarts its counters below the offset: drop it (the sim re-baselines).
+        if (c[k] < this.off[k]) this.off[k] = 0;
+        c[k] -= this.off[k];
+      }
+    }
+    if (this.now() - this.at <= this.staleMs) return this.shifted ? { ...l, ...c } : l;
+    return { ...neutralInput(), ...c };
   }
 }

@@ -4,8 +4,9 @@
 // sync, sent on change and in full on every hello. Owns the run's sim while one is going, and its
 // lifecycle (FF14): late joins at the build phase, the end-of-run options, and the resume snapshot
 // (§11.5, §15.8: saved at each build start and on build-phase changes, offered after a reload,
-// restored into the same or a new room). No Phaser, no relay client: the runtime passes `send` and
-// `kick`.
+// restored into the same or a new room), and the team pause (C4, FF14-fix-1: any run phone pauses or
+// resumes; the runtime stops stepping while `paused` is set). No Phaser, no relay client: the runtime
+// passes `send` and `kick`.
 import { content as defaultContent, type Content } from '../../content';
 import { PLAYER_COLOR_IDS, type ClassId, type PlayerColorId } from '../../shared/ids';
 import {
@@ -15,6 +16,7 @@ import {
   type HostMsg,
   type Intent,
   type RunSummary,
+  type TeamPause,
 } from '../../shared/messages';
 import { createParty } from '../party';
 import {
@@ -75,6 +77,8 @@ export interface Session {
   readonly outdated: boolean;
   /** A saved run waiting for Resume or New run (§11.5), or null. */
   readonly restoring: { wave: number; savedAt: number } | null;
+  /** A player paused the run (FF14-fix-1): the runtime steps nothing until a resume. */
+  readonly paused: TeamPause | null;
   handlePeer(change: {
     event: 'joined' | 'left' | 'rejoined';
     playerId: string;
@@ -139,6 +143,9 @@ export function createSession(deps: SessionDeps): Session {
   let summary: RunSummary | null = null;
   let runStartedAt = 0;
   let outdated = false;
+  /** The team pause (FF14-fix-1) and when it began (the run time leaves it out). */
+  let paused: TeamPause | null = null;
+  let pausedAt = 0;
 
   // The resume snapshot (§15.8).
   let saved: RunSnapshot | null = store?.load(wall()) ?? null;
@@ -155,6 +162,7 @@ export function createSession(deps: SessionDeps): Session {
     world: sim?.world ?? null,
     summary,
     restoring: saved && !sim ? { wave: saved.wave, savedAt: saved.savedAt } : null,
+    paused,
   });
 
   const sendTeam = (to?: string) => {
@@ -208,6 +216,7 @@ export function createSession(deps: SessionDeps): Session {
     sim = createSim(next, { content, sources, observer: recorder });
     summary = null;
     pending.clear();
+    paused = null;
     runStartedAt = now() - elapsedMs;
     lastSave = { json: '', at: -Infinity, phase: '' };
     deps.onRunStart?.(sim, next);
@@ -267,8 +276,31 @@ export function createSession(deps: SessionDeps): Session {
     summary = null;
     pending.clear();
     sources.clear();
+    paused = null;
     store?.clear();
     deps.onRunEnd?.();
+  }
+
+  /**
+   * The team pause (C4, FF14-fix-1): any phone with a run slot pauses or resumes, in the countdown,
+   * build and combat phases. While paused the runtime steps nothing, sim-bound intents ack `phase`,
+   * and presses made meanwhile are swallowed on resume (`PhoneInputSource.hold`).
+   */
+  function setPause(from: string, on: boolean): AckReason | null {
+    const m = party.member(from);
+    const phase = sim?.world.phase;
+    if (!m || m.slot === null || (phase !== 'countdown' && phase !== 'build' && phase !== 'combat'))
+      return 'phase';
+    if (on && !paused) {
+      paused = { playerId: m.playerId, name: m.name, color: m.color };
+      pausedAt = now();
+      for (const s of sources.values()) s.hold();
+    } else if (!on && paused) {
+      paused = null;
+      runStartedAt += now() - pausedAt;
+      for (const s of sources.values()) s.release();
+    }
+    return null;
   }
 
   const maybeAutoStart = () => {
@@ -292,7 +324,8 @@ export function createSession(deps: SessionDeps): Session {
 
   /** Queues a sim command for this intent; the `command` event acks it after the step. */
   const toSim = (from: string, seq: number, cmd: SimCommand) => {
-    if (!sim) return ack(from, seq, 'phase');
+    // Paused: nothing queues up for the resume (FF14-fix-1).
+    if (!sim || paused) return ack(from, seq, 'phase');
     const ref = nextRef++;
     pending.set(ref, { to: from, seq });
     sim.command({ ...cmd, ref } as SimCommand);
@@ -300,6 +333,7 @@ export function createSession(deps: SessionDeps): Session {
 
   /** A late joiner taps Ready in a build phase (§11.2): the next free slot, at the base. */
   function lateJoin(from: string, seq: number) {
+    if (paused) return ack(from, seq, 'phase');
     const r = party.joinLate(from);
     if (!r.ok) return ack(from, seq, r.reason);
     const { slot, name, color, classId } = r.slot;
@@ -393,6 +427,8 @@ export function createSession(deps: SessionDeps): Session {
         if (sim) sim.command({ c: 'presence', slot: i.slot, connected: true });
         return ack(from, seq, null);
       }
+      case 'pause':
+        return ack(from, seq, setPause(from, i.paused));
     }
   }
 
@@ -482,6 +518,9 @@ export function createSession(deps: SessionDeps): Session {
     },
     get restoring() {
       return ctx().restoring ?? null;
+    },
+    get paused() {
+      return paused;
     },
 
     handlePeer({ event, playerId, playerKey }) {

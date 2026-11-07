@@ -9,6 +9,7 @@ import {
   type MeView,
   type RunStats,
   type RunSummary,
+  type TeamPause,
   type TeamPhase,
   type TeamView,
 } from '../../shared/messages';
@@ -28,6 +29,8 @@ export interface ViewCtx {
   summary: RunSummary | null;
   /** A saved run waits for Resume or New run (§11.5, FF14). */
   restoring?: { wave: number; savedAt: number } | null;
+  /** A player paused the run (FF14-fix-1). */
+  paused?: TeamPause | null;
 }
 
 const msLeft = (w: World) =>
@@ -116,6 +119,8 @@ export function teamView(ctx: ViewCtx): TeamView {
     wishlist: (w?.team.wishlist ?? []).map((x) => ({ item: x.item, by: playerIdOfSlot(x.slot) })),
     nextWave: w && (w.phase === 'build' || w.phase === 'countdown') ? nextWave(ctx, w) : null,
     summary: phase === 'summary' ? ctx.summary : null,
+    // Only while paused, so a running team snapshot is unchanged (FF14-fix-1).
+    ...(ctx.paused && w ? { paused: { ...ctx.paused } } : {}),
   };
 }
 

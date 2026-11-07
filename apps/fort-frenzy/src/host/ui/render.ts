@@ -4,6 +4,7 @@ import { hudSections } from './screens/hud';
 import { lobbySections } from './screens/lobby';
 import { summarySections } from './screens/summary';
 import { esc } from './html';
+import { COLOR_VAR } from './labels';
 import type { TvView } from './types';
 
 /** One independently-updated piece of the overlay; `html` unchanged means the DOM is left alone. */
@@ -48,6 +49,19 @@ export function sectionsFor(view: TvView, ctx: RenderCtx): Section[] {
         },
       ];
       break;
+  }
+  if (view.paused) {
+    // Team pause (FF14-fix-1): a scrim over the frozen run, naming who paused, inside the safe margin.
+    const p = view.paused;
+    out.push({
+      name: 'paused',
+      html:
+        `<div class="paused-scrim" data-edge></div>` +
+        `<div class="paused-card" style="--pc:${COLOR_VAR(p.color)}">` +
+        `<div class="banner">Paused</div>` +
+        `<div class="tag by"><span class="pip"></span>${esc(p.name)} paused the run</div>` +
+        `<div class="body">Any phone can resume.</div></div>`,
+    });
   }
   if (view.outdatedBanner) {
     out.push({

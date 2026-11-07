@@ -53,7 +53,12 @@ export interface FfDebugApi {
     shots: number;
     structures: number;
     baseHp: number;
+    /** Every run player disconnected (§11.3). */
     paused: boolean;
+    /** Who paused the run from their phone (FF14-fix-1), or null. */
+    pausedBy: string | null;
+    /** Sim steps the runtime has run this run. */
+    steps: number;
   };
   /** Creates the room (the home screen's Create row). */
   create(): Promise<void>;
@@ -121,6 +126,8 @@ export function installFfDebug(rt: Runtime, fallbacks: () => number): void {
         structures: w?.structures.length ?? 0,
         baseHp: w?.base.hp ?? 0,
         paused: rt.pausedAll,
+        pausedBy: rt.paused?.name ?? null,
+        steps: rt.stats.steps,
       };
     },
     create: () => rt.createRoom(),

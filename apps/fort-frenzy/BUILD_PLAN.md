@@ -1702,6 +1702,29 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
 - [FF7-fix-5] decision: phone and TV agree at the zone edge through the tuple: `aimInts` rounds a px aim inside the zone toward zero and one outside away from zero when plain rounding would land on the edge, so the TV's int test matches the phone's px test exactly (a sweep around the edge in `aimAgree.test.ts` drives the real machine → encoders → `tupleToInput` → sim). The fire carries the same ints, so it goes along the shown aim.
 - [FF7-fix-5] decision: Acceptance (c) "release inside the zone right after pressing → no attack" is tested as a press that never leaves the zone and is released after the 150 ms tap window. A quick tap (≤ 150 ms, inside the zone) still fires auto-aimed (SPEC §10.1, #47); the note doesn't mention taps, so that stays.
 - [FF7-fix-5] note: after rebasing on bce257e, `check:fort-frenzy` still fails only on the 6 tests FF7-fix-6 logged (old numbers pinned against 0fbe288's balance); every aim test and every other gate step (typecheck, lint, format, build, bundle, routes, changeset) passes. Left for the orchestrator.
+- [FF14-fix-1] contract+: `src/shared/messages.ts` intent `{ k: 'pause'; paused: boolean }`, `TeamPause`
+  `{ playerId, name, color }` and `TeamView.paused?: TeamPause | null` (absent while running), with their guard
+  cases; `src/host/ui/types.ts` `TvView.paused?: TvPlayer | null`. SPEC §10.5, §15.6, §15.11 #54.
+- [FF14-fix-1] decision (orchestrator defaults, C4 note): the pause button sits top-right in the phone's top bar of
+  the combat (and dead) and build views only, so it is hidden in the lobby, class select, waiting, claim and summary;
+  any phone with a run slot pauses or resumes in the countdown, build and combat phases (`phase` otherwise); a
+  second pause keeps the first pauser and a resume of a running game acks ok. The icon set has no pause icon: a
+  code-drawn two-bar glyph (CSS, brand tokens). In the Shop tab the coin box moves left of it.
+- [FF14-fix-1] decision: the pause lives in the session (`paused`) and the runtime: no sim steps from wall time or
+  `advance` (e2e and the debug panel) while set, and the TV's render `dtMs` is 0. No sim command, so the sim, its
+  types and replays are unchanged (a replay of a paused run simply has no steps in the pause).
+- [FF14-fix-1] decision: no buffered input: going into the pause resets the phone's gestures and zeroes its sticks;
+  the phone keeps streaming tuples, and each `PhoneInputSource` subtracts the counters it saw between `hold()` and
+  `release()`, so a release during the pause never fires on resume (simpler than a sim re-baseline command).
+  Sim-bound intents and late joins ack `phase` while paused, so nothing queues for the resume.
+- [FF14-fix-1] decision: resume is immediate, no 3-2-1: the swallowed counters and the reset gestures leave nothing
+  a held input could cheat, and a countdown would need its own timer outside the sim.
+- [FF14-fix-1] decision: the pause composes with the all-disconnected and hidden-tab pauses: the runtime steps only
+  when none applies, and neither clears the other (`pausedAll` is recomputed each tick; `paused` changes only by
+  intent). The pause isn't in the resume snapshot, so a snapshot saved while paused restores unpaused (the simplest).
+- [FF14-fix-1] decision: the summary's run time leaves the pause out (`runStartedAt` moves on by the paused time);
+  `__pcg.stats()` gains `pausedBy` (name or null) and `steps` (the runtime's step count) for `e2e/pause.spec.ts`.
+  The phone dev harness gains `combat-paused` and `build-paused` samples.
 
 ## 9. Final handoff
 

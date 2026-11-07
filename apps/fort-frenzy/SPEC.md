@@ -1223,6 +1223,23 @@ The shop shows:
 ### 10.4 Dead
 - The phone shows only a respawn countdown.
 - The build menu and shop are unavailable until the player respawns.
+- The top bar's pause button (§10.5) stays, so a downed player can still pause the team.
+
+### 10.5 Team pause (C4, §15.11 #54)
+- **Top bar:** during a run (wave countdowns, build and combat phases, and while down) every player's
+  phone has a pause button in the top-right corner of the top bar, a code-drawn two-bar glyph on a
+  gunmetal chamfered tile (the icon set has no pause icon). It isn't shown in the lobby, class select,
+  the waiting and claim screens, or the summary. In the Shop tab the coin count moves left of it.
+- **Any player pauses the whole run** for every player and the TV. The run freezes: sim steps, the
+  build timer, wave countdowns and respawn timers; the TV's render-only motion holds still too.
+- **Paused:** every phone shows a "Paused" card over its screen, "<Name> paused the run" (or "You paused
+  the run") and a **Resume** button; **any player** can resume, not only the one who paused. The TV shows
+  a "Paused" card naming who paused over a scrim, inside the safe margin.
+- **No buffered input:** going into the pause drops every held gesture on the phones; presses made while
+  paused never fire after the resume, and menu actions that change the run (build, buy, request, card,
+  Give, Ready, a late join) are refused with "Not right now" until the resume. Resume starts at once
+  (no 3-2-1): nothing held through the pause carries a press over.
+- Not in v1: a per-player pause, pause menus (settings, quit), TV-side pause controls.
 
 ## 11. Lobby, join and reconnect
 
@@ -1274,8 +1291,10 @@ from Sunny Side Slam. Everything else in this section is Fort Frenzy game logic 
 - **What players see:**
   - On the phone: a "Reconnecting…" overlay.
   - On the TV: a reconnecting icon on that player's nametag.
-- **No pausing in v1.** The game auto-pauses only if every player is disconnected at once, or while the
-  TV's browser tab is hidden (browsers stop animation frames there anyway).
+- **Pausing:** the game auto-pauses if every player is disconnected at once, or while the TV's browser
+  tab is hidden (browsers stop animation frames there anyway). Since C4 any player can also pause the
+  whole run from their phone (§10.5). The three are independent: the run moves only when none applies,
+  and a phone coming back doesn't clear a team pause.
 - **iOS backgrounding:** when the page becomes visible again (`visibilitychange`), the phone reconnects
   immediately with its token.
 
@@ -1644,7 +1663,10 @@ interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: num
 ### 15.3 Simulation
 
 - **Loop:** fixed 60 Hz steps with an accumulator, a catch-up cap and render interpolation, from
-  `@pcg/game-kit` (as in Sunny Side). The debug 2× speed runs two steps per frame slot.
+  `@pcg/game-kit` (as in Sunny Side). The debug 2× speed runs two steps per frame slot. The host
+  runs no steps while the TV tab is hidden, while every run player is disconnected, or while the team
+  is paused (§10.5; that one also holds the debug `advance` stepper). A pause is outside the sim: no
+  command, no replay entry, just no steps.
 - **One deterministic sim owns the whole run** from the countdown to the summary: phases and timers,
   combat, economy, shop, cards, building and scaling. The lobby is outside it (`party/`); a run starts
   from `RunStart { seed, settings, slots }`. Everything that changes run state enters as either an
@@ -2032,7 +2054,8 @@ export type Intent =
   | { k: 'request'; item: ShopItemId; on: boolean }
   | { k: 'card'; card: CardId }
   | { k: 'give' }                                                  // §10.2 Give crate button
-  | { k: 'claim'; slot: number };                                  // resume into a new room
+  | { k: 'claim'; slot: number }                                   // resume into a new room
+  | { k: 'pause'; paused: boolean };                               // team pause, any run phone (§10.5)
 
 export type AckReason = 'coins' | 'crates' | 'cap' | 'phase' | 'invalid' | 'notLeader' | 'taken';
 
@@ -2059,6 +2082,7 @@ interface TeamView {
   wishlist: { item: ShopItemId; by: string }[];
   nextWave: { enemies: { id: EnemyId; count: number }[]; boss: boolean } | null;  // §4
   summary: RunSummary | null;
+  paused?: { playerId: string; name: string; color: PlayerColorId } | null;  // who paused (§10.5)
 }
 interface MeView {
   screen: 'name' | 'lobby' | 'waiting' | 'full' | 'combat' | 'build' | 'dead' | 'summary'
@@ -2090,6 +2114,13 @@ interface MeView {
   from the snapshot with `party.restore` (every slot away, matched by key or device ID), and
   `party.claim` lets an unknown phone take a slot no phone has matched; `party.screen` returns `claim`
   for it while such slots exist.
+- **Team pause** (§10.5, FF14-fix-1): a `pause` intent from any phone with a run slot, in the
+  countdown, build or combat phase (otherwise `phase`); pausing an already paused run keeps the first
+  pauser, resuming a running one is a no-op, both ack `ok`. While paused, `team.paused` names who paused
+  (absent when running) and reaches every phone in the `team` broadcast; intents that become sim
+  commands, and a late join, ack `phase`. Input tuples still arrive while paused, and each
+  `PhoneInputSource` subtracts the presses counted between the pause and the resume (`hold` /
+  `release`), so nothing fires on resume. The summary's run time leaves the pause out.
 - **Versioning:** `PROTOCOL_VERSION` bumps on any breaking change to `messages.ts`; additive fields don't
   bump it. `messages.ts` is a frozen contract (§15.11).
 
@@ -2130,6 +2161,10 @@ interface MeView {
   lit badges; `action: 'none'` shows the glyph at 35% on the plain tile (icons `README.md`).
 - **Shop:** hold-to-confirm (0.6 s) on items with `holdToConfirm`; Request toggles; purchase failures
   show the `ack` reason as a toast.
+- **Team pause (§10.5):** the combat and build views share one pause control (`createPauseControl`):
+  the top bar's button and the paused card, both from `team.paused`. Going into a pause resets the
+  view's gestures and zeroes the sticks; the input sender keeps running, so the host sees the counters
+  it has to swallow.
 - **Bundle budget:** `play.html` loads ≤ 100 KB gzipped JS, with no Phaser and no atlases, only
   `themes/<id>/shared.ts` (the icon sprite and portrait images load as assets, outside the JS budget).
   `check-bundle` gains a per-app size limit.
@@ -2182,6 +2217,8 @@ interface RunSnapshot {
   restores of one snapshot hash the same and play on identically, and the restored world gives the same
   snapshot back.
 - A resume starts a new replay segment that begins from the snapshot (§15.9).
+- A team pause (§10.5) isn't in the snapshot: one saved while paused restores unpaused, into the build
+  phase as above.
 
 ### 15.9 Testing
 
@@ -2321,3 +2358,4 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 51 | 2026-11-05 | Aim line on cancel | Once a held aimed main or super is back in the dead zone (a release would cancel), the TV hides its aim line at once and keeps it hidden until the button is let go, even if the thumb drags out again; when a release fires or cancels is unchanged (§10.1, §15.7) | Early C4 note (Foster): "it still shows the aim line until the player releases the button" |
 | 52 | 2026-11-06 | Ranger aim bar | The Ranger's single-bolt aim preview is a transparent amber bar on the ground, the bolt's range long and its hitbox wide (2 × `rules.projectileRadius`), with the cones' fill and edge; the dashed world-UI line is gone (§10.1, §15.2; revises #41) | C4 note (Foster): "The Ranger's aim line should match the style of the other players: it should be a transparent amber bar that is the width of the bolt's hitbox." |
 | 53 | 2026-11-06 | Aimed cancel and re-aim | Reverses #51's latch: a held aimed main or super cancels only on a release inside the center dead zone, now 25% of the drag radius (17.5 px, was 12%) as a thumb's grace window; the TV hides the aim line only while the aim is in it, and dragging out again, still held, re-arms the attack and shows the line again; a release outside fires along the shown aim (§10.1, §15.7) | C4 note (Foster): "Aimed attacks should only cancel if the player moves the stick to the middle of the button area and releases it … have a small grace window … If they continue to hold down the button and drag their finger again, it should re-initialize the aimed attack" |
+| 54 | 2026-11-06 | Team pause | Reverses "No pausing in v1" (§11.3): a pause button in the phone's top bar during a run; any player pauses the whole run for everyone and the TV, any player resumes; the TV and every phone show who paused; presses made while paused never fire, and resume is immediate (§10.5, §15.6) | C4 note (Foster): "Add a pause button on the controller on the top bar. When one player pauses, it should pause for all players and the host." |

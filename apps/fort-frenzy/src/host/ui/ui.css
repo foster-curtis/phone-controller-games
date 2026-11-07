@@ -918,6 +918,45 @@
   font-size: 24px;
 }
 
+/* ---- team pause (FF14-fix-1): a scrim over the frozen run, the card inside the safe margin ---- */
+#tv-ui .paused-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+}
+#tv-ui .paused-card {
+  position: absolute;
+  left: 560px;
+  top: 380px;
+  width: 800px;
+  box-sizing: border-box;
+  padding: 40px 32px;
+  text-align: center;
+  background: var(--surface-strong);
+  border-top: 8px solid var(--pc);
+  clip-path: var(--clip-chamfer);
+}
+#tv-ui .paused-card .banner {
+  color: var(--accent-text);
+}
+#tv-ui .paused-card .by {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+#tv-ui .paused-card .pip {
+  width: 8px;
+  height: 28px;
+  background: var(--pc);
+}
+#tv-ui .paused-card .body {
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 24px;
+}
+
 /* dev page backdrop (index.html?ui=<screen>): a stand-in for the Phaser canvas */
 .ui-dev-bg {
   position: fixed;
