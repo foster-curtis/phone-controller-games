@@ -1112,10 +1112,10 @@ viewport. Sizes are fixed in px, with the minimums listed.
   range.
 - **Drag:** aims. The aim line is drawn **on the TV**, not the phone. Maximum drag radius 70 px.
 - **Aim preview** (C3, §15.11 #41): the TV's aim line is the attack's real hit area, from the same
-  effective stats the sim hits with (content through passives and cards): a dashed amber line the bolt's
-  range for a single bolt (Ranger), a transparent amber-filled cone for arcs, cones and spread volleys
+  effective stats the sim hits with (content through passives and cards): a transparent amber bar the bolt's
+  range long and its hitbox wide (2 × `rules.projectileRadius`) for a single bolt (Ranger; C4, #52), a transparent amber-filled cone for arcs, cones and spread volleys
   (Warden slam and stomp, Commander slash, Artificer shot and super), a filled amber 0.6 ellipse for
-  circles. Cones and circles lie on
+  circles. Bars, cones and circles lie on
   the ground under the units, dim enough to stay out of the bloom. A super previews only once charged.
 - **Release outside the dead zone:** fires in the aimed direction.
 - **Slide back into the dead zone, then release:** cancels. The TV's aim line hides as soon as the aim is
@@ -1500,13 +1500,13 @@ interface Camera {
   1. ground: map tiles, Citadel plate, Armory pad, repair zone
   2. ground overlays: red danger markers, shock nets, structure base plates, wall rails, build-ghost
      footprints, the rally-flag ring, player rings (with the amber super-ready pulse, §10.1), Field
-     Medic circle, range previews, AoE rings (all 0.6 ellipses of sim circles), the amber-filled cone and
+     Medic circle, range previews, AoE rings (all 0.6 ellipses of sim circles), the amber-filled bar, cone and
      circle aim previews (§10.1; the sim's `hitShape`, code-drawn)
   3. **world**, one y-sorted layer: structures, the Citadel, the Armory kiosk, units, flyers and arcing
      projectiles. Sort key = foot point; flyers and arcing projectiles sort by their shadow; multi-tile
      structures by their footprint's front edge.
   4. effects: hit sparks, tracers, muzzle flashes, plumes
-  5. world UI: nametags and HP bars (flipping below near the top edge, §2.1), single-bolt aim lines, the build arc,
+  5. world UI: nametags and HP bars (flipping below near the top edge, §2.1), the build arc,
      the Stalker target flash
   6. HUD (screen space)
 - **Ground, world or effects:** each non-rig frame's `layer` in `sprites.json` is one of:
@@ -2313,3 +2313,4 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 49 | 2026-11-05 | Resume details | A resume restores the saved build phase with a full build timer, knights at the base, cooldowns reset; the snapshot adds the structures' `owner` and the run time `runMs`; phones re-send `hello` when the TV comes back; any slot no phone has matched is claimable in the same or a new room; Return to home kicks every phone and drops the host token (§4, §15.8) | The snapshot's frozen shape holds no positions or timers; a reloaded TV has no party until phones say hello; the claim screen covers a phone that lost its storage either way (FF14) |
 | 50 | 2026-11-05 | Wasp height and body hitboxes | The Wasp flies at half its height (its hull 1.37 tiles over its shadow, was 2.74); our attacks hit an enemy's drawn body (torso, head and legs, a ground capsule up the screen from its feet; arms, tails, rotors and barrels left out; the Wasp at its flight height), the Colossus kept low (its legs, radius 1.0, up to 0.8 tiles); enemy attacks, walking and ground effects keep feet circles | Early C4 notes (Foster): the Wasp flew too high, and aiming at an enemy's head missed because only its feet counted |
 | 51 | 2026-11-05 | Aim line on cancel | Once a held aimed main or super is back in the dead zone (a release would cancel), the TV hides its aim line at once and keeps it hidden until the button is let go, even if the thumb drags out again; when a release fires or cancels is unchanged (§10.1, §15.7) | Early C4 note (Foster): "it still shows the aim line until the player releases the button" |
+| 52 | 2026-11-06 | Ranger aim bar | The Ranger's single-bolt aim preview is a transparent amber bar on the ground, the bolt's range long and its hitbox wide (2 × `rules.projectileRadius`), with the cones' fill and edge; the dashed world-UI line is gone (§10.1, §15.2; revises #41) | C4 note (Foster): "The Ranger's aim line should match the style of the other players: it should be a transparent amber bar that is the width of the bolt's hitbox." |

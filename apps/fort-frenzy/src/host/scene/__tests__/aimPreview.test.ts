@@ -3,7 +3,7 @@
 import type * as Phaser from 'phaser';
 import { describe, expect, it } from 'vitest';
 import { content } from '../../../content';
-import { commander, warden } from '../../../content/balance';
+import { commander, engineer, rules, warden } from '../../../content/balance';
 import { theme } from '../../../shared/theme';
 import { FixedCamera } from '../../render/camera';
 import { aimPreview, type HitShape } from '../../sim';
@@ -58,11 +58,9 @@ const toWorld = ([sx, sy]: [number, number]) => [(sx - s0.sx) / e1.rx, (sy - s0.
 describe('drawAimPreview', () => {
   it('a cone is a filled amber sector of the hit range and opening on the ground', () => {
     const ground = fakeGfx();
-    const ui = fakeGfx();
     const shape: HitShape = { kind: 'cone', range: 3.7, half: (42.5 * Math.PI) / 180 };
     const aim = 0.7;
-    drawAimPreview(ground.g, ui.g, shape, frame, aim, amber);
-    expect(ui.r.calls).toBe(0);
+    drawAimPreview(ground.g, shape, frame, aim, amber, content.rules!.projectileRadius);
     const [apex, ...rim] = ground.r.pts;
     expect(apex).toEqual([s0.sx, s0.sy]);
     let lo = Infinity;
@@ -89,33 +87,35 @@ describe('drawAimPreview', () => {
 
   it('a circle is a filled 0.6 ground ellipse of the hit radius', () => {
     const ground = fakeGfx();
-    const ui = fakeGfx();
-    drawAimPreview(ground.g, ui.g, { kind: 'circle', radius: 3.5 }, frame, 0, amber);
+    drawAimPreview(ground.g, { kind: 'circle', radius: 3.5 }, frame, 0, amber, content.rules!.projectileRadius);
     const { rx, ry } = cam.groundEllipse(3.5);
     expect(ground.r.ellipses.length).toBe(1);
     const want = [s0.sx, s0.sy, rx * 2, ry * 2];
     ground.r.ellipses[0]!.forEach((v, i) => expect(v).toBeCloseTo(want[i]!, 9));
-    expect(ui.r.calls).toBe(0);
   });
 
-  it('a single bolt is a dashed amber line in world UI to the hit range', () => {
+  it('a single bolt is a filled amber bar of the hit range, its width given', () => {
     const ground = fakeGfx();
-    const ui = fakeGfx();
-    drawAimPreview(ground.g, ui.g, { kind: 'line', range: 9 }, frame, Math.PI / 2, amber);
-    expect(ground.r.calls).toBe(0);
-    expect(ui.r.strokes[0]?.[1]).toBe(amber);
-    const end = cam.worldToScreen(at.x, at.y + 9);
-    const far = Math.max(...ui.r.lines.map((l) => l[3]));
-    expect(far).toBeLessThanOrEqual(end.sy + 1e-6);
-    expect(far).toBeGreaterThan(end.sy - 2 * 14);
-    for (const l of ui.r.lines) expect(l[0]).toBeCloseTo(s0.sx, 9);
+    drawAimPreview(ground.g, { kind: 'line', range: 9 }, frame, Math.PI / 2, amber, 0.25);
+    // Corners: feet ± half-width across the aim, then the far end ± the same (world tiles).
+    const pts = ground.r.pts.map(toWorld);
+    const want = [
+      [-0.25, 0],
+      [-0.25, 9],
+      [0.25, 9],
+      [0.25, 0],
+    ];
+    expect(pts.length).toBe(4);
+    pts.forEach((pt, i) => pt.forEach((v, j) => expect(v).toBeCloseTo(want[i]![j]!, 9)));
+    expect(ground.r.fills).toEqual([[amber, AIM_FILL_ALPHA]]);
+    expect(ground.r.strokes).toEqual([[2, amber, AIM_EDGE_ALPHA]]);
+    expect(ground.r.lines.length).toBe(0);
   });
 
   it('a shape that hits nothing draws nothing', () => {
     const ground = fakeGfx();
-    const ui = fakeGfx();
-    drawAimPreview(ground.g, ui.g, { kind: 'none' }, frame, 0, amber);
-    expect(ground.r.calls + ui.r.calls).toBe(0);
+    drawAimPreview(ground.g, { kind: 'none' }, frame, 0, amber, content.rules!.projectileRadius);
+    expect(ground.r.calls).toBe(0);
   });
 
   it('stays dim enough to sit under the bloom threshold (value < 0.72 over black)', () => {
@@ -146,9 +146,7 @@ describe('aimed melee previews', () => {
       const shape = aimPreview(p, def, 'main', content.rules);
       const angle = Math.atan2(p.mainAim!.y, p.mainAim!.x);
       const ground = fakeGfx();
-      const ui = fakeGfx();
-      drawAimPreview(ground.g, ui.g, shape, frame, angle, amber);
-      expect(ui.r.calls).toBe(0);
+      drawAimPreview(ground.g, shape, frame, angle, amber, content.rules!.projectileRadius);
       const [, ...rim] = ground.r.pts;
       const offs = rim.map((pt) => {
         const [x, y] = toWorld(pt);
@@ -161,4 +159,56 @@ describe('aimed melee previews', () => {
       expect(ground.r.fills).toEqual([[amber, AIM_FILL_ALPHA]]);
     });
   }
+});
+
+// FF7-fix-6 (C4): "The Ranger's aim line should match the style of the other players: it should be a
+// transparent amber bar that is the width of the bolt's hitbox." The bar is the sim's own bolt hit
+// radius (balance `rules.projectileRadius`, the fired projectile's `r`) across, drawn like the cones.
+describe('Ranger main preview (C4)', () => {
+  it("is a transparent amber bar as wide as the bolt's hitbox and as long as its range", () => {
+    const h = harness(1, 1, { classes: ['engineer'] });
+    h.toCombat();
+    h.holdSpawns();
+    h.pads[0]!.set({ mainAim: { x: 0.6, y: 0.8 }, mainAiming: true });
+    h.run(1);
+    const p = h.p(0);
+    expect(p.mainAim).not.toBeNull();
+    const shape = aimPreview(p, engineer, 'main', content.rules);
+    expect(shape.kind).toBe('line');
+    const angle = Math.atan2(p.mainAim!.y, p.mainAim!.x);
+    const ground = fakeGfx();
+    // What the TV passes (worldView `drawAim`): the content's bolt radius.
+    expect(content.rules!.projectileRadius).toBe(rules.projectileRadius);
+    drawAimPreview(ground.g, shape, frame, angle, amber, content.rules!.projectileRadius);
+    // Back into the aim's frame: u along the aim, v across it.
+    const uv = ground.r.pts.map(toWorld).map(([x, y]) => {
+      const c = Math.cos(angle);
+      const sn = Math.sin(angle);
+      return [x! * c + y! * sn, -x! * sn + y! * c] as const;
+    });
+    const us = uv.map(([u]) => u);
+    const vs = uv.map(([, v]) => v);
+    expect(Math.min(...us)).toBeCloseTo(0, 9);
+    // The sim's effective range (standing still, Steady Aim's +20% is on: sim aimPreview tests).
+    expect(Math.max(...us)).toBeCloseTo((shape as { range: number }).range, 9);
+    expect(Math.max(...vs) - Math.min(...vs)).toBeCloseTo(2 * rules.projectileRadius, 9);
+
+    // The bolt the Ranger actually fires carries the same hit radius.
+    h.pads[0]!.tap('mainFires', { mainAim: { x: 0.6, y: 0.8 } });
+    h.run(2);
+    const bolt = h.sim.world.projectiles.find((b) => b.source === p.id);
+    expect(bolt?.r).toBe(rules.projectileRadius);
+
+    // The shared preview style: the cones' fill and edge, on the ground overlay.
+    const cone = fakeGfx();
+    drawAimPreview(cone.g, { kind: 'cone', range: 3, half: 0.5 }, frame, 0, amber, 0);
+    expect(ground.r.fills).toEqual(cone.r.fills);
+    expect(ground.r.strokes).toEqual(cone.r.strokes);
+    expect(ground.r.fills).toEqual([[amber, AIM_FILL_ALPHA]]);
+    expect(ground.r.lines.length).toBe(0);
+  });
+
+  it("the Ranger's super is a circle, not a line (left as is)", () => {
+    expect(engineer.super.shape).toBe('circle');
+  });
 });

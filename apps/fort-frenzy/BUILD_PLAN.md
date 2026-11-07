@@ -823,6 +823,7 @@ Rules:
   - [x] FF7-fix-2: C3 aim previews shaped like every aimed attack and super (Warden cone fill, Artificer filled cone), Warden narrower + longer slam and super, Ranger super range up
   - [x] FF7-fix-3: C3 follow-up: Warden slam and Commander slash aimed, cone/arc previews
   - [x] FF7-fix-4: early C4 note: the aim line hides as soon as a held aimed attack cancels
+  - [x] FF7-fix-6: C4 Ranger aim preview is a transparent amber bar the width of the bolt hitbox
 - [x] **User approved C2** (slice on real phones and TV): notes fixed in FF7-fix-1; Citadel collapse deferred to v2; feel and visual notes re-judged at C3
 - FF8 Warden + structures
   - [x] Warden kit + clips
@@ -1687,6 +1688,10 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   p99 1.0–1.9 ms; peak mean 0.45–0.51 ms, p99 1.4–1.5 ms; whole runs: 2 players mean 0.03 ms, 6 players 0.21 ms.
 - [FF15] soak full form (`pnpm --filter @pcg/fort-frenzy soak`, rebased on a79b3a7): 28 runs × 2, 0 failed, every
   rerun identical, 1,878.7 s (31 min) under that load (195 s on a quieter machine before the rebase).
+- [FF7-fix-6] decision: the single-bolt `line` preview is now a ground-overlay quad (the cones' `AIM_FILL_ALPHA`
+  fill and 2 px `AIM_EDGE_ALPHA` edge), the shape's range long and 2 × `rules.projectileRadius` (the fired bolt's
+  `r`, same ground projection) wide; `drawAimPreview` drops its unused `ui` Graphics and takes the bolt radius from
+  `worldView` (no sim change; `hitShape` untouched). The Ranger's super is a circle, so it is left as is.
 
 ## 9. Final handoff
 

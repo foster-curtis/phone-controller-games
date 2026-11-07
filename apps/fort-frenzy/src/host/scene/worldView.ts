@@ -790,13 +790,14 @@ export class WorldView {
       f.kx = e.rx;
       f.ky = e.ry;
       const shape = aimPreview(p, def, slot, this.content.rules);
+      // A single bolt's bar is its hitbox wide (C4): the sim's projectile radius, from content.
       drawAimPreview(
         this.ground,
-        this.ui,
         shape,
         f,
         Math.atan2(aim.y, aim.x),
         theme.color.amber.num,
+        this.content.rules?.projectileRadius ?? 0,
       );
     }
   }
