@@ -1782,3 +1782,4 @@ code) and follow it exactly.
 
 {Optional: "Checkpoint approved: C1" / "C2 notes: …"}
 ```
+- [orch] decision: tests pinned to pre-playtest balance numbers updated to 0fbe288's values: Warden stomp range 4.7, snare discharges and rearm (shop, structures; now read from the balance sheet).

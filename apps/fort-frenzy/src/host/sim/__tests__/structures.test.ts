@@ -215,9 +215,14 @@ describe('shock nets', () => {
   });
 
   it('rearms after its delay: one discharge per rearm while enemies stand on it', () => {
-    const { h, net } = netWith('grunt', 1);
+    const { h, net, es } = netWith('grunt', 1);
     const rearm = Math.round((snare.rearmMs * 60) / 1000);
-    const hits = h.collect('snareDischarge', rearm + 1);
+    // Held on the net: a slowed grunt would otherwise walk off it during the longer rearm.
+    const hits: unknown[] = [];
+    for (let i = 0; i < rearm + 1; i++) {
+      es[0]!.x = es[0]!.y = 10.5;
+      hits.push(...h.collect('snareDischarge', 1));
+    }
     expect(hits).toHaveLength(2);
     expect(net.discharges).toBe(snare.discharges - 2);
   });
@@ -259,12 +264,14 @@ describe('shock nets', () => {
     const g2 = h.sim.spawnEnemy('grunt', 10.5, 10.5);
     g2.hp = g2.maxHp = 1e9;
     const left: number[] = [];
-    for (let i = 0; i < 60 * 5; i++) {
+    for (let i = 0; i < Math.ceil((snare.rearmMs * 60) / 1000) * snare.discharges; i++) {
       g2.x = g2.y = 10.5; // held on the net
       h.run(1);
       left.push(...h.events('snareDischarge').map((e) => e.left));
     }
-    expect(left).toEqual([3, 2, 1, 0]);
+    expect(left).toEqual(
+      Array.from({ length: snare.discharges - 1 }, (_, i) => snare.discharges - 2 - i),
+    );
     expect(h.sim.world.structures).toHaveLength(0);
     expect(h.sim.world.grid.occupant[10 * COLS + 10]).toBe(0);
     expect(placementValid(h.sim.world, 'snare', [10, 10], 0)).toBe(true);

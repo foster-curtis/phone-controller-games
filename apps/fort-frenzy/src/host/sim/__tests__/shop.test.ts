@@ -173,12 +173,13 @@ describe('purchases', () => {
   it('snare charges raise the discharges of existing nets, and of new ones', () => {
     const h = shopAt(['warden']);
     const net = h.sim.place('snare', 10, 12, 0);
-    expect(net.discharges).toBe(5);
+    const base = content.structures.find((s) => s.id === 'snare')!.discharges!;
+    expect(net.discharges).toBe(base);
     ack(h, { c: 'buy', slot: 0, item: 'snare_charges' });
-    expect(net.discharges).toBe(7);
+    expect(net.discharges).toBe(base + 2);
     ack(h, { c: 'buy', slot: 0, item: 'snare_charges' });
-    expect(net.discharges).toBe(9);
-    expect(h.sim.place('snare', 11, 12, 0).discharges).toBe(9);
+    expect(net.discharges).toBe(base + 4);
+    expect(h.sim.place('snare', 11, 12, 0).discharges).toBe(base + 4);
   });
 
   it('wall HP tiers raise built walls; charged walls strike back at an attacker', () => {

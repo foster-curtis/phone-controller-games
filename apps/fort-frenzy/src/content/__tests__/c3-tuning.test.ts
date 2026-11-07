@@ -13,7 +13,7 @@ const OLD = {
 describe('C3 knight tuning', () => {
   it('the Warden slam and stomp: ~15% narrower, ~15% longer', () => {
     expect(warden.main).toMatchObject({ range: 1.75, arcDeg: 102 });
-    expect(warden.super).toMatchObject({ range: 3.7, arcDeg: 85 });
+    expect(warden.super).toMatchObject({ range: 4.7, arcDeg: 85 });
     for (const [now, old] of [
       [warden.main, OLD.wardenMain],
       [warden.super, OLD.wardenSuper],
