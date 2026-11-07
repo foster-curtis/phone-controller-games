@@ -847,6 +847,7 @@ Rules:
   - [x] Boss module (forms, attacks, stagger, rewards)
   - [x] Colossus render + clips + boss bar
   - [x] Merged to `main`
+  - [x] FF11-fix-1: C4 Colossus stun resistance (no Warden stun-lock) + Warden super charges a little slower
 - FF12 Economy
   - [x] 64 cards + offers
   - [x] Team shop + wishlist + announcements + tier visuals
@@ -1746,6 +1747,9 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   rule guarantees it in a Warden-only loop, since the stomp's damage alone (~0.04 of the meter per stomp) can't
   fill the meter in 4 s. Run length (≤ 3 s) and the under-half share are unchanged. New test: a stomp inside the
   window fills only its damage share, one after it adds `staggerStun` again.
+- [FF11-fix-1] note: Acceptance: boss.test 18/18, soak passes, I passes, bench boss p99 1.08 ms; in
+  `check:fort-frenzy` every step passes except tests, which fail only on the 5 remaining pre-existing balance
+  pins FF7-fix-6 logged (c3-tuning, speeds, shop, structures ×2; left to `build/c4-balance-tests`).
 
 ## 9. Final handoff
 
