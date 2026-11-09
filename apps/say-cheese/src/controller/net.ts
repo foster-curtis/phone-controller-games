@@ -93,8 +93,27 @@ export function createPhoneNet(opts: PhoneNetOptions): PhoneNet {
     root.append(menu.el);
   }
 
+  /** Extra seats the host has listed since the last open. */
+  const listed = new Set<number>();
+
+  /**
+   * A stored seat the host listed and then dropped (leader / host Remove, or removed on another
+   * screen) loses its key, so the next `hello` doesn't bring it back. Only seats seen since this
+   * open count: right after a late rejoin the host lists seat 0 before it has read our `hello`.
+   */
+  function pruneStore(now: Screen['seats']): void {
+    if (!seatKeys) return;
+    const here = new Set(now.map((s) => s.seat));
+    for (const s of seatKeys.load()) {
+      if (s.seat > 0 && listed.has(s.seat) && !here.has(s.seat)) seatKeys.remove(s.seat);
+    }
+    for (const n of listed) if (!here.has(n)) listed.delete(n);
+    for (const n of here) listed.add(n);
+  }
+
   function onScreen(screen: Screen): void {
     seats = screen.seats;
+    pruneStore(screen.seats);
     mountMenu();
     menu?.update(screen);
     if (!('r' in screen)) return;
@@ -114,6 +133,7 @@ export function createPhoneNet(opts: PhoneNetOptions): PhoneNet {
     }),
     client.onStatus((status) => {
       if (status !== 'open') return;
+      listed.clear();
       client.send({ t: 'hello', seats: helloSeats() });
       // Under the same or a new relay id (late rejoin by key), the host takes them from chunk 0.
       if (opened) sender.resendUnacked();

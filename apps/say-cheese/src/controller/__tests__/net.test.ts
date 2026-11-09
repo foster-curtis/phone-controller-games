@@ -133,6 +133,31 @@ describe('phone net', () => {
     });
   });
 
+  it('forgets a stored seat once the host drops it, but not before hello is answered', () => {
+    const f = fakeClient();
+    const mem = new Map<string, string>();
+    const seatKeys = createSeatKeyStore(
+      {
+        getItem: (k) => mem.get(k) ?? null,
+        setItem: (k, v) => void mem.set(k, v),
+        removeItem: (k) => void mem.delete(k),
+      },
+      'ABCD',
+    );
+    seatKeys.add({ seat: 1, seatKey: 'kid', name: 'Kid' });
+    createPhoneNet({ client: f.client, playerKey: 'key', photos: store().photos, seatKeys });
+    const ann = { seat: 0, name: 'Ann', color: 'jade' as const };
+    const kid = { seat: 1, name: 'Kid', color: 'cobalt' as const };
+    f.status('open');
+    // Late rejoin: seat 0 comes back first, before the host has read the hello.
+    f.screen({ kind: 'shoot', seats: [ann] });
+    expect(seatKeys.load()).toHaveLength(1);
+    f.screen({ kind: 'shoot', seats: [ann, kid] });
+    // The leader removes Kid.
+    f.screen({ kind: 'shoot', seats: [ann] });
+    expect(seatKeys.load()).toEqual([]);
+  });
+
   it('resends unacked photos after a rejoin while the round uploads; a new r drops them', async () => {
     const f = fakeClient();
     const net = createPhoneNet({ client: f.client, playerKey: 'key', photos: store().photos });
