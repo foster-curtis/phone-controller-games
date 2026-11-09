@@ -1,4 +1,4 @@
-// Text-only screens (SPEC §6.7): rules, pass (SC7 placeholder), upload, spectating, left.
+// Text-only screens (SPEC §6.7): rules, upload, spectating, left.
 import { el } from '@pcg/controller-kit';
 import type { Ctx } from '../ctx';
 import type { Screen } from '../../shared/messages';
@@ -24,14 +24,6 @@ export function rulesView(first: Screen, ctx: Ctx): View {
             }),
         )
       : para('Watch the TV', 'body'),
-  ]);
-}
-
-/** Shared-device pass screen is SC7: a plain placeholder until then. */
-export function passView(first: Screen): View {
-  return renderedView('pass', first, (s) => [
-    heading('Pass the phone'),
-    para(`Pass the phone to ${s.name}`),
   ]);
 }
 

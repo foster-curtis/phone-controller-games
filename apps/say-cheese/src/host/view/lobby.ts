@@ -1,4 +1,5 @@
-// TV lobby (SPEC §6.6): QR + room code, joined players (color, ready, no-camera badge), leader, sound.
+// TV lobby (SPEC §6.6, §6.3.1): QR + room code, joined players (color, ready, no-camera badge), leader,
+// sound. Seats sharing a phone are grouped under the phone's first player with a 📱 marker.
 import { joinUrl, qrMatrix } from '@pcg/game-kit';
 import type { TvView } from '../match/types';
 import { chip, h, type TvControls } from './dom';
@@ -58,7 +59,13 @@ export function renderLobby(v: Lobby, c: TvControls): HTMLElement {
   roster.append(h('h1', 'banner', 'Say Cheese!'));
   if (v.leaderName) roster.append(h('p', 'body leader', `Leader: ${v.leaderName}`));
   const list = h('ul', 'players');
+  const groups = new Map<string, typeof v.players>();
   for (const p of v.players) {
+    const g = groups.get(p.phoneId);
+    if (g) g.push(p);
+    else groups.set(p.phoneId, [p]);
+  }
+  const row = (p: (typeof v.players)[number]): HTMLLIElement => {
     const li = h('li', 'player');
     li.dataset.player = p.playerId;
     if (!p.connected) li.classList.add('dim');
@@ -70,6 +77,22 @@ export function renderLobby(v: Lobby, c: TvControls): HTMLElement {
     x.setAttribute('aria-label', `Remove ${p.name}`);
     x.addEventListener('click', () => c.emit({ action: 'remove', playerId: p.playerId }));
     li.append(x);
+    return li;
+  };
+  for (const [phoneId, seats] of groups) {
+    const [first, ...others] = seats;
+    if (!first) continue;
+    const li = row(first);
+    if (others.length > 0) {
+      li.dataset.phone = phoneId;
+      li.classList.add('shared-phone');
+      const mark = h('span', 'phone-mark', '📱');
+      mark.setAttribute('title', 'Shared phone');
+      li.querySelector('.chip')?.after(mark);
+      const sub = h('ul', 'players shared');
+      for (const o of others) sub.append(row(o));
+      li.append(sub);
+    }
     list.append(li);
   }
   if (v.players.length === 0) list.append(h('li', 'body', 'Scan the code to join'));

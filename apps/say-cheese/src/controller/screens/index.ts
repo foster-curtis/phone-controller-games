@@ -5,7 +5,8 @@ import { reviewView } from '../review/reviewView';
 import { joiningView, lobbyView } from './lobby';
 import { announceView, scatterView, shootView } from './round';
 import { matchEndView, resultsView } from './results';
-import { leftView, passView, rulesView, spectatingView, uploadView } from './simple';
+import { passView } from './pass';
+import { leftView, rulesView, spectatingView, uploadView } from './simple';
 import type { View } from './view';
 
 export function createView(screen: Screen, ctx: Ctx): View {
@@ -17,7 +18,7 @@ export function createView(screen: Screen, ctx: Ctx): View {
     case 'rules':
       return rulesView(screen, ctx);
     case 'pass':
-      return passView(screen);
+      return passView(screen, ctx);
     case 'announce':
       return announceView(screen, ctx);
     case 'scatter':

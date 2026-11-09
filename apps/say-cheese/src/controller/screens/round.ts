@@ -11,6 +11,7 @@ import {
   type ShutterRules,
   type ShutterState,
 } from '../review/shutter';
+import { dodgerLine } from './dodger';
 import { button, heading, para, renderedView, type View } from './view';
 
 type Announce = Extract<Screen, { kind: 'announce' }>;
@@ -23,7 +24,7 @@ export function announceView(first: Screen, ctx: Ctx): View {
   return renderedView('announce', first, (s: Announce) => {
     if (s.role === 'dodger') {
       return [
-        heading('Get ready to dodge!'),
+        heading(dodgerLine(s.seats, 'Get ready to dodge!')),
         para(`${s.photographer.name} is the photographer.`, 'caption'),
         para('Round ' + s.round + ' / ' + s.rounds, 'caption'),
       ];
@@ -82,7 +83,7 @@ export function scatterView(first: Screen, ctx: Ctx): View {
       );
     } else {
       root.replaceChildren(
-        heading('Scatter!'),
+        heading(dodgerLine(s.seats, 'Scatter!')),
         para('Pocket your phone and keep moving.'),
         el('p', { class: 'caption' }, 'Shooting starts in ', count),
       );
@@ -161,7 +162,10 @@ export function shootView(first: Screen, ctx: Ctx): View {
     const s = screen as Shoot;
     if (s.role === 'dodger') {
       root.classList.remove('dark');
-      root.replaceChildren(heading('Scatter!'), para('Pocket your phone and keep moving.'));
+      root.replaceChildren(
+        heading(dodgerLine(s.seats, 'Scatter!')),
+        para('Pocket your phone and keep moving.'),
+      );
       return;
     }
     if (s.r !== r) {

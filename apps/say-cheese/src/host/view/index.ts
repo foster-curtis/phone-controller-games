@@ -6,7 +6,8 @@ import { h, type TvControls } from './dom';
 import { renderLobby } from './lobby';
 import { renderMatchEnd, renderResults } from './results';
 import { renderReview } from './review';
-import { renderAnnounce, renderPass, renderScatter, renderShoot, renderUpload } from './rounds';
+import { renderPass } from './pass';
+import { renderAnnounce, renderScatter, renderShoot, renderUpload } from './rounds';
 import { renderRules } from './rules';
 
 export type { TvControls } from './dom';

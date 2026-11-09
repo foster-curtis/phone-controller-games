@@ -1,15 +1,9 @@
-// TV round views: pass, announce, scatter, shoot, upload (SPEC §6.2, §6.6). The shoot view never shows
+// TV round views: announce, scatter, shoot, upload (SPEC §6.2, §6.6). The shoot view never shows
 // photos (it would tell dodgers where the camera points); it has a white flash element toggled per shot.
 import type { TvView } from '../match/types';
 import { chip, h, seconds } from './dom';
 
 type Of<P extends TvView['phase']> = Extract<TvView, { phase: P }>;
-
-export function renderPass(v: Of<'pass'>): HTMLElement {
-  const el = h('section', 'view pass');
-  el.append(h('p', 'h2', 'Pass the phone to'), chip(v.photographer, 'chip huge'));
-  return el;
-}
 
 export function renderAnnounce(v: Of<'announce'>): HTMLElement {
   const el = h('section', 'view announce');

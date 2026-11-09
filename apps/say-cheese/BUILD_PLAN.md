@@ -485,9 +485,9 @@ Rules:
   - [ ] Reconnect e2e
   - [ ] Merged to `say-cheese` and pushed
 - **SC7**
-  - [ ] Phone seats UI + pass screen + tests
-  - [ ] TV lobby grouping + pass view
-  - [ ] Shared-device e2e
+  - [x] Phone seats UI + pass screen + tests
+  - [x] TV lobby grouping + pass view
+  - [x] Shared-device e2e
   - [ ] Merged to `say-cheese` and pushed
 - **SC8**
   - [x] Synth + `Sfx` + tests
@@ -580,6 +580,11 @@ Format: `- [SC#] decision: one line, with the reason.`
 - [SC8] decision: the synth takes an injectable `createContext` and `nav`, and `play` swallows errors, because unit tests use a fake `AudioContext` and audio is never load-bearing (SPEC §3).
 - [plan] decision: the full `pnpm e2e:say-cheese` takes close to an hour, so each milestone or fix runs the full suite once; repeat runs (fix loops, post-merge verification of an already-run ff merge) use only the affected spec (`pnpm --filter @pcg/say-cheese exec playwright test e2e/<spec>`), because the user asked for this (2026-11-04).
 - [plan] decision: C2 approved with no notes on 2026-11-09, three days behind the §0 targets; the user declined every cut ("No cuts"), so SC6–SC10 all run and C3/C4 eat into the Mon–Tue buffer.
+- [SC7] decision: the pass view moves to `controller/screens/pass.ts` and `host/view/pass.ts`, and dodger copy lives in the new `controller/screens/dodger.ts` (used by `round.ts`); `simple.ts`, `rounds.ts`, `screens/index.ts`, `view/index.ts` and `round.ts` get import/removal edits only, because SC3/SC4 had put the placeholders there and no dodger file existed.
+- [SC7] decision: the seats panel finds the room code from `?code=` (or `local`) to build its `createSeatKeyStore`, and stores an extra seat's key only when the host's next lobby screen lists the seat (matched by name against the pending `addSeat`), because `Ctx` carries no code or seat index and net.ts is SC6's.
+- [SC7] decision: ✕ on a chip removes the key from the store but the store is not pruned when the host removes a seat (leader ✕ or reconnect), because pruning before SC6's `hello` restore would race; SC6 owns reconciling the store with the host's seat list.
+- [SC7] decision: the TV lobby nests shared seats in a `ul.shared` inside the first seat's `li.player` with a 📱 `.phone-mark`; seat 0 has no ✕ chip on the phone, because removing seat 0 would orphan the phone's name field.
+- [SC7] decision: e2e covers no reconnect: late rejoin of extra seats needs SC6's `hello` with every seat.
 
 ## 9. Final handoff (and early setup)
 
