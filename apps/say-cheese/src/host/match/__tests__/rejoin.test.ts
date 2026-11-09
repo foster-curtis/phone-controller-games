@@ -34,7 +34,9 @@ describe('late rejoin', () => {
     });
     expect(h.m.state.players.filter((q) => !q.left)).toHaveLength(4);
     expect(h.m.phoneIds()).not.toContain('p2');
-    expect(h.m.screenFor('p9').seats).toEqual([{ seat: 0, name: before.name, color: before.color }]);
+    expect(h.m.screenFor('p9').seats).toEqual([
+      { seat: 0, name: before.name, color: before.color },
+    ]);
     // Still has a turn: the queue holds the same seat id.
     expect([h.photographer().id, ...h.m.state.queue]).toContain('p2#0');
   });

@@ -152,10 +152,11 @@ describe('host game wiring', () => {
       [from, 1],
     ]);
 
-    // A dodger's chunk for the same round never becomes a photo.
+    // A dodger's chunk for the same round is dropped before reassembly (SC6).
     const dodger = ['p1', 'p2', 'p3'].find((p) => p !== from)!;
     h.net.msg(dodger, chunk(r, 5));
-    expect(h.revoked).toEqual(['blob:3']);
+    expect(h.revoked).toEqual([]);
+    expect(h.game.match.state.round!.photos).toHaveLength(2);
 
     h.net.msg(from, { t: 'shootDone', r, count: 2 });
     expect(h.game.match.state.phase).toBe('review');

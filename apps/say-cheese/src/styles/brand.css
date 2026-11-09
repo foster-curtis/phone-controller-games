@@ -24,15 +24,15 @@
   --scrim: rgba(10, 11, 13, 0.72);
 
   /* world: prints and flash */
-  --print: #fff6e6;              /* instant-print frame */
-  --print-on: #14161a;           /* marker captions on the frame */
-  --print-back: #efe3cc;         /* the older prints stacked behind */
-  --print-image-empty: #2a2f38;  /* photo window before it develops */
-  --flash: #ffffff;              /* shutter flash overlay */
+  --print: #fff6e6; /* instant-print frame */
+  --print-on: #14161a; /* marker captions on the frame */
+  --print-back: #efe3cc; /* the older prints stacked behind */
+  --print-image-empty: #2a2f38; /* photo window before it develops */
+  --flash: #ffffff; /* shutter flash overlay */
   --flash-amber: var(--brand-amber);
   --ray: rgba(232, 163, 61, 0.22);
   --ray-strong: rgba(232, 163, 61, 0.38);
-  --pink: #ff5fa2;               /* flash pink: second accent, decoration only */
+  --pink: #ff5fa2; /* flash pink: second accent, decoration only */
   --pink-on: #14161a;
   --pink-text: #ff7cb4;
 
@@ -64,14 +64,14 @@
   --player-lilac-on: #14161a;
   --player-forest: #2f7d4f;
   --player-forest-on: #ffffff;
-  --tag-unknown: #9aa1ad;        /* "?" circle */
+  --tag-unknown: #9aa1ad; /* "?" circle */
   --tag-unknown-on: #14161a;
 
   /* tags over photos: a player-color ring with an ink keyline inside and out,
      so it reads on any photo (bright wall, dark couch, skin, jeans) */
-  --tag-size: 12%;               /* of the photo's short side (SPEC §6.4) */
-  --tag-stroke: 5px;             /* TV; ring in player color */
-  --tag-keyline: 2px;            /* ink outline on both sides of the ring */
+  --tag-size: 12%; /* of the photo's short side (SPEC §6.4) */
+  --tag-stroke: 5px; /* TV; ring in player color */
+  --tag-keyline: 2px; /* ink outline on both sides of the ring */
   --tag-stroke-phone: 3px;
 
   /* spacing */
@@ -90,19 +90,19 @@
   --radius-pill: 999px;
   --radius-mark: 7px;
   --radius-round: 50%;
-  --print-pad: 5%;               /* frame width, sides and top (% of print width; margins/padding on children resolve against it) */
-  --print-pad-bottom: 17%;       /* the fat caption strip */
+  --print-pad: 5%; /* frame width, sides and top (% of print width; margins/padding on children resolve against it) */
+  --print-pad-bottom: 17%; /* the fat caption strip */
 
   /* tilt */
   --tilt-title: -4deg;
-  --tilt-print: -5deg;           /* the current print */
-  --tilt-print-back: 9deg;       /* the print behind it */
+  --tilt-print: -5deg; /* the current print */
+  --tilt-print-back: 9deg; /* the print behind it */
   --tilt-pill: -3deg;
 
   /* shadow: hard offset, no blur */
-  --shadow-pop: 8px 8px 0 var(--pink);      /* TV prints, title plates */
-  --shadow-pop-sm: 4px 4px 0 var(--pink);   /* phone, pills */
-  --shadow-pop-ink: 4px 4px 0 #000000;      /* buttons on the phone */
+  --shadow-pop: 8px 8px 0 var(--pink); /* TV prints, title plates */
+  --shadow-pop-sm: 4px 4px 0 var(--pink); /* phone, pills */
+  --shadow-pop-ink: 4px 4px 0 #000000; /* buttons on the phone */
   --shadow-pressed: 0 0 0 #000000;
 
   /* stroke */
@@ -111,39 +111,77 @@
   /* motion */
   --dur-fast: 120ms;
   --dur-base: 200ms;
-  --dur-flash: 260ms;            /* shutter flash decay */
-  --dur-develop: 1200ms;         /* photo fades in like an instant print */
-  --ray-spin: 40s;               /* one slow turn; off with reduced motion */
+  --dur-flash: 260ms; /* shutter flash decay */
+  --dur-develop: 1200ms; /* photo fades in like an instant print */
+  --ray-spin: 40s; /* one slow turn; off with reduced motion */
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* type */
-  --font-display: "Bungee", "Arial Black", ui-sans-serif, system-ui, sans-serif;
-  --font-marker: "Permanent Marker", "Comic Sans MS", "Chalkboard SE", cursive;
-  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-display: 'Bungee', 'Arial Black', ui-sans-serif, system-ui, sans-serif;
+  --font-marker: 'Permanent Marker', 'Comic Sans MS', 'Chalkboard SE', cursive;
+  --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
 /* Type. Bungee is uppercase by design and has one weight. Marker = written on a print
    (tag names, photo captions, "Caught!"); never for body copy or buttons. */
-.title { font: 400 120px/0.92 var(--font-display); }
-.banner { font: 400 72px/1 var(--font-display); }
-.h2 { font: 400 40px/1.1 var(--font-display); }
-.score { font: 400 48px/1 var(--font-display); }
-.pad { font: 400 28px/1 var(--font-display); }
-.marker-tv { font: 400 40px/1.1 var(--font-marker); }   /* photo caption, "Caught!" */
-.tag-name { font: 400 28px/1 var(--font-marker); }      /* name label on a tag, TV */
-.tag-name-phone { font: 400 16px/1 var(--font-marker); }
-.body { font: 400 18px/26px var(--font-sans); }
-.label { font: 600 16px/20px var(--font-sans); }
-.caption { font: 400 14px/20px var(--font-sans); }
-.code-tv { font: 600 64px/1 var(--font-mono); letter-spacing: 8px; }
-.code { font: 600 24px/1 var(--font-mono); letter-spacing: 4px; }
+.title {
+  font: 400 120px/0.92 var(--font-display);
+}
+.banner {
+  font: 400 72px/1 var(--font-display);
+}
+.h2 {
+  font: 400 40px/1.1 var(--font-display);
+}
+.score {
+  font: 400 48px/1 var(--font-display);
+}
+.pad {
+  font: 400 28px/1 var(--font-display);
+}
+.marker-tv {
+  font: 400 40px/1.1 var(--font-marker);
+} /* photo caption, "Caught!" */
+.tag-name {
+  font: 400 28px/1 var(--font-marker);
+} /* name label on a tag, TV */
+.tag-name-phone {
+  font: 400 16px/1 var(--font-marker);
+}
+.body {
+  font: 400 18px/26px var(--font-sans);
+}
+.label {
+  font: 600 16px/20px var(--font-sans);
+}
+.caption {
+  font: 400 14px/20px var(--font-sans);
+}
+.code-tv {
+  font: 600 64px/1 var(--font-mono);
+  letter-spacing: 8px;
+}
+.code {
+  font: 600 24px/1 var(--font-mono);
+  letter-spacing: 4px;
+}
 
 /* Title lockup: "SAY" pink over "CHEESE!" amber, tilted */
-.lockup { display: inline-block; transform: rotate(var(--tilt-title)); font-family: var(--font-display); line-height: 0.92; }
-.lockup .say { color: var(--pink); }
-.lockup .cheese { display: block; color: var(--accent); }
+.lockup {
+  display: inline-block;
+  transform: rotate(var(--tilt-title));
+  font-family: var(--font-display);
+  line-height: 0.92;
+}
+.lockup .say {
+  color: var(--pink);
+}
+.lockup .cheese {
+  display: block;
+  color: var(--accent);
+}
 
 /* Instant print. Put the photo (img) inside .print-image; caption text goes after it. */
 .print {
@@ -155,18 +193,50 @@
   transform: rotate(var(--tilt-print));
   box-shadow: var(--shadow-pop);
 }
-.print::after { content: ""; display: block; padding-top: var(--print-pad-bottom); } /* caption strip; % of print width */
-.print--back { background: var(--print-back); transform: rotate(var(--tilt-print-back)); box-shadow: none; }
-.print-image { position: relative; margin: var(--print-pad) var(--print-pad) 0; aspect-ratio: 4 / 3; background: var(--print-image-empty); overflow: hidden; }
-.print-image > img { width: 100%; height: 100%; object-fit: contain; display: block; }
-.print-caption { position: absolute; left: var(--print-pad); bottom: 3%; font-family: var(--font-marker); }
+.print::after {
+  content: '';
+  display: block;
+  padding-top: var(--print-pad-bottom);
+} /* caption strip; % of print width */
+.print--back {
+  background: var(--print-back);
+  transform: rotate(var(--tilt-print-back));
+  box-shadow: none;
+}
+.print-image {
+  position: relative;
+  margin: var(--print-pad) var(--print-pad) 0;
+  aspect-ratio: 4 / 3;
+  background: var(--print-image-empty);
+  overflow: hidden;
+}
+.print-image > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.print-caption {
+  position: absolute;
+  left: var(--print-pad);
+  bottom: 3%;
+  font-family: var(--font-marker);
+}
 
 /* Develop: photo fades up from a dark, warm smear (Upload → Review, and per review photo) */
 @keyframes develop {
-  from { filter: brightness(0.15) sepia(0.8) blur(6px); opacity: 0.4; }
-  to { filter: none; opacity: 1; }
+  from {
+    filter: brightness(0.15) sepia(0.8) blur(6px);
+    opacity: 0.4;
+  }
+  to {
+    filter: none;
+    opacity: 1;
+  }
 }
-.developing { animation: develop var(--dur-develop) var(--ease-out) both; }
+.developing {
+  animation: develop var(--dur-develop) var(--ease-out) both;
+}
 
 /* Tag ring: player color with ink keylines. Set --c (and --c-on for the label) per tag. */
 .tag-ring {
@@ -176,7 +246,9 @@
   translate: -50% -50%;
   border-radius: var(--radius-round);
   border: var(--tag-stroke) solid var(--c, var(--tag-unknown));
-  box-shadow: 0 0 0 var(--tag-keyline) var(--brand-ink), inset 0 0 0 var(--tag-keyline) var(--brand-ink);
+  box-shadow:
+    0 0 0 var(--tag-keyline) var(--brand-ink),
+    inset 0 0 0 var(--tag-keyline) var(--brand-ink);
   animation: pop var(--dur-base) var(--ease-pop) both;
 }
 .tag-label {
@@ -189,7 +261,16 @@
   box-shadow: 0 0 0 var(--tag-keyline) var(--brand-ink);
   white-space: nowrap;
 }
-@keyframes pop { from { scale: 0.4; opacity: 0; } to { scale: 1; opacity: 1; } }
+@keyframes pop {
+  from {
+    scale: 0.4;
+    opacity: 0;
+  }
+  to {
+    scale: 1;
+    opacity: 1;
+  }
+}
 
 /* Flash rays: put behind the print / title. Spins slowly unless reduced motion. */
 .rays {
@@ -201,13 +282,38 @@
   animation: spin var(--ray-spin) linear infinite;
   pointer-events: none;
 }
-.rays--strong { background: repeating-conic-gradient(from 0deg, var(--ray-strong) 0deg 12deg, transparent 12deg 40deg); }
-@keyframes spin { to { rotate: 360deg; } }
+.rays--strong {
+  background: repeating-conic-gradient(
+    from 0deg,
+    var(--ray-strong) 0deg 12deg,
+    transparent 12deg 40deg
+  );
+}
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
 
 /* Shutter flash overlay: add .flash-go to retrigger */
-.flash { position: fixed; inset: 0; background: var(--flash); opacity: 0; pointer-events: none; }
-.flash-go { animation: flash var(--dur-flash) ease-out; }
-@keyframes flash { from { opacity: 0.95; } to { opacity: 0; } }
+.flash {
+  position: fixed;
+  inset: 0;
+  background: var(--flash);
+  opacity: 0;
+  pointer-events: none;
+}
+.flash-go {
+  animation: flash var(--dur-flash) ease-out;
+}
+@keyframes flash {
+  from {
+    opacity: 0.95;
+  }
+  to {
+    opacity: 0;
+  }
+}
 
 /* Pills: catch counts, "📸 7 / 15", standings */
 .pill {
@@ -230,22 +336,67 @@
   font: 400 28px/1 var(--font-display);
   padding: 18px 28px 20px;
   box-shadow: var(--shadow-pop-ink);
-  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
 }
-.btn:active { transform: translate(4px, 4px); box-shadow: var(--shadow-pressed); }
-.btn--pink { background: var(--pink); color: var(--pink-on); }
-.btn--quiet { background: var(--surface-strong); color: var(--foreground); border-color: var(--border-control); box-shadow: none; }
+.btn:active {
+  transform: translate(4px, 4px);
+  box-shadow: var(--shadow-pressed);
+}
+.btn--pink {
+  background: var(--pink);
+  color: var(--pink-on);
+}
+.btn--quiet {
+  background: var(--surface-strong);
+  color: var(--foreground);
+  border-color: var(--border-control);
+  box-shadow: none;
+}
 
 /* Viewfinder corners: photographer's dark shoot screen only (borrowed from direction B) */
-.viewfinder { position: absolute; inset: 24px; pointer-events: none; }
-.viewfinder::before, .viewfinder::after { content: ""; position: absolute; width: 40px; height: 40px; border: 4px solid rgba(255, 255, 255, 0.35); }
-.viewfinder::before { left: 0; top: 0; border-right: 0; border-bottom: 0; }
-.viewfinder::after { right: 0; bottom: 0; border-left: 0; border-top: 0; }
-
-@media (prefers-reduced-motion: reduce) {
-  .rays { animation: none; }
-  .developing { animation-duration: 1ms; }
-  .tag-ring { animation: none; }
+.viewfinder {
+  position: absolute;
+  inset: 24px;
+  pointer-events: none;
+}
+.viewfinder::before,
+.viewfinder::after {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.35);
+}
+.viewfinder::before {
+  left: 0;
+  top: 0;
+  border-right: 0;
+  border-bottom: 0;
+}
+.viewfinder::after {
+  right: 0;
+  bottom: 0;
+  border-left: 0;
+  border-top: 0;
 }
 
-body { margin: 0; background: var(--background); color: var(--foreground); font: 400 18px/26px var(--font-sans); }
+@media (prefers-reduced-motion: reduce) {
+  .rays {
+    animation: none;
+  }
+  .developing {
+    animation-duration: 1ms;
+  }
+  .tag-ring {
+    animation: none;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font: 400 18px/26px var(--font-sans);
+}

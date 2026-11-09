@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ConnectionStatus } from '@pcg/net-client';
 import type { Screen } from '../../shared/messages';
+import { createSeatKeyStore } from '../../shared/seats';
 import { createPhoneNet, type PhoneClientLike } from '../net';
 import { createPhotoStore } from '../photos';
 
@@ -100,5 +101,67 @@ describe('phone net', () => {
     expect(photos.url(3, 0)).not.toBeNull();
     f.screen({ kind: 'announce', r: 4 } as Screen);
     expect(photos.url(3, 0)).toBeNull();
+  });
+
+  it('hello lists every stored seat (SC7 keys) beside seat 0, so a late rejoin restores all', () => {
+    const f = fakeClient();
+    const mem = new Map<string, string>();
+    const storage = {
+      getItem: (k: string) => mem.get(k) ?? null,
+      setItem: (k: string, v: string) => void mem.set(k, v),
+      removeItem: (k: string) => void mem.delete(k),
+    };
+    const seatKeys = createSeatKeyStore(storage, 'ABCD');
+    seatKeys.add({ seat: 1, seatKey: 'kid', name: 'Kid' });
+    seatKeys.add({ seat: 0, seatKey: 'ignored', name: 'Zero' });
+    createPhoneNet({ client: f.client, playerKey: 'key', photos: store().photos, seatKeys });
+    // A killed tab: no screen yet, so seat 0 is matched by the relay key alone.
+    f.status('open');
+    expect(f.sent.at(-1)).toEqual({
+      t: 'hello',
+      seats: [{ seat: 1, seatKey: 'kid', name: 'Kid' }],
+    });
+    f.screen({ kind: 'lobby', seats: [{ seat: 0, name: 'Ann', color: 'jade' }] });
+    f.status('reconnecting');
+    f.status('open');
+    expect(f.sent.at(-1)).toEqual({
+      t: 'hello',
+      seats: [
+        { seat: 0, seatKey: 'key', name: 'Ann' },
+        { seat: 1, seatKey: 'kid', name: 'Kid' },
+      ],
+    });
+  });
+
+  it('resends unacked photos after a rejoin while the round uploads; a new r drops them', async () => {
+    const f = fakeClient();
+    const net = createPhoneNet({ client: f.client, playerKey: 'key', photos: store().photos });
+    f.status('open');
+    f.screen({ kind: 'shoot', r: 2 } as Screen);
+    net.onCapture(2, 0, shot(0));
+    await flush();
+    f.status('reconnecting');
+    f.status('open');
+    f.screen({ kind: 'upload', r: 2 } as Screen);
+    const chunks = () => f.sent.filter((m) => m.t === 'chunk');
+    expect(chunks().map((c) => c.photo)).toEqual([0, 0]);
+    // A replayed round (host refresh) has a new r: the old photos are never resent.
+    f.screen({ kind: 'announce', r: 5 } as Screen);
+    f.status('reconnecting');
+    f.status('open');
+    expect(chunks()).toHaveLength(2);
+  });
+
+  it('mounts the Leave menu on the first screen', () => {
+    const f = fakeClient();
+    const root = document.createElement('div');
+    createPhoneNet({
+      client: f.client,
+      playerKey: 'key',
+      photos: store().photos,
+      menuRoot: () => root,
+    });
+    f.screen({ kind: 'lobby', seats: [{ seat: 0, name: 'Ann', color: 'jade' }] });
+    expect(root.querySelector('[data-action=menu]')).not.toBeNull();
   });
 });

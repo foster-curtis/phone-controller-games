@@ -2,13 +2,18 @@
 // timers become match events; the match's effects become sends, timers, the sessionStorage snapshot
 // and object-URL revokes. Photo chunks go through the blob receiver, which acks each finished photo.
 // The TV re-renders after every change (and on a countdown tick); sounds play at the §6.8 moments.
+// Host refresh (SPEC §6.3): the match comes back from the sessionStorage snapshot when the relay
+// room is reclaimed, and starts fresh when it isn't. Chunks of a stale round or a finished upload are
+// dropped before reassembly (BUILD_PLAN §8).
 import type { HostRoom, PeerChange } from '@pcg/net-client';
 import { createBlobReceiver, type ReceivedPhoto } from '../shared/blob-transfer';
 import type { HostMsg } from '../shared/messages';
 import { noopSfx, type Sfx } from '../shared/sfx';
+import type { Chunk } from '../shared/blob-transfer/types';
 import { PERSIST_KEY } from './match/config';
 import {
   createMatch,
+  parsePersisted,
   type Effect,
   type HostControl,
   type Match,
@@ -31,8 +36,11 @@ export interface HostGameOptions {
   timers: HostTimers;
   sfx?: Sfx;
   rng?: () => number;
-  /** Host-refresh snapshot target (SPEC §6.3); null = don't persist. Default `sessionStorage`. */
-  storage?: Pick<Storage, 'setItem'> | null;
+  /**
+   * Host-refresh snapshot store (SPEC §6.3): written on every change, read once at boot when it has
+   * `getItem`. null = neither. Default `sessionStorage`.
+   */
+  storage?: (Pick<Storage, 'setItem'> & Partial<Pick<Storage, 'getItem'>>) | null;
   /** Default `URL.createObjectURL` / `URL.revokeObjectURL`. */
   createUrl?: (blob: Blob) => string;
   revokeUrl?: (url: string) => void;
@@ -68,7 +76,15 @@ export function createHostGame(opts: HostGameOptions): HostGame {
     opts.clearInterval ??
     ((h) => globalThis.clearInterval(h as ReturnType<typeof globalThis.setInterval>));
 
-  const match = createMatch({ rng: opts.rng ?? Math.random, now: () => timers.now() });
+  const rng = opts.rng ?? Math.random;
+  const now = () => timers.now();
+  let restored: ReturnType<typeof parsePersisted> = null;
+  try {
+    restored = parsePersisted(storage?.getItem?.(PERSIST_KEY) ?? null);
+  } catch {
+    /* storage blocked: start fresh */
+  }
+  let match: Match = createMatch({ rng, now, ...(restored ? { restored } : {}) });
 
   const receiver = createBlobReceiver({
     onComplete: onPhoto,
@@ -186,9 +202,23 @@ export function createHostGame(opts: HostGameOptions): HostGame {
     dispatch({ type: 'peer', event: c.event, playerId: c.playerId, playerKey: c.playerKey });
   }
 
+  /** A new room: the old phones are gone, so is any restored or running match. */
+  function startFresh(): void {
+    for (const t of ['scatter', 'shoot', 'upload'] as const) timers.clear(t);
+    receiver.revokeAll();
+    match = createMatch({ rng, now });
+  }
+
   function onRoom(room: HostRoom): void {
+    if (!room.reclaimed && (match.state.players.length > 0 || match.phoneIds().length > 0)) {
+      startFresh();
+    }
     dispatch({ type: 'room', code: room.code });
-    // A reclaim lists the phones still in the room.
+    // A reclaim lists the phones still in the room; any other phone the match knows has gone.
+    const listed = new Set(room.roster.map((p) => p.playerId));
+    for (const id of match.phoneIds()) {
+      if (!listed.has(id)) onPeer({ event: 'left', playerId: id, playerKey: '' });
+    }
     for (const p of room.roster) {
       onPeer({
         event: p.connected ? 'joined' : 'left',
@@ -198,9 +228,19 @@ export function createHostGame(opts: HostGameOptions): HostGame {
     }
   }
 
+  /** Only the current round's photographer, while its photos can still count (SPEC §7.4). */
+  function acceptsChunk(from: string, chunk: Chunk): boolean {
+    const s = match.state;
+    if (!s.round || chunk.r !== s.round.r) return false;
+    if (s.phase !== 'shoot' && s.phase !== 'upload') return false;
+    return s.players.some((p) => p.id === s.round!.photographer && p.phoneId === from);
+  }
+
   const detach = attachHostClient(client, {
     msg: (from, msg) => dispatch({ type: 'msg', from, msg }),
-    chunk: (from, chunk) => receiver.receive(from, chunk),
+    chunk: (from, chunk) => {
+      if (acceptsChunk(from, chunk)) receiver.receive(from, chunk);
+    },
     peer: onPeer,
     room: onRoom,
   });
@@ -214,7 +254,9 @@ export function createHostGame(opts: HostGameOptions): HostGame {
   painted = viewKey(view);
 
   return {
-    match,
+    get match() {
+      return match;
+    },
     dispatch,
     control,
     tv: () => view,
