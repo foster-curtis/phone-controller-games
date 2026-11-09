@@ -490,8 +490,8 @@ Rules:
   - [ ] Shared-device e2e
   - [ ] Merged to `say-cheese` and pushed
 - **SC8**
-  - [ ] Synth + `Sfx` + tests
-  - [ ] Host and phone unlock wiring + audio e2e
+  - [x] Synth + `Sfx` + tests
+  - [x] Host and phone unlock wiring + audio e2e
   - [ ] Merged to `say-cheese` and pushed
   - [ ] User approved C3 (full match, shared phone, disconnects, refresh, sound)
 - **SC9**
@@ -575,6 +575,9 @@ Format: `- [SC#] decision: one line, with the reason.`
 - [SC5] decision: e2e helpers add `joinPlayer` (commits the lobby name with Enter), `cameraAndReady`, `photographerOf`, `sendRaw` and host hook readers; SC0's `joinPhone` stays as it is (it expects a Next button the SC3 lobby doesn't have). Phone buttons are found by `data-action` (SC3's `button` helper).
 - [SC5] decision: `play.html` JS measured 15.3 KB gzip (limit 40 KB): no limit change.
 - [SC5-fix-1] decision: the limits e2e checks the 15th shot on the host (15 photos in the round), not the phone's shot counter, because the 15th shot ends the shoot and the phone's shoot screen can unmount before the assertion (a test race; the code is right).
+- [SC8] decision: `window.__pcg.sfxUnlocked()` is added by `src/host/sfx.ts` (an accessor on `window.__pcg`, only when debug is on, that decorates the object `installDebug` assigns), because `src/host/debug.ts` isn't SC8's file.
+- [SC8] decision: host sfx unlocks on the first click or keydown anywhere on the host page (capture phase, listeners removed once unlocked), in addition to Sound on and the control buttons, because SPEC §6.8 / SC8 ask for any host gesture.
+- [SC8] decision: the synth takes an injectable `createContext` and `nav`, and `play` swallows errors, because unit tests use a fake `AudioContext` and audio is never load-bearing (SPEC §3).
 - [plan] decision: the full `pnpm e2e:say-cheese` takes close to an hour, so each milestone or fix runs the full suite once; repeat runs (fix loops, post-merge verification of an already-run ff merge) use only the affected spec (`pnpm --filter @pcg/say-cheese exec playwright test e2e/<spec>`), because the user asked for this (2026-11-04).
 - [plan] decision: C2 approved with no notes on 2026-11-09, three days behind the §0 targets; the user declined every cut ("No cuts"), so SC6–SC10 all run and C3/C4 eat into the Mon–Tue buffer.
 
