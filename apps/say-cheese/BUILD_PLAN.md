@@ -488,7 +488,7 @@ Rules:
   - [x] Phone seats UI + pass screen + tests
   - [x] TV lobby grouping + pass view
   - [x] Shared-device e2e
-  - [ ] Merged to `say-cheese` and pushed
+  - [x] Merged to `say-cheese` and pushed
 - **SC8**
   - [x] Synth + `Sfx` + tests
   - [x] Host and phone unlock wiring + audio e2e
