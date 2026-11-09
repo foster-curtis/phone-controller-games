@@ -479,10 +479,10 @@ Rules:
   - [x] Merged to `say-cheese` and pushed
   - [x] User approved C2 (one round, 3 people in a room)
 - **SC6**
-  - [ ] Disconnect + turn-queue rules + tests
-  - [ ] Late rejoin (all seats), leave/remove + tests
-  - [ ] Host refresh replay, photo retry, stale-round drops + tests
-  - [ ] Reconnect e2e
+  - [x] Disconnect + turn-queue rules + tests
+  - [x] Late rejoin (all seats), leave/remove + tests
+  - [x] Host refresh replay, photo retry, stale-round drops + tests
+  - [x] Reconnect e2e
   - [ ] Merged to `say-cheese` and pushed
 - **SC7**
   - [x] Phone seats UI + pass screen + tests
@@ -585,6 +585,17 @@ Format: `- [SC#] decision: one line, with the reason.`
 - [SC7] decision: ✕ on a chip removes the key from the store but the store is not pruned when the host removes a seat (leader ✕ or reconnect), because pruning before SC6's `hello` restore would race; SC6 owns reconciling the store with the host's seat list.
 - [SC7] decision: the TV lobby nests shared seats in a `ul.shared` inside the first seat's `li.player` with a 📱 `.phone-mark`; seat 0 has no ✕ chip on the phone, because removing seat 0 would orphan the phone's name field.
 - [SC7] decision: e2e covers no reconnect: late rejoin of extra seats needs SC6's `hello` with every seat.
+- [SC6] decision: a late rejoin moves the matched seat onto the new relay id but keeps its seat id (`p3#0` may now live on `p7`), because the queue, tags, round and scores all point at the id; the old seatless phone is forgotten and its camera status carries over so the seat keeps its photographer turn.
+- [SC6] decision: seat 0 is matched on the `peer joined` key, the other seats on `hello.seats[].seatKey`; a seat already on the phone is never re-added, and an unmatched hello seat is added as usual (a spectator mid-match), because that is also "same key after Leave = new spectator".
+- [SC6] decision: a cancelled round (photographer gone in pass/announce/scatter) doesn't count as a turn (the round number repeats for the next photographer), because the cancelled photographer still gets their turn at the end.
+- [SC6] decision: a photographer back during upload restarts the upload grace in full; otherwise upload doesn't wait for a gone photographer (review waits, with Skip review), because the TV and the phone have no Skip button on the upload screen.
+- [SC6] decision: leader/host Remove = Leave plus a relay kick once the phone has no seats left (Sunny Side C3); the leader's own seats are ignored by leader `remove` (it uses Leave / Remove a player), because a kicked phone stops for good and a leader kicking itself would orphan the controls.
+- [SC6] decision: standings drop seats that left (SPEC §6.3 "gone from the standings"); winners already did, because SC2 had kept them greyed.
+- [SC6] decision: the host reads the snapshot (`PERSIST_KEY`) itself at boot (game.ts, `storage.getItem`); a refused reclaim (new room) starts a fresh match, and phones the match knows but the reclaim roster lacks count as gone, because `main.ts` isn't SC6's and a new room has none of the old phones.
+- [SC6] decision: the host drops chunks before reassembly unless they come from the current photographer's phone with the current `r` during shoot/upload, because a late resend then costs no memory or object URL.
+- [SC6] decision: the Leave / Remove a player menu (`screens/leave.ts`, a ⋯ button and sheet) is mounted by `controller/net.ts` into `#app` on the first screen and hidden on the photographer's scatter/shoot (the whole screen is the shutter), because `main.ts` and the screens belong to other milestones; Leave clears the phone's seat keys, Remove a player forgets that seat's key.
+- [SC6] decision: `createPhoneNet` reads the SC7 seat-key store itself (default: `localStorage` scoped to the page's `?code=`); `hello` lists seat 0 once the host has named it, then every stored seat ≥ 1, because `main.ts` passes no code to the net module.
+- [SC6] decision: e2e (b) checks "unacked photos arrive" by cutting the photographer's socket past the 2 s window on the same page (Playwright WebSocket route: chunks held, then both ends closed and reconnects refused), then closes and reopens the tab in review for the rejoin-with-lost-photos frame, because photos live only in page memory (SPEC §7.4), so a closed page has nothing to resend.
 
 ## 9. Final handoff (and early setup)
 
