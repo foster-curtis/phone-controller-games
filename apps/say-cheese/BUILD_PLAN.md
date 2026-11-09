@@ -483,7 +483,7 @@ Rules:
   - [x] Late rejoin (all seats), leave/remove + tests
   - [x] Host refresh replay, photo retry, stale-round drops + tests
   - [x] Reconnect e2e
-  - [ ] Merged to `say-cheese` and pushed
+  - [x] Merged to `say-cheese` and pushed
 - **SC7**
   - [x] Phone seats UI + pass screen + tests
   - [x] TV lobby grouping + pass view
