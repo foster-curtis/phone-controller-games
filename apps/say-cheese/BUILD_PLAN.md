@@ -492,7 +492,7 @@ Rules:
 - **SC8**
   - [x] Synth + `Sfx` + tests
   - [x] Host and phone unlock wiring + audio e2e
-  - [ ] Merged to `say-cheese` and pushed
+  - [x] Merged to `say-cheese` and pushed
   - [ ] User approved C3 (full match, shared phone, disconnects, refresh, sound)
 - **SC9**
   - [ ] Flash, developing, print review, results, podium, rules illustrations
