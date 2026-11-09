@@ -45,13 +45,11 @@ export function caughtView(players: readonly Player[], result: RoundResult | nul
   return out.map(({ joinIndex: _j, ...c }) => c);
 }
 
-/** Match standings, lowest score first; seats that left go last (greyed out). */
+/** Match standings, lowest score first; seats that left are gone (SPEC §6.3 Leave = full removal). */
 export function standings(players: readonly Player[]): Standing[] {
   return players
-    .filter((p) => !p.spectator)
-    .sort(
-      (a, b) => Number(a.left) - Number(b.left) || a.score - b.score || a.joinIndex - b.joinIndex,
-    )
+    .filter((p) => !p.spectator && !p.left)
+    .sort((a, b) => a.score - b.score || a.joinIndex - b.joinIndex)
     .map((p) => ({ ...summary(p), score: p.score, connected: p.connected, left: p.left }));
 }
 

@@ -1,6 +1,7 @@
 // The match state machine (SPEC §6.1–§6.5, §8): lobby → rules → (pass → announce → scatter → shoot
 // → upload → review → results)×N → matchEnd → rematch/lobby. Pure and headless: events in, effects
-// out; timers are effects and the clock is injected (BUILD_PLAN SC2).
+// out; timers are effects and the clock is injected (BUILD_PLAN SC2). Disconnects, late rejoin by
+// player key, Leave/Remove and the host-refresh replay follow SPEC §6.3 / §6.3.1 (BUILD_PLAN SC6).
 import type { PhoneMsg, Screen } from '../../shared/messages';
 import { MAX_SEATS } from '../../shared/messages';
 import { nextSeatIndex, type SeatId } from '../../shared/seats';
@@ -9,6 +10,7 @@ import { resolveLeader } from './leader';
 import { restore, serialize } from './persist';
 import { buildQueue, takeNext } from './queue';
 import {
+  active,
   addPlayer,
   ensurePhone,
   findPlayer,
@@ -16,6 +18,7 @@ import {
   phoneSeats,
   removePlayer,
   resetForMatch,
+  type Phone,
   type Phones,
 } from './roster';
 import {
@@ -83,6 +86,8 @@ export function emptyState(): MatchState {
 
 /** Phases whose round hasn't scored: the photographer leaving ends it with no score. */
 const OPEN_ROUND: readonly Phase[] = ['pass', 'announce', 'scatter', 'shoot', 'upload', 'review'];
+/** Before the shoot, a photographer whose phone drops loses the round to the queue end (SPEC §6.3). */
+const CANCEL_ON_DROP: readonly Phase[] = ['pass', 'announce', 'scatter'];
 
 export function createMatch(opts: MatchOptions): Match {
   const { rng, now } = opts;
@@ -205,6 +210,40 @@ export function createMatch(opts: MatchOptions): Match {
     s.phase = 'results';
   }
 
+  /** Photographer gone before the shoot: no score, back of the queue, next turn (SPEC §6.3). */
+  function cancelRound(): void {
+    const ph = s.round!.photographer;
+    s.queue = [...s.queue.filter((q) => q !== ph), ph];
+    s.turn--; // the turn wasn't taken; nextTurn counts the next one
+    nextTurn();
+  }
+
+  /**
+   * Late rejoin (SPEC §6.3, §6.3.1): the active seat holding `key` on another phone moves to `phone`
+   * as its seat `seat`, keeping its id (so queue, tags and scores still point at it). The old phone,
+   * once seatless, is forgotten; its camera carries over so the seat keeps its turn.
+   */
+  function reclaimSeat(phone: Phone, key: string, seat: number): boolean {
+    if (!key) return false;
+    const p = active(s).find((q) => q.playerKey === key && q.phoneId !== phone.id);
+    if (!p || phoneSeats(s, phone.id).some((q) => q.seat === seat)) return false;
+    const old = phones.get(p.phoneId);
+    p.phoneId = phone.id;
+    p.seat = seat;
+    if (old) {
+      if (phone.camera === 'unknown') phone.camera = old.camera;
+      phone.ready ||= old.ready;
+      if (phoneSeats(s, old.id).length === 0) {
+        // Still leader only if nobody else was connected to hand off to (no snap-back otherwise).
+        if (s.leader === old.id) s.leader = phone.id;
+        phones.delete(old.id);
+        sent.delete(old.id);
+      }
+    }
+    mirror(s, phone);
+    return true;
+  }
+
   /** Leave rules (SPEC §6.3) for one seat. */
   function removeSeat(id: SeatId): void {
     const p = removePlayer(s, id);
@@ -247,9 +286,18 @@ export function createMatch(opts: MatchOptions): Match {
       case 'lobby':
         if (s.phase === 'matchEnd') toLobby();
         return;
-      case 'remove':
-        removeSeat(c.playerId);
+      case 'remove': {
+        // Same as Leave, plus a relay kick once the phone has no seats left (Sunny Side C3).
+        const p = findPlayer(s, c.playerId);
+        if (!p) return;
+        removeSeat(p.id);
+        if (phoneSeats(s, p.phoneId).length === 0 && phones.has(p.phoneId)) {
+          out.push({ type: 'kick', to: p.phoneId });
+          phones.delete(p.phoneId);
+          sent.delete(p.phoneId);
+        }
         return;
+      }
     }
   }
 
@@ -261,9 +309,12 @@ export function createMatch(opts: MatchOptions): Match {
     const round = s.round;
     switch (msg.t) {
       case 'hello':
+        // Seats already here stay; the rest are reclaimed by key (late rejoin) or added.
         for (const seat of msg.seats) {
-          if (seats.some((p) => p.seat === seat.seat)) continue;
-          addPlayer(s, phone, seat.seat, seat.name, seat.seatKey);
+          if (phoneSeats(s, from).some((p) => p.seat === seat.seat)) continue;
+          if (!reclaimSeat(phone, seat.seatKey, seat.seat)) {
+            addPlayer(s, phone, seat.seat, seat.name, seat.seatKey);
+          }
         }
         return;
       case 'profile': {
@@ -300,6 +351,8 @@ export function createMatch(opts: MatchOptions): Match {
         return;
       case 'leader':
         if (s.leader !== from) return;
+        // The leader leaves its own seats with Leave / Remove a player instead (SPEC §6.5).
+        if (msg.action === 'remove' && findPlayer(s, msg.playerId)?.phoneId === from) return;
         control(msg.action === 'remove' ? msg : { action: msg.action });
         return;
       case 'shootReady':
@@ -378,6 +431,10 @@ export function createMatch(opts: MatchOptions): Match {
         const phone = ensurePhone(phones, e.playerId);
         phone.connected = e.event !== 'left';
         if (e.playerKey) phone.playerKey = e.playerKey;
+        // A new relay id with a known key: the tab was killed or the relay window ran out.
+        if (phone.connected && phoneSeats(s, phone.id).length === 0) {
+          reclaimSeat(phone, phone.playerKey, 0);
+        }
         mirror(s, phone);
         sent.delete(e.playerId); // a (re)connected phone gets its screen again
         break;
@@ -395,6 +452,23 @@ export function createMatch(opts: MatchOptions): Match {
         s.code = e.code;
         break;
     }
+  }
+
+  /** The round's photographer is connected (null: no open round). */
+  function photographerLive(): { r: number; live: boolean } | null {
+    const ph = photographer(s);
+    return s.round && ph && !ph.left ? { r: s.round.r, live: ph.connected } : null;
+  }
+
+  /**
+   * Photographer drop / return within one round (SPEC §6.3): gone before the shoot cancels the round;
+   * back during upload restarts the grace so unacked photos can still come in (SPEC §7.4 Retry).
+   */
+  function photographerChanged(before: { r: number; live: boolean } | null): void {
+    const after = photographerLive();
+    if (!before || !after || before.r !== after.r || before.live === after.live) return;
+    if (!after.live && CANCEL_ON_DROP.includes(s.phase)) cancelRound();
+    else if (after.live && s.phase === 'upload') startTimer('upload', UPLOAD_GRACE_MS);
   }
 
   /** Screens that changed (countdowns aside) for connected phones, then the snapshot if it changed. */
@@ -436,7 +510,9 @@ export function createMatch(opts: MatchOptions): Match {
 
   return {
     dispatch(event) {
+      const before = photographerLive();
       apply(event);
+      photographerChanged(before);
       return take();
     },
     flush: take,

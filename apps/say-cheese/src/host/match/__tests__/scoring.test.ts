@@ -57,7 +57,7 @@ describe('scoreRound', () => {
 });
 
 describe('standings and winners', () => {
-  it('sort lowest first (join order on ties), left seats last', () => {
+  it('sort lowest first (join order on ties); left seats and spectators are not listed', () => {
     const ps = [
       player('a#0', 3, 0),
       player('b#0', -2, 1),
@@ -65,8 +65,7 @@ describe('standings and winners', () => {
       player('d#0', -5, 3, { left: true }),
       player('e#0', 0, 4, { spectator: true }),
     ];
-    expect(standings(ps).map((s) => s.playerId)).toEqual(['b#0', 'a#0', 'c#0', 'd#0']);
-    expect(standings(ps)[3]).toMatchObject({ left: true });
+    expect(standings(ps).map((s) => s.playerId)).toEqual(['b#0', 'a#0', 'c#0']);
   });
 
   it('every seat tied on the lowest score wins', () => {

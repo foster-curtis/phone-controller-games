@@ -109,7 +109,7 @@ describe('seats', () => {
     expect([h.photographer().id, ...h.m.state.queue]).toContain('late#0');
   });
 
-  it('Leave game removes every seat on the phone; mid-match they stay greyed in standings', () => {
+  it('Leave game removes every seat on the phone, from the queue and the standings', () => {
     const h = started(4);
     const phone = h.m.state.queue[0]!.split('#')[0]!;
     h.msg(phone, { t: 'leave' });
@@ -117,10 +117,9 @@ describe('seats', () => {
     expect(h.m.state.queue).not.toContain(`${phone}#0`);
     h.playRound();
     const res = h.m.tvView();
-    expect(res.phase === 'results' && res.standings.at(-1)).toMatchObject({
-      playerId: `${phone}#0`,
-      left: true,
-    });
+    expect(res.phase === 'results' && res.standings.map((p) => p.playerId)).not.toContain(
+      `${phone}#0`,
+    );
   });
 
   it('removing the photographer mid-round ends the round with no score', () => {
