@@ -477,7 +477,7 @@ Rules:
   - [x] Phone wiring (client, camera, photos, sender)
   - [x] Spike removed; round + limits e2e
   - [x] Merged to `say-cheese` and pushed
-  - [ ] User approved C2 (one round, 3 people in a room)
+  - [x] User approved C2 (one round, 3 people in a room)
 - **SC6**
   - [ ] Disconnect + turn-queue rules + tests
   - [ ] Late rejoin (all seats), leave/remove + tests
@@ -576,6 +576,7 @@ Format: `- [SC#] decision: one line, with the reason.`
 - [SC5] decision: `play.html` JS measured 15.3 KB gzip (limit 40 KB): no limit change.
 - [SC5-fix-1] decision: the limits e2e checks the 15th shot on the host (15 photos in the round), not the phone's shot counter, because the 15th shot ends the shoot and the phone's shoot screen can unmount before the assertion (a test race; the code is right).
 - [plan] decision: the full `pnpm e2e:say-cheese` takes close to an hour, so each milestone or fix runs the full suite once; repeat runs (fix loops, post-merge verification of an already-run ff merge) use only the affected spec (`pnpm --filter @pcg/say-cheese exec playwright test e2e/<spec>`), because the user asked for this (2026-11-04).
+- [plan] decision: C2 approved with no notes on 2026-11-09, three days behind the §0 targets; the user declined every cut ("No cuts"), so SC6–SC10 all run and C3/C4 eat into the Mon–Tue buffer.
 
 ## 9. Final handoff (and early setup)
 
