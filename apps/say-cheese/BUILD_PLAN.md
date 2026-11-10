@@ -501,7 +501,7 @@ Rules:
 - **SC10**
   - [x] Emoji host module + TV layer + tests
   - [x] Phone emoji bar + e2e
-  - [ ] Merged to `say-cheese` and pushed
+  - [x] Merged to `say-cheese` and pushed
   - [ ] User approved C4 (event rehearsal)
 - [ ] Full gate green (`pnpm check && pnpm e2e`)
 - [ ] Final handoff printed
