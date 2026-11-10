@@ -1,0 +1,33 @@
+# Dependabot (PLATFORM §5, decision #7). Its PRs skip CI's changeset check: a bump to a runtime
+# `dependencies` entry needs a patch note pushed to the PR before merging (PLATFORM §5). Lockfile
+# changes count as shared config, so these PRs run the full gate. The relay's Docker image is out of
+# scope.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
+
+  # pnpm uses the npm ecosystem. One lockfile at the root; `directories` (globs allowed) covers the
+  # root and every workspace package's package.json.
+  - package-ecosystem: npm
+    directories:
+      - /
+      - /apps/*
+      - /packages/*
+    schedule:
+      interval: weekly
+    # Exact pins stay exact (.npmrc save-exact): the requirement moves to the new version.
+    versioning-strategy: increase
+    groups:
+      dev-minor-patch:
+        dependency-type: development
+        update-types: [minor, patch]
+      prod-minor-patch:
+        dependency-type: production
+        update-types: [minor, patch]
+    # Majors match no group, so each gets its own PR.

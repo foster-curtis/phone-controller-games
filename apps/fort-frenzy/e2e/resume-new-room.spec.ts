@@ -5,7 +5,7 @@
 import { expect } from '@playwright/test';
 import {
   advance,
-  blockFonts,
+  serveFonts,
   closeContexts,
   freeze,
   joinPhone,
@@ -39,7 +39,7 @@ test('room expired → device-ID match and a claim → resumed run', async ({ br
 
   // A new TV tab: the snapshot survives in localStorage, the room doesn't.
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
-  await blockFonts(context);
+  await serveFonts(context);
   await context.addInitScript((entries) => {
     for (const [k, v] of Object.entries(entries)) localStorage.setItem(k, v);
   }, storage);

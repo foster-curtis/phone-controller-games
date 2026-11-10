@@ -1,7 +1,7 @@
 // Checks the JS a game's play.html (the phone controller) loads: no Phaser in any reachable chunk
 // (apps that depend on Phaser), and the gzipped total under the app's limit (Fort Frenzy SPEC §15.7).
 // Reads the Vite manifest plus the built HTML; run after `pnpm build`.
-// `node scripts/check-bundle.mjs <app>` checks one app; with no argument, every game app
+// `node scripts/check-bundle.mjs <app>...` checks those apps; with no argument, every game app
 // (an `apps/*` folder with a play.html).
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -112,8 +112,9 @@ function importsPhaser(dir) {
   );
 }
 
-const apps = process.argv[2]
-  ? [process.argv[2]]
-  : readdirSync(appsDir).filter((d) => existsSync(join(appsDir, d, 'play.html')));
+const apps =
+  process.argv.length > 2
+    ? process.argv.slice(2)
+    : readdirSync(appsDir).filter((d) => existsSync(join(appsDir, d, 'play.html')));
 if (apps.length === 0) fail('no game apps found (apps/*/play.html)');
 for (const app of apps) checkApp(app);

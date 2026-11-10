@@ -1,6 +1,7 @@
 // FF3 gallery (BUILD_PLAN FF3 acceptance): every page loads with no console errors and no fallback
 // shapes (every frame it draws is in the atlas), and writes e2e/__screens__/gallery-<page>.png.
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
+import { serveFonts, test } from './helpers';
 
 const PAGES = [
   'rigs',
@@ -25,10 +26,8 @@ function watchErrors(page: Page): string[] {
 }
 
 async function open(page: Page, query: string) {
-  // Offline and deterministic: no Google Fonts (an empty stylesheet, so nothing logs a load error).
-  await page.route(/fonts\.(googleapis|gstatic)\.com/, (route) =>
-    route.fulfill({ status: 200, contentType: 'text/css', body: '' }),
-  );
+  // The brand fonts, served locally (helpers `serveFonts`).
+  await serveFonts(page);
   await page.goto(`/?gallery=1&${query}`);
   await page.waitForFunction(() => window.__pcgGallery?.ready === true, undefined, {
     timeout: 30_000,

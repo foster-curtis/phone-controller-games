@@ -1,5 +1,5 @@
 // Starts `vite preview` on 4173 against a built game app and checks the routes and brand head.
-// Run after `pnpm build`. `node scripts/check-routes.mjs <app>` checks one app; with no argument,
+// Run after `pnpm build`. `node scripts/check-routes.mjs <app>...` checks those apps; with no argument,
 // every game app (an `apps/*` folder with a play.html), one after another.
 import { existsSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -68,9 +68,10 @@ async function checkApp(app) {
   }
 }
 
-const apps = process.argv[2]
-  ? [process.argv[2]]
-  : readdirSync(appsDir).filter((d) => existsSync(join(appsDir, d, 'play.html')));
+const apps =
+  process.argv.length > 2
+    ? process.argv.slice(2)
+    : readdirSync(appsDir).filter((d) => existsSync(join(appsDir, d, 'play.html')));
 if (apps.length === 0) failures.push('no game apps found (apps/*/play.html)');
 for (const app of apps) await checkApp(app);
 

@@ -1,0 +1,52 @@
+# Release (PLATFORM §5, decision #8): on every push to main, changesets/action opens or updates the
+# "Version Packages" PR from `changeset-release/main` with the pending bumps and changelogs. Merging
+# that PR is the deploy: Vercel builds production only for apps whose version changed
+# (scripts/vercel-ignore.mjs). The relay still deploys by hand (`fly deploy`) after a bump.
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+# The PAT does every write (the action pushes through the GitHub API with `github-token`), so the
+# workflow's own token stays read-only.
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  version-pr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # A PR opened with the default GITHUB_TOKEN doesn't trigger `pull_request` workflows, so its
+      # required checks would never report and it could never merge.
+      - name: Require CHANGESETS_TOKEN
+        env:
+          TOKEN: ${{ secrets.CHANGESETS_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::Add a CHANGESETS_TOKEN repo secret: a fine-grained PAT with contents and pull-requests write on this repo."
+            exit 1
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Version only: every package is private and nothing is published. With no pending notes the
+      # action does nothing. `changeset version` output already passes format:check (it runs Prettier).
+      - uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        with:
+          github-token: ${{ secrets.CHANGESETS_TOKEN }}
+          version-script: pnpm exec changeset version
+          commit-message: Version Packages
+          pr-title: Version Packages

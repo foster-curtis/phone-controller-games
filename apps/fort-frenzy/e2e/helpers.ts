@@ -1,7 +1,9 @@
 // Shared e2e helpers (pattern from Sunny Side): a TV page plus phones, each in its own browser context
-// (own localStorage, so its own player key and device ID). Fonts are stubbed so runs are offline.
+// (own localStorage, so its own player key and device ID). Brand fonts come from e2e/fonts/, offline.
 // Timing never sleeps or waits on wall-clock sim time: specs step the sim with `__pcg.advance` and
 // poll its state. Every URL is absolute (contexts made with `browser.newContext` get no baseURL).
+import { fileURLToPath } from 'node:url';
+import { readE2EConfig, recordImpact, type ImpactRecorder } from '@pcg/game-kit/e2e';
 import {
   test as base,
   expect,
@@ -25,21 +27,64 @@ export async function noFullscreen(context: BrowserContext): Promise<void> {
   });
 }
 
-export const test = base.extend({
-  context: async ({ context }, use) => {
+export const test = base.extend<{ impact: ImpactRecorder }>({
+  // Records the files each test loads, for coverage-based selection (`scripts/e2e.mjs`). A no-op
+  // unless that runner set `PCG_E2E_IMPACT_DIR`.
+  impact: [
+    async ({ browser }, use, testInfo) => {
+      const recorder = recordImpact(browser, testInfo);
+      await use(recorder);
+      recorder.finish();
+    },
+    { auto: true },
+  ],
+  context: async ({ context, impact }, use) => {
+    impact.watch(context);
     await noFullscreen(context);
     await use(context);
   },
 });
 
+/** This app's e2e ports (package.json `pcg.e2e`). */
+export const { relayPort: RELAY_PORT, webPort: WEB_PORT } = readE2EConfig(
+  new URL('../package.json', import.meta.url),
+);
+
 export async function closeContexts({ browser }: { browser: Browser }): Promise<void> {
   for (const context of browser.contexts()) await context.close();
 }
 
-export async function blockFonts(context: BrowserContext): Promise<void> {
-  await context.route(/fonts\.(googleapis|gstatic)\.com/, (route) =>
-    route.fulfill({ status: 200, contentType: 'text/css', body: '' }),
-  );
+const FONTS = new URL('./fonts/', import.meta.url);
+type Route = Parameters<Parameters<Page['route']>[1]>[0];
+
+/** Google Fonts answered from e2e/fonts/: `fonts.css` for the stylesheet, local woff2 for the fonts. */
+async function fontRoute(route: Route): Promise<void> {
+  const url = new URL(route.request().url());
+  if (url.hostname === 'fonts.googleapis.com') {
+    return route.fulfill({
+      path: fileURLToPath(new URL('fonts.css', FONTS)),
+      contentType: 'text/css',
+    });
+  }
+  const name = url.pathname.startsWith('/pcg-e2e/') ? url.pathname.slice('/pcg-e2e/'.length) : '';
+  if (!/^[\w-]+\.woff2$/.test(name)) return route.fulfill({ status: 404, body: '' });
+  return route.fulfill({
+    path: fileURLToPath(new URL(name, FONTS)),
+    contentType: 'font/woff2',
+    headers: { 'access-control-allow-origin': '*' },
+  });
+}
+
+const GOOGLE_FONTS = /fonts\.(googleapis|gstatic)\.com/;
+
+/**
+ * Serves the brand fonts from e2e/fonts/ in place of Google Fonts: runs stay offline, and layout
+ * checks measure the real fonts with the same metrics on every OS. (Blocking them measured each
+ * OS's fallback font instead, which is wider on Linux, so CI and Windows disagreed.)
+ */
+export async function serveFonts(target: Page | BrowserContext): Promise<void> {
+  if ('newPage' in target) await target.route(GOOGLE_FONTS, fontRoute);
+  else await target.route(GOOGLE_FONTS, fontRoute);
 }
 
 export interface Host {
@@ -52,7 +97,7 @@ export interface Host {
 /** Opens the TV, waits for the home screen, creates the room with Enter (home row 1). */
 export async function openHost(browser: Browser): Promise<Host> {
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
-  await blockFonts(context);
+  await serveFonts(context);
   const page = await context.newPage();
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
@@ -81,7 +126,7 @@ export async function newPhoneContext(
   seed?: Record<string, string>,
 ): Promise<BrowserContext> {
   const context = await browser.newContext({ viewport: PHONE_VIEWPORT, hasTouch: true });
-  await blockFonts(context);
+  await serveFonts(context);
   await noFullscreen(context);
   if (seed) {
     await context.addInitScript((entries) => {

@@ -199,4 +199,22 @@ export default defineConfig(
       ],
     },
   },
+  {
+    // The helpers' `test` records which files each test loads; e2e selection needs every spec on it.
+    files: ['apps/*/e2e/**/*.spec.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@playwright/test',
+              importNames: ['test'],
+              message: "Import `test` from './helpers' (it records the files each test loads).",
+            },
+          ],
+        },
+      ],
+    },
+  },
 );

@@ -1,4 +1,4 @@
 {
   "cleanUrls": true,
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ../../packages ../../pnpm-lock.yaml"
+  "ignoreCommand": "node ../../scripts/vercel-ignore.mjs say-cheese"
 }

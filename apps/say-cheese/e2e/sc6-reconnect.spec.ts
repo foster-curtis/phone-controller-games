@@ -11,6 +11,7 @@ import {
   joinOnPage,
   newPhone,
   openHost,
+  RELAY_PORT,
   screen,
   sendRaw,
   setTimeScale,
@@ -55,7 +56,7 @@ interface WiredPhone {
 
 async function wire(context: BrowserContext) {
   const st = { offline: false, hold: false, live: [] as WebSocketRoute[][] };
-  await context.routeWebSocket(/:8788/, (ws) => {
+  await context.routeWebSocket(new RegExp(`:${RELAY_PORT}`), (ws) => {
     if (st.offline) {
       void ws.close();
       return;
