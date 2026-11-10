@@ -40,5 +40,5 @@ export function createView(screen: Screen, ctx: Ctx): View {
   }
 }
 
-/** Screens of the same kind update in place; a new kind remounts. */
-export const groupOf = (s: Screen): string => s.kind;
+/** Screens of the same kind update in place; a new kind remounts. Joining and lobby share one view. */
+export const groupOf = (s: Screen): string => (s.kind === 'joining' ? 'lobby' : s.kind);

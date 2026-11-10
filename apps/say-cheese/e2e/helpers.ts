@@ -97,18 +97,27 @@ export async function newPhone(
   return context;
 }
 
-/**
- * Opens `/play?code=CODE` on a new phone and enters `name` in the lobby. The lobby markup lands in
- * SC3; this expects `input[name=name]` and a `Next` button there.
- */
+/** Opens `/play?code=CODE` on a new phone and joins as `name` (pre-lobby screen, then Join). */
 export async function joinPhone(browser: Browser, code: string, name: string): Promise<Phone> {
   const context = await newPhone(browser);
   const page = await context.newPage();
   await page.goto(`/play?code=${code}`);
-  await expect(screen(page, 'lobby')).toBeVisible();
-  await page.locator('input[name=name]').fill(name);
-  await page.getByRole('button', { name: 'Next' }).click();
+  await joinOnPage(page, name);
   return { context, page, name };
+}
+
+/**
+ * The pre-lobby screen (SPEC §6.3.1, §6.7): types `name`, adds a row per `extras` name and taps Join.
+ * Nothing reaches the host before Join. Does not wait for the lobby.
+ */
+export async function joinOnPage(page: Page, name: string, extras: string[] = []): Promise<void> {
+  await expect(screen(page, 'joining')).toBeVisible();
+  await page.locator('input[name=name]').fill(name);
+  for (const extra of extras) {
+    await page.locator('[data-action=addSeat]').click();
+    await page.locator('input[name=seatName]').last().fill(extra);
+  }
+  await page.locator('[data-action=join]').click();
 }
 
 /** The phone screen `kind` (`[data-screen=kind]`). */
@@ -149,25 +158,26 @@ export const setTimeScale = (host: Host, n: number) =>
   host.page.evaluate((v) => (window as unknown as HookWindow).__pcg.setTimeScale(v), n);
 
 /**
- * Opens `/play?code=CODE&debug=1` on a new phone and joins as `name` (the lobby's name field commits
- * on Enter), then waits until the host lists the player.
+ * Opens `/play?code=CODE&debug=1` on a new phone, joins as `name` on the pre-lobby screen (plus a
+ * row per `extras`), then waits for the lobby and until the host lists every name.
  */
 export async function joinPlayer(
   browser: Browser,
   host: Host,
   name: string,
-  { expectSeat = true }: { expectSeat?: boolean } = {},
+  { expectSeat = true, extras = [] }: { expectSeat?: boolean; extras?: string[] } = {},
 ): Promise<Phone> {
   const context = await newPhone(browser);
   const page = await context.newPage();
   await page.goto(`/play?code=${host.code}&debug=1`);
-  await expect(screen(page, 'lobby')).toBeVisible();
-  const input = page.locator('input[name=name]');
-  await input.fill(name);
-  await input.press('Enter');
+  await joinOnPage(page, name, extras);
   if (expectSeat) {
+    await expect(screen(page, 'lobby')).toBeVisible();
     await expect
-      .poll(async () => (await hostState(host)).players.some((p) => p.name === name))
+      .poll(async () => {
+        const names = (await hostState(host)).players.map((p) => p.name);
+        return [name, ...extras].every((n) => names.includes(n));
+      })
       .toBe(true);
   }
   return { context, page, name };

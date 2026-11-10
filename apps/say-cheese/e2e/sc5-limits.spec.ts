@@ -103,11 +103,10 @@ test('a 9th player is refused a seat', async ({ browser }) => {
   await expect(host.page.locator('.view.lobby li.player')).toHaveCount(8);
 
   const ninth = await joinPlayer(browser, host, 'P9', { expectSeat: false });
-  // The host has heard from the phone (it got a lobby screen) but gave it no seat.
-  await expect(screen(ninth.page, 'lobby')).toBeVisible();
-  await ninth.page.waitForTimeout(500);
+  // The host has heard from the phone but gave it no seat, so it never leaves the pre-lobby screen.
+  await ninth.page.waitForTimeout(1000);
+  await expect(screen(ninth.page, 'joining')).toBeVisible();
   const st = await hostState(host);
   expect(st.players.map((p) => p.name)).toEqual(names);
   await expect(host.page.locator('.view.lobby li.player')).toHaveCount(8);
-  await expect(ninth.page.locator('.me .chip')).toHaveCount(0);
 });

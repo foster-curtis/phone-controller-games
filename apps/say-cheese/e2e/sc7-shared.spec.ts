@@ -8,6 +8,7 @@ import {
   hostPhase,
   hostState,
   joinPlayer,
+  newPhone,
   openHost,
   screen,
   setTimeScale,
@@ -19,12 +20,21 @@ import {
 test.afterEach(closeContexts);
 test.setTimeout(240_000);
 
-/** Adds a player on `phone` through the lobby's "+ Add another player" step. */
+/** Pencil → pre-lobby screen (SPEC §6.3.1) → `edit` → Join → back on the lobby. */
+async function editPlayers(phone: Phone, edit: () => Promise<void>): Promise<void> {
+  await phone.page.locator('[data-action=editPlayers]').click();
+  await expect(screen(phone.page, 'joining')).toBeVisible();
+  await edit();
+  await phone.page.locator('[data-action=join]').click();
+  await expect(screen(phone.page, 'lobby')).toBeVisible();
+}
+
+/** Adds a player to `phone` on the pre-lobby screen and waits for the host to seat them. */
 async function addSeat(host: Host, phone: Phone, name: string): Promise<void> {
-  await phone.page.locator('[data-action=addSeat]').click();
-  const input = phone.page.locator('input[name=seatName]');
-  await input.fill(name);
-  await input.press('Enter');
+  await editPlayers(phone, async () => {
+    await phone.page.locator('[data-action=addSeat]').click();
+    await phone.page.locator('input[name=seatName]').last().fill(name);
+  });
   await expect
     .poll(async () => (await hostState(host)).players.some((p) => p.name === name))
     .toBe(true);
@@ -88,13 +98,11 @@ test('three seats on one phone, two single phones: pass screens, separate scorin
   const host = await openHost(browser, 'debug=1&timeScale=0.1');
   const errors: string[] = [];
   host.page.on('pageerror', (e) => errors.push(e.message));
-  const a = await joinPlayer(browser, host, 'Ann');
+  const a = await joinPlayer(browser, host, 'Ann', { extras: ['Kai', 'Lou'] });
   const b = await joinPlayer(browser, host, 'Ben');
   const c = await joinPlayer(browser, host, 'Cat');
   for (const p of [a, b, c]) p.page.on('pageerror', (e) => errors.push(`${p.name}: ${e.message}`));
-  await addSeat(host, a, 'Kai');
-  await addSeat(host, a, 'Lou');
-  await expect(a.page.locator('.seat-chips li')).toHaveCount(3);
+  await expect(a.page.locator('.me .chip')).toHaveText(['Ann', 'Kai', 'Lou']);
   for (const p of [a, b, c]) await cameraAndReady(p);
   expect((await hostState(host)).players).toHaveLength(5);
   // The TV groups A's three seats under Ann with a phone marker.
@@ -162,17 +170,35 @@ test('three seats on one phone, two single phones: pass screens, separate scorin
   expect(errors).toEqual([]);
 });
 
-test('removing one seat on a phone leaves the other two', async ({ browser }) => {
+test('the TV shows nobody until Join; the pencil adds, renames and removes seats', async ({
+  browser,
+}) => {
   const host = await openHost(browser, 'debug=1&timeScale=0.1');
-  const a = await joinPlayer(browser, host, 'Ann');
+  const a = await joinPlayer(browser, host, 'Ann', { expectSeat: false });
+  await expect(screen(a.page, 'lobby')).toBeVisible();
+  // A second phone that has typed a name but not tapped Join is not on the TV.
+  const other = await newPhone(browser);
+  const page = await other.newPage();
+  await page.goto(`/play?code=${host.code}&debug=1`);
+  await expect(screen(page, 'joining')).toBeVisible();
+  await page.locator('input[name=name]').fill('Zed');
+  await page.waitForTimeout(500);
+  expect((await hostState(host)).players.map((p) => p.name)).toEqual(['Ann']);
+
   await addSeat(host, a, 'Kai');
   await addSeat(host, a, 'Lou');
-  await expect(a.page.locator('.seat-chips li')).toHaveCount(3);
-  await a.page.locator('[data-seat="1"] [data-action=removeSeat]').click();
+  await expect(a.page.locator('.me .chip')).toHaveText(['Ann', 'Kai', 'Lou']);
+  await expect(host.page.locator('.view.lobby li.player')).toHaveCount(3);
+  // Rename Lou and remove Kai in one trip.
+  await editPlayers(a, async () => {
+    await expect(a.page.locator('.seat-row input').nth(1)).toHaveValue('Kai');
+    await a.page.locator('.seat-row:nth-child(2) [data-action=removeRow]').click();
+    await a.page.locator('.seat-row input').nth(1).fill('Lu');
+  });
   await expect
     .poll(async () => (await hostState(host)).players.map((p) => p.name).sort())
-    .toEqual(['Ann', 'Lou']);
-  await expect(a.page.locator('.seat-chips li')).toHaveCount(2);
+    .toEqual(['Ann', 'Lu']);
+  await expect(a.page.locator('.me .chip')).toHaveText(['Ann', 'Lu']);
   await expect(host.page.locator('.view.lobby li.player')).toHaveCount(2);
 });
 
@@ -180,9 +206,7 @@ test('a one-phone game: pass screen, photographer screens and leader controls sh
   browser,
 }) => {
   const host = await openHost(browser, 'debug=1&timeScale=0.1');
-  const a = await joinPlayer(browser, host, 'Ann');
-  await addSeat(host, a, 'Kai');
-  await addSeat(host, a, 'Lou');
+  const a = await joinPlayer(browser, host, 'Ann', { extras: ['Kai', 'Lou'] });
   await cameraAndReady(a);
   await expect(a.page.locator('[data-action=start]')).toBeEnabled();
   await a.page.locator('[data-action=start]').click();

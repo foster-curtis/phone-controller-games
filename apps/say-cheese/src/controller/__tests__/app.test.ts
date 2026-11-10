@@ -111,7 +111,7 @@ describe('screens', () => {
   it('joining sends the profile and remembers the name', () => {
     const input = q<HTMLInputElement>('input[name=name]')!;
     input.value = 'Zed';
-    click('.btn');
+    click('[data-action=join]');
     expect(sent().at(-1)).toEqual({ t: 'profile', seat: 0, name: 'Zed' });
     expect(app?.ctx.getName()).toBe('Zed');
   });

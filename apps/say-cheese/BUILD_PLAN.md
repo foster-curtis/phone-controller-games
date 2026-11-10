@@ -602,6 +602,13 @@ Format: `- [SC#] decision: one line, with the reason.`
 - [SC5-fix-2] decision: `SCATTER_MS` is 5 s (SPEC §6.2, decision #20), because the user's C2 note asked for it.
 - [SC5-fix-2] decision: scatter beeps (replaces the SC5 "3 and 2 s" rule): `beep` at 5, 4, 3, 2 and `beepFinal` at 1, from the pure `countdownBeep(s)` + `createCountdownBeeper(play)` in the new `src/shared/countdown.ts`, used by the TV (`game.ts` view diff) and by the photographer's dark scatter screen (`screens/round.ts`, its sfx unlocked by I'm ready; dodger phones stay silent in pockets), because both sides need the same schedule and `controller/**` can't import `host/`.
 - [SC5-fix-2] decision: the `?dev=1` scatter samples (`controller/dev.ts`) use 5 s too, because they mirror the real screen.
+- [SC7-fix-1] decision: `joining` and `lobby` are one routed view (`groupOf` maps both to the `lobby` group; `data-screen` flips between `joining` and `lobby`), because the host sends a seatless phone a `lobby` screen with `seats: []` and the pre-lobby form (typed rows) must survive those updates. The phone leaves the form when the host lists its seats (after Join, or after a `hello` restore); the pencil pins the form open until Join.
+- [SC7-fix-1] decision: the host does not seat a phone before `profile` (`ensurePhone` on `peer` only reclaims a known key), so no host change was needed; nothing is sent before Join.
+- [SC7-fix-1] decision: the row cap is `MAX_SEATS` minus the seats other phones hold (`players.length - seats.length` on the lobby screen), because the host's `canAddSeat` only says the room has space for one more and the form needs the cap for the whole phone; the host still enforces it.
+- [SC7-fix-1] decision: while the pencil is open the phone's seats stay in the room on the TV, because the simplest correct thing is to send diffs on re-Join; Join sends `removeSeat`, then `profile` renames, then `addSeat`, so removals free room first. Renaming an extra seat also updates the seat-key store's name.
+- [SC7-fix-1] decision: the pencil exists only on the lobby face (a match in progress shows other screens), so there is nothing extra to hide; the lobby's player list now lists only other phones' players, because this phone's names are shown once at the top.
+- [SC7-fix-1] decision: a 9th phone that the host refuses stays on the pre-lobby screen showing "Joining…", because the host sends no refusal message and adding one is outside this fix.
+- [SC7-fix-1] decision: e2e `joinPlayer` takes `extras` and uses the pre-lobby screen (new exported `joinOnPage`; sc6's `joinWired` uses it); the old stale `joinPhone` ("Next") uses it too, because no milestone runs in parallel on helpers now.
 
 ## 9. Final handoff (and early setup)
 

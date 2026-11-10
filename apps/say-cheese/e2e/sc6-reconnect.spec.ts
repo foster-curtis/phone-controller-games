@@ -8,6 +8,7 @@ import {
   expect,
   hostPhase,
   hostState,
+  joinOnPage,
   newPhone,
   openHost,
   screen,
@@ -94,10 +95,8 @@ async function joinWired(
   const w = await wire(context);
   const page = await context.newPage();
   await openPlay(page, host);
+  await joinOnPage(page, name);
   await expect(screen(page, 'lobby')).toBeVisible();
-  const input = page.locator('input[name=name]');
-  await input.fill(name);
-  await input.press('Enter');
   await expect
     .poll(async () => (await state(host)).players.some((p) => p.name === name))
     .toBe(true);
