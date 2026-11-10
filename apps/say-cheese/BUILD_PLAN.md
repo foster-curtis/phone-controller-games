@@ -9,6 +9,10 @@ Commands are POSIX sh, run from the repo root. `SPEC §` = `apps/say-cheese/SPEC
 (merge to `main`, production deploy, real-device smoke test). Playable early, polish last, cuts
 pre-decided (§3 cut order).
 
+**Status: build complete (2026-11-10).** Every milestone (SC0–SC10) is merged, every checkpoint
+(C1–C4) is approved, and the full gate (`pnpm check && pnpm e2e`) is green. `say-cheese` is merged
+to `main` and pushed for the production deploy as `@pcg/say-cheese` 1.0.0.
+
 **Inputs already in the repo (read-only for every milestone):** the brand kit
 `apps/say-cheese/say-cheese-brand-kit.zip`, unpacked by SC0 into `src/styles/brand.css`, `public/*`
 (favicon, PWA icons, `site.webmanifest`), `brand/head.html`, `brand/mark*.svg`, `brand/preview.html`.
@@ -502,9 +506,10 @@ Rules:
   - [x] Emoji host module + TV layer + tests
   - [x] Phone emoji bar + e2e
   - [x] Merged to `say-cheese` and pushed
-  - [ ] User approved C4 (event rehearsal)
-- [ ] Full gate green (`pnpm check && pnpm e2e`)
-- [ ] Final handoff printed
+  - [x] User approved C4 (event rehearsal)
+- [x] Full gate green (`pnpm check && pnpm e2e`)
+- [x] Final handoff printed
+- [x] Merged to `main` and pushed (production deploy, `@pcg/say-cheese` 1.0.0)
 
 ## 7. Blockers
 
@@ -621,6 +626,7 @@ Format: `- [SC#] decision: one line, with the reason.`
 - [SC10] decision: `spectatingView` takes `ctx` (one-token change in `screens/index.ts`) so spectators get the bar; the dodger review face, results and spectating render `emojiBar(screen, ctx)`, which is null unless `canEmoji`.
 - [polish] decision: the TV review photo is sized exactly: the width solves the tilted print's bounding box (cos/sin of `--tilt-print`, frame, offset shadow) against the `.fit` layer, instead of a flat 0.9 factor; review uses a 32 px margin instead of the 96 px `--space-tv-safe`, and its host controls (only Skip review) float bottom-right instead of reserving a row, because the photo is the point of that screen (user: "as large as possible"). The column narrows to `clamp(260px, 23vw, 440px)`.
 - [polish] decision: quiet TV buttons get `color: var(--foreground)` (brand.css `.btn` sets ink text for amber, so Sound on, How to play, Skip and Back to lobby were dark on dark); the lobby room code drops the `code` class, which overrode `code-tv` to 24 px.
+- [plan] decision: on 2026-11-10 the user approved C4 and every check, and the build is complete. The full gate passed after merging `origin/main`. Its one failure was Sunny Side's `controller-layout` e2e from main's DASH-hidden commit, which pressed at y = 20, on the top banner. It was fixed test-only by pressing SLAM's zone corner. Say Cheese ships to `main` as 1.0.0, a major changeset per PLATFORM §5 ("each game goes to 1.0.0 at launch"). User approved.
 
 ## 9. Final handoff (and early setup)
 

@@ -12,7 +12,7 @@ A series of same-room party games. A shared screen (TV/laptop browser) runs the 
 | --- | --- | --- |
 | Sunny Side Slam | `apps/sunny-side` | Shipped (v1) |
 | Fort Frenzy | `apps/fort-frenzy` | In build (scaffold and contracts, FF1) |
-| Say Cheese! | `apps/say-cheese` | In build (scaffold and contracts, SC0) |
+| Say Cheese! | `apps/say-cheese` | Shipped (v1) |
 
 ## 2. Architecture (settled)
 

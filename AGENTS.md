@@ -13,7 +13,7 @@ every message goes through a shared, game-agnostic WebSocket **relay**.
 | `apps/relay`              | `@pcg/relay`          | Done. Node WebSocket server, deployed to Fly.io. No game rules.                      |
 | `apps/sunny-side`         | `@pcg/sunny-side`     | Done. Sunny Side Slam, the first game. Vite multi-page app on Vercel.                |
 | `apps/fort-frenzy`        | `@pcg/fort-frenzy`    | In build (FF1: scaffold, frozen contracts, asset manifest). Plan in `BUILD_PLAN.md`. |
-| `apps/say-cheese`         | `@pcg/say-cheese`     | In build (SC0: scaffold, frozen contracts, brand kit). Plan in `BUILD_PLAN.md`.      |
+| `apps/say-cheese`         | `@pcg/say-cheese`     | Done. Say Cheese!, the photo-tag party game. Vite multi-page app on Vercel.          |
 | `packages/net-client`     | `@pcg/net-client`     | Done. Relay protocol types plus host and controller clients (TS).                    |
 | `packages/controller-kit` | `@pcg/controller-kit` | Done (FF0). Phone platform, app shell, widgets, gestures, input sender, dev harness. |
 | `packages/game-kit`       | `@pcg/game-kit`       | Done (FF0). Fixed-step loop, lerp, seeded RNG, host helpers; `/vite` plugins.        |

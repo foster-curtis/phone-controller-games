@@ -1,5 +1,16 @@
 # @pcg/say-cheese
 
+## 1.0.0
+
+### Major Changes
+
+- Launch: Say Cheese! ships to production, ready for the 2026-11-11 event
+
+### Patch Changes
+
+- afe7945: SVG icons replace the emoji in the UI (pencil, menu, phone, camera, sound, crown); the pencil and menu are bare icons with no button border
+- 3198b5a: The TV lobby fits on one screen with no scrolling, down to a small laptop window
+
 ## 0.2.0
 
 ### Minor Changes

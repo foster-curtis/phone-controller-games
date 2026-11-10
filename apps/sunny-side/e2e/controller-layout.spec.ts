@@ -54,8 +54,11 @@ for (const [w, h] of [
       expect(Math.abs(j.cy - 271)).toBeLessThanOrEqual(10);
     }
 
-    // With DASH hidden, a touch anywhere in the right half presses SLAM.
-    await page.mouse.move(w / 2 + 20, 20);
+    // With DASH hidden, a touch anywhere in the right half presses SLAM: try the zone's top-left
+    // corner, farthest from the button (y = 20 would land on the top banner, not the pads).
+    const zone = (await page.locator('[data-pad=slam]').boundingBox())!;
+    expect(zone.x).toBeLessThanOrEqual(w / 2 + 1);
+    await page.mouse.move(zone.x + 10, zone.y + 10);
     await page.mouse.down();
     await expect(page.locator('[data-pad=slam]')).toHaveClass(/pressed/);
     await page.mouse.up();
