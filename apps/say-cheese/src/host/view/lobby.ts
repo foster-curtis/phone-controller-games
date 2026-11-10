@@ -2,7 +2,7 @@
 // sound. Seats sharing a phone are grouped under the phone's first player with a 📱 marker.
 import { joinUrl, qrMatrix } from '@pcg/game-kit';
 import type { TvView } from '../match/types';
-import { chip, h, type TvControls } from './dom';
+import { chip, h, lockup, rays, type TvControls } from './dom';
 
 type Lobby = Extract<TvView, { phase: 'lobby' }>;
 
@@ -37,11 +37,12 @@ export function qrSvg(text: string): SVGSVGElement {
 export function renderLobby(v: Lobby, c: TvControls): HTMLElement {
   const el = h('section', 'view lobby');
   const join = h('div', 'join');
+  join.append(rays());
   if (v.code) {
     join.append(
       qrSvg(joinUrl(c.origin, v.code)),
       h('div', 'label', 'Join with code'),
-      h('div', 'code-tv code', v.code),
+      h('div', 'code-tv', v.code),
     );
   } else {
     join.append(h('div', 'h2', 'Opening room…'));
@@ -56,7 +57,7 @@ export function renderLobby(v: Lobby, c: TvControls): HTMLElement {
   join.append(sound);
 
   const roster = h('div', 'roster');
-  roster.append(h('h1', 'banner', 'Say Cheese!'));
+  roster.append(lockup());
   if (v.leaderName) roster.append(h('p', 'body leader', `Leader: ${v.leaderName}`));
   const list = h('ul', 'players');
   const groups = new Map<string, typeof v.players>();

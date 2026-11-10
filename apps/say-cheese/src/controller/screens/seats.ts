@@ -7,7 +7,7 @@ import { el } from '@pcg/controller-kit';
 import { createSeatKeyStore, type SeatKeyStore } from '../../shared/seats';
 import { MAX_SEATS, NAME_MAX, type Screen, type ScreenSeat } from '../../shared/messages';
 import type { Ctx } from '../ctx';
-import { button, heading, para } from './view';
+import { button, lockup, para } from './view';
 
 export const SHARE_HINT =
   "No phone? No problem. Add kids or anyone without a phone here. You'll just pass this phone to them when it's their turn to take photos.";
@@ -58,14 +58,7 @@ export function createSeatsForm(
   );
   hint.append(para(SHARE_HINT, 'caption'));
   const join = button('Join', () => submit(), { id: 'join' });
-  root.append(
-    heading('Say Cheese!'),
-    para("Who's playing on this phone?"),
-    list,
-    addSlot,
-    hint,
-    join,
-  );
+  root.append(lockup(), para("Who's playing on this phone?"), list, addSlot, hint, join);
 
   let rows: Row[] = [];
   let base: readonly ScreenSeat[] = [];

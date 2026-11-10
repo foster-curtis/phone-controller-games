@@ -619,6 +619,8 @@ Format: `- [SC#] decision: one line, with the reason.`
 - [SC10] decision: the host handles `emoji` in `game.ts` before the match (the reducer keeps its no-op case), gating on phase review/results and the sender not being the round's photographer's phone, because emoji need no match state; the feed (`host/emoji`) owns the 0.5 s per-phone cooldown and the 12-cap with oldest evicted.
 - [SC10] decision: the TV layer is a `position:fixed` overlay appended beside `#tv` with its own injected style block (no SC9 files, no `tv.css`); emoji float 3.2 s and the layer clears when the phase leaves review/results.
 - [SC10] decision: `spectatingView` takes `ctx` (one-token change in `screens/index.ts`) so spectators get the bar; the dodger review face, results and spectating render `emojiBar(screen, ctx)`, which is null unless `canEmoji`.
+- [polish] decision: the TV review photo is sized exactly: the width solves the tilted print's bounding box (cos/sin of `--tilt-print`, frame, offset shadow) against the `.fit` layer, instead of a flat 0.9 factor; review uses a 32 px margin instead of the 96 px `--space-tv-safe`, and its host controls (only Skip review) float bottom-right instead of reserving a row, because the photo is the point of that screen (user: "as large as possible"). The column narrows to `clamp(260px, 23vw, 440px)`.
+- [polish] decision: quiet TV buttons get `color: var(--foreground)` (brand.css `.btn` sets ink text for amber, so Sound on, How to play, Skip and Back to lobby were dark on dark); the lobby room code drops the `code` class, which overrode `code-tv` to 24 px.
 
 ## 9. Final handoff (and early setup)
 

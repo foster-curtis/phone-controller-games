@@ -1,7 +1,7 @@
 // TV results and match end (SPEC §6.2 step 6, §6.6). Standings lowest first; ties share a rank. The
 // catches pop in one by one; the match end is a podium where tied winners share the top step (SC9).
 import type { TvView } from '../match/types';
-import { chip, h, rankStandings, standingsList } from './dom';
+import { chip, h, rankStandings, rays, standingsList } from './dom';
 
 export function renderResults(v: Extract<TvView, { phase: 'results' }>): HTMLElement {
   const el = h('section', 'view results');
@@ -11,12 +11,12 @@ export function renderResults(v: Extract<TvView, { phase: 'results' }>): HTMLEle
   for (const [i, c] of v.caught.filter((x) => x.count > 0).entries()) {
     const li = h('li', 'body catch');
     li.style.setProperty('--i', String(i));
-    li.append(chip(c, 'chip name'), ` caught ×${c.count}`);
+    li.append(chip(c, 'chip name'), h('span', 'marker', ` caught ×${c.count}`));
     list.append(li);
   }
-  if (list.childElementCount === 0) list.append(h('li', 'body', 'Nobody was caught!'));
+  if (list.childElementCount === 0) list.append(h('li', 'body catch', 'Nobody was caught!'));
   const delta = `${v.photographerDelta > 0 ? '+' : ''}${v.photographerDelta}`;
-  round.append(list, h('p', 'h2', `${v.photographer.name}: ${delta}`));
+  round.append(list, h('p', 'pill delta', `📸 ${v.photographer.name}: ${delta}`));
   el.append(round, standingsList(v.standings));
   return el;
 }
@@ -24,7 +24,7 @@ export function renderResults(v: Extract<TvView, { phase: 'results' }>): HTMLEle
 export function renderMatchEnd(v: Extract<TvView, { phase: 'matchEnd' }>): HTMLElement {
   const el = h('section', 'view matchEnd');
   const ranked = rankStandings(v.standings);
-  el.append(h('p', 'marker-tv', 'Hardest to photograph'));
+  el.append(rays(), h('p', 'marker-tv', 'Hardest to photograph'));
   // Every winner, side by side: a tie shares the win (SPEC §6.1).
   const winners = h('div', 'winners');
   for (const s of ranked.filter((r) => v.winners.includes(r.playerId))) {

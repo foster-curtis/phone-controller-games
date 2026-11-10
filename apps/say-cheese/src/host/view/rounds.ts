@@ -2,15 +2,16 @@
 // photos (it would tell dodgers where the camera points); it has a white flash per shot (CSS decay) and
 // the shot counter pops. Upload shows a print developing (SC9).
 import type { TvView } from '../match/types';
-import { chip, h, seconds } from './dom';
+import { chip, h, rays, seconds } from './dom';
 
 type Of<P extends TvView['phase']> = Extract<TvView, { phase: P }>;
 
 export function renderAnnounce(v: Of<'announce'>): HTMLElement {
   const el = h('section', 'view announce');
   el.append(
+    rays(),
     h('p', 'caption', `Round ${v.turn} of ${v.turns}`),
-    h('p', 'marker-tv', '📸'),
+    h('p', 'marker-tv icon', '📸'),
     chip(v.photographer, 'chip huge'),
     h('p', 'banner', 'is the photographer!'),
   );
@@ -36,7 +37,7 @@ export function renderShoot(v: Of<'shoot'>, flash: boolean): HTMLElement {
     f,
     h('div', 'countdown title', String(seconds(v.endsInMs))),
     h('p', flash ? 'banner shots pop' : 'banner shots', `📸 ${v.shots} / ${v.maxShots}`),
-    h('p', 'h2', v.photographer.name),
+    chip(v.photographer, 'chip big'),
   );
   return el;
 }

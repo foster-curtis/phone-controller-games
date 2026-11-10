@@ -107,7 +107,20 @@ body {
   display: flex;
   gap: var(--space-3);
   align-items: center;
-  justify-content: space-between;
+}
+/* The trailing item (ready mark, score) sits on the right; a winner's ★ stays beside the chip */
+.players li > :last-child,
+.standings li > :last-child {
+  margin-left: auto;
+}
+.lockup {
+  margin: 0 0 var(--space-2);
+  font-size: 56px;
+}
+.me .btn {
+  min-height: 44px;
+  padding: 6px 14px 8px;
+  font-size: 20px;
 }
 /* Pre-lobby form (SPEC §6.3.1) */
 .seats-form,
@@ -142,7 +155,11 @@ li.away {
   font: 400 24px/1 var(--font-display);
 }
 .crown {
+  width: 1.2em;
   color: var(--accent);
+}
+.add-seat .btn {
+  font-size: 20px;
 }
 
 /* Announce */

@@ -6,7 +6,7 @@ import { chip, h } from './dom';
 export function renderPass(v: Extract<TvView, { phase: 'pass' }>): HTMLElement {
   const el = h('section', 'view pass');
   el.append(
-    h('p', 'marker-tv', '📱'),
+    h('p', 'marker-tv icon', '📱'),
     h('p', 'h2', 'Pass the phone to'),
     chip(v.photographer, 'chip huge'),
   );

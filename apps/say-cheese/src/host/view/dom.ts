@@ -27,6 +27,20 @@ export function paint(el: HTMLElement, p: Pick<PlayerSummary, 'color'>): void {
   el.style.setProperty('--pc-on', `var(--player-${p.color}-on)`);
 }
 
+/** The brand title lockup: "Say" pink over "Cheese!" amber, tilted (brand.css .lockup). */
+export function lockup(cls = 'banner'): HTMLElement {
+  const el = h('h1', `lockup ${cls}`);
+  el.append(h('span', 'say', 'Say'), ' ', h('span', 'cheese', 'Cheese!'));
+  return el;
+}
+
+/** Slowly spinning amber flash rays, for behind a view's centerpiece (brand.css .rays). */
+export function rays(): HTMLElement {
+  const el = h('div', 'rays');
+  el.setAttribute('aria-hidden', 'true');
+  return el;
+}
+
 export function chip(p: PlayerSummary, cls = 'chip'): HTMLElement {
   const el = h('span', cls, p.name);
   paint(el, p);

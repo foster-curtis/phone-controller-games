@@ -40,6 +40,15 @@ export function button(
 }
 
 export const heading = (text: string): HTMLElement => el('h1', { class: 'h2', text });
+/** The brand title lockup: "Say" pink over "Cheese!" amber, tilted (brand.css .lockup). */
+export const lockup = (): HTMLElement =>
+  el(
+    'h1',
+    { class: 'lockup' },
+    el('span', { class: 'say', text: 'Say' }),
+    ' ',
+    el('span', { class: 'cheese', text: 'Cheese!' }),
+  );
 export const para = (text: string, cls = 'body'): HTMLElement => el('p', { class: cls, text });
 
 /** Inline style that colors an element with a player color (`--c`, `--c-on` as in brand.css .tag-ring). */

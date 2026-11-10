@@ -14,7 +14,10 @@ function standingsList(rows: readonly Standing[], winners: readonly string[] = [
       el(
         'li',
         { class: r.left || !r.connected ? 'away' : '' },
-        winners.includes(r.playerId) ? el('span', { class: 'crown', text: '★' }) : null,
+        // An empty crown cell on the other rows keeps every chip in one column
+        winners.length > 0
+          ? el('span', { class: 'crown', text: winners.includes(r.playerId) ? '★' : '' })
+          : null,
         chip(r.name, r.color),
         el('span', { class: 'score-num', text: String(r.score) }),
       ),

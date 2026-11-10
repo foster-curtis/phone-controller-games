@@ -19,8 +19,35 @@
   text-align: center;
 }
 
+/* Isolated so a view's flash rays (z-index -1) sit behind its content but above #tv */
+.view {
+  position: relative;
+  isolation: isolate;
+}
+/* A burst behind the centerpiece, not a full-screen pattern that would compete with text */
+.view > .rays {
+  z-index: -1;
+  inset: auto;
+  left: 50%;
+  top: 50%;
+  width: min(1200px, 110vh);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+}
+.matchEnd > .rays {
+  top: 30%;
+}
+
 .view p {
   margin: 0;
+}
+.view .caption {
+  font: 400 28px/1.3 var(--font-sans);
+  color: var(--muted);
+}
+.view .icon {
+  font-size: 96px;
+  line-height: 1;
 }
 .view h1 {
   margin: 0;
@@ -44,6 +71,10 @@
   font: 400 96px/1.1 var(--font-display);
   padding: var(--space-3) var(--space-8);
 }
+.chip.big {
+  font: 400 48px/1.1 var(--font-display);
+  padding: var(--space-2) var(--space-6);
+}
 .dim {
   opacity: 0.45;
 }
@@ -54,6 +85,8 @@
   border: 2px solid var(--border-control);
   border-radius: var(--radius);
   background: var(--surface-strong);
+  /* brand.css .btn sets ink text (for amber); quiet TV buttons sit on a dark surface */
+  color: var(--foreground);
   font: 400 28px/1 var(--font-display);
   cursor: pointer;
 }
@@ -78,6 +111,10 @@
 .btn.x {
   min-height: 40px;
   padding: 0 var(--space-3);
+  border-color: var(--border);
+  background: transparent;
+  color: var(--muted);
+  box-shadow: none;
   font-size: 18px;
 }
 .host-controls {
@@ -94,20 +131,53 @@
   text-align: left;
 }
 .lobby .join {
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-4);
 }
+.lobby .join > .rays {
+  z-index: -1;
+}
 .qr {
   width: 320px;
   height: 320px;
   border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
+}
+.lobby .label {
+  margin-top: var(--space-4);
+  font: 600 24px/1.2 var(--font-sans);
+  color: var(--muted);
+}
+.lobby .code-tv {
+  color: var(--accent);
 }
 .roster {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  min-width: 480px;
+}
+.roster .lockup {
+  margin-bottom: var(--space-4);
+}
+.roster .leader {
+  font-size: 24px;
+  color: var(--muted);
+}
+/* Remove buttons line up on the right edge, whatever badges a row has */
+.player > .btn.x {
+  margin-left: auto;
+}
+.player.shared-phone {
+  flex-wrap: wrap;
+}
+.players.shared {
+  flex-basis: 100%;
+  padding-left: var(--space-8);
 }
 .players {
   display: grid;
@@ -268,6 +338,9 @@
 .countdown {
   font-size: 320px;
 }
+.scatter .countdown {
+  color: var(--accent);
+}
 .count {
   font-size: min(200px, 18vh);
 }
@@ -347,12 +420,23 @@
    photo's aspect from the .fit layer's container units; tags are relative to the box (the photo
    window, inside the cream frame). The size container is an absolute layer over the flex-grown
    stage: on the stage itself `100cqh` resolved to 0 (its height isn't definite under #tv's
-   min-height), so the photo box was 0×0. */
+   min-height), so the photo box was 0×0.
+   The photo is the point of this screen, so it gets a slimmer safe margin than other views, and
+   the host controls (only Skip review, rarely) float in the corner instead of taking a row. */
+#tv[data-tv='review'] {
+  padding: var(--space-8);
+}
+#tv[data-tv='review'] .host-controls {
+  position: absolute;
+  right: var(--space-8);
+  bottom: var(--space-8);
+  min-height: 0;
+}
 .review {
   flex-direction: row;
   align-items: stretch;
   justify-content: stretch;
-  gap: var(--space-8);
+  gap: var(--space-6);
   text-align: left;
 }
 .review .stage {
@@ -372,13 +456,32 @@
 .photo-box {
   --frame: 16px;
   --frame-bottom: 60px;
+  /* cos and sin of --tilt-print (5°): the tilted print's bounding box must fit the layer */
+  --cos: 0.9962;
+  --sin: 0.0872;
+  /* room for the pink offset shadow */
+  --pop: 12px;
   box-sizing: content-box;
   position: relative;
   aspect-ratio: var(--aspect);
-  /* 0.9 leave room for the tilt and the pink offset shadow */
+  /* The largest photo width w whose framed, tilted print fits: with the print's outer size
+     W = w + 2f and H = w / aspect + f + fb, its bounding box is W·cos + H·sin wide and
+     W·sin + H·cos tall; solve each for w and take the smaller. */
   width: min(
-    calc(100cqw * 0.9 - 2 * var(--frame)),
-    calc((100cqh * 0.9 - var(--frame) - var(--frame-bottom)) * var(--aspect))
+    calc(
+      (
+          100cqw - var(--pop) - 2 * var(--frame) * var(--cos) -
+            (var(--frame) + var(--frame-bottom)) * var(--sin)
+        ) /
+        (var(--cos) + var(--sin) / var(--aspect))
+    ),
+    calc(
+      (
+          100cqh - var(--pop) - 2 * var(--frame) * var(--sin) -
+            (var(--frame) + var(--frame-bottom)) * var(--cos)
+        ) /
+        (var(--sin) + var(--cos) / var(--aspect))
+    )
   );
   border: var(--frame) solid var(--print);
   border-bottom-width: var(--frame-bottom);
@@ -446,7 +549,7 @@
 
 /* Players column: sizes follow the viewport height so eight rows always fit */
 .players-col {
-  flex: 0 0 clamp(300px, 28vw, 520px);
+  flex: 0 0 clamp(260px, 23vw, 440px);
   display: flex;
   flex-direction: column;
   gap: 1.6vh;
@@ -503,8 +606,28 @@
   flex-direction: row;
   gap: var(--space-12);
 }
+.results .round {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-6);
+  text-align: left;
+}
+.caught-list {
+  display: grid;
+  gap: var(--space-3);
+}
 .catch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
   font-size: 28px;
+}
+.catch .marker {
+  font: 400 36px/1 var(--font-marker);
+}
+.results .delta {
+  font-size: 40px;
 }
 .enter .catch {
   animation: pop var(--dur-base) var(--ease-pop) backwards;
