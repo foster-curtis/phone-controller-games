@@ -124,7 +124,18 @@
   min-height: 64px;
 }
 
-/* Lobby */
+/* Lobby: one screen, no scrolling, from a 1080p TV down to a ~600px-tall laptop window. Sizes scale
+   with the height and cap at their TV values, so 1080p and up look the same as before. */
+#tv[data-tv='lobby'] {
+  height: 100vh;
+  gap: var(--space-4);
+}
+/* Short screens are laptops (no overscan), so they can trade the TV-safe margin for room */
+@media (max-height: 900px) {
+  #tv[data-tv='lobby'] {
+    padding: var(--space-6) var(--space-8);
+  }
+}
 .lobby {
   flex-direction: row;
   gap: var(--space-12);
@@ -136,37 +147,51 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-4);
+  gap: clamp(var(--space-2), 1.5vh, var(--space-4));
 }
 .lobby .join > .rays {
   z-index: -1;
 }
 .qr {
-  width: 320px;
-  height: 320px;
+  width: clamp(160px, 30vh, 320px);
+  height: clamp(160px, 30vh, 320px);
   border-radius: var(--radius);
   box-shadow: var(--shadow-pop);
 }
 .lobby .label {
-  margin-top: var(--space-4);
-  font: 600 24px/1.2 var(--font-sans);
+  margin-top: clamp(0px, 1.5vh, var(--space-4));
+  font: 600 clamp(18px, 2.6vh, 24px) / 1.2 var(--font-sans);
   color: var(--muted);
 }
 .lobby .code-tv {
+  font-size: clamp(36px, 6vh, 64px);
   color: var(--accent);
 }
 .roster {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: clamp(var(--space-2), 1.5vh, var(--space-4));
   min-width: 480px;
 }
 .roster .lockup {
-  margin-bottom: var(--space-4);
+  margin-bottom: clamp(var(--space-1), 1.5vh, var(--space-4));
+  font-size: clamp(40px, 7vh, 72px);
 }
 .roster .leader {
-  font-size: 24px;
+  font-size: clamp(18px, 2.6vh, 24px);
   color: var(--muted);
+}
+.lobby .players {
+  gap: clamp(var(--space-1), 1.2vh, var(--space-3));
+}
+.lobby .chip {
+  font-size: clamp(18px, 3.4vh, 28px);
+}
+.lobby .badge {
+  font-size: clamp(14px, 2.6vh, 20px);
+}
+.lobby .btn.x {
+  min-height: clamp(28px, 4.6vh, 40px);
 }
 /* Remove buttons line up on the right edge, whatever badges a row has */
 .player > .btn.x {
