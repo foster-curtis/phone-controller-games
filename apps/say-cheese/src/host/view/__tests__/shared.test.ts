@@ -34,7 +34,7 @@ describe('TV shared phones', () => {
     };
     renderTv(root, view, controls);
     const group = root.querySelector<HTMLElement>('[data-player="a#0"]')!;
-    expect(group.querySelector('.phone-mark')?.textContent).toBe('📱');
+    expect(group.querySelector('.phone-mark svg.ico')).not.toBeNull();
     const nested = [...group.querySelectorAll<HTMLElement>('ul.shared > li')];
     expect(nested.map((l) => l.dataset.player)).toEqual(['a#1', 'a#2']);
     expect(root.querySelector('[data-player="b#0"] .phone-mark')).toBeNull();

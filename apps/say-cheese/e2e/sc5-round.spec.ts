@@ -67,7 +67,7 @@ test('full round, two more turns to match end, rematch skips the rules', async (
     await expect(ph.page.locator('.shot-counter')).toHaveText(`${i} / 15`);
     await ph.page.waitForTimeout(450); // the 0.4 s shutter cooldown
   }
-  await expect(host.page.locator('.view.shoot .shots')).toHaveText('📸 5 / 15');
+  await expect(host.page.locator('.view.shoot .shots')).toHaveText('5 / 15');
   await setTimeScale(host, 0.1);
 
   // Uploaded while shooting: review opens with all five photos on the TV.

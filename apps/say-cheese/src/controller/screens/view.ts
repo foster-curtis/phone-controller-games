@@ -2,6 +2,7 @@
 // color helpers. The screen root carries `data-screen=<kind>` (e2e `screen(page, kind)`).
 import { el } from '@pcg/controller-kit';
 import type { RoutedView } from '@pcg/controller-kit';
+import { icon, type IconName } from '../../shared/icons';
 import type { PlayerColorId, Screen, ScreenKind } from '../../shared/messages';
 
 export type View = RoutedView<Screen>;
@@ -21,6 +22,24 @@ export function renderedView<K extends ScreenKind>(
   };
   paint(first);
   return { el: root, update: paint, destroy() {} };
+}
+
+/** A bare SVG icon as the button: no pill or border, just a finger-sized tap area around it. */
+export function iconButton(
+  name: IconName,
+  label: string,
+  onClick: () => void,
+  id: string,
+): HTMLButtonElement {
+  const b = el('button', {
+    type: 'button',
+    class: 'icon-btn',
+    'data-action': id,
+    'aria-label': label,
+  });
+  b.append(icon(name));
+  b.addEventListener('click', onClick);
+  return b;
 }
 
 export function button(

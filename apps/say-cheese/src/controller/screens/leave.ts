@@ -6,7 +6,7 @@
 import { el } from '@pcg/controller-kit';
 import type { PhoneMsg, Screen } from '../../shared/messages';
 import type { SeatKeyStore } from '../../shared/seats';
-import { button, colorVars } from './view';
+import { button, colorVars, iconButton } from './view';
 
 export interface LeaveMenuOptions {
   send(msg: PhoneMsg): void;
@@ -31,11 +31,10 @@ type Confirm = { kind: 'leave' } | { kind: 'remove'; seat: number; name: string 
 
 export function createLeaveMenu(opts: LeaveMenuOptions): LeaveMenu {
   const root = el('div', { class: 'leave-menu', style: 'position: fixed; z-index: 4' });
-  const toggle = button('⋯', () => open(null), { id: 'menu', cls: 'btn--quiet' });
-  toggle.setAttribute('aria-label', 'Leave or remove a player');
+  const toggle = iconButton('dots', 'Leave or remove a player', () => open(null), 'menu');
   toggle.setAttribute(
     'style',
-    'position: fixed; top: var(--space-2); right: var(--space-2); z-index: 4; min-width: 48px',
+    'position: fixed; top: var(--space-2); right: var(--space-2); z-index: 4',
   );
   let screen: Screen | null = null;
   let sheet: HTMLElement | null = null;

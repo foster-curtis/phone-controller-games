@@ -117,10 +117,24 @@ body {
   margin: 0 0 var(--space-2);
   font-size: 56px;
 }
-.me .btn {
-  min-height: 44px;
-  padding: 6px 14px 8px;
-  font-size: 20px;
+/* Bare icon buttons (pencil, menu): only the SVG shows; the 48px box is the tap area */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--foreground);
+  font-size: 28px;
+  cursor: pointer;
+}
+.icon-btn:focus-visible {
+  outline: var(--stroke-select) solid var(--select);
+  outline-offset: 2px;
+  border-radius: var(--radius);
 }
 /* Pre-lobby form (SPEC §6.3.1) */
 .seats-form,

@@ -1,6 +1,7 @@
 // TV round views: announce, scatter, shoot, upload (SPEC §6.2, §6.6). The shoot view never shows
 // photos (it would tell dodgers where the camera points); it has a white flash per shot (CSS decay) and
 // the shot counter pops. Upload shows a print developing (SC9).
+import { icon } from '../../shared/icons';
 import type { TvView } from '../match/types';
 import { chip, h, rays, seconds } from './dom';
 
@@ -8,10 +9,12 @@ type Of<P extends TvView['phase']> = Extract<TvView, { phase: P }>;
 
 export function renderAnnounce(v: Of<'announce'>): HTMLElement {
   const el = h('section', 'view announce');
+  const mark = h('p', 'icon');
+  mark.append(icon('camera'));
   el.append(
     rays(),
     h('p', 'caption', `Round ${v.turn} of ${v.turns}`),
-    h('p', 'marker-tv icon', '📸'),
+    mark,
     chip(v.photographer, 'chip huge'),
     h('p', 'banner', 'is the photographer!'),
   );
@@ -33,10 +36,12 @@ export function renderShoot(v: Of<'shoot'>, flash: boolean): HTMLElement {
   const el = h('section', 'view shoot');
   const f = h('div', flash ? 'flash on' : 'flash');
   f.setAttribute('aria-hidden', 'true');
+  const shots = h('p', flash ? 'banner shots pop' : 'banner shots');
+  shots.append(icon('camera', 'lead'), `${v.shots} / ${v.maxShots}`);
   el.append(
     f,
     h('div', 'countdown title', String(seconds(v.endsInMs))),
-    h('p', flash ? 'banner shots pop' : 'banner shots', `📸 ${v.shots} / ${v.maxShots}`),
+    shots,
     chip(v.photographer, 'chip big'),
   );
   return el;

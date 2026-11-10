@@ -1,12 +1,12 @@
 // Joining and lobby screens (SPEC §6.1, §6.3, §6.3.1, §6.7), one routed view with two faces. Before the
 // phone is in the room (`data-screen=joining`) it shows the "who's playing on this phone" form
 // (seats.ts); after Join it shows the lobby (`data-screen=lobby`): this phone's name(s) once at the
-// top with a ✏️ pencil that goes back to the form, Enable camera, Ready, leader Start / How to play.
+// top with a pencil that goes back to the form, Enable camera, Ready, leader Start / How to play.
 import { el } from '@pcg/controller-kit';
 import type { Screen } from '../../shared/messages';
 import type { Ctx } from '../ctx';
 import { createSeatsForm } from './seats';
-import { button, chip, heading, para, type View } from './view';
+import { button, chip, heading, iconButton, para, type View } from './view';
 
 export function lobbyView(first: Screen, ctx: Ctx): View {
   const root = el('main', { class: 'screen lobby' });
@@ -53,8 +53,12 @@ export function lobbyView(first: Screen, ctx: Ctx): View {
       },
       { cls: 'btn--quiet', id: 'camera', disabled: s.camera === 'ok' },
     );
-    const pencil = button('✏️', () => edit(latest), { id: 'editPlayers', cls: 'btn--quiet' });
-    pencil.setAttribute('aria-label', 'Change who is playing on this phone');
+    const pencil = iconButton(
+      'pencil',
+      'Change who is playing on this phone',
+      () => edit(latest),
+      'editPlayers',
+    );
     // This phone's players are shown once, at the top; the list below is everyone else.
     const mine = new Set(s.seats.map((x) => x.color));
     const others = s.players.filter((p) => !mine.has(p.color));

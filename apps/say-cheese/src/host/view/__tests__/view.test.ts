@@ -122,7 +122,8 @@ describe('renderTv', () => {
     renderTv(root, view(1), controls());
     expect(root.querySelector('img')).toBeNull();
     expect(root.querySelector('.flash.on')).not.toBeNull();
-    expect(root.textContent).toContain('📸 1 / 15');
+    expect(root.querySelector('.shots')?.textContent).toBe('1 / 15');
+    expect(root.querySelector('.shots svg.ico')).not.toBeNull();
     renderTv(root, view(1), controls());
     expect(root.querySelector('.flash.on')).toBeNull();
   });

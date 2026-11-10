@@ -48,6 +48,15 @@
 .view .icon {
   font-size: 96px;
   line-height: 1;
+  color: var(--accent);
+}
+/* SVG icons (shared/icons.ts) sit on the text baseline; a leading one keeps a gap before its text */
+.ico {
+  flex: none;
+  vertical-align: -0.125em;
+}
+.ico.lead {
+  margin-right: 0.3em;
 }
 .view h1 {
   margin: 0;
@@ -686,9 +695,6 @@
 }
 .matchEnd .chip.huge {
   font-size: min(96px, 10vh);
-}
-.matchEnd .winners .chip::before {
-  content: '👑 ';
 }
 .matchEnd .board {
   display: flex;

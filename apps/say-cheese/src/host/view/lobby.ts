@@ -1,6 +1,7 @@
 // TV lobby (SPEC §6.6, §6.3.1): QR + room code, joined players (color, ready, no-camera badge), leader,
-// sound. Seats sharing a phone are grouped under the phone's first player with a 📱 marker.
+// sound. Seats sharing a phone are grouped under the phone's first player with a phone marker.
 import { joinUrl, qrMatrix } from '@pcg/game-kit';
+import { icon } from '../../shared/icons';
 import type { TvView } from '../match/types';
 import { chip, h, lockup, rays, type TvControls } from './dom';
 
@@ -47,12 +48,13 @@ export function renderLobby(v: Lobby, c: TvControls): HTMLElement {
   } else {
     join.append(h('div', 'h2', 'Opening room…'));
   }
-  const sound = h('button', 'btn sound', '🔊 Sound on');
+  const sound = h('button', 'btn sound');
+  sound.append(icon('speaker', 'lead'), 'Sound on');
   sound.type = 'button';
   sound.addEventListener('click', () => {
     void c.sfx.unlock();
     sound.disabled = true;
-    sound.textContent = '🔊 Sound is on';
+    sound.replaceChildren(icon('speaker', 'lead'), 'Sound is on');
   });
   join.append(sound);
 
@@ -87,7 +89,8 @@ export function renderLobby(v: Lobby, c: TvControls): HTMLElement {
     if (others.length > 0) {
       li.dataset.phone = phoneId;
       li.classList.add('shared-phone');
-      const mark = h('span', 'phone-mark', '📱');
+      const mark = h('span', 'phone-mark');
+      mark.append(icon('phone'));
       mark.setAttribute('title', 'Shared phone');
       li.querySelector('.chip')?.after(mark);
       const sub = h('ul', 'players shared');

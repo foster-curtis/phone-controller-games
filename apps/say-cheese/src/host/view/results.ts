@@ -1,5 +1,6 @@
 // TV results and match end (SPEC §6.2 step 6, §6.6). Standings lowest first; ties share a rank. The
 // catches pop in one by one; the match end is a podium where tied winners share the top step (SC9).
+import { icon } from '../../shared/icons';
 import type { TvView } from '../match/types';
 import { chip, h, rankStandings, rays, standingsList } from './dom';
 
@@ -16,7 +17,9 @@ export function renderResults(v: Extract<TvView, { phase: 'results' }>): HTMLEle
   }
   if (list.childElementCount === 0) list.append(h('li', 'body catch', 'Nobody was caught!'));
   const delta = `${v.photographerDelta > 0 ? '+' : ''}${v.photographerDelta}`;
-  round.append(list, h('p', 'pill delta', `📸 ${v.photographer.name}: ${delta}`));
+  const pill = h('p', 'pill delta');
+  pill.append(icon('camera', 'lead'), `${v.photographer.name}: ${delta}`);
+  round.append(list, pill);
   el.append(round, standingsList(v.standings));
   return el;
 }
@@ -28,7 +31,9 @@ export function renderMatchEnd(v: Extract<TvView, { phase: 'matchEnd' }>): HTMLE
   // Every winner, side by side: a tie shares the win (SPEC §6.1).
   const winners = h('div', 'winners');
   for (const s of ranked.filter((r) => v.winners.includes(r.playerId))) {
-    winners.append(chip(s, 'chip huge'));
+    const c = chip(s, 'chip huge');
+    c.prepend(icon('crown', 'lead'));
+    winners.append(c);
   }
   el.append(winners);
 

@@ -149,7 +149,9 @@ describe('lobby pencil', () => {
   it('shows the names once at the top with a pencil, no name field or add panel', () => {
     joinAs(['Ana', 'Leo']);
     expect(qa('.me .chip').map((c) => c.textContent)).toEqual(['Ana', 'Leo']);
-    expect(q('[data-action=editPlayers]')?.textContent).toBe('✏️');
+    const pencil = q('[data-action=editPlayers]');
+    expect(pencil?.classList.contains('icon-btn')).toBe(true);
+    expect(pencil?.querySelector('svg.ico')).not.toBeNull();
     expect(qa('.players .chip')).toEqual([]);
     expect(q('input')).toBeNull();
     expect(q('[data-screen=lobby] [data-action=addSeat]')).toBeNull();
