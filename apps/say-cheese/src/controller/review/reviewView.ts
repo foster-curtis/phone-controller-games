@@ -4,6 +4,7 @@
 import { el } from '@pcg/controller-kit';
 import type { Screen, TagView } from '../../shared/messages';
 import type { Ctx } from '../ctx';
+import { emojiBar } from '../screens/emojiBar';
 import { button, colorVars, heading, para, type View } from '../screens/view';
 import { tagSheetModel } from './tagSheet';
 
@@ -137,6 +138,7 @@ export function reviewView(first: Screen, ctx: Ctx): View {
       root.replaceChildren(
         heading(`Photo ${current + 1} / ${s.photos.length}`),
         para('Watch the TV!'),
+        ...(emojiBar(s, ctx) ? [emojiBar(s, ctx)!] : []),
       );
       return;
     }

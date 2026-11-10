@@ -21,6 +21,8 @@ import {
   type MatchEvent,
   type TvView,
 } from './match';
+import { createEmojiFeed } from './emoji';
+import { mountEmojiLayer } from './view/emoji';
 import { attachHostClient, type HostClientLike } from './net';
 import type { HostTimers } from './timers';
 import { renderTv } from './view';
@@ -100,6 +102,21 @@ export function createHostGame(opts: HostGameOptions): HostGame {
   const beeper = createCountdownBeeper((name) => sfx.play(name));
   const controls = { emit: control, sfx, origin: opts.origin };
 
+  // Emoji (SPEC §6.6): an overlay above the view root; the feed holds the cooldown and the cap.
+  const emojiFeed = createEmojiFeed({ now });
+  const emojiLayer = mountEmojiLayer(root.parentElement ?? root.ownerDocument.body, {
+    onDone: (id) => emojiFeed.remove(id),
+  });
+
+  function onEmoji(from: string, i: number): void {
+    const s = match.state;
+    const ph = s.round ? s.players.find((q) => q.id === s.round!.photographer) : undefined;
+    const open = (s.phase === 'review' || s.phase === 'results') && ph?.phoneId !== from;
+    const r = emojiFeed.accept(from, i, open);
+    if (r.evicted) emojiLayer.remove(r.evicted.id);
+    if (r.added) emojiLayer.add(r.added);
+  }
+
   function send(msg: HostMsg, to: string): void {
     client.send(msg, to);
   }
@@ -162,6 +179,10 @@ export function createHostGame(opts: HostGameOptions): HostGame {
     const prev = view;
     view = match.tvView();
     sounds(prev, view);
+    if (view.phase !== 'review' && view.phase !== 'results') {
+      emojiFeed.clear();
+      emojiLayer.clear();
+    }
     // Match end and Back to lobby: every photo is gone (SPEC §7.4).
     const over = view.phase === 'matchEnd' || view.phase === 'lobby';
     if (over && prev.phase !== view.phase) receiver.revokeAll();
@@ -231,7 +252,10 @@ export function createHostGame(opts: HostGameOptions): HostGame {
   }
 
   const detach = attachHostClient(client, {
-    msg: (from, msg) => dispatch({ type: 'msg', from, msg }),
+    msg: (from, msg) => {
+      if (msg.t === 'emoji') onEmoji(from, msg.i);
+      else dispatch({ type: 'msg', from, msg });
+    },
     chunk: (from, chunk) => {
       if (acceptsChunk(from, chunk)) receiver.receive(from, chunk);
     },
@@ -262,6 +286,7 @@ export function createHostGame(opts: HostGameOptions): HostGame {
       detach();
       clearI(ticker);
       timers.dispose();
+      emojiLayer.destroy();
       receiver.revokeAll();
     },
   };

@@ -2,6 +2,7 @@
 import { el } from '@pcg/controller-kit';
 import type { Ctx } from '../ctx';
 import type { Screen } from '../../shared/messages';
+import { emojiBar } from './emojiBar';
 import { button, heading, para, renderedView, type View } from './view';
 
 export function rulesView(first: Screen, ctx: Ctx): View {
@@ -35,10 +36,11 @@ export function uploadView(first: Screen): View {
   ]);
 }
 
-export function spectatingView(first: Screen): View {
-  return renderedView('spectating', first, () => [
+export function spectatingView(first: Screen, ctx: Ctx): View {
+  return renderedView('spectating', first, (s) => [
     heading('Watch the TV'),
     para('The match is full. You are watching.', 'caption'),
+    emojiBar(s, ctx),
   ]);
 }
 

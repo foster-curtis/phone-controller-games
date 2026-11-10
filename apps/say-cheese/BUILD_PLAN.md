@@ -499,8 +499,8 @@ Rules:
   - [x] Gallery e2e + screenshots
   - [x] Merged to `say-cheese` and pushed
 - **SC10**
-  - [ ] Emoji host module + TV layer + tests
-  - [ ] Phone emoji bar + e2e
+  - [x] Emoji host module + TV layer + tests
+  - [x] Phone emoji bar + e2e
   - [ ] Merged to `say-cheese` and pushed
   - [ ] User approved C4 (event rehearsal)
 - [ ] Full gate green (`pnpm check && pnpm e2e`)
@@ -616,6 +616,9 @@ Format: `- [SC#] decision: one line, with the reason.`
 - [SC9] decision: `renderTv` animates only what is new (`data-view`, `data-photo-key`, `data-tag-ids` on the root: `enter` on a new phase or rules card, `developing` on a new photo, `.new` on a new tag, `.pop` and `.flash.on` on a new shot), because the TV repaints by replacing every node on each change and a CSS animation would otherwise restart on every repaint.
 - [SC9] decision: the shot flash is a CSS animation (`flash`, 260 ms) on the repaint that follows the shot, replacing the 120 ms `setTimeout`; reduced motion gets none, because strobing is the one motion to avoid.
 - [SC9] decision: the gallery e2e steps the gallery with a paused Playwright fake clock (`runFor(4000)` per view) and ignores the console errors of the blocked Google Fonts requests, because the gallery cycles on a 4 s interval and e2e blocks fonts.
+- [SC10] decision: the host handles `emoji` in `game.ts` before the match (the reducer keeps its no-op case), gating on phase review/results and the sender not being the round's photographer's phone, because emoji need no match state; the feed (`host/emoji`) owns the 0.5 s per-phone cooldown and the 12-cap with oldest evicted.
+- [SC10] decision: the TV layer is a `position:fixed` overlay appended beside `#tv` with its own injected style block (no SC9 files, no `tv.css`); emoji float 3.2 s and the layer clears when the phase leaves review/results.
+- [SC10] decision: `spectatingView` takes `ctx` (one-token change in `screens/index.ts`) so spectators get the bar; the dodger review face, results and spectating render `emojiBar(screen, ctx)`, which is null unless `canEmoji`.
 
 ## 9. Final handoff (and early setup)
 

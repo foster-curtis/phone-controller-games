@@ -3,6 +3,7 @@
 import { el } from '@pcg/controller-kit';
 import type { Screen, Standing } from '../../shared/messages';
 import type { Ctx } from '../ctx';
+import { emojiBar } from './emojiBar';
 import { button, chip, heading, para, renderedView, type View } from './view';
 
 function standingsList(rows: readonly Standing[], winners: readonly string[] = []): HTMLElement {
@@ -42,6 +43,7 @@ export function resultsView(first: Screen, ctx: Ctx): View {
             { id: 'next' },
           )
         : para('Watch the TV', 'caption'),
+      emojiBar(s, ctx),
     ];
   });
 }

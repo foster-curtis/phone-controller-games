@@ -34,7 +34,7 @@ export function createView(screen: Screen, ctx: Ctx): View {
     case 'matchEnd':
       return matchEndView(screen, ctx);
     case 'spectating':
-      return spectatingView(screen);
+      return spectatingView(screen, ctx);
     case 'left':
       return leftView(screen);
   }
