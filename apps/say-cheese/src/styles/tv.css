@@ -178,11 +178,18 @@
   opacity: 1;
 }
 
-/* Review: the box is sized to the photo's aspect and fits the stage; tags are relative to the box. */
+/* Review: the box is sized to the photo's aspect and fits the stage; tags are relative to the box.
+   The size container is an absolute layer over the flex-grown stage: on the stage itself `100cqh`
+   resolved to 0 (its height isn't definite under #tv's min-height), so the photo box was 0×0. */
 .review .stage {
   flex: 1;
   min-height: 0;
   width: 100%;
+  position: relative;
+}
+.review .stage > .fit {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;

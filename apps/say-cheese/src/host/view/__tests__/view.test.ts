@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 // TV views and host controls (BUILD_PLAN SC4 acceptance; SPEC §6.4, §6.5, §6.6).
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { noopSfx } from '../../../shared/sfx';
 import { controlForKey, installHostKeys } from '../../controls';
@@ -49,6 +51,29 @@ describe('renderTv', () => {
     expect(tag.style.left).toBe('25%');
     expect(tag.style.top).toBe('50%');
     expect(tag.textContent).toBe('Ben');
+  });
+
+  // C2 (SC5-fix-2): a flex-grown stage as the size container gave `100cqh` = 0, so the photo box
+  // and its <img> were 0×0 while the tags still showed. jsdom has no layout: check the structure.
+  it('sizes the photo box in an absolute .fit layer, not on the flex-grown stage', () => {
+    const root = render({
+      phase: 'review',
+      photographer: a,
+      photo: { index: 0, aspect: 4 / 3, url: 'blob:1' },
+      photoIndex: 0,
+      photoCount: 1,
+      tags: [],
+      caught: [],
+      canSkipReview: false,
+    });
+    const img = root.querySelector('.stage > .fit > .photo-box > img.photo');
+    expect(img?.getAttribute('src')).toBe('blob:1');
+    const tvCss = readFileSync(resolve(import.meta.dirname, '../../../styles/tv.css'), 'utf8');
+    const rule = (sel: string) => tvCss.match(new RegExp(`${sel}\\s*\\{([^}]*)\\}`))?.[1] ?? '';
+    expect(rule('\\.review \\.stage')).not.toContain('container-type');
+    expect(rule('\\.review \\.stage > \\.fit')).toMatch(
+      /position: absolute;[\s\S]*container-type: size/,
+    );
   });
 
   it('draws Unknown tags as a grey "?"', () => {

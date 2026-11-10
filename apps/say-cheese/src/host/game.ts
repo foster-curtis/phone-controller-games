@@ -8,6 +8,7 @@
 import type { HostRoom, PeerChange } from '@pcg/net-client';
 import { createBlobReceiver, type ReceivedPhoto } from '../shared/blob-transfer';
 import type { HostMsg } from '../shared/messages';
+import { createCountdownBeeper } from '../shared/countdown';
 import { noopSfx, type Sfx } from '../shared/sfx';
 import type { Chunk } from '../shared/blob-transfer/types';
 import { PERSIST_KEY } from './match/config';
@@ -95,8 +96,8 @@ export function createHostGame(opts: HostGameOptions): HostGame {
 
   let view: TvView = match.tvView();
   let painted = '';
-  /** Last scatter second that beeped (3, 2, 1). */
-  let beeped = 0;
+  /** Scatter beeps: one per second, 5…1 (SPEC §6.2, §6.8). */
+  const beeper = createCountdownBeeper((name) => sfx.play(name));
   const controls = { emit: control, sfx, origin: opts.origin };
 
   function send(msg: HostMsg, to: string): void {
@@ -139,15 +140,8 @@ export function createHostGame(opts: HostGameOptions): HostGame {
 
   /** SPEC §6.8 moments, from what changed on the TV. */
   function sounds(prev: TvView, next: TvView): void {
-    if (next.phase === 'scatter') {
-      const s = Math.ceil(next.endsInMs / 1000);
-      if (s >= 1 && s <= 3 && s !== beeped) {
-        beeped = s;
-        sfx.play(s === 1 ? 'beepFinal' : 'beep');
-      }
-    } else {
-      beeped = 0;
-    }
+    if (next.phase === 'scatter') beeper.tick(next.endsInMs);
+    else beeper.reset();
     if (next.phase === 'shoot') {
       if (prev.phase !== 'shoot') sfx.play('startBuzz');
       else if (next.shots > prev.shots) sfx.play('shutter');

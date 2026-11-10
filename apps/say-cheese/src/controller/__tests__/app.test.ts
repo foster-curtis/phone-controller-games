@@ -245,3 +245,29 @@ describe('shoot', () => {
     expect(sent().filter((m) => m.t === 'shootDone')).toEqual([{ t: 'shootDone', r: 1, count: 1 }]);
   });
 });
+
+// SC5-fix-2: the photographer hears the 5 s scatter count with eyes closed (SPEC §6.2, §6.8).
+describe('scatter beeps', () => {
+  const runScatter = async (screen: Screen) => {
+    app?.destroy();
+    root.remove();
+    const played: string[] = [];
+    boot({ ...noopSfx, play: (n) => void played.push(n) });
+    vi.useFakeTimers();
+    show(screen);
+    for (let t = 0; t <= 5000; t += 200) {
+      clock = t;
+      await vi.advanceTimersByTimeAsync(200);
+    }
+    return played;
+  };
+
+  it('the photographer phone beeps at 5, 4, 3, 2 and the final beep at 1', async () => {
+    const played = await runScatter(samples['scatter (photographer)']!);
+    expect(played).toEqual(['beep', 'beep', 'beep', 'beep', 'beepFinal']);
+  });
+
+  it('a dodger phone stays silent', async () => {
+    expect(await runScatter(samples['scatter (dodger)']!)).toEqual([]);
+  });
+});

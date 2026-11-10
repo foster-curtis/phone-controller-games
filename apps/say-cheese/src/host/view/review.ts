@@ -38,7 +38,11 @@ export function renderReview(v: Review): HTMLElement {
     }
     box.append(tag);
   }
-  stage.append(box);
+  // The box sizes from container units of `.fit`, an absolutely positioned layer: its height is
+  // always definite, unlike a flex-grown stage's, where `100cqh` resolved to 0 (BUILD_PLAN §8).
+  const fit = h('div', 'fit');
+  fit.append(box);
+  stage.append(fit);
   el.append(stage);
 
   const strip = h('div', 'caught');

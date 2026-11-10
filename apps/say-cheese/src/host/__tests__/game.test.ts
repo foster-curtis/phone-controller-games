@@ -6,6 +6,7 @@ import { bytesToBase64 } from '../../shared/blob-transfer';
 import type { PhoneMsg } from '../../shared/messages';
 import type { Sfx, SfxName } from '../../shared/sfx';
 import { createHostGame } from '../game';
+import { SCATTER_MS } from '../match/config';
 import type { HostClientLike } from '../net';
 import { createHostTimers } from '../timers';
 
@@ -137,7 +138,7 @@ describe('host game wiring', () => {
     const { from, r } = toAnnounce(h);
     h.net.msg(from, { t: 'shootReady' });
     expect(h.game.match.state.phase).toBe('scatter');
-    h.advance(10_000);
+    h.advance(SCATTER_MS);
     expect(h.game.match.state.phase).toBe('shoot');
     expect(h.played).toContain('startBuzz');
 
@@ -172,28 +173,29 @@ describe('host game wiring', () => {
     expect(h.played).toContain('sting');
   });
 
-  it('beeps on the last three seconds of scatter', () => {
+  it('beeps every second of the 5 s scatter: beep at 5…2, beepFinal at 1 (SC5-fix-2)', () => {
     const h = setup();
     const { from } = toAnnounce(h);
     h.net.msg(from, { t: 'shootReady' });
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 20; i++) {
       h.advance(250);
       h.game.setVisible(true); // repaints like the ticker
     }
-    expect(h.played.filter((n) => n === 'beep')).toHaveLength(2);
-    expect(h.played.filter((n) => n === 'beepFinal')).toHaveLength(1);
+    expect(h.game.match.state.phase).toBe('shoot');
+    const beeps = h.played.filter((n) => n === 'beep' || n === 'beepFinal');
+    expect(beeps).toEqual(['beep', 'beep', 'beep', 'beep', 'beepFinal']);
   });
 
   it('a hidden tab pauses the scatter timer', () => {
     const h = setup();
     const { from } = toAnnounce(h);
     h.net.msg(from, { t: 'shootReady' });
-    h.advance(5000);
+    h.advance(SCATTER_MS / 2);
     h.game.setVisible(false);
     h.advance(60_000);
     expect(h.game.match.state.phase).toBe('scatter');
     h.game.setVisible(true);
-    h.advance(5000);
+    h.advance(SCATTER_MS / 2);
     expect(h.game.match.state.phase).toBe('shoot');
   });
 
@@ -201,7 +203,7 @@ describe('host game wiring', () => {
     const h = setup();
     const { from, r } = toAnnounce(h);
     h.net.msg(from, { t: 'shootReady' });
-    h.advance(10_000);
+    h.advance(SCATTER_MS);
     h.net.msg(from, { t: 'shot', r, photo: 0, at: 0, aspect: 1 });
     h.net.msg(from, chunk(r, 0));
     h.net.msg(from, { t: 'shootDone', r, count: 1 });

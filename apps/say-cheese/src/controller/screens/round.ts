@@ -2,6 +2,7 @@
 // shoot screens are dark (eyes closed); the shoot screen is one big shutter. Dodgers see "Scatter!".
 // Deadlines are set locally on receipt from `endsInMs` (BUILD_PLAN §8 timers).
 import { el } from '@pcg/controller-kit';
+import { createCountdownBeeper } from '../../shared/countdown';
 import type { Screen } from '../../shared/messages';
 import type { Ctx } from '../ctx';
 import {
@@ -68,13 +69,23 @@ export function scatterView(first: Screen, ctx: Ctx): View {
   const count = el('span', { class: 'count', 'aria-live': 'off' });
   let deadline = 0;
   let r = -1;
-  const tick = () => (count.textContent = secs(deadline - ctx.now()));
+  let photographer = false;
+  // The photographer hears the count with eyes closed: a beep per second, as on the TV (SPEC §6.2).
+  // Its sfx was unlocked by I'm ready; dodgers' phones stay silent (pocketed).
+  const beeper = createCountdownBeeper((name) => ctx.sfx.play(name));
+  const tick = () => {
+    const left = deadline - ctx.now();
+    count.textContent = secs(left);
+    if (photographer) beeper.tick(left);
+  };
   const paint = (screen: Screen) => {
     const s = screen as Scatter;
     if (s.r !== r) {
       r = s.r;
       deadline = ctx.now() + s.endsInMs;
+      beeper.reset();
     }
+    photographer = s.role === 'photographer';
     root.classList.toggle('dark', s.role === 'photographer');
     if (s.role === 'photographer') {
       root.replaceChildren(

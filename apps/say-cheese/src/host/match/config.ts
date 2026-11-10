@@ -2,7 +2,7 @@
 // values are tuning and change freely.
 
 /** Scatter countdown. */
-export const SCATTER_MS = 10_000;
+export const SCATTER_MS = 5_000;
 /** Shoot phase cap. */
 export const SHOOT_MS = 20_000;
 /** Shoot ends at this many shots. */

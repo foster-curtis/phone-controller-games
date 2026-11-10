@@ -72,9 +72,9 @@ export function sampleScreens(): Record<string, Screen> {
       ...base(),
       ...round('photographer'),
       kind: 'scatter',
-      endsInMs: 10_000,
+      endsInMs: 5_000,
     },
-    'scatter (dodger)': { ...base(), ...round('dodger'), kind: 'scatter', endsInMs: 10_000 },
+    'scatter (dodger)': { ...base(), ...round('dodger'), kind: 'scatter', endsInMs: 5_000 },
     'shoot (photographer)': {
       ...base(),
       ...round('photographer'),
