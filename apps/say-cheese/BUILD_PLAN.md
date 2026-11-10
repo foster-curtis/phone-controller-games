@@ -493,7 +493,7 @@ Rules:
   - [x] Synth + `Sfx` + tests
   - [x] Host and phone unlock wiring + audio e2e
   - [x] Merged to `say-cheese` and pushed
-  - [ ] User approved C3 (full match, shared phone, disconnects, refresh, sound)
+  - [x] User approved C3 (full match, shared phone, disconnects, refresh, sound)
 - **SC9**
   - [ ] Flash, developing, print review, results, podium, rules illustrations
   - [ ] Gallery e2e + screenshots
@@ -609,6 +609,7 @@ Format: `- [SC#] decision: one line, with the reason.`
 - [SC7-fix-1] decision: the pencil exists only on the lobby face (a match in progress shows other screens), so there is nothing extra to hide; the lobby's player list now lists only other phones' players, because this phone's names are shown once at the top.
 - [SC7-fix-1] decision: a 9th phone that the host refuses stays on the pre-lobby screen showing "Joining…", because the host sends no refusal message and adding one is outside this fix.
 - [SC7-fix-1] decision: e2e `joinPlayer` takes `extras` and uses the pre-lobby screen (new exported `joinOnPage`; sc6's `joinWired` uses it); the old stale `joinPhone` ("Next") uses it too, because no milestone runs in parallel on helpers now.
+- [plan] decision: C3 approved on 2026-11-10 with one note, folded into SC9 (TV polish): review photos display larger on the TV; tags on the photo are only the circle in the player's color (no name label); every player's name and tag count go in a column beside the photo. User's note.
 
 ## 9. Final handoff (and early setup)
 
