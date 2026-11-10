@@ -1,6 +1,7 @@
 // Real-browser layout check for the phone play surface at small and large landscape viewports.
-// Thumb band (M5-fix-7): every control center (resting stick, DASH, SLAM, ghost PULSE) is at most
-// THUMB_BAND px above the bottom edge on any viewport; DASH sits above SLAM and left of it.
+// Thumb band (M5-fix-7): every control center (resting stick, SLAM, ghost PULSE) is at most
+// THUMB_BAND px above the bottom edge on any viewport. DASH is hidden (SPEC #31), so SLAM's zone
+// takes the whole right half.
 import { expect } from '@playwright/test';
 import { test } from './helpers';
 
@@ -15,12 +16,12 @@ for (const [w, h] of [
   test(`controller layout ${w}x${h}`, async ({ page }) => {
     await page.setViewportSize({ width: w, height: h });
     await page.goto('/play.html?dev=1');
-    const dash = page.locator('[data-pad=dash] .pad-btn');
     const slam = page.locator('[data-pad=slam] .pad-btn');
     const stick = page.locator('.stick-base');
-    await expect(dash).toBeVisible();
+    await expect(slam).toBeVisible();
     await expect(stick).toBeVisible();
-    const box = async (l: typeof dash) => {
+    await expect(page.locator('[data-pad=dash]')).toBeHidden();
+    const box = async (l: typeof slam) => {
       const b = (await l.boundingBox())!;
       return {
         x: b.x,
@@ -31,26 +32,17 @@ for (const [w, h] of [
         cy: b.y + b.height / 2,
       };
     };
-    const d = await box(dash);
     const s = await box(slam);
     const j = await box(stick);
     // Thumb band: every control center within THUMB_BAND of the bottom edge.
-    for (const c of [d, s, j]) expect(h - c.cy).toBeLessThanOrEqual(THUMB_BAND);
-    // DASH is slightly higher than SLAM and left of it; no overlaps.
-    expect(d.cy).toBeLessThan(s.cy);
-    expect(d.cy).toBeGreaterThan(s.cy - s.h);
-    expect(d.cx).toBeLessThan(s.cx);
-    expect(s.x - (d.x + d.w)).toBeGreaterThanOrEqual(16);
-    expect(d.x).toBeGreaterThanOrEqual(w / 2); // not over the stick half
-    expect(j.cx + j.w / 2).toBeLessThan(d.x);
+    for (const c of [s, j]) expect(h - c.cy).toBeLessThanOrEqual(THUMB_BAND);
+    expect(j.cx + j.w / 2).toBeLessThan(w / 2);
     expect(s.y + s.h).toBeLessThanOrEqual(h);
-    expect(d.y).toBeGreaterThanOrEqual(0);
     expect(j.cx).toBeLessThanOrEqual(w * 0.35);
     expect(j.cx).toBeGreaterThan(110);
     expect(h - j.cy).toBeGreaterThan(100);
     expect(s.cx).toBeGreaterThanOrEqual(w * 0.75);
     console.log(`${w}x${h} centers`, {
-      dash: [d.cx, d.cy],
       slam: [s.cx, s.cy],
       stick: [j.cx, j.cy],
     });
@@ -60,20 +52,12 @@ for (const [w, h] of [
       expect(Math.abs(s.cy - 275)).toBeLessThanOrEqual(10);
       expect(Math.abs(j.cx - 219)).toBeLessThanOrEqual(10);
       expect(Math.abs(j.cy - 271)).toBeLessThanOrEqual(10);
-      // Nearest-center split: a touch in DASH's column but nearer SLAM presses SLAM.
-      const mx = (d.cx + s.cx) / 2 + 20;
-      await page.mouse.move(mx, s.cy);
-      await page.mouse.down();
-      await expect(page.locator('[data-pad=slam]')).toHaveClass(/pressed/);
-      await expect(page.locator('[data-pad=dash]')).not.toHaveClass(/pressed/);
-      await page.mouse.up();
     }
 
-    // A touch on DASH's center presses DASH only.
-    await page.mouse.move(d.cx, d.cy);
+    // With DASH hidden, a touch anywhere in the right half presses SLAM.
+    await page.mouse.move(w / 2 + 20, 20);
     await page.mouse.down();
-    await expect(page.locator('[data-pad=dash]')).toHaveClass(/pressed/);
-    await expect(page.locator('[data-pad=slam]')).not.toHaveClass(/pressed/);
+    await expect(page.locator('[data-pad=slam]')).toHaveClass(/pressed/);
     await page.mouse.up();
 
     // Hold SLAM to full charge; the arc hugs the button.
@@ -85,11 +69,6 @@ for (const [w, h] of [
     expect(arc.width).toBeLessThanOrEqual(s.w + maxExtra);
     expect(arc.height).toBeLessThanOrEqual(s.h + maxExtra);
     await page.screenshot({ path: `e2e/__screens__/controller-${w}.png` });
-    // The full-charge arc keeps >= 16 px from DASH.
-    const gapX = arc.x - (d.x + d.w);
-    const gapY = d.y - (arc.y + arc.height);
-    const gapY2 = arc.y - (d.y + d.h);
-    expect(Math.max(gapX, gapY, gapY2)).toBeGreaterThanOrEqual(16);
     await page.mouse.up();
 
     // Ghost PULSE sits where SLAM is (also within the band).

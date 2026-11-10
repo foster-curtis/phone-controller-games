@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mount, pointer, sampleScreen } from './helpers';
 import { sampleBreakdown } from '../samples';
+import { DASH_HIDDEN } from '../screens/controller';
 import type { RoundBreakdown, Screen } from '../../shared/messages';
 
 type WithBd = Extract<Screen, { kind: 'results' | 'matchEnd' }>;
@@ -112,27 +113,31 @@ describe('pads: nearest-button split and moved positions', () => {
       bottom: cy + 60,
     }) as DOMRect;
 
-  it('a press in DASH zone but nearer SLAM goes to SLAM; with no layout the zone hit wins', () => {
-    const h = mount();
-    h.show(sampleScreen('playing'));
-    const q = (sel: string) => h.root.querySelector(sel) as HTMLElement;
-    const dashZone = q('[data-pad=dash]');
-    const slamZone = q('[data-pad=slam]');
-    // No layout (all rects zero): the zone that was hit wins.
-    pointer(dashZone, 'pointerdown', 1, 5, 5);
-    expect(dashZone.classList.contains('pressed')).toBe(true);
-    pointer(dashZone, 'pointerup', 1, 5, 5);
-    q('[data-pad=dash] .pad-btn').getBoundingClientRect = rectAt(575, 232);
-    q('[data-pad=slam] .pad-btn').getBoundingClientRect = rectAt(732, 230);
-    pointer(dashZone, 'pointerdown', 2, 670, 230);
-    expect(slamZone.classList.contains('pressed')).toBe(true);
-    expect(dashZone.classList.contains('pressed')).toBe(false);
-    pointer(slamZone, 'pointerup', 2, 670, 230);
-    expect(slamZone.classList.contains('pressed')).toBe(false);
-    pointer(slamZone, 'pointerdown', 3, 650, 232);
-    expect(dashZone.classList.contains('pressed')).toBe(true);
-    pointer(dashZone, 'pointerup', 3, 650, 232);
-  });
+  // Re-enable when DASH comes back (SPEC #31).
+  it.skipIf(DASH_HIDDEN)(
+    'a press in DASH zone but nearer SLAM goes to SLAM; with no layout the zone hit wins',
+    () => {
+      const h = mount();
+      h.show(sampleScreen('playing'));
+      const q = (sel: string) => h.root.querySelector(sel) as HTMLElement;
+      const dashZone = q('[data-pad=dash]');
+      const slamZone = q('[data-pad=slam]');
+      // No layout (all rects zero): the zone that was hit wins.
+      pointer(dashZone, 'pointerdown', 1, 5, 5);
+      expect(dashZone.classList.contains('pressed')).toBe(true);
+      pointer(dashZone, 'pointerup', 1, 5, 5);
+      q('[data-pad=dash] .pad-btn').getBoundingClientRect = rectAt(575, 232);
+      q('[data-pad=slam] .pad-btn').getBoundingClientRect = rectAt(732, 230);
+      pointer(dashZone, 'pointerdown', 2, 670, 230);
+      expect(slamZone.classList.contains('pressed')).toBe(true);
+      expect(dashZone.classList.contains('pressed')).toBe(false);
+      pointer(slamZone, 'pointerup', 2, 670, 230);
+      expect(slamZone.classList.contains('pressed')).toBe(false);
+      pointer(slamZone, 'pointerdown', 3, 650, 232);
+      expect(dashZone.classList.contains('pressed')).toBe(true);
+      pointer(dashZone, 'pointerup', 3, 650, 232);
+    },
+  );
 
   it('css shifts the stick right/up and SLAM/PULSE left/up; DASH rule has no dvh', () => {
     const css = readFileSync(

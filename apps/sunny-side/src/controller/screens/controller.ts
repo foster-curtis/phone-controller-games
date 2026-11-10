@@ -9,6 +9,9 @@ import { colorVar, type ScreenCtx, type ScreenView } from './common';
 
 type PlaySurface = Extract<Screen, { kind: 'countdown' | 'playing' | 'ghost' }>;
 
+/** DASH stays built but hidden until v2 replaces it with an action button (SPEC #31, §11). */
+export const DASH_HIDDEN = true;
+
 export function createController(ctx: ScreenCtx, first: PlaySurface): ScreenView<PlaySurface> {
   const root = el('section', { class: 'screen play', 'data-screen': first.kind });
   const stickZone = el('div', { class: 'stick-zone' });
@@ -25,6 +28,7 @@ export function createController(ctx: ScreenCtx, first: PlaySurface): ScreenView
     el('span', { class: 'pad-label', text: 'DASH' }),
   );
   const dashPad = el('div', { class: 'pad-zone dash', 'data-pad': 'dash' }, dashBtn);
+  dashPad.hidden = DASH_HIDDEN;
   const slamBtn = el(
     'div',
     { class: 'pad-btn pad' },
@@ -51,8 +55,9 @@ export function createController(ctx: ScreenCtx, first: PlaySurface): ScreenView
     else arc.release();
   });
   const pulse = createHoldButton(pulsePad, (down) => ctx.sender.setButton(BUTTON_DASH, down));
+  // A hidden DASH has no layout, so it must not compete for presses (SLAM gets the whole right half).
   const unroute = createNearestRouter(pads, [
-    { zone: dashPad, btn: dashBtn, hold: dash },
+    ...(DASH_HIDDEN ? [] : [{ zone: dashPad, btn: dashBtn, hold: dash }]),
     { zone: slamPad, btn: slamBtn, hold: slam },
   ]);
   const hold = createHoldToPause(pause, () => ctx.onPause());
