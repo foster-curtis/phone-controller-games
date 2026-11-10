@@ -1,6 +1,7 @@
 // Scenario harness for headless sim tests (SPEC §15.9): a run with scripted phones, and helpers to
 // reach a phase, move players and step until something happens.
-import type { ClassId, PlayerColorId } from '../../../shared/ids';
+import type { Content } from '../../../content';
+import type { CardId, ClassId, DifficultyId, PlayerColorId } from '../../../shared/ids';
 import { PLAYER_COLOR_IDS } from '../../../shared/ids';
 import { createSim, ScriptedInputSource, type Sim } from '../index';
 import type { PlayerEnt, RunStart, SimEvent } from '../types';
@@ -25,6 +26,11 @@ export interface Harness {
   events<K extends SimEvent['e']>(kind: K): Extract<SimEvent, { e: K }>[];
   /** Steps `n` times and collects every event of `kind`. */
   collect<K extends SimEvent['e']>(kind: K, n: number): Extract<SimEvent, { e: K }>[];
+  /**
+   * Build phase only: gives `slot` the card `n` times through the real pick command (the offer is
+   * set to just that card first). Steps once per pick.
+   */
+  give(slot: number, card: CardId, n?: number): void;
 }
 
 export function startOf(players: number, seed = 1, classId: ClassId = 'engineer'): RunStart {
@@ -41,10 +47,22 @@ export function startOf(players: number, seed = 1, classId: ClassId = 'engineer'
   };
 }
 
-export function harness(players = 1, seed = 1): Harness {
+export interface HarnessOptions {
+  /** Class per slot (default: every slot the Engineer). */
+  classes?: ClassId[];
+  /** Content override (custom enemies for a scenario). */
+  content?: Content;
+  /** Run difficulty (default Normal, §2.2). */
+  difficulty?: DifficultyId;
+}
+
+export function harness(players = 1, seed = 1, opts: HarnessOptions = {}): Harness {
   const pads = Array.from({ length: players }, () => new ScriptedInputSource());
   const sources = new Map(pads.map((pad, i) => [i, pad] as const));
-  const sim = createSim(startOf(players, seed), { sources });
+  const start = startOf(players, seed);
+  start.slots.forEach((sl, i) => (sl.classId = opts.classes?.[i] ?? sl.classId));
+  if (opts.difficulty) start.settings.difficulty = opts.difficulty;
+  const sim = createSim(start, { sources, content: opts.content });
   const h: Harness = {
     sim,
     pads,
@@ -86,6 +104,17 @@ export function harness(players = 1, seed = 1): Harness {
         out.push(...sim.world.events.filter((e) => e.e === kind));
       }
       return out as never;
+    },
+    give(slot, card, n = 1) {
+      for (let i = 0; i < n; i++) {
+        const p = h.p(slot);
+        p.offer = [card];
+        p.picked = null;
+        sim.command({ c: 'card', slot, card });
+        sim.step();
+        if (p.picked !== card)
+          throw new Error(`give: ${card} was not picked (phase ${sim.world.phase})`);
+      }
     },
   };
   return h;

@@ -3,9 +3,13 @@
 // destroyed, build timer and ready-up. Also the phase transitions the commands reuse.
 import { tickEffects } from '../systems/effects';
 import { generateWave, playerScale, waveRng } from '../systems/waves';
+import { bossSpawn, collapseAfterBoss } from './boss';
+import { closeOffers, dealOffers } from './cards';
 import { dropAll } from './crates';
+import { clearWishlist } from './shop';
 import { releaseAll, respawn } from './players';
 import { effects as effectDefs } from './registry';
+import { fillSquads } from './squad';
 import type { FullState } from './state';
 import { refreshStats } from './stats';
 import type { EnemyEnt, Phase, PlayerEnt, Unit } from './types';
@@ -18,10 +22,10 @@ function tickUnit(s: FullState, u: Unit) {
     tickEffects(
       u.effects,
       (def) => {
-        const d = effectDefs[def];
+        const dot = s.cat.rules.dots[def];
         return {
-          stacking: d?.stacking ?? 'refresh',
-          tickEvery: d?.tickEveryMs ? s.cat.steps(d.tickEveryMs) : undefined,
+          stacking: effectDefs[def]?.stacking ?? 'refresh',
+          tickEvery: dot ? s.cat.steps(dot.tickEveryMs) : undefined,
         };
       },
       (e) => {
@@ -48,32 +52,45 @@ export function stepEffects(s: FullState): void {
     // Players' stats follow their mods every step (passives such as Steady Aim toggle bonuses).
     refreshStats(p, s.baseStats.get(p.id)!, effectDefs, s.caps);
   }
-  for (const u of w.soldiers) if (u.hp > 0) tickUnit(s, u);
+  for (const u of w.soldiers) {
+    if (u.hp <= 0) continue;
+    tickUnit(s, u);
+    // Squad modifiers (shop squad stats, Veterans, FF12) follow their state every step.
+    if (u.mods.length > 0) refreshStats(u, s.baseStats.get(u.id)!, effectDefs, s.caps);
+  }
   for (const e of w.enemies) if (e.hp > 0) tickUnit(s, e);
   for (const st of w.structures) if (st.effects.length > 0 || st.mods.length > 0) tickUnit(s, st);
 }
 
 // ---- step 8: deaths -------------------------------------------------------------------------------
 
-function coinsFor(s: FullState, e: EnemyEnt): number {
+function coinsFor(s: FullState, e: EnemyEnt, paid: Set<number>): number {
+  // A Runner's burst is not a kill (FF10): it is its own killer and pays nothing.
+  if (s.killers.get(e.id) === e.id) return 0;
   const groupLeft = s.world.enemies.some((o) => o !== e && o.group === e.group && o.hp > 0);
-  if (groupLeft) return 0; // a group pays when its last unit dies (§9.1)
+  // A group pays once, when its last unit dies (§9.1), even if several die in the same step.
+  if (groupLeft || paid.has(e.group)) return 0;
+  paid.add(e.group);
   return Math.round(s.cat.enemy(e.kind).budget * s.cat.difficulty.coinIncome);
 }
 
 export function stepDeaths(s: FullState): void {
   const w = s.world;
   const t = w.tick;
+  // The boss's death ends the wave: the rest collapse (§9.2, FF11).
+  collapseAfterBoss(s);
   // Enemies.
   let write = 0;
+  const paid = new Set<number>();
   for (const e of w.enemies) {
     if (e.hp > 0) {
       w.enemies[write++] = e;
       continue;
     }
-    const killerId = s.killers.get(e.id) ?? null;
+    w.team.coins += coinsFor(s, e, paid);
+    let killerId = s.killers.get(e.id) ?? null;
+    if (killerId === e.id) killerId = null; // a Runner's burst
     const killer = killerId === null ? null : (s.units.get(killerId) ?? null);
-    w.team.coins += coinsFor(s, e);
     if (killer && s.kinds.get(killer.id) === 'player') (killer as PlayerEnt).run.kills++;
     s.emit({ e: 'death', id: e.id, what: 'enemy', killer: killerId, x: e.x, y: e.y });
     for (const f of s.hooks(e, 'onDeath')) f(s, e, killer);
@@ -101,6 +118,12 @@ export function stepDeaths(s: FullState): void {
   // Structures: a destroyed blocker rebuilds the flow fields this step.
   write = 0;
   for (const st of w.structures) {
+    // A snare whose last discharge is used fizzles out and frees its tile (§7.1): no `destroyed`
+    // event (its `snareDischarge` with 0 left says so) and no flow-field rebuild (not a blocker).
+    if (!st.damageable && st.discharges !== null && st.discharges <= 0) {
+      s.removeUnit(st.id);
+      continue;
+    }
     if (!st.damageable || st.hp > 0) {
       w.structures[write++] = st;
       continue;
@@ -110,11 +133,18 @@ export function stepDeaths(s: FullState): void {
   }
   w.structures.length = write;
 
-  // Soldiers arrive with the Commander (FF9); remove the fallen.
+  // Soldiers (FF9): the fallen collapse and return at the next build phase (squad/fillSquads).
   write = 0;
   for (const u of w.soldiers) {
-    if (u.hp > 0) w.soldiers[write++] = u;
-    else s.removeUnit(u.id);
+    if (u.hp > 0) {
+      w.soldiers[write++] = u;
+      continue;
+    }
+    const killerId = s.killers.get(u.id) ?? null;
+    s.emit({ e: 'death', id: u.id, what: 'soldier', killer: killerId, x: u.x, y: u.y });
+    const killer = killerId === null ? null : (s.units.get(killerId) ?? null);
+    for (const f of s.hooks(u, 'onDeath')) f(s, u, killer);
+    s.removeUnit(u.id);
   }
   w.soldiers.length = write;
 
@@ -166,10 +196,23 @@ export function spawnGroup(
   px /= pl;
   py /= pl;
   const rng = s.rng(`combat:${s.world.wave}`);
+  // A pack (Swarm, groups of 8) scatters unevenly around the spawn point, never in rows (§9.6).
+  const pack = (s.cat.enemy(enemy).groupSize ?? 1) > 1;
   let group: number | undefined;
   for (let i = 0; i < count; i++) {
-    const off = (i - (count - 1) / 2) * 0.7 + (rng.next() - 0.5) * 0.3;
-    const e = s.spawnEnemy(enemy, L.spawn.x + px * off, L.spawn.y + py * off, lane, group);
+    let x: number;
+    let y: number;
+    if (pack) {
+      const a = rng.next() * Math.PI * 2;
+      const d = 0.9 * Math.sqrt(rng.next());
+      x = L.spawn.x + Math.cos(a) * d;
+      y = L.spawn.y + Math.sin(a) * d;
+    } else {
+      const off = (i - (count - 1) / 2) * 0.7 + (rng.next() - 0.5) * 0.3;
+      x = L.spawn.x + px * off;
+      y = L.spawn.y + py * off;
+    }
+    const e = s.spawnEnemy(enemy, x, y, lane, group);
     group ??= e.id;
   }
 }
@@ -193,6 +236,10 @@ export function startBuild(s: FullState, n: number): void {
     p.ready = false;
     if (p.respawnAt !== null) respawn(s, p);
   }
+  // Dead soldiers return at the base, and squads grow after boss waves (§8, FF9).
+  fillSquads(s);
+  // Each player's private pick of 3 upgrade cards (§6.1, FF12).
+  dealOffers(s);
   setPhase(s, 'build', s.cat.steps(s.cat.rules.buildCapMs));
 }
 
@@ -211,6 +258,9 @@ export function startCombat(s: FullState): void {
     p.ready = false;
     p.ghost = null;
   }
+  // Offers not taken are gone, and the wishlist clears at the wave start (§6.1, §6.2; FF12).
+  closeOffers(s);
+  clearWishlist(w);
   w.spawns.length = 0;
   const def = cat.wave(w.wave);
   if (def) {
@@ -239,7 +289,12 @@ export function startCombat(s: FullState): void {
         warned: false,
       });
     }
+    // A boss wave's boss walks in first, up its first lane (§9.2, FF11).
+    const boss = bossSpawn(def, w.tick + lead);
+    if (boss) w.spawns.push(boss);
   }
+  // The Hunters' tower threat picks up range cards and sentries bought in the build (FF10-fix-1).
+  s.rebuildFields();
   setPhase(s, 'combat', null);
 }
 

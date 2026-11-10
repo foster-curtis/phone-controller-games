@@ -235,6 +235,25 @@
 #tv-ui .row.primary.focus {
   --edge: var(--select);
 }
+#tv-ui .home .homeroom {
+  left: 96px;
+  top: 760px;
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  white-space: nowrap;
+}
+#tv-ui .home .homeroom .code {
+  font: 700 56px/1 var(--font-mono);
+  letter-spacing: 8px;
+}
+#tv-ui .home .homeroom .url {
+  color: var(--muted);
+  font-size: 24px;
+}
+#tv-ui .hud-wave .room {
+  letter-spacing: 2px;
+}
 #tv-ui .home .hint {
   left: 96px;
   top: 906px;
@@ -894,6 +913,45 @@
   text-align: center;
 }
 #tv-ui .restoring .body {
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 24px;
+}
+
+/* ---- team pause (FF14-fix-1): a scrim over the frozen run, the card inside the safe margin ---- */
+#tv-ui .paused-scrim {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim);
+}
+#tv-ui .paused-card {
+  position: absolute;
+  left: 560px;
+  top: 380px;
+  width: 800px;
+  box-sizing: border-box;
+  padding: 40px 32px;
+  text-align: center;
+  background: var(--surface-strong);
+  border-top: 8px solid var(--pc);
+  clip-path: var(--clip-chamfer);
+}
+#tv-ui .paused-card .banner {
+  color: var(--accent-text);
+}
+#tv-ui .paused-card .by {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+#tv-ui .paused-card .pip {
+  width: 8px;
+  height: 28px;
+  background: var(--pc);
+}
+#tv-ui .paused-card .body {
   margin-top: 16px;
   color: var(--muted);
   font-size: 24px;

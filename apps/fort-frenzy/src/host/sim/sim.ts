@@ -4,12 +4,15 @@
 import { content as defaultContent, type Content } from '../../content';
 import type { EnemyId, StructureId } from '../../shared/ids';
 import { createCatalog } from './catalog';
+import { stepThrown } from './classes/quartermaster';
+import { stepSquads } from './squad';
 import { stepArchers, stepMarkers, stepProjectiles, stepStructures } from './combat';
 import { applyCommands } from './commands';
 import { stepDeaths, stepEffects, stepPhases, stepSpawner } from './lifecycle';
 import { rebuildSpatial, stepMovement } from './movement';
 import { stepPlayers } from './players';
 import { aiKinds } from './registry';
+import { restoreSnapshot } from './snapshot';
 import { createState, neutralInput, type FullState } from './state';
 import type {
   EnemyEnt,
@@ -92,6 +95,12 @@ function sampleInputs(s: FullState, sources: Map<number, InputSource>, obs?: Ste
 function stepEnemies(s: FullState) {
   for (const e of s.world.enemies) {
     if (e.hp <= 0) continue;
+    // A stunned enemy stands still and loses any wind-up in progress (§9.6: the Warden's window).
+    if (e.effects.some((x) => x.def === 'stun')) {
+      e.vx = e.vy = 0;
+      e.attack.windupEndsAt = null;
+      continue;
+    }
     const def = s.cat.enemy(e.kind);
     aiKinds[def.ai]?.(s, e);
   }
@@ -100,6 +109,8 @@ function stepEnemies(s: FullState) {
 export function createSim(start: RunStart, opts: SimOptions = {}): Sim {
   const content = opts.content ?? defaultContent;
   const s = createState(start, createCatalog(content, start.settings.difficulty));
+  // A resumed run starts in the snapshot's build phase (§11.5, §15.8; FF14).
+  if (start.snapshot) restoreSnapshot(s, start.snapshot);
   const sources = new Map(opts.sources ?? []);
   const obs = opts.observer;
   let queue: SimCommand[] = [];
@@ -125,11 +136,14 @@ export function createSim(start: RunStart, opts: SimOptions = {}): Sim {
       stepStructures(s);
       stepArchers(s);
     }
+    // The Commanders' squads (FF9): follow or hold the flag in both phases, fight in combat.
+    if (w.phase === 'combat' || w.phase === 'build') stepSquads(s);
     // 5. integrate movement, soft separation, structure collision
     stepMovement(s);
     // 6. projectiles and area attacks
     stepProjectiles(s);
     stepMarkers(s);
+    stepThrown(s);
     // 7. status effects, onTick hooks
     stepEffects(s);
     // 8. deaths: hooks, coins, crate drops; destroyed blockers rebuild the flow fields

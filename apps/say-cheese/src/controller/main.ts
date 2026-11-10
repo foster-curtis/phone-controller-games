@@ -9,6 +9,7 @@ import { GAME_ID, type PhoneMsg } from '../shared/messages';
 import '../styles/brand.css';
 import '../styles/base.css';
 import '../styles/controller.css';
+import { mountVersionTag } from '../shared/version';
 import { createApp } from './app';
 import { createCamera } from './camera';
 import { createPhoneNet } from './net';
@@ -16,6 +17,7 @@ import { createPhotoStore } from './photos';
 import { createPhoneSfx } from './sfx';
 
 const root = document.getElementById('app') ?? document.body;
+mountVersionTag();
 
 function boot(): void {
   const code = new URLSearchParams(location.search).get('code')?.trim().toUpperCase() || null;

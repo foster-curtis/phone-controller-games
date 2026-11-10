@@ -23,6 +23,12 @@ const clipModules = import.meta.glob<Record<string, Clip>>('../../host/render/cl
   eager: true,
 });
 
+const sfxUrls = import.meta.glob<string>('../../../audio/neon-knights/*.mp3', {
+  query: '?url',
+  import: 'default',
+  eager: true,
+});
+
 const url = (path: string) => atlasUrls[`../../../generated/${path}`] ?? '';
 
 const atlases: AtlasRef[] = atlasFiles
@@ -58,7 +64,9 @@ export const neonKnightsHost: ThemeHost = {
     // The pulse turret, walls, nets and Fortify are frame stacks, not rigs (render/structures.ts).
     structure: { bomb_tower: 'mortar' },
   },
-  sfx: {},
+  sfx: Object.fromEntries(
+    Object.entries(sfxUrls).map(([p, u]) => [p.slice(p.lastIndexOf('/') + 1, -4), u]),
+  ) as ThemeHost['sfx'],
   map: {
     ground: [fk('ground/1'), fk('ground/2'), fk('ground/3'), fk('ground/4')],
     edges: {
@@ -77,5 +85,9 @@ export const neonKnightsHost: ThemeHost = {
       right: { open: fk('lane/right-open'), sealed: fk('lane/right-sealed') },
     },
     decor: [fk('decor/grate'), fk('decor/plate'), fk('decor/lines'), fk('decor/crack')],
+    // C3: the art's #262b33 stone sat at the violet-iron hulls' luminance (1.0–1.2:1), so enemies
+    // vanished. Lifted to #62676f: ink outlines 3.4:1, hulls 2.1–2.6:1, still under the bloom and
+    // darker than every glow (BUILD_PLAN §8 FF3-fix-2; floor-contrast.test.ts).
+    floorLift: 0x3c3c3c,
   },
 };

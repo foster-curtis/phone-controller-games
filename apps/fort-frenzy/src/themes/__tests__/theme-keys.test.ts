@@ -36,7 +36,7 @@ describe('theme key whitelist (neon knights)', () => {
     for (const k of keysOf(neonKnightsHost)) expect(allowed, k).toContain(k);
     expect(keysOf(neonKnightsHost.rigFor)).toEqual(['class', 'enemy', 'soldier', 'structure']);
     for (const k of keysOf(neonKnightsHost.map))
-      expect(['decor', 'edges', 'ground', 'lanes'], k).toContain(k);
+      expect(['decor', 'edges', 'floorLift', 'ground', 'lanes'], k).toContain(k);
     for (const a of neonKnightsHost.atlases)
       expect(keysOf(a)).toEqual(['image', 'json', 'key', 'scale']);
     for (const r of Object.values(neonKnightsHost.rigs)) {

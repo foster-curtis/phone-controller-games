@@ -3,7 +3,10 @@
 // Plain TS: no Phaser, no net-client, no themes, no DOM (lint, §15.1). Units: tiles, ticks (60 Hz
 // steps); config times in ms are converted to ticks at load.
 // Frozen at FF1 (BUILD_PLAN §3): additive changes only (new optional fields, new union members).
-// FF6 added `Unit.push` and `BaseState.stage`.
+// FF6 added `Unit.push` and `BaseState.stage`; FF9 added `ThrownCrate` and `World.thrown`; FF10 added
+// `EnemyEnt.wander`; FF8 added `AttackState.windupAim`; FF11 added `BossAct` and the optional
+// `EnemyEnt.boss` fields `act`, `ready` and `stunAt`; FF12 added `HealCalc` and `Hooks.modifyHeal`;
+// FF7-fix-4 added `AttackState.held`.
 import type { Rng } from '@pcg/game-kit';
 import type {
   EffectApply,
@@ -93,6 +96,14 @@ export interface AttackState {
   aim: Vec2;
   /** Wind-up in progress: lands at this tick (null = none). */
   windupEndsAt: number | null;
+  /** A player's wound-up attack lands in this direction (FF8; `aim` keeps queueing presses). */
+  windupAim?: Vec2 | null;
+  /**
+   * A player's held aim (FF7-fix-4, FF7-fix-5): `out` while it is outside the dead zone, `cancelled`
+   * while it is back inside (a release would cancel; the aim line hides until the thumb drags out
+   * again), null when not held.
+   */
+  held?: 'out' | 'cancelled' | null;
 }
 
 export interface PlayerEnt extends Unit {
@@ -153,9 +164,44 @@ export interface EnemyEnt extends Unit {
   leashFrom: Vec2 | null;
   /** Hunter's quarry (slot). */
   hunting: number | null;
+  /**
+   * Hunter only (FF10-fix-1): the tick it took its current quarry (first pick or a change), which
+   * drives the TV's ~2 s player-color flash at its feet. Absent for other enemies.
+   */
+  huntSince?: number;
   attack: AttackState;
+  /**
+   * Scrap-mite jitter (FF10; §15.3: in the sim, combat stream): sideways drift (−1..1), pace factor
+   * (0 = a short stop) and the tick it re-rolls. Absent for other enemies.
+   */
+  wander?: { side: number; pace: number; until: number };
   /** Boss only: stagger meter 0..1 and Mk tier. */
-  boss?: { mk: 1 | 2 | 3; stagger: number; staggeredUntil: number | null; finalPhase: boolean };
+  boss?: {
+    mk: 1 | 2 | 3;
+    stagger: number;
+    staggeredUntil: number | null;
+    finalPhase: boolean;
+    /** FF11: the attack winding up (it lands or launches at `act.at`), null between attacks. */
+    act?: BossAct | null;
+    /** FF11: tick from which each of the boss's attacks may start again, by attack. */
+    ready?: Record<string, number>;
+    /** FF11: tick of the last stun that filled the stagger meter (one counts per lockout). */
+    stunAt?: number | null;
+  };
+}
+
+/**
+ * A boss attack in progress (FF11, §9.2): what it is (`slam`, `breaker`, `boulder`, `call` for the
+ * Colossus), when it started and lands, where it lands, what it aims at and its danger marker.
+ */
+export interface BossAct {
+  kind: string;
+  startedAt: number;
+  at: number;
+  x: number;
+  y: number;
+  target: EntityId | null;
+  marker: EntityId | null;
 }
 
 /** Structures and the base are damage targets with mods (tower defense, base armor), so units. */
@@ -205,6 +251,26 @@ export interface CratePile {
   /** The slot that dropped it can't pick it back up until `lockedUntil` (§10.1, ~1 s). */
   lockedSlot: number | null;
   lockedUntil: number;
+}
+
+/**
+ * A crate a Quartermaster threw (§6, §10.1 row 6; FF9). It flies from the launch point to the
+ * receiver, following them, and lands at `landsAt`: caught if they're still up with room, otherwise
+ * dropped where it lands.
+ */
+export interface ThrownCrate {
+  id: EntityId;
+  /** Thrower's and receiver's slots. */
+  from: number;
+  to: number;
+  /** Launch point (tiles). */
+  x0: number;
+  y0: number;
+  /** Landing point: the receiver's position, followed each step in flight. */
+  x: number;
+  y: number;
+  launchedAt: number;
+  landsAt: number;
 }
 
 /** A telegraphed attack (boss wind-ups): shape, position, when it lands, what it does (§9.2). */
@@ -267,6 +333,11 @@ export interface SpatialHash {
   insert(id: EntityId, x: number, y: number, r: number): void;
   /** Ids whose circles touch (x, y, r), ascending, into `out`. */
   query(x: number, y: number, r: number, out: EntityId[]): EntityId[];
+  /**
+   * FF10-fix-2: ids whose circles' boxes touch the box x0..x1 × y0..y1, ascending, into `out` (body
+   * hitboxes reach up the screen from the feet, so hit tests look further south than north).
+   */
+  queryBox(x0: number, y0: number, x1: number, y1: number, out: EntityId[]): EntityId[];
 }
 
 export interface BaseState extends Unit {
@@ -316,6 +387,8 @@ export interface World {
   structures: StructureEnt[];
   projectiles: ProjectileEnt[];
   cratePiles: CratePile[];
+  /** Crates in flight (FF9; the sim always sets it). */
+  thrown?: ThrownCrate[];
   /** Telegraphs: shape, position, landsAt, payload. */
   markers: DangerMarker[];
   spawns: PendingSpawn[];
@@ -415,6 +488,13 @@ export interface HealResult {
   overflow: number;
 }
 
+/** A heal about to land (FF12): the healer's `modifyHeal` hooks may change `amount` (Triage). */
+export interface HealCalc {
+  source: EntityId | null;
+  target: EntityId;
+  amount: number;
+}
+
 /** An effect about to be applied (`beforeEffect` may refuse it). */
 export interface EffectApplyEvent extends EffectApply {
   source: EntityId | null;
@@ -433,6 +513,8 @@ export interface Hooks {
   onKill(ctx: SimCtx, self: Unit, victim: Unit): void;
   onDeath(ctx: SimCtx, self: Unit, killer: Unit | null): void; // Wildfire, Plague
   onPhase(ctx: SimCtx, self: Unit, phase: Phase): void; // Veterans
+  /** FF12: before a heal this unit gives lands (Triage doubles it on players below 30% HP). */
+  modifyHeal(ctx: SimCtx, self: Unit, h: HealCalc): void;
 }
 
 /** Passives, cards, status effects, auras and boss behaviors share this shape (§15.3). */
@@ -455,6 +537,7 @@ export type { ModuleRef };
 export interface EffectDef {
   id: EffectId;
   stacking: 'refresh' | 'strongest' | 'stack';
+  /** Unused since the balance pass: content's `RulesDef.dots` gives the stack cap and tick (frozen). */
   maxStacks?: number;
   tickEveryMs?: number;
   modifier(strength: number): Modifier;

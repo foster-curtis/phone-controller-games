@@ -1,5 +1,6 @@
 // Determinism (SPEC §15.3, §15.9): the same seed and inputs, run twice, give identical state hashes.
 import { describe, expect, it } from 'vitest';
+import { content } from '../../../content';
 import { AutopilotInputSource, createSim, ScriptedInputSource, stateHash } from '../index';
 import type { InputSource } from '../types';
 import { startOf } from './harness';
@@ -22,7 +23,8 @@ function runHashes(
   mk: (slot: number, sim: ReturnType<typeof createSim>) => InputSource,
 ) {
   const start = startOf(2, seed);
-  const sim = createSim(start);
+  // The first two waves (FF10: Grunts and Runners), so a run reaches its summary.
+  const sim = createSim(start, { content: { ...content, waves: content.waves.slice(0, 2) } });
   for (const s of start.slots) sim.setSource(s.slot, mk(s.slot, sim));
   // Invincible players, so both waves run to the end however the inputs play.
   sim.command({ c: 'debug', slot: -1, action: 'invincible', on: true });
@@ -55,6 +57,30 @@ describe('determinism', () => {
     const b = runHashes(11, mk);
     expect(a.maxWave).toBe(2);
     expect(a.phase).toBe('summary');
+    expect(b.hashes).toEqual(a.hashes);
+  });
+
+  it('the whole roster (wave 14: every AI, shells, packs, hunted fields) replays identically', () => {
+    const run = () => {
+      const start = startOf(3, 9);
+      const sim = createSim(start);
+      for (const s of start.slots) sim.setSource(s.slot, wanderer(s.slot));
+      sim.command({ c: 'debug', slot: -1, action: 'invincible', on: true });
+      sim.command({ c: 'debug', slot: -1, action: 'jumpWave', wave: 14 });
+      sim.step();
+      for (const p of sim.world.players) sim.command({ c: 'ready', slot: p.slot, ready: true });
+      const hashes: number[] = [];
+      const kinds = new Set<string>();
+      for (let i = 0; i < 60 * 60; i++) {
+        sim.step();
+        for (const e of sim.world.enemies) kinds.add(e.kind);
+        if (sim.world.tick % 60 === 0) hashes.push(stateHash(sim.world));
+      }
+      return { hashes, kinds };
+    };
+    const a = run();
+    const b = run();
+    expect(a.kinds.has('hunter') && a.kinds.has('siege') && a.kinds.has('brute')).toBe(true);
     expect(b.hashes).toEqual(a.hashes);
   });
 

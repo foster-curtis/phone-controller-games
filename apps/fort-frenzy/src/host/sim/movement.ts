@@ -21,7 +21,15 @@ export function rebuildSpatial(s: FullState): void {
 const bodies: Unit[] = [];
 let pushX = new Float64Array(256);
 let pushY = new Float64Array(256);
-const index = new Map<number, number>();
+// Separation's grid (FF15 perf): typed copies of the bodies, binned by center into 1-tile cells.
+const GRID_MARGIN = 3;
+let bx = new Float64Array(256);
+let by = new Float64Array(256);
+let br = new Float64Array(256);
+let bid = new Float64Array(256);
+let bodyNext = new Int32Array(256);
+let near = new Int32Array(256);
+let cellHead = new Int32Array(0);
 
 function integrate(u: Unit, decay: number) {
   let vx = u.vx;
@@ -47,6 +55,7 @@ export function stepMovement(s: FullState): void {
     integrate(p, decay);
     bodies.push(p);
   }
+  const players = bodies.length;
   for (const u of w.soldiers) {
     if (u.hp <= 0) continue;
     integrate(u, decay);
@@ -60,36 +69,93 @@ export function stepMovement(s: FullState): void {
 
   rebuildSpatial(s);
   separate(s);
-  for (const u of bodies) collide(s, u, s.kinds.get(u.id) === 'player');
+  // Players come first in `bodies`.
+  for (let i = 0; i < bodies.length; i++) collide(s, bodies[i]!, i < players);
   for (const e of w.enemies) if (e.flying) collide(s, e, false);
 }
 
-/** Jacobi soft separation: each overlapping pair is pushed apart by a fraction of the overlap. */
+/**
+ * Jacobi soft separation: each overlapping pair is pushed apart by a fraction of the overlap.
+ *
+ * FF15 perf: pairs come from a center-binned grid over typed copies of the bodies (the spatial-hash
+ * query per body, Map lookups and megamorphic property reads were a third of the peak step in dense
+ * Swarm packs). Each body still visits its overlapping neighbors of higher id in ascending id order,
+ * as the sorted hash query did, so every push sums in the same order: the state hash is unchanged.
+ */
 function separate(s: FullState) {
   const n = bodies.length;
   if (pushX.length < n) {
-    pushX = new Float64Array(n * 2);
-    pushY = new Float64Array(n * 2);
+    const cap = n * 2;
+    pushX = new Float64Array(cap);
+    pushY = new Float64Array(cap);
+    bx = new Float64Array(cap);
+    by = new Float64Array(cap);
+    br = new Float64Array(cap);
+    bid = new Float64Array(cap);
+    bodyNext = new Int32Array(cap);
+    near = new Int32Array(cap);
   }
-  pushX.fill(0, 0, n);
-  pushY.fill(0, 0, n);
-  index.clear();
-  for (let i = 0; i < n; i++) index.set(bodies[i]!.id, i);
-  const k = s.cat.rules.separation * 0.5;
-  const out = s.scratch;
+  const { cols, rows } = s.world.grid;
+  const gw = cols + 2 * GRID_MARGIN;
+  const gh = rows + 2 * GRID_MARGIN;
+  if (cellHead.length !== gw * gh) cellHead = new Int32Array(gw * gh);
+  cellHead.fill(-1);
+  let maxR = 0;
   for (let i = 0; i < n; i++) {
-    const a = bodies[i]!;
-    s.world.spatial.query(a.x, a.y, a.r + 0.6, out);
-    for (const id of out) {
-      if (id <= a.id) continue;
-      const j = index.get(id);
-      if (j === undefined) continue;
-      const b = bodies[j]!;
-      let dx = b.x - a.x;
-      let dy = b.y - a.y;
-      const rr = a.r + b.r;
+    const b = bodies[i]!;
+    const x = b.x;
+    const y = b.y;
+    bx[i] = x;
+    by[i] = y;
+    br[i] = b.r;
+    bid[i] = b.id;
+    pushX[i] = 0;
+    pushY[i] = 0;
+    if (b.r > maxR) maxR = b.r;
+    const c =
+      Math.min(gh - 1, Math.max(0, Math.floor(y) + GRID_MARGIN)) * gw +
+      Math.min(gw - 1, Math.max(0, Math.floor(x) + GRID_MARGIN));
+    bodyNext[i] = cellHead[c]!;
+    cellHead[c] = i;
+  }
+  const k = s.cat.rules.separation * 0.5;
+  for (let i = 0; i < n; i++) {
+    const ax = bx[i]!;
+    const ay = by[i]!;
+    const ar = br[i]!;
+    const aid = bid[i]!;
+    // Every body that can overlap this one has its center within ar + maxR (cells are monotone).
+    const reach = ar + maxR;
+    const x0 = Math.min(gw - 1, Math.max(0, Math.floor(ax - reach) + GRID_MARGIN));
+    const x1 = Math.min(gw - 1, Math.max(0, Math.floor(ax + reach) + GRID_MARGIN));
+    const y0 = Math.min(gh - 1, Math.max(0, Math.floor(ay - reach) + GRID_MARGIN));
+    const y1 = Math.min(gh - 1, Math.max(0, Math.floor(ay + reach) + GRID_MARGIN));
+    let m = 0;
+    for (let gy = y0; gy <= y1; gy++) {
+      for (let gx = x0; gx <= x1; gx++) {
+        for (let j = cellHead[gy * gw + gx]!; j !== -1; j = bodyNext[j]!) {
+          const id = bid[j]!;
+          if (id <= aid) continue;
+          const dx = bx[j]! - ax;
+          const dy = by[j]! - ay;
+          const rr = ar + br[j]!;
+          if (dx * dx + dy * dy >= rr * rr) continue;
+          // Insert by id (lists are short).
+          let q = m++;
+          while (q > 0 && bid[near[q - 1]!]! > id) {
+            near[q] = near[q - 1]!;
+            q--;
+          }
+          near[q] = j;
+        }
+      }
+    }
+    for (let q = 0; q < m; q++) {
+      const j = near[q]!;
+      let dx = bx[j]! - ax;
+      let dy = by[j]! - ay;
+      const rr = ar + br[j]!;
       const d2 = dx * dx + dy * dy;
-      if (d2 >= rr * rr) continue;
       let d = Math.sqrt(d2);
       if (d < 1e-9) {
         // Exactly stacked: split along x, lower id to the left.
@@ -108,8 +174,9 @@ function separate(s: FullState) {
     }
   }
   for (let i = 0; i < n; i++) {
-    bodies[i]!.x += pushX[i]!;
-    bodies[i]!.y += pushY[i]!;
+    const b = bodies[i]!;
+    b.x += pushX[i]!;
+    b.y += pushY[i]!;
   }
 }
 

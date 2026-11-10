@@ -9,6 +9,7 @@ import type {
   EffectApply,
   EnemyEnt,
   EntityId,
+  FlowField,
   Hooks,
   Modifier,
   PlayerEnt,
@@ -77,7 +78,7 @@ export interface SimState extends SimCtx {
   tick(): number;
   modifiers(u: Unit): readonly Modifier[];
   hooks<K extends keyof Hooks>(u: Unit, key: K): NonNullable<Hooks[K]>[];
-  attackStat(u: Unit, base: number, stat: StatId, scope?: 'main' | 'super'): number;
+  attackStat(u: Unit, base: number, stat: StatId, scope?: 'main' | 'super' | 'passive'): number;
   player(slot: number): PlayerEnt | undefined;
   /** Alive, connected (not dazed) players are the only ones enemies can target (§11.3). */
   targetable(p: PlayerEnt): boolean;
@@ -90,6 +91,12 @@ export interface SimState extends SimCtx {
   placeStructure(kind: StructureId, col: number, row: number, owner: number): StructureEnt;
   /** Marks the flow fields for a rebuild (a blocker placed or destroyed). */
   fieldsDirty(): void;
+  /**
+   * The ground field toward the player in `slot` (Hunters, §15.5), kept in `world.fields.hunted`:
+   * built on first use, rebuilt when that player moves to a new tile or the fields rebuild. Null if
+   * there's no such player.
+   */
+  huntField(slot: number): FlowField | null;
 }
 
 /** The registered behaviors receive the frozen `SimCtx`; the sim always passes its `SimState`. */

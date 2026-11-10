@@ -4,6 +4,7 @@ import { relayUrl } from '@pcg/game-kit';
 import { createControllerClient } from '@pcg/net-client';
 import '../styles/brand.css';
 import { GAME_ID } from '../shared/messages';
+import { mountVersionTag } from '../shared/version';
 import { createApp } from './app';
 import './controller.css';
 import { startDev } from './devMode';
@@ -11,6 +12,7 @@ import { startDev } from './devMode';
 function boot(): void {
   const root = document.getElementById('app');
   if (!root) return;
+  mountVersionTag();
   const params = new URLSearchParams(location.search);
 
   if (isDevMode(location.search)) {

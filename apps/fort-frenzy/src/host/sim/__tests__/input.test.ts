@@ -1,6 +1,6 @@
 // Input sources and press counters (SPEC §11.4 freshness, §15.3 counters and baselines).
 import { describe, expect, it } from 'vitest';
-import { rules } from '../../../content/base';
+import { rules } from '../../../content/balance';
 import { createSim, FreshInputSource, neutralInput, ScriptedInputSource } from '../index';
 import type { PlayerInput } from '../types';
 import { harness, startOf } from './harness';

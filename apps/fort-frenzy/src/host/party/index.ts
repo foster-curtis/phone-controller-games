@@ -49,8 +49,21 @@ export type ColorResult = { ok: true } | { ok: false; reason: ColorRefusal };
 export type ConnectResult<Color extends string, Cls extends string> =
   { kind: 'joined' | 'rejoined'; member: Readonly<Member<Color, Cls>> } | { kind: 'full' };
 
-/** What a member's phone shows, as far as the party knows ('run' = the sim decides). */
-export type PartyScreen = 'name' | 'lobby' | 'waiting' | 'run';
+/**
+ * What a member's phone shows, as far as the party knows ('run' = the sim decides; 'claim' = pick a
+ * restored slot, FF14).
+ */
+export type PartyScreen = 'name' | 'lobby' | 'waiting' | 'run' | 'claim';
+
+/** One slot of a resumed run (FF14, §11.5): who held it and the reconnect identity they had. */
+export interface RestoredSlot<Color extends string = string, Cls extends string = string> {
+  slot: number;
+  key: string | null;
+  deviceId: string | null;
+  name: string;
+  color: Color;
+  classId: Cls;
+}
 
 export interface PartyOptions<Color extends string> {
   /** Assigned in this order, lowest free first (brand order, §2.3), skipping chosen colors. */
@@ -110,6 +123,20 @@ export interface Party<Color extends string, Cls extends string> {
   screen(playerId: string): PartyScreen | null;
   /** Back to the lobby: slots and ready cleared; names, colors and classes kept. */
   endRun(): void;
+  /**
+   * FF14 (§11.5, §15.8): a resumed run. The members become the snapshot's slots, away until a phone
+   * matches one (playerId, key, then device ID); the stage is `build`; `leaderKey` picks the leader.
+   * With `claimable`, unmatched slots can be claimed by an unknown phone (resume into a new room).
+   */
+  restore(
+    slots: readonly RestoredSlot<Color, Cls>[],
+    leaderKey: string | null,
+    opts?: { claimable?: boolean },
+  ): void;
+  /** Restored slots no phone has matched or claimed yet, by slot. */
+  claimable(): Readonly<Member<Color, Cls>>[];
+  /** An unknown phone (no slot) takes a claimable slot: that slot's member gets its ids. */
+  claim(playerId: string, slot: number): PartyResult;
 }
 
 /** Trims, collapses whitespace, drops control characters and keeps the first `max` characters. */
@@ -133,9 +160,15 @@ export function createParty<Color extends string, Cls extends string>(
   const members: M[] = [];
   let leaderId: string | null = null;
   let stage: PartyStage = 'lobby';
+  /** Restored slots still open to a claim (FF14). */
+  const open = new Set<number>();
 
   const find = (playerId: string) => members.find((m) => m.playerId === playerId) ?? null;
-  const freeColor = () => colors.find((c) => !members.some((m) => m.color === c))!;
+  // With every color held by restored slots, a phone that is about to claim one borrows the first
+  // open slot's color until it does (FF14).
+  const freeColor = () =>
+    colors.find((c) => !members.some((m) => m.color === c)) ??
+    members.find((m) => m.slot !== null && open.has(m.slot))!.color;
   const slotOf = (m: M): PartySlot<Color, Cls> => ({
     slot: m.slot!,
     playerId: m.playerId,
@@ -179,10 +212,12 @@ export function createParty<Color extends string, Cls extends string>(
         m.key = newRoom && key ? key : (m.key ?? key);
         m.deviceId = m.deviceId ?? deviceId;
         m.connected = true;
+        if (m.slot !== null) open.delete(m.slot);
         updateLeader();
         return { kind: 'rejoined', member: m };
       }
-      if (members.length >= maxPlayers) return { kind: 'full' };
+      // A phone may still come in to claim an open restored slot (FF14).
+      if (members.length >= maxPlayers && open.size === 0) return { kind: 'full' };
       const fresh: M = {
         playerId,
         key,
@@ -298,16 +333,60 @@ export function createParty<Color extends string, Cls extends string>(
       const m = find(playerId);
       if (!m) return null;
       if (m.slot !== null) return 'run';
+      if (open.size > 0) return 'claim';
       if (stage === 'combat') return 'waiting';
       return m.name ? 'lobby' : 'name';
     },
 
     endRun() {
       stage = 'lobby';
+      open.clear();
       for (const m of members) {
         m.slot = null;
         m.ready = false;
       }
+    },
+
+    restore(slots, leaderKey, o = {}) {
+      members.length = 0;
+      open.clear();
+      for (const s of [...slots].sort((a, b) => a.slot - b.slot)) {
+        members.push({
+          // Placeholder until a phone matches the slot (relay ids never look like this).
+          playerId: `restored:${s.slot}`,
+          key: s.key,
+          deviceId: s.deviceId,
+          name: s.name,
+          color: s.color,
+          classId: s.classId,
+          ready: false,
+          connected: false,
+          slot: s.slot,
+        });
+        if (o.claimable) open.add(s.slot);
+      }
+      stage = 'build';
+      const lead = leaderKey === null ? undefined : members.find((m) => m.key === leaderKey);
+      leaderId = (lead ?? members[0])?.playerId ?? null;
+    },
+
+    claimable: () => members.filter((m) => m.slot !== null && open.has(m.slot)),
+
+    claim(playerId, slot) {
+      const fresh = find(playerId);
+      if (!fresh) return no('invalid');
+      if (fresh.slot !== null) return no('phase');
+      const target = members.find((m) => m.slot === slot);
+      if (!target || !open.has(slot)) return no('invalid');
+      members.splice(members.indexOf(fresh), 1);
+      if (leaderId === target.playerId || leaderId === fresh.playerId) leaderId = playerId;
+      target.playerId = playerId;
+      target.key = fresh.key ?? target.key;
+      target.deviceId = fresh.deviceId ?? target.deviceId;
+      target.connected = true;
+      open.delete(slot);
+      updateLeader();
+      return ok;
     },
   };
   return party;

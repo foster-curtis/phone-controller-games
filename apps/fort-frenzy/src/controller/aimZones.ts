@@ -5,9 +5,9 @@
 // tuple encoding is the same as a fixed aimed button. The kit's `bindGesture` is one element per
 // machine with a fixed origin, so this composes the machine here. Extraction candidate: a kit
 // `bindZonedGestures` (several machines, one surface, a picker, a floating origin).
-import { aimedGesture, el, type AimedState } from '@pcg/controller-kit';
+import { el, type AimedState } from '@pcg/controller-kit';
 import {
-  AIM_MAX_PX,
+  aimGesture,
   encodeAimed,
   encodeAimedState,
   type AttackKey,
@@ -31,14 +31,14 @@ export interface AimZones {
   destroy(): void;
 }
 
-type Machine = ReturnType<typeof aimedGesture>;
+type Machine = ReturnType<typeof aimGesture>;
 type Input = Parameters<Machine['step']>[1];
 
 export function mountAimZones(parent: HTMLElement, o: AimZoneOptions): AimZones {
   const zone = el('div', { class: 'attack-zone', 'data-zone': 'attack' });
   parent.append(zone);
   const now = o.now ?? (() => Date.now());
-  const machine = aimedGesture({ maxPx: AIM_MAX_PX });
+  const machine = aimGesture();
   let aimed: readonly AttackKey[] = [];
   let active: { id: number; key: AttackKey; ox: number; oy: number; state: AimedState } | null =
     null;

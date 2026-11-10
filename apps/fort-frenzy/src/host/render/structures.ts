@@ -1,8 +1,10 @@
 // Structures (SPEC §3.6, §7.2, §15.2): the pulse-turret stack with 8-aim heads, the mortar rig with
 // its clamped tube, the Citadel with sentries, damage stages and rubble, and the wall / shock-net
-// autotile fields. Everything here is ours: gunmetal and amber.
+// autotile fields with per-tile states and the Fortify dome (FF8; the build and destroy animations
+// are in buildFx.ts). Everything here is ours: gunmetal and amber.
 import type { Point } from '../../themes/types';
 import type { ArtImage } from './atlas';
+import { chargedFlicker, damageFlicker, NET_FLASH_MS, netAlpha, rippleScale } from './structureFx';
 import { mortarTubeAngle, snapSentryAim, snapTurretAim } from './aim';
 import { masksFor } from './autotile';
 import {
@@ -46,6 +48,9 @@ function setVisible(a: ArtImage | null | undefined, on: boolean) {
   a?.img.setVisible(on);
 }
 
+/** The upgrade flash (§7.2 states, FF12): how long every image of a structure stays white. */
+export const UPGRADE_FLASH_MS = 220;
+
 // ---- pulse turret ---------------------------------------------------------------------------------
 
 /** Muzzle attach indices per tier: the base head has one barrel, II and III twin barrels (§7.2). */
@@ -65,6 +70,7 @@ export class PulseTurret {
   private fortFront: ArtImage;
   private tier: TowerTier = 0;
   private _aim: TurretAim = 's';
+  private rippleAge: number | null = null;
   private unlit = false;
   readonly sx: number;
   readonly sy: number;
@@ -161,6 +167,25 @@ export class PulseTurret {
     for (const m of this.muzzles()) fx.burst('muzzle-ours', m.sx, m.sy, rotation);
   }
 
+  /** The dome ripples when it absorbs a hit (§7.2, FF8). */
+  ripple() {
+    this.rippleAge = 0;
+  }
+
+  update(dtMs: number) {
+    if (this.rippleAge === null) return;
+    this.rippleAge += dtMs;
+    const s = rippleScale(this.rippleAge);
+    for (const a of [this.fortBack, this.fortFront])
+      this.ctx.lib.setUnitScale(a, this.ctx.unitPx, s);
+    if (s === 1) this.rippleAge = null;
+  }
+
+  /** Every image, back to front (the build and destroy animations, FF8). */
+  images(): ArtImage[] {
+    return [this.plate, this.pedestal, ...this.bands.filter((b) => b.img.visible), this.head];
+  }
+
   private refreshHead() {
     this.ctx.lib.setFrame(this.head, turretHeadFrame(this.tier, this._aim), this.unlit);
     this.ctx.lib.setOrigin(this.head, [0, 0]);
@@ -195,12 +220,15 @@ export function mortarGroups(tier: TowerTier): string[] {
 
 export class Mortar {
   private plate: ArtImage;
+  private bonus: ArtImage;
   readonly sx: number;
   readonly sy: number;
   private tubeRad = 0;
+  private fort: { back: ArtImage; front: ArtImage } | null = null;
+  private rippleAge: number | null = null;
 
   constructor(
-    ctx: RenderContext,
+    private readonly ctx: RenderContext,
     readonly rig: RigSprite,
     x: number,
     y: number,
@@ -210,7 +238,14 @@ export class Mortar {
     this.sy = sy;
     // `plate/tile` under it, centered on the rig's foot (art README).
     this.plate = placeFrame(ctx, fk('plate/tile'), 'groundOverlay', sx, sy);
+    // The Artificer's super buff (FF12): shield pips on the plate's front edge, like the turret's.
+    this.bonus = placeFrame(ctx, fk('defense-bonus'), 'world', sx, sy, { sortY: sy + EPS / 2 });
+    this.bonus.img.setVisible(false);
     rig.setPosition(sx, sy);
+  }
+
+  setDefenseBonus(on: boolean) {
+    setVisible(this.bonus, on);
   }
 
   setTier(tier: TowerTier) {
@@ -232,8 +267,56 @@ export class Mortar {
     return this.tubeRad;
   }
 
+  /** Fortify (FF8): the dome's back half before the rig, its front half after. */
+  setFortify(on: boolean) {
+    if (on && !this.fort) {
+      const at = (name: string, d: number) =>
+        placeFrame(this.ctx, name, 'world', this.sx, this.sy, { sortY: this.sy + d });
+      this.fort = { back: at(fk('fortify/back'), -EPS), front: at(fk('fortify/front'), EPS) };
+    } else if (!on && this.fort) {
+      this.fort.back.img.destroy();
+      this.fort.front.img.destroy();
+      this.fort = null;
+    }
+  }
+
+  /** The dome ripples when it absorbs a hit (§7.2). */
+  ripple() {
+    this.rippleAge = 0;
+  }
+
+  /** The shot (FF8): recoil clip and the amber flash at the muzzle (tier III: the brake's). */
+  fire(fx: EffectSpawner) {
+    this.rig.play('attack', { restart: true, fadeMs: 0 });
+    const m = this.muzzle();
+    if (m) fx.burst('muzzle-ours', m.sx, m.sy, this.tubeRad - Math.PI / 2);
+  }
+
+  /** Where the shell leaves: the tube's end (screen px). */
+  muzzle(): ScreenPoint | null {
+    return this.rig.isGroupOn('iii')
+      ? (this.rig.attach('muzzle-iii') ?? this.rig.attach('muzzle'))
+      : this.rig.attach('muzzle');
+  }
+
+  /** Plate and Fortify images (the build and destroy animations; the rig grows on its own). */
+  images(): ArtImage[] {
+    return [this.plate, ...(this.fort ? [this.fort.back, this.fort.front] : [])];
+  }
+
+  update(dtMs: number) {
+    if (this.rippleAge === null || !this.fort) return;
+    this.rippleAge += dtMs;
+    const s = rippleScale(this.rippleAge);
+    for (const a of [this.fort.back, this.fort.front])
+      this.ctx.lib.setUnitScale(a, this.ctx.unitPx, s);
+    if (s === 1) this.rippleAge = null;
+  }
+
   destroy() {
+    this.setFortify(false);
     this.plate.img.destroy();
+    this.bonus.img.destroy();
     this.rig.destroy();
   }
 }
@@ -498,43 +581,139 @@ export interface WallTile {
   damaged?: boolean;
 }
 
-/** Walls: rail (ground), wall (world, y-sorted at the tile center), charged and damage overlays. */
+interface WallImages {
+  tile: WallTile;
+  rail: ArtImage;
+  wall: ArtImage;
+  charged: ArtImage | null;
+  dmg: ArtImage | null;
+  seed: number;
+}
+
+/**
+ * Walls: rail (ground), wall (world, y-sorted at the tile center), charged and damage overlays (§7.2).
+ * Masks come from the neighbors, so the shared-post rule baked into the frames holds (art README).
+ * `set` rebuilds the field (call it only when walls or their states change); `update` flickers the
+ * damaged glow and the charged crackle with alpha only.
+ */
 export class WallField {
-  private images: ArtImage[] = [];
+  private tiles = new Map<string, WallImages>();
+  private t = 0;
   constructor(private readonly ctx: RenderContext) {}
 
   set(tiles: readonly WallTile[], unlit = false) {
-    for (const a of this.images) a.img.destroy();
-    this.images = [];
+    for (const w of this.tiles.values()) for (const a of wallImages(w)) a.img.destroy();
+    this.tiles.clear();
     const masks = masksFor(tiles.map((t) => [t.c, t.r] as const));
     for (const t of tiles) {
       const m = masks.get(`${t.c},${t.r}`) ?? 0;
       const { sx, sy } = this.ctx.camera.worldToScreen(t.c + 0.5, t.r + 0.5);
       const add = (name: string, layer: 'groundOverlay' | 'world', i: number) =>
-        this.images.push(placeFrame(this.ctx, name, layer, sx, sy, { sortY: sy + i * EPS, unlit }));
-      add(wallRailFrame(m), 'groundOverlay', 0);
-      add(wallFrame(m), 'world', 0);
-      if (t.charged) add(wallChargedFrame(m), 'world', 1);
-      if (t.damaged) add(wallDmgFrame(m), 'world', 2);
+        placeFrame(this.ctx, name, layer, sx, sy, { sortY: sy + i * EPS, unlit });
+      this.tiles.set(`${t.c},${t.r}`, {
+        tile: t,
+        rail: add(wallRailFrame(m), 'groundOverlay', 0),
+        wall: add(wallFrame(m), 'world', 0),
+        charged: t.charged ? add(wallChargedFrame(m), 'world', 1) : null,
+        dmg: t.damaged ? add(wallDmgFrame(m), 'world', 2) : null,
+        seed: t.c * 131 + t.r * 7,
+      });
     }
+  }
+
+  /** The images of the wall on (c, r), back to front (build and destroy animations). */
+  at(c: number, r: number): ArtImage[] {
+    const w = this.tiles.get(`${c},${r}`);
+    return w ? wallImages(w) : [];
+  }
+
+  update(dtMs: number) {
+    this.t += dtMs;
+    for (const w of this.tiles.values()) {
+      if (w.tile.damaged) w.wall.img.setAlpha(damageFlicker(this.t, w.seed));
+      if (w.charged) w.charged.img.setAlpha(chargedFlicker(this.t, w.seed));
+    }
+  }
+
+  destroy() {
+    this.set([]);
   }
 }
 
-/** Shock nets on the ground; adjacent nets join into one field. */
+function wallImages(w: WallImages): ArtImage[] {
+  return [w.rail, w.wall, ...(w.charged ? [w.charged] : []), ...(w.dmg ? [w.dmg] : [])];
+}
+
+export interface NetTile {
+  c: number;
+  r: number;
+  /** Discharges left and the full count (the glow dims as they run out, §7.1). */
+  left?: number;
+  max?: number;
+  /** False while rearming. */
+  armed?: boolean;
+}
+
+interface NetImage {
+  tile: NetTile;
+  img: ArtImage;
+  flashAge: number | null;
+}
+
+/**
+ * Shock nets on the ground; adjacent nets join into one field (masks), but each tile keeps its own
+ * glow: it dims as its discharges run out and flashes on each discharge (§7.1). `set` rebuilds the
+ * field when the set of nets changes; `setCharge` and `flash` change one tile; `update` animates
+ * with alpha only.
+ */
 export class NetField {
-  private images: ArtImage[] = [];
+  private tiles = new Map<string, NetImage>();
+  private t = 0;
   constructor(private readonly ctx: RenderContext) {}
 
-  set(tiles: readonly { c: number; r: number }[]) {
-    for (const a of this.images) a.img.destroy();
-    this.images = [];
+  set(tiles: readonly NetTile[]) {
+    for (const n of this.tiles.values()) n.img.img.destroy();
+    this.tiles.clear();
     const masks = masksFor(tiles.map((t) => [t.c, t.r] as const));
     for (const t of tiles) {
       const { sx, sy } = this.ctx.camera.worldToScreen(t.c + 0.5, t.r + 0.5);
-      this.images.push(
-        placeFrame(this.ctx, netFrame(masks.get(`${t.c},${t.r}`) ?? 0), 'groundOverlay', sx, sy),
-      );
+      const m = masks.get(`${t.c},${t.r}`) ?? 0;
+      const img = placeFrame(this.ctx, netFrame(m), 'groundOverlay', sx, sy);
+      this.tiles.set(`${t.c},${t.r}`, { tile: { ...t }, img, flashAge: null });
     }
+    this.update(0);
+  }
+
+  setCharge(c: number, r: number, left: number, max: number, armed: boolean) {
+    const n = this.tiles.get(`${c},${r}`);
+    if (n) Object.assign(n.tile, { left, max, armed });
+  }
+
+  flash(c: number, r: number) {
+    const n = this.tiles.get(`${c},${r}`);
+    if (n) n.flashAge = 0;
+  }
+
+  at(c: number, r: number): ArtImage[] {
+    const n = this.tiles.get(`${c},${r}`);
+    return n ? [n.img] : [];
+  }
+
+  update(dtMs: number) {
+    this.t += dtMs;
+    for (const n of this.tiles.values()) {
+      if (n.flashAge !== null) {
+        n.flashAge += dtMs;
+        if (n.flashAge >= NET_FLASH_MS) n.flashAge = null;
+      }
+      const max = n.tile.max ?? 1;
+      const a = netAlpha(n.tile.left ?? max, max, n.tile.armed ?? true, this.t, n.flashAge);
+      n.img.img.setAlpha(a);
+    }
+  }
+
+  destroy() {
+    this.set([]);
   }
 }
 

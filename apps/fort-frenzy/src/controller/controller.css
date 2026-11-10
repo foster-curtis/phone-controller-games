@@ -344,6 +344,15 @@ button {
   height: 40px;
 }
 
+.status-choices {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.status-choices[hidden] {
+  display: none;
+}
+
 .claim {
   display: flex;
   flex-direction: column;
@@ -1372,10 +1381,98 @@ button {
 .build.shop-open .coin-box {
   position: fixed;
   top: max(var(--space-2), env(safe-area-inset-top));
-  right: max(var(--space-4), env(safe-area-inset-right));
+  /* Left of the pause button (FF14-fix-1). */
+  right: calc(max(var(--space-4), env(safe-area-inset-right)) + 44px + var(--space-3));
   display: flex;
   align-items: center;
   gap: var(--space-2);
+}
+
+/* ---- team pause (C4, FF14-fix-1): top bar button, paused card ---- */
+
+.pause-btn {
+  position: absolute;
+  top: max(var(--space-2), env(safe-area-inset-top));
+  right: max(var(--space-4), env(safe-area-inset-right));
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid var(--stone-edge);
+  background: var(--surface-strong);
+  clip-path: var(--clip-chamfer-sm);
+}
+
+/* Code-drawn glyph: the icon set has no pause icon. */
+.pause-glyph,
+.pause-glyph::after {
+  display: block;
+  width: 6px;
+  height: 18px;
+  background: var(--foreground);
+}
+
+.pause-glyph {
+  position: relative;
+  left: -6px;
+}
+
+.pause-glyph::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 0;
+}
+
+.pause-btn:active {
+  filter: brightness(1.15);
+}
+
+.paused-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--scrim);
+  touch-action: none;
+}
+
+.paused-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 280px;
+  max-width: 420px;
+  padding: var(--space-6);
+  background: var(--surface-strong);
+  clip-path: var(--clip-chamfer);
+  text-align: center;
+}
+
+.paused-card h1 {
+  margin: 0;
+  font: 700 28px/1.1 var(--font-display);
+  letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+
+.paused-by {
+  padding-left: var(--space-2);
+  border-left: var(--stroke-tag) solid var(--tag-bg, var(--border));
+  color: var(--foreground);
+}
+
+.paused-card .resume {
+  min-width: 200px;
+  min-height: 56px;
 }
 
 .coin-glyph {
@@ -1893,4 +1990,9 @@ button {
 .class-card .portrait {
   width: 130px;
   height: 169px;
+}
+
+/* Version tag (src/shared/version.ts): join, name and lobby only, never over the controls. */
+body:not(:has(.screen.join, .screen.name, .screen.lobby)) .version-tag {
+  display: none;
 }

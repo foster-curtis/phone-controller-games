@@ -1,6 +1,6 @@
 // Shared screen plumbing: the view contract, the context every screen gets, keyed list
 // reconciliation (so a held shop button or a scroll position survives a snapshot), the player tag,
-// room code boxes, the build-phase countdown and the on-screen keyboard fit.
+// room code boxes, the build-phase countdown, the team pause control and the on-screen keyboard fit.
 import { el, type RoutedView } from '@pcg/controller-kit';
 import type { StorageLike } from '@pcg/net-client';
 import type { Intent, MeView, TeamView } from '../../shared/messages';
@@ -122,6 +122,59 @@ export function createCountdown(
       paint();
     },
     destroy: () => clearInterval(timer),
+  };
+}
+
+// ---- team pause (C4, FF14-fix-1) ----
+
+/** Run phases the pause button shows in (the wave countdowns, build and combat). */
+const PAUSABLE: readonly TeamView['phase'][] = ['countdown', 'build', 'combat'];
+
+export interface PauseControl {
+  /** The top bar's pause button (top-right corner, above the right-half aim zones). */
+  button: HTMLElement;
+  /** The full-screen paused card with Resume. */
+  layer: HTMLElement;
+  /** Shows the snapshot's pause state; true while the run is paused. */
+  set(s: Snapshot): boolean;
+}
+
+/** Any run player pauses the whole run from their top bar; every phone then shows Resume. */
+export function createPauseControl(ctx: ScreenCtx): PauseControl {
+  const button = el(
+    'button',
+    { type: 'button', class: 'pause-btn', 'aria-label': 'Pause', 'data-pause': '' },
+    el('span', { class: 'pause-glyph' }),
+  );
+  button.addEventListener('click', () => ctx.intent({ k: 'pause', paused: true }));
+  const by = el('p', { class: 'tag paused-by' });
+  const resume = el('button', {
+    type: 'button',
+    class: 'btn btn-primary resume',
+    'data-resume': '',
+    text: 'RESUME',
+  });
+  resume.addEventListener('click', () => ctx.intent({ k: 'pause', paused: false }));
+  const layer = el(
+    'div',
+    { class: 'paused-layer', role: 'dialog', 'aria-label': 'Paused' },
+    el('div', { class: 'paused-card' }, el('h1', { class: 'h2', text: 'Paused' }), by, resume),
+  );
+  layer.hidden = true;
+  return {
+    button,
+    layer,
+    set({ team, me }) {
+      const p = team.paused ?? null;
+      layer.hidden = p === null;
+      button.hidden = p !== null || me.slot === null || !PAUSABLE.includes(team.phase);
+      if (p) {
+        by.textContent =
+          p.playerId === ctx.myId() ? 'You paused the run' : `${p.name} paused the run`;
+        by.style.setProperty('--tag-bg', colorVar(p.color));
+      }
+      return p !== null;
+    },
   };
 }
 

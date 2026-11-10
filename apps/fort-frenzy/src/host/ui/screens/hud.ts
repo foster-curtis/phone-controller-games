@@ -26,7 +26,10 @@ export function hudSections(view: TvView, ctx: RenderCtx): Section[] {
     : 'Combat';
   out.push({
     name: 'wave',
-    html: `<div class="hud-wave"><span class="pad">Wave ${wave} / ${TOTAL_WAVES}</span><span class="tag phase ${build ? 'build' : ''}">${phase}</span></div>`,
+    // The build phase shows the room code for late joiners and phones rejoining a resumed run (FF14).
+    html:
+      `<div class="hud-wave"><span class="pad">Wave ${wave} / ${TOTAL_WAVES}</span><span class="tag phase ${build ? 'build' : ''}">${phase}</span>` +
+      `${build && view.room ? `<span class="tag muted room">Room ${esc(view.room.code)}</span>` : ''}</div>`,
   });
 
   const frac =

@@ -1,7 +1,6 @@
 // Economy scenarios (SPEC §3.4, §5, §6, §10.1 action rows 1–4, give/drop).
 import { describe, expect, it } from 'vitest';
-import { base as baseDef, rules } from '../../../content/base';
-import { engineer } from '../../../content/characters';
+import { base as baseDef, engineer, rules } from '../../../content/balance';
 import { harness } from './harness';
 
 const DEPOT = { x: 22.5, y: 1.5 };

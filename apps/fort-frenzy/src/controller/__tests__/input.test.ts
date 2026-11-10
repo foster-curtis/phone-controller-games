@@ -136,6 +136,21 @@ describe('gesture outcomes in the tuple', () => {
     expect([at('mainX'), at('mainY'), at('mainFires'), at('flags')]).toEqual([0, -100, 1, 0]);
   });
 
+  it('the live aim rides along while aiming, so the TV line follows the thumb (FF7)', () => {
+    const { sender, at } = setup();
+    drive(
+      aimedGesture(),
+      [
+        { type: 'down', t: 0 },
+        { type: 'move', t: 30, dx: 35, dy: 0 },
+        { type: 'move', t: 60, dx: 0, dy: 70 },
+      ],
+      (st) => encodeAimedState(sender, 'main', st),
+      () => {},
+    );
+    expect([at('mainX'), at('mainY'), at('mainFires')]).toEqual([0, 100, 0]);
+  });
+
   it('tap-type attack fires on release with aim 0,0, once per release', () => {
     const { sender, at } = setup();
     encodeTapAttack(sender, 'main');

@@ -20,9 +20,14 @@ import {
 } from '../keys';
 import { MapView } from '../map';
 import type { RigSprite } from '../rig';
+import { drawBowString } from '../bowString';
 import { CITADEL_COLLAPSE_MS } from '../citadelFx';
+import { RELEASE_MS } from '../clips/ranger';
+import { SLAM_IMPACT_MS, STOMP_IMPACT_MS } from '../clips/warden';
+import { content } from '../../../content';
 import { KNIGHT_DOWN } from '../clipKit';
 import { PROJECTILE_SPEEDS } from '../effectsMath';
+import { BuildFill, Collapse } from '../buildFx';
 import { clipLandedMs, spawnPile } from '../fall';
 import { locomotionSpeed, StatusSprites } from '../status';
 import { mitePack, mitePose } from '../swarm';
@@ -40,6 +45,7 @@ import {
 } from '../types';
 import type { RenderWorld } from '../world';
 import { RIG_INFO, type RigInfo } from './rigInfo';
+import { colossusPage } from './colossusPage';
 import { colossusGroups, gaugeGroups, type GalleryState, type PageId } from './state';
 
 export interface Unit {
@@ -65,6 +71,26 @@ export interface PageKit {
 }
 
 const KNIGHTS = new Set(['warden', 'ranger', 'commander', 'artificer']);
+
+/** One-shot clips replayed on a loop: period, ms. */
+const ONE_SHOTS: Partial<Record<string, number>> = {
+  hit: 1600,
+  respawn: 2000,
+  attack: 1200,
+  super: 1600,
+  build: 1600,
+  slam: 2600,
+  throw: 1900,
+  call: 1800,
+  stagger: 3400,
+};
+
+/** World tiles under a screen point (the fixed camera's inverse; ground only). */
+function worldAt(k: PageKit, sx: number, sy: number): [number, number] {
+  const o = k.world.camera.worldToScreen(0, 0);
+  const one = k.world.camera.worldToScreen(1, 1);
+  return [(sx - o.sx) / (one.sx - o.sx), (sy - o.sy) / (one.sy - o.sy)];
+}
 
 function addRig(
   k: PageKit,
@@ -103,14 +129,34 @@ function addRig(
   if (!rig.play(clip, { fadeMs: 0 })) rig.play('idle', { fadeMs: 0 });
   else if (clip === 'down') downCycle(k, rig, sx, sy);
   else if (clip === 'death') deathCycle(k, rig, sx, sy);
-  else if (clip === 'hit' || clip === 'respawn') {
-    const period = clip === 'hit' ? 1600 : 2000;
+  else if (ONE_SHOTS[clip] !== undefined) {
+    const period = ONE_SHOTS[clip];
+    // The Ranger shoots and pulses from his `ready` pose (FF7 wiring snaps to it for the shot).
+    if (rigId === 'ranger' && (clip === 'attack' || clip === 'super') && !pose)
+      rig.setPose('ready', 0);
     k.tick((_dt, t) => {
       if (Math.floor(t / period) !== Math.floor((t - _dt) / period)) {
         rig.play(clip, { restart: true, fadeMs: 0 });
         if (clip === 'hit') rig.flash(60);
+        if (clip === 'super' && rigId !== 'warden')
+          k.world.fx.ring('ours', ...worldAt(k, sx, sy), 3);
+        if (rigId === 'mortar' && clip === 'attack') {
+          const m = rig.attach(k.state.tier >= 3 ? 'muzzle-iii' : 'muzzle');
+          if (m) k.world.fx.burst('muzzle-ours', m.sx, m.sy, -Math.PI / 2);
+        }
       }
     });
+    if (clip === 'attack' && rigId === 'ranger') {
+      // Draw, hold, release: the flash leaves the bow on the release, and the slack string is drawn
+      // by code while the art string is dark (C2).
+      every(k, period, RELEASE_MS, () => {
+        const m = rig.attach('bolt');
+        if (m) k.world.fx.burst('muzzle-ours', m.sx, m.sy, rig.mirrored ? Math.PI : 0, 40);
+      });
+      k.tick(() => drawBowString(rig));
+    }
+    if (rigId === 'warden' && (clip === 'attack' || clip === 'super'))
+      wardenWaves(k, rig, sx, sy, clip);
   }
   const unit: Unit = {
     rig,
@@ -122,6 +168,29 @@ function addRig(
   };
   k.units.push(unit);
   return unit;
+}
+
+/**
+ * The Warden's slam or stomp (FF8): on each replay's impact frame, the shockwave across the content's
+ * hit arc and sparks at the hammer head.
+ */
+function wardenWaves(k: PageKit, rig: RigSprite, sx: number, sy: number, clip: 'attack' | 'super') {
+  const def = content.characters.find((c) => c.id === 'warden')!;
+  const a = clip === 'attack' ? def.main : def.super;
+  const angle =
+    rig.view === 'side'
+      ? rig.mirrored
+        ? Math.PI
+        : 0
+      : rig.view === 'front'
+        ? Math.PI / 2
+        : -Math.PI / 2;
+  const [x, y] = worldAt(k, sx, sy);
+  every(k, ONE_SHOTS[clip]!, clip === 'attack' ? SLAM_IMPACT_MS : STOMP_IMPACT_MS, () => {
+    k.world.fx.arcWave?.('ours', x, y, a.range, angle, a.arcDeg ?? 90);
+    const h = rig.attach('hammer');
+    if (h && clip === 'attack') k.world.fx.burst('spark-ours', h.sx, h.sy);
+  });
 }
 
 /** Runs `fn` once each time t passes `at` within a `period` loop. */
@@ -482,6 +551,78 @@ function autotilesPage(k: PageKit) {
   );
   const nl = w.camera.worldToScreen(23.5, 21.4);
   k.label('shock net layout', nl.sx, nl.sy);
+  structureStates(k);
+}
+
+/**
+ * FF8 structure states: a joined net whose tiles each dim as their discharges run out and flash on
+ * each one; a wall building (sketch, then fill from the plate up); a wall destroyed (collapse into
+ * scrap); the charged crackle and damaged flicker; Mason's sparks sealing a wall's cracks.
+ */
+function structureStates(k: PageKit) {
+  const w = k.world;
+  const at = (x: number, y: number) => w.camera.worldToScreen(x, y);
+  const nets = new NetField(w);
+  const tiles = [31, 32, 33].map((c) => ({ c, r: 15 }));
+  nets.set(tiles);
+  const left = [5, 5, 5];
+  k.tick((dt, t) => {
+    tiles.forEach((tile, i) => {
+      const period = 700 + i * 230;
+      if (Math.floor(t / period) !== Math.floor((t - dt) / period)) {
+        left[i] = left[i]! <= 1 ? 5 : left[i]! - 1;
+        nets.flash(tile.c, tile.r);
+      }
+      nets.setCharge(tile.c, tile.r, left[i]!, 5, t % period > 500);
+    });
+    nets.update(dt);
+  });
+  k.label('net discharges', at(32.5, 16.2).sx, at(32.5, 16.2).sy);
+  // Build: a wall and a net sketch and fill on a loop.
+  const building = new WallField(w);
+  const bnet = new NetField(w);
+  let fills: BuildFill[] = [];
+  const build = () => {
+    building.set([{ c: 31, r: 18 }]);
+    bnet.set([{ c: 31, r: 19 }]);
+    fills = [new BuildFill(w, () => building.at(31, 18)), new BuildFill(w, () => bnet.at(31, 19))];
+  };
+  build();
+  every(k, 1800, 1, build);
+  k.tick((dt) => (fills = fills.filter((f) => f.update(dt))));
+  k.label('build', at(31.5, 20.4).sx, at(31.5, 20.4).sy);
+  // Destroyed: a charged, damaged wall collapses into scrap, then stands again.
+  const doomed = new WallField(w);
+  let collapses: Collapse[] = [];
+  const stand = () => doomed.set([{ c: 33, r: 18, charged: true, damaged: true }]);
+  stand();
+  every(k, 1800, 900, () => {
+    const s = at(33.5, 18.5);
+    collapses.push(new Collapse(w, doomed.at(33, 18)));
+    doomed.set([]);
+    w.fx.scrap('ours', 3, s.sx, s.sy);
+    w.fx.burst('spark-ours', s.sx, s.sy - 18);
+  });
+  every(k, 1800, 1700, stand);
+  k.tick((dt) => {
+    doomed.update(dt);
+    collapses = collapses.filter((c) => c.update(dt));
+  });
+  k.label('destroyed', at(33.5, 20.4).sx, at(33.5, 20.4).sy);
+  // Mason: sparks from the hammer to a damaged wall; its cracks seal halfway through the loop.
+  const mended = new WallField(w);
+  const p = at(31.2, 22.6);
+  const warden = addRig(k, 'warden', p.sx, p.sy, 'side', undefined, 'idle');
+  every(k, 3000, 1, () => mended.set([{ c: 33, r: 22, damaged: true }]));
+  every(k, 3000, 1800, () => mended.set([{ c: 33, r: 22 }]));
+  every(k, 480, 1, () => {
+    const from = warden.rig.attach('hammer');
+    const to = w.camera.worldToScreen(33.5, 22.5, 0.55);
+    if (from) w.fx.tracer('ours', from, to, 140);
+    w.fx.burst('spark-ours', to.sx, to.sy);
+  });
+  k.tick((dt) => mended.update(dt));
+  k.label('mason', at(32.5, 23.6).sx, at(32.5, 23.6).sy);
 }
 
 // ---- effects + statuses ----------------------------------------------------------------------------
@@ -720,4 +861,5 @@ export const PAGE_BUILDERS: Record<PageId, (k: PageKit) => void> = {
   effects: effectsPage,
   icons: iconsPage,
   map: mapPage,
+  colossus: colossusPage,
 };

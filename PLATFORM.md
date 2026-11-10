@@ -59,7 +59,25 @@ PLATFORM.md  tsconfig.base.json  pnpm-workspace.yaml
 - **Docs:** this file for repo-wide rules; `apps/relay/SPEC.md` for the relay; each game keeps its own `SPEC.md` (design) and `BUILD_PLAN.md` (build plan) in its app folder.
 - **Scripts:** per-game root scripts (`dev:<game>`, `dev:lan:<game>`, `build:<game>`, `e2e:<game>`, `check:<game>`). Work on one game runs only that game's build, e2e and check; the full `pnpm check` + `pnpm e2e` run before anything lands on `main`. Work that touches the relay or `packages/` affects every game and always runs the full set.
 
-## 5. Decision log
+## 5. Versioning (settled)
+
+Every app and package carries a semver `version` in its `package.json` and a `CHANGELOG.md`, managed by [Changesets](https://github.com/changesets/changesets) (`.changeset/config.json`). Starting points: `@pcg/sunny-side` and `@pcg/relay` 1.0.0 (live); `@pcg/fort-frenzy`, `@pcg/say-cheese` and the three `packages/` 0.1.0 (pre-launch; each game goes to 1.0.0 at launch).
+
+- **Note with every change.** A change to a package's shipped code adds a changeset (`pnpm changeset`): which packages, which level, one line for the changelog. Tests, fixtures, e2e and Markdown don't count as changes (`changedFilePatterns`). A change that needs no release (a pure refactor) can use `pnpm changeset --empty`.
+- **Bump on deploy.** Versions don't move per commit. Before a deploy lands on `main`, `pnpm changeset version` folds the pending notes into version bumps and changelog entries, so a version number always names something that shipped. Parallel branches never conflict over `package.json` or changelogs, since each note is its own file.
+- **Dependents follow.** A bump to a `packages/` library or the relay patch-bumps every app that depends on it, so a game's version changes whenever its shipped code does.
+- **Enforced** by `pnpm check:changeset` (`changeset status --since=main`), the last step of each `check:<game>`: it fails when a branch changes a package without a note. The note must be committed or staged (`git add`). CI's shallow clone has no `main`, so `pnpm check` leaves it out.
+- **On screen.** Each game shows `v<version>` in a corner of the TV, and on the phone's join and lobby screens (`src/shared/version.ts`), so the build on a TV is easy to name.
+
+What each level means:
+
+| Level | Games | Shared packages and relay |
+| --- | --- | --- |
+| Major | Breaks compatibility (old phones can't join a new TV, a `PROTOCOL_VERSION` bump, saved runs or settings lost), or a relaunch | A breaking change to a frozen contract (rare: contracts take additive changes only) |
+| Minor | A new feature, mode, character, content or screen | A new export, option or message |
+| Patch | A bug fix, balance tweak, copy or visual polish | A bug fix or internal change |
+
+## 6. Decision log
 
 | # | Date | Decision | Choice | Why |
 | --- | --- | --- | --- | --- |
@@ -67,3 +85,4 @@ PLATFORM.md  tsconfig.base.json  pnpm-workspace.yaml
 | 2 | 2026-10-26 | Spec split | Repo-wide spec at root `PLATFORM.md`; relay at `apps/relay/SPEC.md`; each game's `SPEC.md` + `BUILD_PLAN.md` in its app folder | A second game is starting; the shared architecture and the relay protocol shouldn't live inside one game's spec. |
 | 3 | 2026-10-26 | Per-game scripts | `dev:` / `build:` / `e2e:` / `check:<game>`; full `pnpm check` + `pnpm e2e` only before landing on `main` (or after touching shared code) | Work on one game shouldn't pay for, or be blocked by, another game's build and e2e. |
 | 4 | 2026-10-27 | Shared kits | Extract `@pcg/controller-kit` and `@pcg/game-kit` with Fort Frenzy; migrate Sunny Side; fullscreen on tap is a platform requirement provided by the kit's app shell | The second game shows what's common; one copy instead of two drifting ones, and every controller gets the same phone behavior. |
+| 5 | 2026-11-04 | Versioning | Semver per app and package via Changesets: a note with every change, versions bumped on deploy, dependents patch-bumped; `check:changeset` in each `check:<game>`; version shown on TV and phone join/lobby (§5) | Each game needs a version that names what's live and a changelog of major and minor changes. Bumping per commit would make parallel agent branches conflict on every merge. |

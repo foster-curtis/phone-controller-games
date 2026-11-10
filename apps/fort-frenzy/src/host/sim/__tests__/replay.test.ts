@@ -45,9 +45,15 @@ describe('RunRecorder', () => {
 });
 
 describe('replay', () => {
-  const recording = recordAutopilotRun({ seed: 21, players: 2, build: 'test' });
+  // Capped at 3 minutes (waves 1–3+) since FF10's 15 waves; the replay checks the same steps.
+  const recording = recordAutopilotRun({
+    seed: 21,
+    players: 2,
+    build: 'test',
+    maxSteps: 60 * 60 * 3,
+  });
 
-  it('an autopilot run covers both waves', () => {
+  it('an autopilot run covers its first waves', () => {
     expect(recording.inputs.length).toBeGreaterThan(50);
     expect(recording.commands.length).toBeGreaterThan(0);
     expect(recording.hashes.length).toBeGreaterThan(30);

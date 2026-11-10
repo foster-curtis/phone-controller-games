@@ -1,0 +1,21 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@4.0.1/schema.json",
+  "baseBranch": "main",
+  "changelog": "@changesets/cli/changelog",
+  "commit": false,
+  "access": "restricted",
+  "privatePackages": { "version": true, "tag": false },
+  "updateInternalDependencies": "patch",
+  "changedFilePatterns": [
+    "**",
+    "!**/__tests__/**",
+    "!**/__fixtures__/**",
+    "!test/**",
+    "!e2e/**",
+    "!**/*.test.ts",
+    "!**/*.md"
+  ],
+  "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
+    "updateInternalDependents": "always"
+  }
+}

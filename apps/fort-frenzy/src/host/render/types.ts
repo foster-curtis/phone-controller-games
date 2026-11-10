@@ -169,6 +169,19 @@ export interface EffectSpawner {
   wallStrike(from: ScreenPoint, to: ScreenPoint): void;
   /** Ground ring (AoE, blast, shockwave) at a world point, radius in tiles, expanding and fading. */
   ring(side: ScrapSide | 'danger', x: number, y: number, r: number, ms?: number): void;
+  /**
+   * Ground shockwave in a sector (FF8: the Warden's slam and stomp): a 0.6 band rolling out from
+   * (x, y) to `r` tiles across `arcDeg` around the world-ground angle `angleRad`, fading.
+   */
+  arcWave?(
+    side: ScrapSide,
+    x: number,
+    y: number,
+    r: number,
+    angleRad: number,
+    arcDeg: number,
+    ms?: number,
+  ): void;
 }
 
 /** A pooled projectile drawn on the world layer; arcing ones sort by their shadow. */

@@ -1,6 +1,6 @@
 // Building and pathing scenarios (SPEC §7, §10.1 row 5 and build arc, §10.2 ghost, §15.5).
 import { describe, expect, it } from 'vitest';
-import { arrowTower } from '../../../content/structures';
+import { arrowTower } from '../../../content/balance';
 import { placementValid } from '../index';
 import { harness } from './harness';
 
@@ -115,7 +115,7 @@ describe('combat building: action button and build arc', () => {
     h.run(1);
     expect(h.sim.world.structures).toHaveLength(0);
     h.p(0).crates = 4;
-    h.pads[0]!.tap('radialCommits', { radialSlot: 1 }); // no structure in that slot
+    h.pads[0]!.tap('radialCommits', { radialSlot: 2 }); // no structure in that slot
     h.run(1);
     expect(h.sim.world.structures).toHaveLength(0);
     h.pads[0]!.tap('radialCommits', { radialSlot: 0 });

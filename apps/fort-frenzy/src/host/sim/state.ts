@@ -9,8 +9,12 @@ import { applyEffect as applyEffectTo } from '../systems/effects';
 import { buildField, IMPASSABLE } from '../systems/flowfield';
 import { hookList } from '../systems/modifiers';
 import type { Catalog } from './catalog';
+import { absorbShield } from './cards/effects';
+import { fitSoldier, fitStructure } from './shop';
 import type { FireSpec, Rect, SimState, SlotInput, UnitKind } from './internal';
-import { effects as effectDefs, modules } from './registry';
+import { bossMk } from './boss';
+import { bosses, effects as effectDefs, modules } from './registry';
+import { threatMap, type Attacker } from './ai/threat';
 import { createSpatialHash } from './spatial';
 import { attackStat, modifiersOf, statBlock, type Caps } from './stats';
 import {
@@ -37,6 +41,9 @@ import {
   type Unit,
   type World,
 } from './types';
+
+/** Shared empty hook list (callers only iterate it). */
+const NO_HOOKS: never[] = [];
 
 export function newAttack(): AttackState {
   return { readyAt: 0, queued: false, aim: { x: 0, y: 0 }, windupEndsAt: null };
@@ -97,8 +104,11 @@ export interface StateExtras {
   readonly rebuildFields: () => void;
   readonly removeUnit: (id: EntityId) => void;
   readonly respawnPoint: (slot: number) => { x: number; y: number };
-  readonly addSoldier: (owner: number, x: number, y: number) => SoldierEnt;
+  /** A Commander's soldier (his class's `squad.soldier` stats); `index` defaults to the next free. */
+  readonly addSoldier: (owner: number, x: number, y: number, index?: number) => SoldierEnt;
   readonly isBlocker: (kind: StructureId) => boolean;
+  /** A player at their respawn point (run start, a late join, FF14). */
+  readonly addPlayer: (slot: RunSlot) => PlayerEnt;
 }
 
 export type FullState = SimState & StateExtras;
@@ -188,6 +198,7 @@ export function createState(start: RunStart, cat: Catalog): FullState {
     structures: [],
     projectiles: [],
     cratePiles: [],
+    thrown: [],
     markers: [],
     spawns: [],
     grid: { cols, rows, kinds, occupant },
@@ -216,9 +227,54 @@ export function createState(start: RunStart, cat: Catalog): FullState {
   };
   const groundCost = tileCost(false);
   const breakerCost = tileCost(true);
+  // Tower threat for the Hunters' fields (C3, FF10-fix-1): ground cost plus a cost per attacker
+  // whose range covers the tile (ai/threat.ts).
+  const threat = new Float32Array(cols * rows);
+  const hunt = cat.content.enemies.find((e) => e.hunt)?.hunt;
+  const threatCost = hunt?.threatCost ?? 0;
+  const huntCost = (t: number) => {
+    const g = groundCost(t);
+    return g === IMPASSABLE ? g : g + threat[t]! * threatCost;
+  };
+  const computeThreat = () => {
+    const out: Attacker[] = [];
+    for (const st of world.structures) {
+      const atk = cat.structure(st.kind).attack;
+      if (!atk || (st.damageable && st.hp <= 0)) continue;
+      out.push({
+        x: st.x,
+        y: st.y,
+        range: attackStat(st, atk.range, 'range', undefined, effectDefs, caps),
+      });
+    }
+    const b = world.base;
+    const sentries = cat.base.archers;
+    if (b.hp > 0) {
+      const range = attackStat(b, sentries.attack.range, 'range', undefined, effectDefs, caps);
+      for (let i = 0; i < b.archers.count; i++) {
+        const at = sentries.at[i];
+        if (at) out.push({ x: at.x, y: at.y, range });
+      }
+    }
+    threatMap(cols, rows, out, threat, hunt?.threatPad ?? 0);
+  };
+  // 8-neighbor fields that never cut a blocker's corner (C3: direct diagonals to the Citadel).
+  const solid = (t: number) => {
+    const k = kinds[t];
+    if (k === 'citadel' || k === 'blocked') return true;
+    const occ = occupant[t]!;
+    if (occ === 0) return false;
+    const st = units.get(occ) as StructureEnt | undefined;
+    return st !== undefined && isBlocker(st.kind);
+  };
+  const fieldOpts = { diagonal: true, solid };
+  /** The tile each hunted field was built toward (−1 = stale), by slot. */
+  const huntedAt: number[] = [];
   const rebuildFields = () => {
-    buildField(world.grid, groundCost, goals, world.fields.ground);
-    buildField(world.grid, breakerCost, goals, world.fields.breaker);
+    buildField(world.grid, groundCost, goals, world.fields.ground, fieldOpts);
+    buildField(world.grid, breakerCost, goals, world.fields.breaker, fieldOpts);
+    computeThreat();
+    huntedAt.fill(-1);
     world.fields.dirty = false;
   };
 
@@ -233,7 +289,7 @@ export function createState(start: RunStart, cat: Catalog): FullState {
     baseStats.set(u.id, stats);
   };
 
-  function addPlayer(slot: RunSlot) {
+  function addPlayer(slot: RunSlot): PlayerEnt {
     const def = cat.character(slot.classId);
     const at = respawnPoint(slot.slot);
     const stats = statBlock({
@@ -244,6 +300,10 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       radius: def.radius,
       attackSpeed: 1,
       carrySlowdown: 1,
+      // Supply perks (Quartermaster, FF9): stats, so cards can change them.
+      crateDiscount: def.supply?.crateDiscount ?? 0,
+      throwRange: def.supply?.throwRange ?? 0,
+      throwSpeed: def.supply?.throwSpeed ?? 0,
     });
     const passive = modules[def.passive.module];
     const p: PlayerEnt = {
@@ -297,6 +357,7 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       prev: { mainFires: 0, superFires: 0, actionTaps: 0, radialCommits: 0 },
       baseline: true,
     });
+    return p;
   }
 
   for (const slot of [...start.slots].sort((a, b) => a.slot - b.slot)) addPlayer(slot);
@@ -316,6 +377,7 @@ export function createState(start: RunStart, cat: Catalog): FullState {
     rebuildFields,
     respawnPoint,
     isBlocker,
+    addPlayer,
     tick: () => world.tick,
     rng(label) {
       let r = streams.get(label);
@@ -330,7 +392,12 @@ export function createState(start: RunStart, cat: Catalog): FullState {
     },
     unit: (id) => units.get(id) ?? null,
     modifiers: (u) => modifiersOf(u, effectDefs),
-    hooks: (u, key) => hookList([modifiersOf(u, effectDefs)], key),
+    hooks(u, key) {
+      // FF15 perf: most units have no effects (and many no mods) on most steps, so skip the copies.
+      if (u.effects.length > 0) return hookList([modifiersOf(u, effectDefs)], key);
+      if (u.mods.length === 0) return NO_HOOKS;
+      return hookList([u.mods], key);
+    },
     attackStat: (u, b, stat: StatId, scope) => attackStat(u, b, stat, scope, effectDefs, caps),
     player: (slot) => world.players.find((p) => p.slot === slot),
     targetable: (p) => p.respawnAt === null && p.connected && p.hp > 0,
@@ -343,7 +410,11 @@ export function createState(start: RunStart, cat: Catalog): FullState {
         if (e.hp <= 0 || (e.flying && !hitsFlyers)) continue;
         const dx = e.x - x;
         const dy = e.y - y;
-        const d = Math.sqrt(dx * dx + dy * dy) - e.r;
+        const q = dx * dx + dy * dy;
+        // Clearly out of range: skip the root (FF15 perf; the margin keeps every kept result exact).
+        const lim = range + e.r + 1e-6;
+        if (q > lim * lim) continue;
+        const d = Math.sqrt(q) - e.r;
         if (d <= range && d < bestD) {
           best = e;
           bestD = d;
@@ -359,7 +430,7 @@ export function createState(start: RunStart, cat: Catalog): FullState {
         y: spec.y,
         vx: spec.dx * spec.speed,
         vy: spec.dy * spec.speed,
-        r: 0.12,
+        r: cat.rules.projectileRadius,
         side: spec.side,
         source: spec.source.id,
         from: spec.from,
@@ -423,6 +494,14 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       world.enemies.push(e);
       register(e, 'enemy', stats);
       ctx.emit({ e: 'spawn', id, enemy: kind, lane });
+      const boss = def.boss ? bosses[def.boss.module] : undefined;
+      if (boss) {
+        // Boss HP scales with the players at wave start (§9.2, §9.4), baked in like difficulty;
+        // the module may raise it further (the Colossus's Mk), so the stat block follows.
+        e.maxHp = e.hp = hp * world.team.scaling.mult;
+        boss.init(ctx, e, { wave: world.wave, mk: bossMk(cat.wave(world.wave), world.wave) });
+        stats.maxHp = e.stats.maxHp = e.maxHp;
+      }
       return e;
     },
     placeStructure(kind: StructureId, col, row, owner) {
@@ -455,6 +534,8 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       };
       world.structures.push(st);
       register(st, 'structure', stats);
+      // The team's building upgrades apply to structures built later too (§6.2, FF12).
+      fitStructure(ctx, st);
       occupant[row * cols + col] = st.id;
       updateMasks(col, row);
       if (isBlocker(kind)) world.fields.dirty = true;
@@ -463,24 +544,49 @@ export function createState(start: RunStart, cat: Catalog): FullState {
     fieldsDirty() {
       world.fields.dirty = true;
     },
-    addSoldier(owner, x, y) {
-      const stats = statBlock({ maxHp: 100, moveSpeed: 3, radius: 0.28, attackSpeed: 1 });
+    huntField(slot) {
+      const p = world.players.find((q) => q.slot === slot);
+      if (!p) return null;
+      const col = Math.min(cols - 1, Math.max(0, Math.floor(p.x)));
+      const row = Math.min(rows - 1, Math.max(0, Math.floor(p.y)));
+      const t = row * cols + col;
+      const hunted = world.fields.hunted;
+      while (hunted.length <= slot) hunted.push(null);
+      while (huntedAt.length <= slot) huntedAt.push(-1);
+      const f = hunted[slot] ?? undefined;
+      if (f && huntedAt[slot] === t) return f;
+      hunted[slot] = buildField(world.grid, huntCost, [t], f, fieldOpts);
+      huntedAt[slot] = t;
+      return hunted[slot];
+    },
+    addSoldier(owner, x, y, index) {
+      const lead = world.players.find((p) => p.slot === owner);
+      const def = lead ? cat.character(lead.classId).squad?.soldier : undefined;
+      if (!def) throw new Error(`sim: slot ${owner} has no squad`);
+      const hp = def.hp;
+      const r = def.radius;
+      const stats = statBlock({
+        maxHp: hp,
+        moveSpeed: def.moveSpeed,
+        radius: r,
+        attackSpeed: 1,
+      });
       const s: SoldierEnt = {
         id: world.nextId++,
         x,
         y,
         vx: 0,
         vy: 0,
-        r: 0.28,
-        hp: 100,
-        maxHp: 100,
+        r,
+        hp,
+        maxHp: hp,
         facing: Math.PI / 2,
         mods: [],
         effects: [],
         stats: { ...stats },
         push: null,
         owner,
-        index: world.soldiers.filter((x) => x.owner === owner).length,
+        index: index ?? world.soldiers.filter((x) => x.owner === owner).length,
         veterans: 0,
         mode: 'follow',
         target: null,
@@ -488,6 +594,8 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       };
       world.soldiers.push(s);
       register(s, 'soldier', stats);
+      // Squad stat upgrades from the shop (§6.2, FF12).
+      fitSoldier(ctx, s);
       return s;
     },
     removeUnit(id) {
@@ -511,6 +619,10 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       }
       const src = calc.source === null ? null : (units.get(calc.source) ?? null);
       const tkind = unitKinds.get(target.id);
+      // Melee can't reach a Flyer (§9): hammers, blades and fists swing under it.
+      if (calc.kind === 'melee' && tkind === 'enemy' && (target as EnemyEnt).flying) {
+        return { ...calc, amount: 0, absorbed: 0, dealt: 0, killed: false };
+      }
       return applyDamage<EntityId, DamageKind>(calc, {
         outgoing: src
           ? (c) => {
@@ -522,6 +634,8 @@ export function createState(start: RunStart, cat: Catalog): FullState {
           const dr = target.stats.damageReduction;
           if (dr > 0) c.amount = reduceBy(c.amount, dr);
         },
+        // Stage 5: the Overflow shield (FF12).
+        absorb: (_c, amount) => (target.effects.length > 0 ? absorbShield(target, amount) : 0),
         takeHp: (c, amount) =>
           tkind === 'player' && (target as PlayerEnt).invincible
             ? { dealt: 0, killed: false }
@@ -529,16 +643,29 @@ export function createState(start: RunStart, cat: Catalog): FullState {
         after: (r) => afterDamage(r as DamageResult, src, target, tkind),
       }) as DamageResult;
     },
-    heal(targetId, amount, source): HealResult {
+    heal(targetId, amount0, source): HealResult {
       const u = units.get(targetId);
-      if (!u || u.hp <= 0 || amount <= 0) {
-        return { source, target: targetId, amount, healed: 0, overflow: Math.max(0, amount) };
+      if (!u || u.hp <= 0 || amount0 <= 0) {
+        return {
+          source,
+          target: targetId,
+          amount: amount0,
+          healed: 0,
+          overflow: Math.max(0, amount0),
+        };
+      }
+      const src = source === null ? null : units.get(source);
+      // The healer's `modifyHeal` hooks (FF12: Triage).
+      let amount = amount0;
+      if (src) {
+        const calc = { source, target: targetId, amount };
+        for (const f of ctx.hooks(src, 'modifyHeal')) f(ctx, src, calc);
+        amount = Math.max(0, calc.amount);
       }
       const healed = Math.min(amount, u.maxHp - u.hp);
       u.hp += healed;
       const h: HealResult = { source, target: targetId, amount, healed, overflow: amount - healed };
       if (healed > 0) ctx.emit({ e: 'heal', source, target: targetId, amount: healed });
-      const src = source === null ? null : units.get(source);
       if (src) {
         if (unitKinds.get(src.id) === 'player') (src as PlayerEnt).run.healingDone += healed;
         for (const f of ctx.hooks(src, 'onHeal')) f(ctx, src, h);
@@ -549,18 +676,24 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       const u = units.get(targetId);
       const def = effectDefs[effect.effect];
       if (!u || !def) return false;
-      const ev = { ...effect, source, target: targetId };
+      let strength = effect.strength;
+      // Brutes and the Colossus take slows at half strength (§7.1, `slowResist`).
+      if (effect.effect === 'slow' && unitKinds.get(targetId) === 'enemy')
+        strength *= 1 - (cat.enemy((u as EnemyEnt).kind).slowResist ?? 0);
+      // Damage over time ticks and stacks as content says (`rules.dots`).
+      const dot = cat.rules.dots[effect.effect];
+      const ev = { ...effect, strength, source, target: targetId };
       for (const f of ctx.hooks(u, 'beforeEffect')) if (!f(ctx, u, ev)) return false;
       applyEffectTo(
         u.effects,
         {
           stacking: def.stacking,
-          maxStacks: def.maxStacks,
-          tickEvery: def.tickEveryMs ? cat.steps(def.tickEveryMs) : undefined,
+          maxStacks: dot?.maxStacks,
+          tickEvery: dot ? cat.steps(dot.tickEveryMs) : undefined,
         },
         {
           def: effect.effect,
-          strength: effect.strength,
+          strength: ev.strength,
           duration: cat.steps(effect.durationMs),
           source,
         },
@@ -594,6 +727,13 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       }
     }
     if (tkind === 'player') (target as PlayerEnt).run.damageTaken += r.dealt;
+    // The boss's stagger meter (§9.2, pipeline stage 7) and the summary's boss damage (FF11).
+    const boss = tkind === 'enemy' ? (target as EnemyEnt) : null;
+    if (boss?.boss) {
+      if (src && unitKinds.get(src.id) === 'player') (src as PlayerEnt).run.bossDamage += r.dealt;
+      const ref = cat.enemy(boss.kind).boss;
+      if (ref) bosses[ref.module]?.onDamage?.(ctx, boss, r);
+    }
     if (tkind === 'base' && r.dealt > 0) ctx.emit({ e: 'baseHit', amount: r.dealt, hp: target.hp });
     if (src) for (const f of ctx.hooks(src, 'onDamageDealt')) f(ctx, src, r);
     for (const f of ctx.hooks(target, 'onDamageTaken')) f(ctx, target, r);

@@ -77,3 +77,40 @@ export function decompose(
   const scaleY = scaleX === 0 ? 0 : (m[0] * m[3] - m[1] * m[2]) / scaleX;
   return { x, y, rotation, scaleX, scaleY };
 }
+
+/** A point riding on a part (rig units, rest pose `at`) under the composed matrices; null if unknown. */
+export function partPoint(
+  view: RigView,
+  mats: ReadonlyMap<string, Mat>,
+  part: string,
+  at: Point,
+): Point | null {
+  if (!view.parts[part]) return null;
+  const m = mats.get(part);
+  return m ? apply(m, at[0], at[1]) : [at[0], at[1]];
+}
+
+/** A named attach point (§15.2) under the composed matrices, in rig units; null if the view has none. */
+export function attachPoint(
+  view: RigView,
+  mats: ReadonlyMap<string, Mat>,
+  name: string,
+): Point | null {
+  const a = view.attach?.[name];
+  if (!a) return null;
+  const m = mats.get(a.part);
+  return m ? apply(m, a.at[0], a.at[1]) : [a.at[0], a.at[1]];
+}
+
+/**
+ * Rig parts under a rig root (the stress overlay): the images of its part-set containers. Other
+ * children (the code-drawn extras graphics, the Ranger's string) have no `list` and count none.
+ */
+export function rigPartCount(root: { readonly list: readonly unknown[] }): number {
+  let n = 0;
+  for (const c of root.list) {
+    const list = (c as { list?: unknown }).list;
+    if (Array.isArray(list)) n += list.length;
+  }
+  return n;
+}

@@ -10,6 +10,7 @@ import type { RenderContext } from './context';
 import { Effects } from './effects';
 import { GroundMarks } from './groundMarks';
 import { RigSprite } from './rig';
+import { rigPartCount } from './rigMath';
 import { LAYER_IDS, type LayerId, type RigOptions } from './types';
 
 export class RenderWorld implements RenderContext {
@@ -77,8 +78,8 @@ export class RenderWorld implements RenderContext {
   /** Rig parts alive (the stress overlay). */
   get partCount(): number {
     let n = 0;
-    for (const r of this.rigs)
-      n += r.root.list.reduce((s, c) => s + (c as Phaser.GameObjects.Container).list.length, 0);
+    // Not every child of a rig root is a part set: the extras graphics has no list (FF15-fix-1).
+    for (const r of this.rigs) n += rigPartCount(r.root);
     return n;
   }
 

@@ -5,12 +5,18 @@
 import type { EnemyDef } from '../../../content/types';
 import { dist, rectDist, rectNearest, tileRect } from '../geometry';
 import { state, type SimState } from '../internal';
-import { BASE_ID, type EnemyEnt, type PlayerEnt, type SimCtx, type StructureEnt } from '../types';
+import { steerTile } from '../../systems/flowfield';
+import {
+  BASE_ID,
+  type EnemyEnt,
+  type FlowField,
+  type PlayerEnt,
+  type SimCtx,
+  type StructureEnt,
+} from '../types';
 
-/** Extra reach when a wound-up swing lands (the target may have stepped back a little). */
-const LAND_SLACK = 0.25;
 /** A knockback faster than this (tiles/s) overrides walking. */
-const KNOCKED = 1;
+export const KNOCKED = 1;
 
 export function pathAi(ctx: SimCtx, e: EnemyEnt): void {
   const s = state(ctx);
@@ -52,7 +58,7 @@ export function pathAi(ctx: SimCtx, e: EnemyEnt): void {
 }
 
 /** Aggro and leash transitions. */
-function leash(s: SimState, e: EnemyEnt, a: { radius: number; leash: number }) {
+export function leash(s: SimState, e: EnemyEnt, a: { radius: number; leash: number }) {
   if (e.ai === 'aggro') {
     const p = e.target === null ? undefined : (s.units.get(e.target) as PlayerEnt | undefined);
     const ok = p !== undefined && s.kinds.get(p.id) === 'player' && s.targetable(p);
@@ -129,7 +135,22 @@ function followPath(s: SimState, e: EnemyEnt, def: EnemyDef) {
       return;
     }
   }
-  // Toward the next tile's center, blended with the one after so turns don't zigzag (§15.5).
+  steerAlong(e, field, t, next, speed);
+}
+
+/**
+ * Walks along `field` from tile `t` (whose next tile is `next`): straight at the farthest clear tile
+ * down the chain (`steerTile`, FF10-fix-1: direct diagonals, no L-shaped routes), else toward the
+ * next tile's center blended with the one after so turns don't zigzag (§15.5).
+ */
+export function steerAlong(e: EnemyEnt, field: FlowField, t: number, next: number, speed: number) {
+  const cols = field.cols;
+  const far = steerTile(field, t);
+  if (far >= 0 && far !== next) {
+    const fc = far % cols;
+    walkTo(e, fc + 0.5, (far - fc) / cols + 0.5, speed);
+    return;
+  }
   const nc = next % cols;
   let dx = nc + 0.5 - e.x;
   let dy = (next - nc) / cols + 0.5 - e.y;
@@ -156,7 +177,7 @@ function followPath(s: SimState, e: EnemyEnt, def: EnemyDef) {
 }
 
 /** Off the map: walk to the nearest entry tile of the lane (spawns sit just outside the edge). */
-function toLane(s: SimState, e: EnemyEnt, speed: number) {
+export function toLane(s: SimState, e: EnemyEnt, speed: number) {
   const lanes = s.cat.map.lanes;
   const entries = e.lane ? lanes[e.lane].entry : Object.values(lanes).flatMap((l) => l.entry);
   let bx = 0;
@@ -173,7 +194,7 @@ function toLane(s: SimState, e: EnemyEnt, speed: number) {
   walkTo(e, bx, by, speed);
 }
 
-function walkTo(e: EnemyEnt, x: number, y: number, speed: number) {
+export function walkTo(e: EnemyEnt, x: number, y: number, speed: number) {
   const dx = x - e.x;
   const dy = y - e.y;
   const l = Math.sqrt(dx * dx + dy * dy);
@@ -188,7 +209,14 @@ function walkTo(e: EnemyEnt, x: number, y: number, speed: number) {
 }
 
 /** Starts a wind-up at `target` (or waits out the cooldown in place). */
-function swing(s: SimState, e: EnemyEnt, def: EnemyDef, target: number, tx: number, ty: number) {
+export function swing(
+  s: SimState,
+  e: EnemyEnt,
+  def: EnemyDef,
+  target: number,
+  tx: number,
+  ty: number,
+) {
   e.vx = e.vy = 0;
   e.target = target;
   if (e.ai !== 'aggro') e.ai = 'attack';
@@ -204,13 +232,14 @@ function swing(s: SimState, e: EnemyEnt, def: EnemyDef, target: number, tx: numb
 }
 
 /** A swing lands: damage if the target is still there and in reach. */
-function land(s: SimState, e: EnemyEnt, def: EnemyDef) {
+export function land(s: SimState, e: EnemyEnt, def: EnemyDef) {
   const id = e.target;
   if (id === null) return;
   const u = s.units.get(id);
   if (!u || u.hp <= 0) return;
   const kind = s.kinds.get(id);
-  const range = def.attack.range + LAND_SLACK;
+  // A little extra reach: the target may have stepped back during the wind-up.
+  const range = def.attack.range + s.cat.rules.enemySwingSlack;
   let mult = 1;
   if (kind === 'base') {
     if (rectDist(e.x, e.y, s.baseRect) - e.r > range) return;

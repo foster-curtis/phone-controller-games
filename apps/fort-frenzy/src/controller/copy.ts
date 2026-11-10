@@ -55,8 +55,8 @@ export const CLASS_INFO: Record<ClassId, ClassInfo> = {
     rig: 'warden',
     main: {
       name: 'Ground slam',
-      mode: 'tap',
-      text: 'A short arc in front of you that hits several enemies.',
+      mode: 'aim',
+      text: 'A short arc that hits several enemies. Drag to aim.',
     },
     super: {
       name: 'Stomp',
@@ -97,7 +97,7 @@ export const CLASS_INFO: Record<ClassId, ClassInfo> = {
     name: 'Commander',
     role: 'Squad leader',
     rig: 'commander',
-    main: { name: 'Sword slash', mode: 'tap', text: 'A short arc in front of you.' },
+    main: { name: 'Sword slash', mode: 'aim', text: 'A short arc in front of you. Drag to aim.' },
     super: {
       name: 'Rally',
       mode: 'tap',

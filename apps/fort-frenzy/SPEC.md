@@ -206,7 +206,8 @@ Applies to every theme pack. Theme packs change the drawings, not these rules.
 T-visor; front-to-back crest plume (crest shape is Warden-only); gravity hammer with the head centered
 on the haft and an amber gravity coil at the center of the head, which brightens during the slam
 wind-up. Amber seams: chest chevron, power core, belt, pauldron trim, knee.
-Animations: idle, walk, main (ground slam), super (stomp with shockwave), build (kneel and tap),
+Animations: idle, walk, main (ground slam, toward the aim; while aiming the TV shows its cone,
+§10.1), super (stomp with shockwave), build (kneel and tap),
 Mason passive sparks to nearby walls.
 
 **Ranger (neon knights):** tall, narrow silhouette with a dark cloak behind and the bow in front;
@@ -219,7 +220,9 @@ amber knee; quiver bolts glow at the tips.
 straight, draw arm at his side) and ready (Steady Aim and firing: string drawn to the hand, bolt nocked;
 from the front the bow is aimed at the camera, from the back the draw elbow rises past the cloak).
 Animations: idle, walk (quicker, lighter cadence than the Warden), Steady Aim (blends from standing to
-ready), main (longbow shot with an amber tracer), super (pulse ring sized exactly to the hit circle),
+ready), main (longbow shot: he draws the string back, holds, and lets go with a string snap; the bolt
+leaves from the bow at the release, with an amber tracer; §15.11 #39), super (pulse ring sized exactly
+to the hit circle),
 build (kneel and place a deploy beacon; turrets unfold).
 
 **Commander (neon knights):** medium build; armet helm with an amber circlet across the brow (the only
@@ -229,9 +232,11 @@ triangle along the cutting edge, thickest at the base by the guard and thinning 
 diamond rank badge on the chest. The rally flag rides on his back as a banner; planting it moves it
 into the world, so "following" vs "holding" is visible at a glance.
 Animations: idle, walk, main (sword slash; the amber edge flares and leaves a trail tracing the exact
-hit arc), super (morale: amber pulse, and an amber aura on him and his squad that fades as the buff
-runs out, doubling as its timer), plant flag / recall, Lead from the Front link lines to nearby
-footmen.
+hit arc, toward the aim; while aiming the TV shows that arc filled, §10.1), super (morale: amber pulse, and an amber aura on him and his squad that fades as the buff
+runs out, doubling as its timer; for the buff's whole duration every unit it affects flashes its amber
+parts and the aura circle under it brightly on and off, 250 ms each, timed from the sim's buff), plant
+flag / recall, Lead from the Front as small amber nanite motes that drift slowly from him to each
+footman the passive currently reaches (no link lines; §15.11 #40).
 
 **Automaton footmen:** about half the Commander's height; amber eye; mini plume swept back in their
 Commander's player color; straight blade, fully amber, with a dark crossguard. No ring and no name.
@@ -284,6 +289,10 @@ W = 48 px (48 × 28.8). Characters are about 1.6 W tall (about 77 px). Art is au
 **Implementation:** the sim stays in square tile coordinates with circular hitboxes. Only the renderer
 projects: screen y = world y × 0.6 − height. Hitboxes, ranges and AoE are drawn as 0.6 ellipses of the
 same circles the sim uses, so what players see always matches what hits.
+**Enemy bodies (C4):** a part drawn h tiles above an enemy's feet covers the ground h / 0.6 tiles up the
+screen, so for our attacks an enemy's hitbox is its feet circle swept up the screen over its drawn body
+(a capsule on the ground, §9, §15.3). An aim line or cone that crosses the drawn body, head included,
+hits; feet circles still walk, collide and take enemy attacks.
 
 **Walls and nets in both directions:** a wall running across the screen shows its full light panel; a
 wall running into the screen is seen edge-on and shows as a glowing top strip between stacked posts.
@@ -336,8 +345,8 @@ corner, T-junction, cross), chosen from the four neighboring tiles.
 - **TV screens:** home (keyboard and gamepad: the focused row is lit amber, ◂ ▸ change theme and
   difficulty, "Resume wave N" only when a snapshot exists); lobby (URL, large mono room code, QR, six
   slots showing each knight's front view in the player's color with a name band, class and ready state;
-  open slots dashed); combat HUD (see above; the Stalker's target thread and the super-ready badge over a
-  knight are world UI); low-HP alarm (red vignette and "Citadel under attack" under the base bar);
+  open slots dashed); combat HUD (see above; the Stalker's target flash is world UI, and a ready super
+  shows as an amber pulse on the knight's ring, §10.1); low-HP alarm (red vignette and "Citadel under attack" under the base bar);
   build-phase HUD (the phase timer replaces COMBAT; the next-wave preview takes the boss bar's place at
   the bottom with enemy portraits and counts, a newly introduced type framed in violet; ready status and
   wishlist on the right; build ghosts dashed amber when valid, red with an X when blocked); victory and
@@ -452,6 +461,10 @@ Crates therefore have two uses: building or repairing.
   2. **Change classes:** players return to class select.
   3. **Return to home:** the TV goes back to the pre-lobby home page. The room closes, and players
      rejoin through a new room code.
+  - (FF14) Play again marks every connected player Ready in the lobby, so the 3-second countdown
+    starts at once with two or more of them. Return to home removes every phone from the room (they
+    show "The TV went home" with a button back to the code screen) and forgets the room, so the next
+    Create gets a new code.
 - The resume snapshot (§11.5) is cleared when the run ends.
 - Each wave has two phases:
   - **Build/shop phase:** no enemies. Players build, shop and pick upgrades.
@@ -766,7 +779,8 @@ All supers charge by dealing damage, and each character has its own charge rate.
 - **Strongest against:** Flyers, Runners, and Siege (the longbow outranges them).
 
 ### Warden (tank)
-- **Main:** Ground slam in a short arc in front of the Warden. Hits multiple enemies.
+- **Main:** Ground slam in a short arc in front of the Warden, aimed (a quick tap auto-aims; §10.1,
+  §15.11 #47). Hits multiple enemies.
 - **Super:** A longer-range stomp with an arc area of effect. Deals damage and stuns briefly.
 - **Passive — Mason:** walls near the Warden slowly repair themselves. Off during the build phase.
 - **Build kit:**
@@ -787,7 +801,8 @@ All supers charge by dealing damage, and each character has its own charge rate.
 - **Strongest against:** Swarms and Flyers. Its main value is keeping the team alive.
 
 ### Commander (squad leader)
-- **Main:** Sword slash in a short arc in front of him.
+- **Main:** Sword slash in a short arc in front of him, aimed (a quick tap auto-aims; §10.1,
+  §15.11 #47).
 - **Super (morale):** For a short duration, his squad gets more attack speed and attack damage. The
   Commander gets the same boosts plus extra movement speed.
 - **Passive — Lead from the Front:** the squad deals more damage while near the Commander.
@@ -820,10 +835,28 @@ Each enemy type is designed as a problem that specific classes solve.
 | Siege | Stops at range and shells the base or towers | Engineer (outranges it), Commander and squad dive |
 | Flyer | Ignores walls | Engineer, arrow towers, Quartermaster, base archers |
 | Swarm | Many weak units | Area damage: Warden, bomb towers, Quartermaster, Engineer's super |
-| Hunter | Targets players instead of the base | Warden stun, Commander's squad, Quartermaster healing |
+| Hunter | Targets players instead of the base; smarter than other units, it paths round tower range | Warden stun, Commander's squad, Quartermaster healing |
 | Boss (Colossus, §9.2) | Appears at waves 5, 10 and 15 | Everyone |
 
 - **Melee attacks cannot hit Flyers.**
+- **Body hitboxes (C4, Foster):** our attacks (players' shots, arcs, cones and circles, towers, base
+  archers, mortar shells) hit an enemy anywhere on its drawn body: torso, head and legs, from the feet up
+  to the top of the head (the Wasp: its hull at its flight height, not its shadow). Arms, tails, rotors
+  and barrels are left out. The Colossus keeps a low hitbox, its legs, a bit bigger than its feet, so its
+  head and chest never count. Sizes are measured off each rig and live in the balance sheet (§15.4);
+  auto-aim and towers aim at the body's near end (the feet, or the Wasp's hull). Enemy attacks,
+  walking, collisions, the Commander's soldiers and ground effects (snares, Aftershock zones, spreads)
+  keep the feet circles.
+- **Hunter (C3):** it hunts the nearest player and keeps that quarry until they go down or dazed, or
+  another player comes clearly closer (2 tiles closer, so two players at similar range don't flip it).
+  Rather than going straight for its quarry, it takes the route that spends the least time in range
+  of anything that shoots (towers and the Citadel's sentries) when one exists, and still reaches a
+  quarry standing in range (§15.5). Each new quarry flashes on the TV (§9.6).
+  **v2 (not in v1, Foster, C3):** it always starts by walking into the arena and finding a safe place
+  to stand where no tower can hit it. If a player comes within the Ranger's range of it, it targets
+  and attacks that player. Otherwise it waits until either a player drops below 50% HP (that player is
+  always targeted), or a Brute spawns: then it walks slowly behind the Brute, using it as a shield,
+  until it's close to a player.
 - **Who attacks players (aggro leash):** Grunts, Brutes, Swarms and Flyers attack a player who comes
   within a short aggro radius, chase up to a leash distance, then return to their path. Runners never
   attack players, Siege always shells the base or towers, and Hunters always hunt players. Radii live in
@@ -878,6 +911,9 @@ it is a giant walker mech with a glowing core in its chest (§2.1); its art is s
   lock the boss down.
 - When the meter is full, the Colossus is staggered for about 3 seconds and takes bonus damage. Then the
   meter resets.
+- **Stun resistance:** for 4 seconds after it gets back up, Warden stuns don't fill the meter at all
+  (damage still does), so a Warden-only team can stagger it now and then but never keep it down
+  (§15.11 #55). The TV shows nothing for this window: there's no immunity status look.
 
 **Boss wave rules**
 - A large boss HP bar runs along the bottom edge of the TV, where enemies enter (§2.6).
@@ -948,7 +984,8 @@ Enabled on the TV build with a URL flag and never shown to players. It can:
   cool gunmetal.
 - Emissive is violet only (eyes, cores, seams). Never amber, never red.
 - Machine posture: hunched forward, with spikes. Knights stand upright.
-- No player colors, rings or names on enemies. Size signals toughness.
+- No player colors, rings or names on enemies (except the Stalker's brief target flash). Size signals
+  toughness.
 - Same production rules as the characters (§2.4) and the perspective rules (§2.5): three-quarter view
   with top faces, mirrored left/right, vector cut-out rigs, ink outline, alignment and layering.
   Enemy glow sits inside each part (`class="glow"` groups), so it moves with the part.
@@ -977,10 +1014,11 @@ legs with wide foot pads; a long mortar barrel angled up and a rack of glowing s
 Plods to range, plants its legs and lifts the barrel; the muzzle charges violet before each shot, and a
 red landing marker shows where the shell will hit.
 
-**Wasp drone (Flyer):** no legs. Hovers above a knight's head, out of hammer reach, with two violet
-rotor discs each spinning on its own mast, a stinger cannon and a down-thruster glow under the rear of
-the body; its shadow stays on the ground far below. Bobs at a fixed height and never drops toward the
-ground, so it always reads as out of melee reach.
+**Wasp drone (Flyer):** no legs. Hovers at about a knight's head height, out of hammer reach, with two
+violet rotor discs each spinning on its own mast, a stinger cannon and a down-thruster glow under the
+rear of the body; its shadow stays on the ground below. Bobs at a fixed height and never drops toward
+the ground, so it always reads as out of melee reach. **Flight height (C4, Foster):** its hull's
+underside flies 1.37 tiles over its shadow, half its first height (2.74).
 
 **Scrap mites (Swarm):** tiny beetle bugs, about a fifth of a knight's height: a round split shell, a
 small head with antennae, six short legs and one violet eye, in packs of 8. Packs are scattered and
@@ -993,8 +1031,10 @@ in step. Randomize each mite's offset, speed and wobble.
 head, a low head thrust forward with twin violet eye slits (the only enemy with two eyes), fins forward
 on the back that sweep well back, and a short spiked tail. Fast loping run toward its target player;
 wind-up tell: it crouches low, then lunges.
-**Target thread:** a faint violet line runs from the Stalker's eyes to the player it's hunting, so the
-whole room can see who's targeted and step in.
+**Target flash (C3, was a target thread):** each time the Stalker takes a quarry (its first pick or a
+change, §9), that player's color flashes as a ring around its feet for about 2 s, then there's no
+indicator until the quarry changes again. This is the one exception to "no player colors on enemies",
+so the whole room sees who's targeted and can step in (§15.11 #45).
 
 **Colossus (boss):** about 2.6× a knight's height; tall and top-heavy (the only enemy taller than it is
 wide): a wide shoulder yoke, a small sunk head with one violet eye bar, two slab fists hanging low,
@@ -1074,8 +1114,18 @@ viewport. Sizes are fixed in px, with the minimums listed.
 - **Tap** (released within 150 ms and inside the dead zone): auto-aims at the nearest valid enemy in
   range.
 - **Drag:** aims. The aim line is drawn **on the TV**, not the phone. Maximum drag radius 70 px.
-- **Release outside the dead zone:** fires in the aimed direction.
-- **Slide back into the dead zone, then release:** cancels.
+- **Aim preview** (C3, §15.11 #41): the TV's aim line is the attack's real hit area, from the same
+  effective stats the sim hits with (content through passives and cards): a transparent amber bar the bolt's
+  range long and its hitbox wide (2 × `rules.projectileRadius`) for a single bolt (Ranger; C4, #52), a transparent amber-filled cone for arcs, cones and spread volleys
+  (Warden slam and stomp, Commander slash, Artificer shot and super), a filled amber 0.6 ellipse for
+  circles. Bars, cones and circles lie on
+  the ground under the units, dim enough to stay out of the bloom. A super previews only once charged.
+- **Dead zone** (the center grace zone): 25% of the drag radius around where the finger landed (17.5 px),
+  so a thumb back near the middle counts without finding the exact center (C4, §15.11 #53).
+- **Release outside the dead zone:** fires in the aimed direction, the direction the TV shows.
+- **Slide back into the dead zone, then release:** cancels. The TV's aim line hides while the aim is in the
+  dead zone; dragging out again, still held, re-arms the attack and the aim line shows again (C4,
+  §15.11 #51, #53).
 
 **Firing:** every attack fires **on release**, once per release.
 - Holding an aimed button only shows the aim line on the TV until release.
@@ -1092,7 +1142,10 @@ viewport. Sizes are fixed in px, with the minimums listed.
 - **When full:**
   - The button flashes once, brightening for 150 ms.
   - It then pulses continuously: the ring scales 1.0→1.12 and back at 1.2 Hz until the super is used.
-  - The same full state is also shown above the player's character on the TV.
+  - The same full state also shows on the TV as an amber pulse on the player's ring: an amber ring
+    (the theme's amber, so the bloom catches it) just outside their colored ring, pulsing at the same
+    rate and scale. The colored ring stays drawn on top, so the player color still reads. No badge over
+    the head (C2, §15.11 #38).
 
 **Status strip** (top center, small): HP and crates carried. Players watch the TV, so the phone shows
 only glanceable information.
@@ -1102,9 +1155,12 @@ only glanceable information.
 | Character | Main | Super |
 |---|---|---|
 | Engineer | Aimed | Tap |
-| Warden | Tap | Aimed |
+| Warden | Aimed | Aimed |
 | Quartermaster | Aimed | Aimed |
-| Commander | Tap | Tap |
+| Commander | Aimed | Tap |
+
+The Warden's slam and the Commander's slash became aimed at C3 (§15.11 #47); a quick tap still
+auto-aims, so melee stays a one-touch swing.
 
 **Action button** (context-sensitive). When several situations apply, the first matching row wins:
 
@@ -1170,6 +1226,23 @@ The shop shows:
 ### 10.4 Dead
 - The phone shows only a respawn countdown.
 - The build menu and shop are unavailable until the player respawns.
+- The top bar's pause button (§10.5) stays, so a downed player can still pause the team.
+
+### 10.5 Team pause (C4, §15.11 #54)
+- **Top bar:** during a run (wave countdowns, build and combat phases, and while down) every player's
+  phone has a pause button in the top-right corner of the top bar, a code-drawn two-bar glyph on a
+  gunmetal chamfered tile (the icon set has no pause icon). It isn't shown in the lobby, class select,
+  the waiting and claim screens, or the summary. In the Shop tab the coin count moves left of it.
+- **Any player pauses the whole run** for every player and the TV. The run freezes: sim steps, the
+  build timer, wave countdowns and respawn timers; the TV's render-only motion holds still too.
+- **Paused:** every phone shows a "Paused" card over its screen, "<Name> paused the run" (or "You paused
+  the run") and a **Resume** button; **any player** can resume, not only the one who paused. The TV shows
+  a "Paused" card naming who paused over a scrim, inside the safe margin.
+- **No buffered input:** going into the pause drops every held gesture on the phones; presses made while
+  paused never fire after the resume, and menu actions that change the run (build, buy, request, card,
+  Give, Ready, a late join) are refused with "Not right now" until the resume. Resume starts at once
+  (no 3-2-1): nothing held through the pause carries a press over.
+- Not in v1: a per-player pause, pause menus (settings, quit), TV-side pause controls.
 
 ## 11. Lobby, join and reconnect
 
@@ -1221,8 +1294,10 @@ from Sunny Side Slam. Everything else in this section is Fort Frenzy game logic 
 - **What players see:**
   - On the phone: a "Reconnecting…" overlay.
   - On the TV: a reconnecting icon on that player's nametag.
-- **No pausing in v1.** The game auto-pauses only if every player is disconnected at once, or while the
-  TV's browser tab is hidden (browsers stop animation frames there anyway).
+- **Pausing:** the game auto-pauses if every player is disconnected at once, or while the TV's browser
+  tab is hidden (browsers stop animation frames there anyway). Since C4 any player can also pause the
+  whole run from their phone (§10.5). The three are independent: the run moves only when none applies,
+  and a phone coming back doesn't clear a team pause.
 - **iOS backgrounding:** when the page becomes visible again (`visibilitychange`), the phone reconnects
   immediately with its token.
 
@@ -1289,6 +1364,7 @@ Ideas deferred from v1. Build v1 so these can be added without rewrites.
 | Elite enemy variants | Modifiers such as armored or fast | Enemy stats come from config, so a variant is a stat override |
 | Music | v1 ships sound effects only (§12) | Theme packs carry an audio map (§15.4), so music is more entries plus a player |
 | Enemy back views | Back views for the common walkers (§2.4) | Rig views are looked up per rig from data, so a new view is data, not code (§15.2) |
+| Hunter v2 behavior | Walks in and waits where no tower can hit it; attacks a player within the Ranger's range; otherwise waits for a player below 50% HP (always targeted) or a Brute to shelter behind (§9, Foster, C3) | The Hunter is its own `ai` module with a tower-threat map (`ai/threat.ts`) |
 
 ## 14. Open / under discussion
 
@@ -1298,8 +1374,9 @@ Ideas deferred from v1. Build v1 so these can be added without rewrites.
 2. **Numbers to set in playtesting:** player HP, character damage and super charge rates, structure costs
    and HP, snare discharges and slow strength (no structure may cost more than the non-Quartermaster
    carry cap, §6), crate prices, the per-crate slowdown curve, base HP and the repair amount per crate,
-   aggro and leash radii (§9), and the breaker field's wall cost (§15.5). These go in config, and the
-   starting values are picked during implementation.
+   aggro and leash radii (§9), and the breaker field's wall cost (§15.5). Every one of them is in the
+   balance sheet, `src/content/balance.ts` (§15.4), and the starting values are picked during
+   implementation.
    - **Main-attack cooldowns start at 0.4 s or more.** Attacks fire once per release (§10.1), so Haste
      only matters while the cooldown is longer than a fast tap.
 3. **Passive regeneration (balance watch):** HP carries over between waves and nothing heals players
@@ -1379,7 +1456,7 @@ apps/fort-frenzy/
   scripts/              build-atlases.ts, replay.ts (Node)
   src/
     shared/       messages.ts (protocol), ids.ts, theme.ts (brand.css mirror), relayUrl
-    content/      gameplay config as TS data (§15.4) + types.ts
+    content/      balance.ts (every tuning number, §15.4), map.ts, index.ts, types.ts
     themes/<id>/  shared.ts (phones + TV), host.ts (TV only)
     host/
       sim/        deterministic run simulation: world, systems, step order, run phases, economy
@@ -1407,7 +1484,8 @@ apps/fort-frenzy/
 - **Phaser 4.2.x** renders only; it never owns game state (as in Sunny Side). **No physics engine:** the
   sim moves bodies kinematically, with circle hitboxes, a uniform spatial hash for "who's near me"
   queries and soft separation, collision against blocking structure tiles, and knockback as a velocity
-  impulse with damping.
+  impulse with damping. Our attacks hit enemies' body capsules (§2.5, §9, C4); the debug hitbox overlay
+  (§9.5) draws each enemy's capsule as a 0.6 stadium over its feet circle, and the gallery's too.
 - **Canvas:** 1920 × 1080 logical, `Scale.FIT`.
 - **Screen layout** (W = 48 px tile width, depth 28.8 px per §2.5):
 
@@ -1446,14 +1524,15 @@ interface Camera {
 - **Layers**, bottom to top:
   1. ground: map tiles, Citadel plate, Armory pad, repair zone
   2. ground overlays: red danger markers, shock nets, structure base plates, wall rails, build-ghost
-     footprints, the rally-flag ring, player rings, Field Medic circle, range previews, AoE rings (all
-     0.6 ellipses of sim circles)
+     footprints, the rally-flag ring, player rings (with the amber super-ready pulse, §10.1), Field
+     Medic circle, range previews, AoE rings (all 0.6 ellipses of sim circles), the amber-filled bar, cone and
+     circle aim previews (§10.1; the sim's `hitShape`, code-drawn)
   3. **world**, one y-sorted layer: structures, the Citadel, the Armory kiosk, units, flyers and arcing
      projectiles. Sort key = foot point; flyers and arcing projectiles sort by their shadow; multi-tile
      structures by their footprint's front edge.
   4. effects: hit sparks, tracers, muzzle flashes, plumes
-  5. world UI: nametags and HP bars (flipping below near the top edge, §2.1), aim lines, the build arc,
-     the super-ready badge, the Stalker target thread
+  5. world UI: nametags and HP bars (flipping below near the top edge, §2.1), the build arc,
+     the Stalker target flash
   6. HUD (screen space)
 - **Ground, world or effects:** each non-rig frame's `layer` in `sprites.json` is one of:
   - `ground` (layers 1–2): anything flat on the ground, as its own frame.
@@ -1538,7 +1617,10 @@ interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: num
     enemy's leg height.
   - Map: `map/ground/1`…`4` (1 on most tiles, 2–4 sparsely by a seeded hash of the tile),
     `map/edge/<n s e w ne nw se sw>` on border tiles except lane tiles, `map/lane/<lane>-<open|sealed>`
-    (§3.1), and `map/decor/*`.
+    (§3.1), and `map/decor/*`. The theme's `floorLift` is added to every ground, edge and decor frame
+    at draw time (Phaser ADD tint; lanes keep their glows untinted), so the floor reads lighter than
+    its art: neon knights lifts the #262b33 stone to #62676f, enough for the violet-iron hulls and the
+    ink outlines to stand off it, and still below the bloom (§15.11 #43).
   - Status effects (§6.1): `burn-1`/`2` and `corrosion-1`/`2` loop at about 8 fps, anchored
     bottom-center on the body and scaled to its height; `stun-1`…`4` loop centered on the enemy's
     `top` point; `defense-bonus` shares the tower's anchor and draws right after it; `carry-pip` and
@@ -1559,21 +1641,35 @@ interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: num
 - **Renderer API additions** (FF3-fix-1, `src/host/render/types.ts`, additive): `RigInstance.clipMs(clip)`
   and `clipDone` (remove a dead enemy once its death clip ends); `EffectSpawner.burst(…, delayMs?)`,
   `bodyBurst(kind, footSx, footSy, heightPx)` (3–5 heal glints or nanite motes spread over a body) and
-  `scrap(…, holdMs?)` (a downed knight's pile holds for the down timer).
+  `scrap(…, holdMs?)` (a downed knight's pile holds for the down timer). FF8 adds the optional
+  `EffectSpawner.arcWave?(side, x, y, r, angleRad, arcDeg, ms?)`: a ground shockwave rolling out across a
+  sector, drawn as a 0.6 band of the sim's hit arc (the Warden's slam and stomp).
 - **Pooling:** render-side only. Phaser objects for projectiles, effects, damage numbers and Swarm units
   come from per-kind pools; sim entities are plain objects, not pooled.
 - **Interpolation:** the renderer draws positions lerped between the last two sim steps (as in Sunny
   Side), keyed by entity id; spawned entities draw at their current position, removed ones disappear.
+  A body drawn at its ground point (every enemy, the Wasp included: its hover height is art, not the
+  sim's `z`) lerps on the ground at both ends; heights lerp only between heights (C3, §15.11 #44).
+  The Wasp's flight height is `render/clips/wasp.ts` `WASP_FLIGHT_TILES` (its art's own lift plus the
+  render hover `WASP_HOVER_TILES`), and its content body's `bottom` matches it (C4, §15.11 #50).
 - **Missing frames:** a dev-only fallback draws a labeled shape for the ID (sized from its hitbox), so a
   missing asset never breaks a build. Production builds fail the atlas check instead (§15.10).
 - **Performance budget**, measured by an early performance test at peak load (6 knights, 30 footmen,
   150 enemies, 100 projectiles, 60 structures; about 1,300 rig parts in one atlas) on an integrated GPU
   laptop (Intel Iris Xe class) at 1080p: whole frame ≤ 16.7 ms, one sim step ≤ 2 ms, bloom ≤ 2 ms.
+  The TV measures it in its stress mode, `?debug=1&stress=1` (FF15): the real sim and World scene
+  with no phones, six autopilot knights (every class) on wave 15 against the Colossus Mk III held in
+  its final phase, Swarm packs topping the crowd up to 150, 60 towers, 30 footmen and 100 projectiles
+  (`&peak=synthetic` scatters the whole roster instead), with an overlay of frame time, CPU render
+  submit, bloom (GPU timer query, else bloom on − off) and the sim step's mean and p99.
 
 ### 15.3 Simulation
 
 - **Loop:** fixed 60 Hz steps with an accumulator, a catch-up cap and render interpolation, from
-  `@pcg/game-kit` (as in Sunny Side). The debug 2× speed runs two steps per frame slot.
+  `@pcg/game-kit` (as in Sunny Side). The debug 2× speed runs two steps per frame slot. The host
+  runs no steps while the TV tab is hidden, while every run player is disconnected, or while the team
+  is paused (§10.5; that one also holds the debug `advance` stepper). A pause is outside the sim: no
+  command, no replay entry, just no steps.
 - **One deterministic sim owns the whole run** from the countdown to the summary: phases and timers,
   combat, economy, shop, cards, building and scaling. The lobby is outside it (`party/`); a run starts
   from `RunStart { seed, settings, slots }`. Everything that changes run state enters as either an
@@ -1592,10 +1688,13 @@ interface Unit extends Body {
   push?: Vec2 | null;                        // knockback velocity, decays each step (FF6)
 }
 // BaseState also keeps its visual damage stage (§3.3) as `stage?: 0 | 1 | 2 | 3` (FF6).
+// AttackState keeps a player's wound-up attack direction as `windupAim?: Vec2 | null` (FF8: the
+// Warden's slam and stomp land when their wind-up ends; `aim` keeps queueing presses meanwhile).
 interface World {
   tick: number; phase: Phase; wave: number;
   players: PlayerEnt[]; soldiers: SoldierEnt[]; enemies: EnemyEnt[];
   structures: StructureEnt[]; projectiles: ProjectileEnt[]; cratePiles: CratePile[];
+  thrown?: ThrownCrate[];                    // FF9: Quartermaster throws in flight (from, to, landsAt)
   markers: DangerMarker[];                   // telegraphs: shape, position, landsAtTick, payload
   grid: TileGrid; fields: FlowFields; spatial: SpatialHash;
   base: BaseState; team: TeamState;          // coins, shop tiers, wishlist, scaling
@@ -1610,7 +1709,10 @@ type Phase = 'countdown' | 'build' | 'combat' | 'victory' | 'defeat' | 'summary'
   3. players: movement (carry slowdown), attacks and supers, action button, build arc, crates
   4. AI: enemies (path, aggro leash, siege, hunter, flyer, runner), soldiers, the boss module
   5. integrate movement, soft separation, structure collision
-  6. projectiles and area attacks → `applyDamage`
+  6. projectiles and area attacks → `applyDamage` (ours hit enemy bodies, `sim/body.ts`, C4: the
+     content body swept up the screen as a ground capsule, `segmentHitsBody`, `circleHitsBody`,
+     `sectorHitsBody`; candidates from `SpatialHash.queryBox`, which looks the tallest body's reach
+     south of the shot)
   7. status effects, `onTick` hooks, auras (combat only)
   8. deaths: hooks, coins, crate drops; destroyed blockers rebuild the flow fields
   9. wave spawner (spawn warnings 3 s ahead)
@@ -1621,7 +1723,8 @@ type Phase = 'countdown' | 'build' | 'combat' | 'victory' | 'defeat' | 'summary'
   (FNV-1a over a canonical serialization of `World`) checks determinism in tests and replays.
 - **RNG** (`@pcg/game-kit`): a small seeded PRNG plus named streams derived from (seed, label), so one
   stream's use never shifts another's. Streams: `waves:<n>`, `cards:<wave>:<slot>`, `combat:<wave>` (all
-  in-combat randomness, including Scrap-mite jitter, which runs in the sim so hitboxes match the art).
+  in-combat randomness, including Scrap-mite jitter, which runs in the sim so hitboxes match the art;
+  FF10 keeps each mite's drift, pace and re-roll tick in `EnemyEnt.wander?: { side; pace; until }`).
 
 ```ts
 interface Rng { next(): number; int(lo: number, hi: number): number; pick<T>(xs: readonly T[]): T }
@@ -1664,7 +1767,10 @@ interface Hooks {
   onKill(ctx: SimCtx, self: Unit, victim: Unit): void;
   onDeath(ctx: SimCtx, self: Unit, killer: Unit | null): void;        // Wildfire, Plague (on the effect)
   onPhase(ctx: SimCtx, self: Unit, phase: Phase): void;               // Veterans
+  modifyHeal(ctx: SimCtx, self: Unit, h: HealCalc): void;             // FF12: Triage, before a heal lands
 }
+// HealCalc { source; target; amount } (FF12). SimEvent appends `{ e: 'faultLine'; slot }` (FF12: the
+// TV flashes every wall when a Fault Line stomp shocks them).
 // Modules are registered by id and built from config params:
 function defineModule<P>(id: string, make: (params: P) => Modifier): ModuleDef<P>;
 ```
@@ -1680,7 +1786,8 @@ interface EffectDef { id: EffectId; stacking: 'refresh' | 'strongest' | 'stack';
   tickEveryMs?: number; modifier: (strength: number) => Modifier }
 interface StatusEffect { def: EffectId; strength: number; remaining: number; stacks: number;
   source: EntityId | null }
-// v1 effects: burn, poison, stun, slow (strongest), morale, tower_defense, shield, aura_* (refresh)
+// v1 effects: burn, poison, stun, slow (strongest), morale, tower_defense, shield, aura_* (refresh),
+// haste (FF9: the Commander's morale movement boost)
 ```
 
 - **Damage pipeline:** every hit goes through one function (§13 crits).
@@ -1705,39 +1812,71 @@ interface BossBehavior {
   tick(ctx: SimCtx, boss: EnemyEnt): void;       // picks attacks, emits DangerMarkers with wind-ups
   onDamage?(ctx: SimCtx, boss: EnemyEnt, r: DamageResult): void;  // stagger meter
 }
+// FF11: `EnemyEnt.boss` also keeps the attack winding up, `act?: BossAct | null` (kind, startedAt,
+// at, x, y, target, marker), per-attack `ready?: Record<string, number>` ticks (the Colossus also
+// keeps `ready.stun`, when stuns count again after a stagger; FF11-fix-1) and `stunAt?` (the
+// last stun the meter counted). Content's `boss: { module, params }` names a `bosses` registry entry
+// (ai `'boss'`); the pipeline calls `onDamage` for a boss target (stage 7). Boss-wave rules shared
+// by every boss (spawn up the wave's first lane, the Mk, death collapsing the wave) live in
+// `sim/boss/index.ts`.
 ```
 
 ### 15.4 Data and config
 
-- **Format: TS data modules** in `src/content/`, one file per domain, typed with `satisfies` against
-  `src/content/types.ts`. All tuning numbers live here (§14). Units: distances in tiles, speeds in
-  tiles/s, times in ms (converted to steps at load), damage and HP as numbers.
+- **Format: TS data modules** in `src/content/`, typed with `satisfies` against
+  `src/content/types.ts`. Units: distances in tiles, speeds in tiles/s, times in ms (converted to
+  steps at load), damage and HP as numbers.
+- **One balance sheet (settled 2026-11-04, §15.11 #48):** every number that affects balance lives in
+  `src/content/balance.ts` (§14 #2), in sections: Citadel and run rules, difficulty and player
+  scaling, characters, structures, enemies and the Colossus, waves, upgrade cards, team shop. That
+  covers HP, damage, ranges, areas, timers, speeds, costs and prices, wave budgets, and the numbers
+  behind AI and card behavior (aggro and leash, Hunter threat cost, Swarm jitter, squad engage range,
+  shell minimum flights, projectile hit radius, card offer size and rare chance, damage-over-time ticks
+  and stacks). `src/content/map.ts` holds the map layout; `index.ts` assembles `Content`.
+- **No numbers in the sim:** card, passive, shop and boss modules read every param from content (a
+  missing param throws), and the sim reads optional content fields without fallback values. What
+  stays in code is engine plumbing, not balance: the step rate, spatial-hash and flow-field steering
+  internals (`systems/` can't import content), physics thresholds, spawn scatter and render-only arcs.
 - **Validation test** (Vitest): every referenced id exists (cards, combo prerequisites, favored enemies,
   wave pools, guaranteed spawns, shop targets, modules); no structure costs more than the
   non-Quartermaster carry cap (§6); every class's build list has at most 3 entries (the build arc);
-  each wave's budget covers its guaranteed spawns.
+  each wave's budget covers its guaranteed spawns; every module builds from its content params; every
+  optional field the sim reads is present; the phone's card copy quotes the content numbers.
 
 ```ts
 interface CharacterDef {
   id: ClassId; hp: number; moveSpeed: number; radius: number;
-  main: AttackDef; super: AttackDef & { effects?: EffectApply[]; heal?: number };
+  main: AttackDef;
+  super: AttackDef & { effects?: EffectApply[]; heal?: number; selfEffects?: EffectApply[] }; // FF9: self only
   input: { main: 'aimed' | 'tap'; super: 'aimed' | 'tap' };          // §10.1 table
   superChargeRate: number; passive: ModuleRef;
   build: StructureId[];                                               // arc order: left, up, right
   carryCap: number; carrySlowdown: number[];                          // slowdown per crate count
-  squad?: { size: number[]; soldier: UnitStats; followRadius: number };
+  squad?: { size: number[]; soldier: UnitStats; followRadius: number;
+    aggro?: { radius: number; leash: number }; hurry?: { at: number; factor: number };   // #48
+    formation?: { flagRing: number; followSpread: number } };
+  supply?: { crateDiscount: number; throwRange: number; throwSpeed: number; kitRepair: number; // FF9, §6
+    throwMinFlightMs?: number };                                      // #48
 }
-interface AttackDef { shape: 'projectile' | 'arc' | 'cone' | 'circle'; damage: number; range: number;
+interface AttackDef { shape: 'projectile' | 'arc' | 'cone' | 'circle' | 'buff'; damage: number; range: number;
   cooldownMs: number; windupMs?: number; arcDeg?: number; count?: number; spreadDeg?: number;
-  speed?: number; hitsFlyers: boolean; blockedBy?: ('wall' | 'tower')[]; knockback?: number }
+  speed?: number; hitsFlyers: boolean; blockedBy?: ('wall' | 'tower')[]; knockback?: number;
+  radius?: number; minFlightMs?: number }                             // #48: lobbed shells' shortest flight
 interface EnemyDef { id: EnemyId; hp: number; speed: number; radius: number; flying: boolean;
-  budget: number; groupSize?: number; ai: 'path' | 'runner' | 'siege' | 'hunter' | 'flyer' | 'boss';
+  budget: number; groupSize?: number;
+  ai: 'path' | 'runner' | 'siege' | 'hunter' | 'flyer' | 'boss' | 'swarm' | 'brute';   // FF10: swarm, brute
   field: 'ground' | 'breaker' | 'none'; attack: AttackDef;
   vsStructure?: Partial<Record<StructureId | 'base', number>>;        // Brute 2× walls, Colossus 3×
-  aggro?: { radius: number; leash: number }; slowResist?: number; boss?: ModuleRef }
+  aggro?: { radius: number; leash: number }; slowResist?: number; boss?: ModuleRef;
+  hunt?: { closeRange: number; retargetTiles: number; threatCost: number; threatPad: number }; // #48 Hunter
+  jitter?: { drift: number; pace: number; paceRange: number; stopChance: number;               // #48 Swarm
+    rollMs: [number, number]; stopMs: [number, number] };
+  body?: { radius: number; bottom: number; top: number } }  // #50: drawn body, tiles above the feet
 interface StructureDef { id: StructureId; cost: number; hp: number | null; pathCost: number;
   blocksProjectiles: boolean; attack?: AttackDef; attachesTo?: StructureId[];
-  discharges?: number; rearmMs?: number; slow?: EffectApply }         // snare
+  discharges?: number; rearmMs?: number; slow?: EffectApply;          // snare
+  defense?: number;                                                   // Fortify's damage reduction (FF8)
+  triggerFraction?: number }                                          // #48: snare trigger (body radius)
 interface CardDef { id: CardId; owner: ClassId | 'common'; tier: 'common' | 'rare' | 'combo';
   unique?: boolean; requires?: [CardId, CardId]; favoredEnemy?: EnemyId; requiresClass?: ClassId;
   stats?: StatMod[]; module?: ModuleRef; perClass?: Partial<Record<ClassId, StatMod[]>> }
@@ -1759,7 +1898,12 @@ interface BaseDef { hp: number; repairPerCrate: number; stages: number[]; alarmA
 interface RulesDef { startCoins: number; countdownMs: number; buildCapMs: number; respawnMs: number;
   victoryMs: number; defeatMs: number; spawnWarningMs: number; inputStaleMs: number; dropLockMs: number;
   pickupRadius: number; giveRadius: number; respawn: Vec2[]; statCaps: Partial<Record<StatId, StatCap>>;
-  breakerWallCost: number; separation: number; knockbackDecay: number }
+  breakerWallCost: number; separation: number; knockbackDecay: number;
+  // #48: the sim's former constants
+  projectileRadius: number; enemySwingSlack: number; enemyShotSlack: number; fortifyReach: number;
+  cardOffer: { size: number; rareChance: number };
+  dots: Partial<Record<EffectId, { maxStacks: number; tickEveryMs: number }>>;
+  comboSpread: { radius: number; durationMs: number } }
 ```
 
 - **Generic system signatures** (extraction-ready, §15.1; Fort Frenzy passes its content in):
@@ -1791,14 +1935,15 @@ interface ThemeHost {                            // TV only
   atlases: AtlasRef[]; rigs: Record<string, RigDef>; clips: Record<string, Clip>;
   sfx: Partial<Record<SfxId, string>>;           // music joins this map in v2 (§13)
   map: { ground: string[]; edges: Record<'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw', string>;
-    lanes: Record<LaneId, { open: string; sealed: string }>; decor?: string[] };
+    lanes: Record<LaneId, { open: string; sealed: string }>; decor?: string[];
+    floorLift?: number };                        // 0xRRGGBB added to ground/edge/decor (§15.2 Map)
 }
 ```
 
 - **Icons** (`art/<theme>/icons/`, 24-unit SVG glyphs with `.glyph`, ink and `.glow` layers; usage rules
   in its `README.md`): phones get them as one inline SVG sprite (a `<symbol>` per icon, built at build
   time), so `.glow` takes the CSS `drop-shadow` and badge tiles stay crisp. The TV's DOM HUD (§15.2)
-  uses the same sprite; world UI that Phaser draws (the build arc, the super-ready badge) uses the same
+  uses the same sprite; world UI that Phaser draws (the build arc) uses the same
   files rasterized into the TV atlas, where the bloom picks up the amber. Theme packs replace the files
   under the same names. A missing icon falls back to a text label.
 - **Class portraits:** phones never load the TV atlases, but class select and the lineup show each
@@ -1810,8 +1955,10 @@ interface ThemeHost {                            // TV only
 
 - **Flow fields** over the 36 × 24 grid, built with Dijkstra (a breadth-first search that weighs tile
   costs) outward from the tiles next to the Citadel. Each tile stores its distance and the neighbor to
-  step to next. A rebuild takes well under 1 ms and runs in the same step a blocking structure is
-  placed or destroyed.
+  step to next. The sim's fields take 8-neighbor (octile) steps: a diagonal costs √2 × the entered
+  tile's cost and never cuts the corner of a blocker or impassable tile (C3, §15.11 #46; the system's
+  default stays 4-neighbor). A rebuild takes well under 1 ms and runs in the same step a blocking
+  structure is placed or destroyed.
 - **Tile costs:** open 1; snare 1 (no rebuild, §7.1); wall and tower: a high configurable cost (enemies
   detour unless the detour is longer); terrain outside the map or marked blocked: impassable.
   Structures always have a finite cost, so a route always exists, and "break through" (§7) is simply an
@@ -1819,16 +1966,34 @@ interface ThemeHost {                            // TV only
 - **Fields:** `ground` (most walkers); `breaker` (Brutes and the Colossus: walls cheap, so they smash
   through, §7); one per hunted player (Hunters), rebuilt when that player moves to a new tile. Flyers
   ignore fields and steer straight at their target.
-- **Steering:** an enemy steers toward its next tile's center, blended with the neighbors' directions
-  so movement doesn't zigzag, plus soft separation from nearby units. Units never hard-block each other.
+- **Hunter fields price tower range (C3):** a hunted player's field adds 4 per attacker (a tower that
+  shoots, a Citadel sentry) whose range + 1 tile covers a tile, so a Hunter detours round the
+  defenses when that's cheaper than the time under fire and still reaches a quarry standing in range.
+  The coverage is rebuilt with the fields (a structure placed or destroyed) and at each combat start
+  (range cards and sentries bought in the build phase). `EnemyEnt.huntSince?` stamps the tick of each
+  new quarry, which drives the TV's target flash (§9.6).
+- **Steering:** an enemy heads straight for the farthest tile down its field's chain (up to 32 tiles)
+  that a body-wide corridor (±0.3 tiles) reaches without crossing a tile costlier than the chain's
+  next step, so it crosses open ground on a direct diagonal to the Citadel instead of an L-shaped
+  route, never shortcuts through a wall, tower or a Hunter's priced tiles, and stops at a blocker it
+  must attack (C3, §15.11 #46). With nothing farther clear it steers toward its next tile's center,
+  blended with the one after so movement doesn't zigzag. Plus soft separation from nearby units.
+  Units never hard-block each other.
 - **Behavior per `ai`:** `path` follows its field and attacks whatever blocks it or the base; `runner`
   bursts on base contact; `siege` stops once the base or a tower is in range and shells it; `hunter`
-  follows its target's field; `flyer` flies straight; aggro-leash enemies (§9) leave the path for a
-  player in aggro radius and return past the leash.
+  follows its target's field (retargeting on down, daze or a player 2 tiles closer, §9); `flyer` flies
+  straight; aggro-leash enemies (§9) leave the path for a
+  player in aggro radius and return past the leash. FF10 adds `swarm` (a `path` walker with the
+  in-sim mite jitter) and `brute` (a `path` walker on the `breaker` field that also smashes a wall it
+  walks into while chasing or returning).
 
 ```ts
 interface FlowField { cols: number; rows: number; dist: Float32Array; next: Int16Array } // −1 = goal
-function buildField(grid: TileGrid, cost: (tile: number) => number, goals: readonly number[]): FlowField;
+function buildField(grid: TileGrid, cost: (tile: number) => number, goals: readonly number[],
+  into?: FlowField, opts?: FieldOptions): FlowField;
+// FF10-fix-1 (additive): 8-neighbor steps; `solid` tiles' corners are never cut
+interface FieldOptions { diagonal?: boolean; solid?: (tile: number) => boolean }
+function steerTile(field: FlowField, from: number): number; // farthest clear tile down the chain
 ```
 
 ### 15.6 Network protocol
@@ -1852,7 +2017,7 @@ export const PROTOCOL_VERSION = 1;
 /** Phone → host input (§10.1, §11.4). Sticks and aims are ints −100..100, dead zone applied on the phone. */
 export type InputTuple = [
   moveX: number, moveY: number,
-  mainX: number, mainY: number,       // aim at the last release; 0,0 with a fire = tap = auto-aim
+  mainX: number, mainY: number,       // live aim while aiming (FF7), the release aim with a fire; 0,0 = tap = auto-aim
   superX: number, superY: number,
   flags: number,                      // 1 main aiming (TV aim line), 2 super aiming, 4 radial open
   mainFires: number, superFires: number, actionTaps: number, radialCommits: number, // counters
@@ -1893,7 +2058,8 @@ export type Intent =
   | { k: 'request'; item: ShopItemId; on: boolean }
   | { k: 'card'; card: CardId }
   | { k: 'give' }                                                  // §10.2 Give crate button
-  | { k: 'claim'; slot: number };                                  // resume into a new room
+  | { k: 'claim'; slot: number }                                   // resume into a new room
+  | { k: 'pause'; paused: boolean };                               // team pause, any run phone (§10.5)
 
 export type AckReason = 'coins' | 'crates' | 'cap' | 'phase' | 'invalid' | 'notLeader' | 'taken';
 
@@ -1920,6 +2086,7 @@ interface TeamView {
   wishlist: { item: ShopItemId; by: string }[];
   nextWave: { enemies: { id: EnemyId; count: number }[]; boss: boolean } | null;  // §4
   summary: RunSummary | null;
+  paused?: { playerId: string; name: string; color: PlayerColorId } | null;  // who paused (§10.5)
 }
 interface MeView {
   screen: 'name' | 'lobby' | 'waiting' | 'full' | 'combat' | 'build' | 'dead' | 'summary'
@@ -1945,7 +2112,19 @@ interface MeView {
   intent maps to `party.setColor`: lobby only and not while that player is ready (ack `phase`), a color
   another member holds acks `taken` (no swap), an unknown player or color acks `invalid`. Relay `peer left` → a `presence` command
   makes the character dazed (§11.3); `rejoined` or a key match restores it. A phone joining during combat
-  gets `waiting` and becomes a late join at the next build phase.
+  gets `waiting` and becomes a late join at the next build phase: in a build phase it enters a name,
+  picks a class and taps Ready, which takes the next free slot (`party.joinLate`, then the sim's `join`
+  command) and spawns the knight at the base with a card offer. A resume (§15.8) rebuilds the party
+  from the snapshot with `party.restore` (every slot away, matched by key or device ID), and
+  `party.claim` lets an unknown phone take a slot no phone has matched; `party.screen` returns `claim`
+  for it while such slots exist.
+- **Team pause** (§10.5, FF14-fix-1): a `pause` intent from any phone with a run slot, in the
+  countdown, build or combat phase (otherwise `phase`); pausing an already paused run keeps the first
+  pauser, resuming a running one is a no-op, both ack `ok`. While paused, `team.paused` names who paused
+  (absent when running) and reaches every phone in the `team` broadcast; intents that become sim
+  commands, and a late join, ack `phase`. Input tuples still arrive while paused, and each
+  `PhoneInputSource` subtracts the presses counted between the pause and the resume (`hold` /
+  `release`), so nothing fires on resume. The summary's run time leaves the pause out.
 - **Versioning:** `PROTOCOL_VERSION` bumps on any breaking change to `messages.ts`; additive fields don't
   bump it. `messages.ts` is a frozen contract (§15.11).
 
@@ -1969,7 +2148,13 @@ interface MeView {
 - **Gestures** (`controller-kit`, pure state machines with DOM adapters, unit-tested without a DOM):
   - **Aimed button:** down → `pending`; released within 150 ms inside the dead zone → `tap` (fire,
     aim 0,0); dragged out → `aiming` (aim flag set, vector clamped to 70 px); released outside the dead
-    zone → `fire` with the aim; released inside it after aiming → `cancel`.
+    zone → `fire` with the aim; released inside it after aiming → `cancel`. Fort Frenzy passes its dead
+    zone to the kit (`controller/input.ts` `aimGesture`: `AIM_DEAD_ZONE` = 0.25 of the clamp,
+    `shared/messages.ts`; the kit default stays 12%). The tuple is unchanged; the sim hides the held aim
+    (`PlayerEnt.mainAim`/`superAim` null; `AttackState.held` `cancelled`) while the aiming flag is set
+    and the aim is inside `AIM_DEAD_ZONE`, and shows it again once it is back out (FF7-fix-5, was a
+    latch for the rest of the hold in FF7-fix-4). The phone's tuple ints (`aimInts`) round onto the
+    same side of the zone as its own px test, so the TV shows a line exactly when a release would fire.
   - **Tap button:** fires on release (§10.1).
   - **Radial button:** a tap within 150 ms → `tap`; held 0.4 s or dragged out → `open` (radial flag,
     slot by drag direction among enabled slots, 8 px hysteresis between slots); released on a slot →
@@ -1980,6 +2165,10 @@ interface MeView {
   lit badges; `action: 'none'` shows the glyph at 35% on the plain tile (icons `README.md`).
 - **Shop:** hold-to-confirm (0.6 s) on items with `holdToConfirm`; Request toggles; purchase failures
   show the `ack` reason as a toast.
+- **Team pause (§10.5):** the combat and build views share one pause control (`createPauseControl`):
+  the top bar's button and the paused card, both from `team.paused`. Going into a pause resets the
+  view's gestures and zeroes the sticks; the input sender keeps running, so the host sees the counters
+  it has to swallow.
 - **Bundle budget:** `play.html` loads ≤ 100 KB gzipped JS, with no Phaser and no atlases, only
   `themes/<id>/shared.ts` (the icon sprite and portrait images load as assets, outside the JS budget).
   `check-bundle` gains a per-app size limit.
@@ -2003,7 +2192,7 @@ interface RunSnapshot {
   wave: number; base: { hp: number; repairs: number }; coins: number;
   shop: Record<ShopItemId, number>;                  // tier owned (archer upgrades: 0 or 1 each)
   structures: { id: StructureId; tile: [number, number]; hp: number | null;
-    dischargesUsed?: number; fortified?: boolean }[];
+    dischargesUsed?: number; fortified?: boolean; owner?: number }[];   // owner: builder's slot (FF14)
   cratePiles: { x: number; y: number; n: number }[];
   slots: { slot: number; playerKey: string; deviceId: string; name: string; color: PlayerColorId;
     classId: ClassId; hp: number; crates: number; kits: number; lastBuilt: StructureId | null;
@@ -2011,6 +2200,7 @@ interface RunSnapshot {
     squad?: { size: number; veterans: number[]; flag: [number, number] | null } }[];
   leaderKey: string | null;
   wishlist: { item: ShopItemId; slot: number }[];
+  runMs?: number;                                    // run time before the save (FF14: summary duration)
 }
 ```
 
@@ -2019,7 +2209,20 @@ interface RunSnapshot {
   driven by keyboard or gamepad; the leader's phone can choose too. If the relay hands back a new room
   instead, the TV shows the new code; rejoining phones are matched by device ID, and any others see the
   `claim` screen listing free slots.
+- **What a resume restores** (FF14): the build phase of the saved wave with its full build timer; the
+  knights stand at the base; cooldowns and super charge start over; everything in the snapshot comes
+  back as saved. A saved run reclaims (or creates) the room as soon as the TV loads, and the TV's home
+  screen shows the Resume / New run rows with the room code. New run drops the snapshot and goes to the
+  lobby with the phones that are there. Any phone with no slot sees `claim` while a restored slot is
+  still unmatched, in the same room or a new one.
+- **Implementation:** `sim/snapshot.ts` takes (`takeSnapshot`), checks (`parseSnapshot`) and restores
+  (`restoreSnapshot`, run by `createSim` when `RunStart.snapshot` is set) snapshots; the host's
+  `net/resume.ts` does the storage and `net/session.ts` the timing. A restore is deterministic: two
+  restores of one snapshot hash the same and play on identically, and the restored world gives the same
+  snapshot back.
 - A resume starts a new replay segment that begins from the snapshot (§15.9).
+- A team pause (§10.5) isn't in the snapshot: one saved while paused restores unpaused, into the build
+  phase as above.
 
 ### 15.9 Testing
 
@@ -2036,6 +2239,15 @@ interface RunSnapshot {
   fall back toward the base when hurt) plays waves 1–15 headless with invincible players: no exceptions,
   and the run completes. A benchmark at peak entity counts checks the 2 ms step budget (§15.2); it runs
   on demand, not in the CI gate. The autopilot seeds the solo-mode bots (§13).
+  - The soak (FF15, `sim/soak.ts`) holds the Citadel at full HP too, so every class mix reaches wave 15;
+    each player picks a card from every offer and tries one team-shop item a wave (in a rotation), so
+    card and shop hooks run. The full form (`pnpm --filter @pcg/fort-frenzy soak`) plays two seeds ×
+    (2 players in all 10 class pairs, 6 players in the 4 rotations of the class list), each run twice:
+    it fails on an exception, a run that doesn't end in victory at wave 15, or a rerun whose state
+    hashes differ. Vitest runs a short form (one whole 2-player run and the 6-player boss waves, twice).
+  - The benchmark (`pnpm --filter @pcg/fort-frenzy bench`) holds the §15.2 counts at the real peak
+    (wave 15, the Colossus Mk III in its final phase, Swarm packs) and with the whole roster scattered,
+    and times whole runs; it fails when a peak's p99 step (or any mean) is over 2 ms.
 - **Unit tests:**
   - wave generator: spends within ±1 of the budget, allowed types only, guaranteed spawns present,
     Flyer substitution, open lanes only, spread across the duration, same seed same wave, scaling
@@ -2093,7 +2305,7 @@ interface RunSnapshot {
 "Frozen", as in Sunny Side): `src/shared/messages.ts`, `src/shared/ids.ts`, `src/content/types.ts`, the
 sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `BossBehavior`),
 `src/themes/types.ts` (`ThemeShared`, `ThemeHost`, `RigDef`), `RunSnapshot`, and the public APIs of
-`@pcg/controller-kit` and `@pcg/game-kit`. Tuning values in `src/content/` are never frozen.
+`@pcg/controller-kit` and `@pcg/game-kit`. Tuning values in `src/content/balance.ts` are never frozen.
 
 | # | Date | Decision | Choice | Why |
 |---|---|---|---|---|
@@ -2134,3 +2346,21 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 35 | 2026-11-02 | Down and death | A downed knight dims, then falls apart into a pile of armor with scrap that stays for the down timer (was a kneel); every enemy and the Colossus gets a hit and a death (collapse into a pile, `scrap-theirs`, fade) | C1 gallery notes (Foster) |
 | 36 | 2026-11-02 | Stunned units | Always idle, never walking (a render rule) | A stunned enemy that walks reads as not stunned (Foster, C1) |
 | 37 | 2026-11-02 | Knight legs, front and back | The renderer draws the one-piece `legs` frame twice, cropped into left and right halves, so each leg steps on its own | The art has one legs part per view; a split keeps the art as is (Foster, C1) |
+| 38 | 2026-11-03 | Super ready on the TV | The player's ring pulses with amber light (an amber ring just outside the colored ring, at the phone ring's 1.2 Hz and 1.0→1.12 scale); the badge over the head is gone | C2 note (Foster); the ring already marks the player, and amber reads as ours and blooms |
+| 39 | 2026-11-03 | Ranger shot | The main shot draws, holds and releases; the TV holds the bolt on the bow until the clip's release (100 ms, or 30 ms when already at full draw while aiming or in Steady Aim), then launches it from the rig's `bolt` point at bow height and eases it onto the sim's path. Render only: the sim still fires from the feet at once | The shot read as a twitch and the bolt left from the feet (Foster, C2); the sim's timing and hit geometry stay as tested |
+| 40 | 2026-11-03 | Commander passive and super on the TV | Lead from the Front: pooled nanite-mote frames drift (1.4 s, eased, seeded sway) from his chest to each soldier under the sim's aura, one per 520 ms per soldier, at most 3 in flight, dropped when the soldier leaves it; the link lines are gone. Morale: every unit carrying the buff flashes its emissive parts (glow 2, the rig's full boost, so the bloom stays capped) and its aura circle (alpha 0.55) on and off every 250 ms from the buff's ticks left, the faded aura showing between flashes | C3 notes (Foster); motes reuse the Artificer's nanite look; sim-timed so the flash ends exactly with the buff |
+| 41 | 2026-11-03 | Aim previews | While aiming, the TV draws the attack's real hit area from the sim's effective stats (one `hitShape` for both): a dashed amber line for a single bolt, a transparent amber-filled ground cone for arcs, cones and spread volleys, a filled amber 0.6 ellipse for circles; dim, under the bloom; supers only when charged (§10.1) | C3 note (Foster): the aim bar should match the attack's shape (the Warden's cone, the Artificer's shot); one source keeps tuning and cards in step |
+| 42 | 2026-11-03 | Warden and Ranger reach | Warden slam 1.5 → 1.75 tiles, 120° → 102°; stomp 3.2 → 3.7 tiles, 100° → 85°; Ranger super radius 3 → 3.5 tiles (content) | C3 notes (Foster): the Warden's spread slightly narrower and range slightly longer, main and super; the Ranger's super slightly bigger |
+| 43 | 2026-11-03 | Arena floor | The floor draws lighter than its art: neon knights lifts the #262b33 stone to #62676f at render time (`ThemeHost.map.floorLift`); player rings and red danger markers get an ink edge, and the Stalker thread is pale violet at 0.5 | Enemies sat at the floor's luminance and vanished, the small ones worst (Foster, C3); measured: outlines 1.35 → 3.4:1, hull colors 1.0–1.2 → 1.5–2.6:1, glows stay brighter than the floor, nothing new blooms |
+| 44 | 2026-11-03 | Wasp jitter | Ground points lerp on the ground at both ends (the Wasp's was lerped from the sim's flyer `z` = 1 toward the drawn 0, so its height swung with the frame's phase) | The Wasp jumped back and forth like a glitch (Foster, C3); its sim motion was already smooth |
+| 45 | 2026-11-03 | Hunter | Paths round tower and sentry range when it can (its field adds 4 per covering attacker); retargets on down, daze or a player 2 tiles closer; the eye thread is replaced by a ~2 s flash of the quarry's color at its feet on each new quarry. v2 behavior recorded in §9 and §13 | The Hunter should be smarter than other units, and a permanent thread was noise (Foster, C3) |
+| 46 | 2026-11-03 | Flow-field shape | 8-neighbor octile fields with no corner cutting, and steering at the farthest tile down the chain a body-wide corridor reaches without a costlier tile | Enemies went straight up the field and then along the back; they should head for the Citadel on a direct diagonal (Foster, C3) |
+| 47 | 2026-11-03 | Aimed melee mains | The Warden's slam and the Commander's slash are aimed buttons (§10.1): a quick tap (≤ 150 ms in the dead zone) still fires at once, auto-aimed at the nearest enemy in range or straight ahead; a drag aims and the release lands the same arc (slam 1.75 tiles, 102°; slash 1.4 tiles, 110°) toward the aim; back in the dead zone cancels. While aiming the TV draws each arc as the filled amber ground cone from the shared `hitShape` | C3 follow-up (Foster): "the warden's attack should be aimed, as well as the commander's slash", with the slash's arc shown while aiming; tap buttons held nothing, so they had no preview |
+| 48 | 2026-11-04 | Balance sheet | Every number that affects balance (HP, damage, ranges, areas, timers, speeds, costs, wave budgets, AI and card tuning) lives in one file, `src/content/balance.ts` (was eight domain files plus constants inside the sim: AI, squad, card offers, damage-over-time, shell flights, projectile radius); card and passive modules read every param from it with no code fallbacks, and content.test checks it is complete; the map stays in `map.ts` (§15.4) | One place to tune for balance (Foster) |
+| 49 | 2026-11-05 | Resume details | A resume restores the saved build phase with a full build timer, knights at the base, cooldowns reset; the snapshot adds the structures' `owner` and the run time `runMs`; phones re-send `hello` when the TV comes back; any slot no phone has matched is claimable in the same or a new room; Return to home kicks every phone and drops the host token (§4, §15.8) | The snapshot's frozen shape holds no positions or timers; a reloaded TV has no party until phones say hello; the claim screen covers a phone that lost its storage either way (FF14) |
+| 50 | 2026-11-05 | Wasp height and body hitboxes | The Wasp flies at half its height (its hull 1.37 tiles over its shadow, was 2.74); our attacks hit an enemy's drawn body (torso, head and legs, a ground capsule up the screen from its feet; arms, tails, rotors and barrels left out; the Wasp at its flight height), the Colossus kept low (its legs, radius 1.0, up to 0.8 tiles); enemy attacks, walking and ground effects keep feet circles | Early C4 notes (Foster): the Wasp flew too high, and aiming at an enemy's head missed because only its feet counted |
+| 51 | 2026-11-05 | Aim line on cancel | Once a held aimed main or super is back in the dead zone (a release would cancel), the TV hides its aim line at once and keeps it hidden until the button is let go, even if the thumb drags out again; when a release fires or cancels is unchanged (§10.1, §15.7) | Early C4 note (Foster): "it still shows the aim line until the player releases the button" |
+| 52 | 2026-11-06 | Ranger aim bar | The Ranger's single-bolt aim preview is a transparent amber bar on the ground, the bolt's range long and its hitbox wide (2 × `rules.projectileRadius`), with the cones' fill and edge; the dashed world-UI line is gone (§10.1, §15.2; revises #41) | C4 note (Foster): "The Ranger's aim line should match the style of the other players: it should be a transparent amber bar that is the width of the bolt's hitbox." |
+| 53 | 2026-11-06 | Aimed cancel and re-aim | Reverses #51's latch: a held aimed main or super cancels only on a release inside the center dead zone, now 25% of the drag radius (17.5 px, was 12%) as a thumb's grace window; the TV hides the aim line only while the aim is in it, and dragging out again, still held, re-arms the attack and shows the line again; a release outside fires along the shown aim (§10.1, §15.7) | C4 note (Foster): "Aimed attacks should only cancel if the player moves the stick to the middle of the button area and releases it … have a small grace window … If they continue to hold down the button and drag their finger again, it should re-initialize the aimed attack" |
+| 54 | 2026-11-06 | Team pause | Reverses "No pausing in v1" (§11.3): a pause button in the phone's top bar during a run; any player pauses the whole run for everyone and the TV, any player resumes; the TV and every phone show who paused; presses made while paused never fire, and resume is immediate (§10.5, §15.6) | C4 note (Foster): "Add a pause button on the controller on the top bar. When one player pauses, it should pause for all players and the host." |
+| 55 | 2026-11-07 | Colossus stun resistance and Warden charge | For `stunImmuneMs` (4 s) after a stagger ends, stuns don't count into the Colossus's meter (damage still does); the Warden's super charges at 0.0054 per damage (~185 damage fills it, was 160); the stomp's 25 damage / 1.8 s stun on other enemies is unchanged (§9.2, content) | C4 note (Foster): "Stun resistance works great, or charge the warden's super a little more slowly. Maybe a little of both." A Warden-only team staggers it about 30% of the time (was ~35%), with at least 4 s between staggers |

@@ -2,7 +2,11 @@
 // `satisfies` against these. Units: distances in tiles, speeds in tiles/s, times in ms (the sim
 // converts to steps at load), damage and HP as plain numbers. Presentation never lives here (§2.1).
 // Frozen at FF1 (BUILD_PLAN §3): additive changes only. Tuning values in src/content/ are not frozen.
-// FF6 added `BaseDef` and `RulesDef`.
+// FF6 added `BaseDef` and `RulesDef`. FF9 added the `buff` shape, `CharacterDef.super.selfEffects` and
+// `CharacterDef.supply`. FF10 added the `swarm` and `brute` AI kinds. FF8 added `StructureDef.defense`.
+// The balance pass moved the sim's own tuning numbers here: `AttackDef.minFlightMs`, the squad's
+// `aggro`/`hurry`/`formation`, `supply.throwMinFlightMs`, `EnemyDef.hunt`/`jitter`,
+// `StructureDef.triggerFraction` and the `RulesDef` fields from `projectileRadius` on.
 import type {
   CardId,
   ClassId,
@@ -82,7 +86,11 @@ export interface EffectApply {
 // ---- attacks and units --------------------------------------------------------------------------
 
 export interface AttackDef {
-  shape: 'projectile' | 'arc' | 'cone' | 'circle';
+  /**
+   * `buff` (FF9) hits nothing: the super's `effects` go on the attacker and its squad, and its
+   * `selfEffects` on the attacker only (the Commander's morale).
+   */
+  shape: 'projectile' | 'arc' | 'cone' | 'circle' | 'buff';
   damage: number;
   range: number;
   cooldownMs: number;
@@ -96,6 +104,8 @@ export interface AttackDef {
   knockback?: number;
   /** Area radius for `circle` attacks and shells landing (tiles). */
   radius?: number;
+  /** Lobbed shells (Bombard, mortar): the shortest flight, so a close lob still arcs (ms). */
+  minFlightMs?: number;
 }
 
 /** Plain unit stats (Commander's soldiers). */
@@ -112,7 +122,12 @@ export interface CharacterDef {
   moveSpeed: number;
   radius: number;
   main: AttackDef;
-  super: AttackDef & { effects?: EffectApply[]; heal?: number };
+  /**
+   * `effects` go to what the super helps: towers in a cone (Quartermaster), the squad and the
+   * attacker for `buff` (Commander); `heal` heals players in a cone; `selfEffects` (FF9) go on the
+   * attacker only.
+   */
+  super: AttackDef & { effects?: EffectApply[]; heal?: number; selfEffects?: EffectApply[] };
   /** §10.1 table. */
   input: { main: 'aimed' | 'tap'; super: 'aimed' | 'tap' };
   superChargeRate: number;
@@ -122,8 +137,32 @@ export interface CharacterDef {
   carryCap: number;
   /** Speed multiplier lost per crate count (index = crates carried). */
   carrySlowdown: number[];
-  /** `size` per stage (start, after wave 5 boss, after wave 10 boss). */
-  squad?: { size: number[]; soldier: UnitStats; followRadius: number };
+  /**
+   * `size` per stage (start, after wave 5 boss, after wave 10 boss). `aggro`: a soldier engages
+   * enemies within `radius` and never chases past `leash` from its post. `hurry`: further than `at`
+   * from its slot it walks at `factor` × speed. `formation`: slot radius round a planted flag, and the
+   * spread between follow slots (radians).
+   */
+  squad?: {
+    size: number[];
+    soldier: UnitStats;
+    followRadius: number;
+    aggro?: { radius: number; leash: number };
+    hurry?: { at: number; factor: number };
+    formation?: { flagRing: number; followSpread: number };
+  };
+  /**
+   * Supply perks (§6, Quartermaster; FF9): crate price discount (fraction), crate throw reach
+   * (tiles) and flight speed (tiles/s), and the HP an emergency repair kit restores (§3.4).
+   * `throwMinFlightMs`: a throw is never shorter than this (a lob, even point-blank).
+   */
+  supply?: {
+    crateDiscount: number;
+    throwRange: number;
+    throwSpeed: number;
+    kitRepair: number;
+    throwMinFlightMs?: number;
+  };
 }
 
 export interface EnemyDef {
@@ -134,14 +173,42 @@ export interface EnemyDef {
   flying: boolean;
   budget: number;
   groupSize?: number;
-  ai: 'path' | 'runner' | 'siege' | 'hunter' | 'flyer' | 'boss';
+  /** FF10 added `swarm` (path with in-sim jitter) and `brute` (path that smashes walls it meets). */
+  ai: 'path' | 'runner' | 'siege' | 'hunter' | 'flyer' | 'boss' | 'swarm' | 'brute';
   field: 'ground' | 'breaker' | 'none';
   attack: AttackDef;
   /** Damage multipliers vs structures (Brute 2× walls, Colossus 3×). */
   vsStructure?: Partial<Record<StructureId | 'base', number>>;
   aggro?: { radius: number; leash: number };
+  /** Fraction of any slow resisted: Brutes and the Colossus take slows at half strength (0.5, §7.1). */
   slowResist?: number;
   boss?: ModuleRef;
+  /**
+   * Hunter (§9, C3): within `closeRange` it runs straight at its quarry; another player must be
+   * `retargetTiles` closer to take over. Its field adds `threatCost` per tower or sentry covering a
+   * tile, a tile counting as covered within the attacker's range + `threatPad`.
+   */
+  hunt?: { closeRange: number; retargetTiles: number; threatCost: number; threatPad: number };
+  /**
+   * Swarm (FF10): each mite re-rolls a sideways `drift` (fraction of the forward step) and a pace of
+   * `pace` + up to `paceRange` × speed every `rollMs`; a re-roll is a stop of `stopMs` with
+   * `stopChance`. Ranges are [min, max].
+   */
+  jitter?: {
+    drift: number;
+    pace: number;
+    paceRange: number;
+    stopChance: number;
+    rollMs: [number, number];
+    stopMs: [number, number];
+  };
+  /**
+   * The body our attacks hit (C4, FF10-fix-2; SPEC §9, §15.3): the drawn torso, head and legs (arms,
+   * tails, rotors and barrels left out), in tiles of drawn height above the ground point, from
+   * `bottom` (0 on the ground; the Wasp's flight height) to `top`; `radius` is half its width. The
+   * sim sweeps a circle of `radius` up the screen over that span (`sim/body.ts`). Every enemy has one.
+   */
+  body?: { radius: number; bottom: number; top: number };
 }
 
 export interface StructureDef {
@@ -157,6 +224,10 @@ export interface StructureDef {
   discharges?: number;
   rearmMs?: number;
   slow?: EffectApply;
+  /** Fortify (§8, FF8): damage reduction (0..1) the tower it attaches to gains. */
+  defense?: number;
+  /** Snare: an enemy sets it off when this fraction of its body radius overlaps the tile. */
+  triggerFraction?: number;
 }
 
 // ---- cards and shop -----------------------------------------------------------------------------
@@ -286,4 +357,18 @@ export interface RulesDef {
   separation: number;
   /** Knockback velocity kept per step (0..1). */
   knockbackDecay: number;
+  /** Hit radius of a straight shot (bolts, turret and sentry shots, the Wasp's stinger; tiles). */
+  projectileRadius: number;
+  /** Extra reach when an enemy's wound-up melee swing lands (the target may have stepped back). */
+  enemySwingSlack: number;
+  /** An enemy's straight shot flies this far past its target, so a moving player can step into it. */
+  enemyShotSlack: number;
+  /** Fortify reaches a tower whose tile is this close to the builder's center (tiles). */
+  fortifyReach: number;
+  /** Upgrade card offers (§6.1): cards per offer, and the chance an offer holds one rare. */
+  cardOffer: { size: number; rareChance: number };
+  /** Damage-over-time effects (§6.1 burn, poison): stack cap and tick interval. */
+  dots: Partial<Record<EffectId, { maxStacks: number; tickEveryMs: number }>>;
+  /** Wildfire and Plague: a dying enemy passes its burn or poison on this far, for this long. */
+  comboSpread: { radius: number; durationMs: number };
 }

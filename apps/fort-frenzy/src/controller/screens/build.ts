@@ -11,6 +11,7 @@ import { mountStick } from './combat';
 import {
   createCountdown,
   createKeyedList,
+  createPauseControl,
   type ScreenCtx,
   type Snapshot,
   type View,
@@ -99,7 +100,9 @@ export function createBuild(ctx: ScreenCtx): View {
 
   const panel = el('div', { class: 'build-panel' }, tabs, buildBody, shopBody, footer, coinBox);
   const topRow = el('div', { class: 'build-top' }, phase);
-  root.append(topRow, strip.el, panel);
+  const pause = createPauseControl(ctx);
+  let wasPaused = false;
+  root.append(topRow, strip.el, panel, pause.button, pause.layer);
 
   let last: Snapshot | null = null;
   const setTab = (t: 'build' | 'shop') => {
@@ -139,6 +142,13 @@ export function createBuild(ctx: ScreenCtx): View {
   const update = (s: Snapshot) => {
     last = s;
     const { me, team } = s;
+    // Paused (FF14-fix-1): a held action button must not fire once the run resumes.
+    const isPaused = pause.set(s);
+    if (isPaused && !wasPaused) {
+      actBinding.reset();
+      ctx.sender.neutral();
+    }
+    wasPaused = isPaused;
     clock.set(team.buildEndsInMs);
     strip.update(me, team);
 

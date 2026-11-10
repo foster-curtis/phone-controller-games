@@ -2,7 +2,7 @@
 // of each gesture outcome into it (§10.1, §15.7). Gestures resolve on the phone; a release goes out at
 // once, so a fire and its aim arrive together.
 import {
-  aimToStick,
+  aimedGesture,
   createInputSender,
   isAiming,
   isRadialOpen,
@@ -14,6 +14,7 @@ import {
   type RadialState,
 } from '@pcg/controller-kit';
 import {
+  AIM_DEAD_ZONE,
   INPUT_FLAG_MAIN_AIMING,
   INPUT_FLAG_RADIAL_OPEN,
   INPUT_FLAG_SUPER_AIMING,
@@ -39,6 +40,37 @@ export type PhoneSender = InputSender<TupleSlot>;
 /** Maximum aim drag, px (the aimed gesture's clamp). */
 export const AIM_MAX_PX = 70;
 
+/**
+ * The aimed buttons' center grace zone, px (FF7-fix-5, C4): a release inside it cancels. The sim hides
+ * the TV preview by the same fraction (`AIM_DEAD_ZONE`), so phone and TV agree.
+ */
+export const AIM_DEAD_ZONE_PX = AIM_DEAD_ZONE * AIM_MAX_PX;
+
+/** Every aimed button's gesture machine: the kit's rule with Fort Frenzy's clamp and grace zone. */
+export function aimGesture(): ReturnType<typeof aimedGesture> {
+  return aimedGesture({ maxPx: AIM_MAX_PX, deadZonePx: AIM_DEAD_ZONE_PX });
+}
+
+const AIM_SCALE = 100;
+/** The grace zone in tuple ints, squared (an exact integer compare). */
+const DEAD_INT_SQ = (AIM_DEAD_ZONE * AIM_SCALE) ** 2;
+
+/**
+ * px aim → tuple ints on the same side of the grace zone as the phone's own px test, so rounding never
+ * shows a line the phone would cancel or hides one it would fire (FF7-fix-5): inside rounds toward
+ * zero; outside rounds away from zero when plain rounding would land on or in the edge.
+ */
+export function aimInts(x: number, y: number): [number, number] {
+  const sx = (x / AIM_MAX_PX) * AIM_SCALE;
+  const sy = (y / AIM_MAX_PX) * AIM_SCALE;
+  if (Math.hypot(x, y) <= AIM_DEAD_ZONE_PX) return [Math.trunc(sx) || 0, Math.trunc(sy) || 0];
+  const rx = Math.round(sx) || 0;
+  const ry = Math.round(sy) || 0;
+  if (rx * rx + ry * ry > DEAD_INT_SQ) return [rx, ry];
+  const away = (v: number) => Math.sign(v) * Math.ceil(Math.abs(v)) || 0;
+  return [away(sx), away(sy)];
+}
+
 export function createPhoneSender(send: (tuple: number[]) => void): PhoneSender {
   return createInputSender<TupleSlot>(
     {
@@ -63,7 +95,15 @@ const ATTACK = {
 
 /** Aimed press state → the aiming flag (the TV draws the aim line while it is set). */
 export function encodeAimedState(sender: PhoneSender, key: AttackKey, state: AimedState): void {
-  sender.setButton(ATTACK[key].flag, isAiming(state));
+  const aiming = isAiming(state);
+  sender.setButton(ATTACK[key].flag, aiming);
+  // The live aim rides along while aiming, so the TV's line follows the thumb (FF7: the sim reads
+  // `mainAim` as the held aim; the release still sends its final aim with the fire).
+  if (aiming) {
+    const a = ATTACK[key];
+    const [x, y] = aimInts(state.x, state.y);
+    sender.update({ [a.x]: x, [a.y]: y });
+  }
 }
 
 /** An aimed outcome: tap = fire with aim 0,0 (auto-aim), fire = the aim, cancel = nothing. */
@@ -71,7 +111,7 @@ export function encodeAimed(sender: PhoneSender, key: AttackKey, out: AimedOutpu
   const a = ATTACK[key];
   if (out.kind === 'tap') sender.bump(a.fires, { [a.x]: 0, [a.y]: 0 });
   else if (out.kind === 'fire') {
-    const [x, y] = aimToStick(out.x, out.y, AIM_MAX_PX);
+    const [x, y] = aimInts(out.x, out.y);
     sender.bump(a.fires, { [a.x]: x, [a.y]: y });
   }
 }

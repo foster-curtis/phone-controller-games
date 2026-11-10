@@ -1,14 +1,20 @@
 // Effect placement and speeds (C1 notes 9, 10): pure, so they are tested headless and shared with
 // the content milestones. render/effects.ts draws them.
+import { arrowTower, flyer, quartermaster } from '../../content/balance';
 import { hash01 } from './fall';
 
 /**
  * Straight-shot projectile speeds, tiles per second (C1 note 9; BUILD_PLAN §8 FF3-fix-1): the
- * content milestones (FF7 Ranger bolt, FF9 nanite bolts, FF10 Wasp shot) use these values for
- * `projectileSpeed`, so shots read as fast at TV distance. Arcing shells and boulders are timed by
+ * values come from the balance sheet (0fbe288), so shots read as fast at TV distance. Arcing shells and boulders are timed by
  * their arcs instead.
  */
-export const PROJECTILE_SPEEDS = { bolt: 26, 'nanite-bolt': 20, 'wasp-shot': 16 } as const;
+export const PROJECTILE_SPEEDS = {
+  // The `bolt` look is shared: the Engineer's longbow (22 t/s) is slower than the towers' and sentries'
+  // (26); the in-game shot is drawn at the speed the sim projectile carries, this is the gallery's pace.
+  bolt: arrowTower.attack.speed,
+  'nanite-bolt': quartermaster.main.speed,
+  'wasp-shot': flyer.attack.speed,
+};
 
 /**
  * Heal glints and nanite motes over a body (C1 note 10): 3–5 points spread across and around it

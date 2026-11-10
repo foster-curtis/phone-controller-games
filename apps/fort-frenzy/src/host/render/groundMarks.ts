@@ -1,5 +1,6 @@
 // Ground marks on layer 2 (SPEC §2.1, §2.4, §2.5): shadows, player rings (a thin outline in the
-// player's color, never filled, with a notch toward the aim), carried-cell pips and hitbox overlays.
+// player's color, never filled, with a notch toward the aim; an amber pulse around it while the
+// super is ready), carried-cell pips and hitbox overlays.
 // Immediate mode: callers draw every frame between begin() and end(); pips come from a pool.
 import type * as Phaser from 'phaser';
 import { theme } from '../../shared/theme';
@@ -7,6 +8,7 @@ import type { ArtImage } from './atlas';
 import { placeFrame, type RenderContext } from './context';
 import { carryPips, ellipsePoint } from './ground';
 import { PIP_FRAMES } from './keys';
+import { RING_EDGE_PX } from './legibility';
 import { Pool } from './pool';
 
 export class GroundMarks {
@@ -55,13 +57,33 @@ export class GroundMarks {
   ring(sx: number, sy: number, rTiles: number, color: number, aimRad: number | null) {
     const { rx, ry } = this.ctx.camera.groundEllipse(rTiles);
     const w = theme.stroke.ring;
+    const tip = ellipsePoint(sx, sy, rx + 7, ry + 7 * 0.6, aimRad ?? 0);
+    const l = ellipsePoint(sx, sy, rx, ry, (aimRad ?? 0) - 0.22);
+    const r = ellipsePoint(sx, sy, rx, ry, (aimRad ?? 0) + 0.22);
+    // Ink edge under ring and notch (C3, FF3-fix-2): cobalt and forest sit near the lighter floor's
+    // luminance, so every player color reads against ink instead (≥ 3:1, floor-contrast.test.ts).
+    const ink = theme.color.brandInk.num;
+    this.rings.lineStyle(w + RING_EDGE_PX * 2, ink, 1).strokeEllipse(sx, sy, rx * 2, ry * 2);
+    if (aimRad !== null)
+      this.rings
+        .lineStyle(RING_EDGE_PX * 2, ink, 1)
+        .strokeTriangle(tip.x, tip.y, l.x, l.y, r.x, r.y);
     this.rings.lineStyle(w, color, 1).strokeEllipse(sx, sy, rx * 2, ry * 2);
-    if (aimRad !== null) {
-      const tip = ellipsePoint(sx, sy, rx + 7, ry + 7 * 0.6, aimRad);
-      const l = ellipsePoint(sx, sy, rx, ry, aimRad - 0.22);
-      const r = ellipsePoint(sx, sy, rx, ry, aimRad + 0.22);
+    if (aimRad !== null)
       this.rings.fillStyle(color, 1).fillTriangle(tip.x, tip.y, l.x, l.y, r.x, r.y);
-    }
+  }
+
+  /**
+   * Super ready (§10.1, C2): an amber ring just outside the player's ring, scaled by the pulse, with
+   * a soft halo for the bloom. Draw it before `ring` so the player color stays on top.
+   */
+  superRing(sx: number, sy: number, rTiles: number, color: number, scale: number, alpha: number) {
+    const w = theme.stroke.ring;
+    const { rx, ry } = this.ctx.camera.groundEllipse(rTiles * scale);
+    const gx = (rx + w + 2) * 2;
+    const gy = (ry + (w + 2) * 0.6) * 2;
+    this.rings.lineStyle(w * 3, color, 0.3 * alpha).strokeEllipse(sx, sy, gx, gy);
+    this.rings.lineStyle(w, color, alpha).strokeEllipse(sx, sy, gx, gy);
   }
 
   /** Carried cells: one slot per point of the cap, filled left to right, only while carrying (§2.4). */
@@ -83,4 +105,35 @@ export class GroundMarks {
     const { rx, ry } = this.ctx.camera.groundEllipse(rTiles);
     this.overlay.lineStyle(1.5, color, 0.9).strokeEllipse(sx, sy, rx * 2, ry * 2);
   }
+
+  /**
+   * An enemy's body hitbox (C4, sim `body.ts`): its ground capsule, `lo`..`hi` tiles up the screen
+   * from the feet at (sx, sy), as a 0.6 stadium: the far end's upper half, the near end's lower half.
+   */
+  bodyHitbox(
+    sx: number,
+    sy: number,
+    b: { r: number; lo: number; hi: number },
+    color: number = theme.color.hostile.num,
+  ) {
+    const { rx, ry } = this.ctx.camera.groundEllipse(b.r);
+    const k = ry / b.r;
+    const yFar = sy - b.hi * k;
+    const yNear = sy - b.lo * k;
+    const g = this.overlay.lineStyle(1.5, color, 0.9);
+    g.beginPath();
+    g.moveTo(sx + rx, yNear);
+    for (let i = 0; i <= BODY_STEPS; i++) {
+      const a = (Math.PI * i) / BODY_STEPS;
+      g.lineTo(sx + Math.cos(a) * rx, yFar - Math.sin(a) * ry);
+    }
+    for (let i = 0; i <= BODY_STEPS; i++) {
+      const a = Math.PI + (Math.PI * i) / BODY_STEPS;
+      g.lineTo(sx + Math.cos(a) * rx, yNear - Math.sin(a) * ry);
+    }
+    g.strokePath();
+  }
 }
+
+/** Vertices per half ellipse of a body hitbox. */
+const BODY_STEPS = 12;

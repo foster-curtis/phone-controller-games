@@ -4,7 +4,6 @@
 import {
   RADIAL_DEFAULTS,
   SLOT_DOWN,
-  aimedGesture,
   bindGesture,
   createJoystick,
   el,
@@ -21,6 +20,7 @@ import { mountAimZones, type AimZones } from '../aimZones';
 import { ChargeRing, RoundButton, StatusStrip } from '../components';
 import { CLASS_INFO, actionIcon, giveIcon } from '../copy';
 import {
+  aimGesture,
   encodeAimed,
   encodeAimedState,
   encodeRadial,
@@ -36,7 +36,14 @@ import {
   type Circle,
   type CombatLayout,
 } from '../layout';
-import { createCountdown, formatClock, type ScreenCtx, type Snapshot, type View } from './common';
+import {
+  createCountdown,
+  createPauseControl,
+  formatClock,
+  type ScreenCtx,
+  type Snapshot,
+  type View,
+} from './common';
 
 /** Radial slots from the host's arc (left, up, right, down): null absent, false dimmed, true enabled. */
 export function arcSlots(arc: MeView['arc']): (boolean | null)[] {
@@ -84,7 +91,7 @@ export function bindAttack(
   mode: 'tap' | 'aim',
 ): GestureBinding<unknown> {
   if (mode === 'aim') {
-    return bindGesture(btn, aimedGesture(), {
+    return bindGesture(btn, aimGesture(), {
       onState: (st) => {
         encodeAimedState(sender, key, st);
         sender.touch(key, st.phase !== 'idle');
@@ -143,6 +150,8 @@ export function createCombat(ctx: ScreenCtx): View {
   const clock = dead.querySelector('.dead-clock') as HTMLElement;
   root.append(strip.el, main.el, sup.el, action.el, dead);
   root.append(el('span', { class: 'zone-label', text: 'MOVE' }));
+  const pause = createPauseControl(ctx);
+  let wasPaused = false;
 
   let me: MeView | null = null;
   let boundClass: ClassId | null = null;
@@ -156,6 +165,8 @@ export function createCombat(ctx: ScreenCtx): View {
     getLayout: () => layout,
     buttons: { main: main.el, super: sup.el },
   });
+  // After the aim zones, so the top bar's pause button and the paused card sit above them.
+  root.append(pause.button, pause.layer);
   const place = () => {
     const l = layoutCombat(
       { width: root.clientWidth || innerWidth, height: root.clientHeight || innerHeight },
@@ -200,8 +211,17 @@ export function createCombat(ctx: ScreenCtx): View {
     boundClass = classId;
   };
 
-  const update = ({ me: m, team }: Snapshot) => {
+  const update = (s: Snapshot) => {
+    const { me: m, team } = s;
     me = m;
+    // Paused (FF14-fix-1): drop every held gesture so nothing fires once the run resumes.
+    const isPaused = pause.set(s);
+    if (isPaused && !wasPaused) {
+      for (const b of bindings) b.reset();
+      zones.reset();
+      ctx.sender.neutral();
+    }
+    wasPaused = isPaused;
     const cls = m.classId ?? 'engineer';
     if (boundClass !== cls) {
       bind(cls);

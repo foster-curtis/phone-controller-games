@@ -7,14 +7,15 @@ import * as Phaser from 'phaser';
 import {
   isPosed,
   type Clip,
+  type Point,
   type RigDef,
   type RigPart,
   type RigView,
   type ViewId,
 } from '../../themes/types';
 import type { ArtImage, ArtLibrary } from './atlas';
-import { applyOrder, blendSamples, REST, sampleClip, type ClipSample } from './clip';
-import { apply, composeView, decompose, type Mat } from './rigMath';
+import { applyOrder, blendSamples, clipTime, REST, sampleClip, type ClipSample } from './clip';
+import { attachPoint, composeView, decompose, partPoint, type Mat } from './rigMath';
 import { splitView, type CropX } from './split';
 import type { PlayOptions, RigInstance, RigOptions, ScreenPoint } from './types';
 
@@ -38,6 +39,8 @@ interface PartSet {
   container: Phaser.GameObjects.Container;
   nodes: Map<string, PartNode>;
   orderKey: string;
+  /** The view's own order, joined (no swap). */
+  baseKey: string;
   mats: Map<string, Mat>;
 }
 
@@ -46,6 +49,18 @@ interface Playing {
   name: string;
   t: number;
   speed: number;
+}
+
+/**
+ * White fill on plain art images, or back (FF12: the structure upgrade flash). Lives here, beside
+ * the rig's own flash, because this module already loads Phaser (structures.ts stays Node-safe).
+ */
+export function whiteFlash(images: readonly ArtImage[], on: boolean): void {
+  for (const a of images) {
+    if (!a.img.active) continue;
+    if (on) a.img.setTintMode(Phaser.TintModes.FILL).setTint(0xffffff);
+    else a.img.setTintMode(Phaser.TintModes.MULTIPLY).clearTint();
+  }
 }
 
 export class RigSprite implements RigInstance {
@@ -69,6 +84,7 @@ export class RigSprite implements RigInstance {
   private _mirror: boolean;
   private _pose: string | null = null;
   private readonly extra: number;
+  private extras: Phaser.GameObjects.Graphics | null = null;
 
   constructor(
     private readonly lib: ArtLibrary,
@@ -235,20 +251,45 @@ export class RigSprite implements RigInstance {
 
   attach(name: string): ScreenPoint | null {
     const set = this.sets[this.sets.length - 1];
-    const a = set?.rv.attach?.[name];
-    if (!set || !a) return null;
-    const m = set.mats.get(a.part);
-    const [ux, uy] = m ? apply(m, a.at[0], a.at[1]) : a.at;
+    const u = set ? attachPoint(set.rv, set.mats, name) : null;
+    if (!set || !u) return null;
     return {
-      sx: this.sx + (ux - set.rv.foot[0]) * this.root.scaleX,
-      sy: this.sy + (uy - set.rv.foot[1]) * this.root.scaleY,
+      sx: this.sx + (u[0] - set.rv.foot[0]) * this.root.scaleX,
+      sy: this.sy + (u[1] - set.rv.foot[1]) * this.root.scaleY,
     };
+  }
+
+  /** A point on a part of the current view and pose, in the root's space (rig units, foot at 0, 0). */
+  partPoint(part: string, at: Point): Point | null {
+    const set = this.sets[this.sets.length - 1];
+    const u = set ? partPoint(set.rv, set.mats, part, at) : null;
+    if (!set || !u) return null;
+    return [u[0] - set.rv.foot[0], u[1] - set.rv.foot[1]];
+  }
+
+  /** Playhead of the current clip, ms (one-shots clamp at their end). */
+  get clipT(): number {
+    const c = this.cur;
+    return c ? clipTime(c.clip, c.t) : 0;
+  }
+
+  /**
+   * A graphics layer over the parts, in the root's space (rig units, foot at 0, 0), for code-drawn
+   * extras that move with the rig (the Ranger's slack string); made on first use.
+   */
+  overlay(): Phaser.GameObjects.Graphics {
+    if (!this.extras) {
+      this.extras = this.root.scene.make.graphics({}, false);
+      this.root.add(this.extras);
+    }
+    return this.extras;
   }
 
   update(dtMs: number) {
     // Clips.
-    let sample: ClipSample = { parts: new Map(), order: null };
-    if (this.cur) {
+    let sample: ClipSample;
+    if (!this.cur) sample = { parts: new Map(), order: null };
+    else {
       this.cur.t += dtMs * this.cur.speed;
       sample = sampleClip(this.cur.clip, this.cur.t);
       if (this.prev && this.clipFade.ms > 0) {
@@ -321,6 +362,8 @@ export class RigSprite implements RigInstance {
     const scene = this.root.scene;
     const container = scene.make.container({ x: 0, y: 0 }, false);
     this.root.add(container);
+    // Code-drawn extras stay over every part set.
+    if (this.extras) this.root.bringToTop(this.extras);
     const groupsOf = new Map<string, string[]>();
     for (const [g, parts] of Object.entries(this.def.optional ?? {})) {
       for (const part of parts) groupsOf.set(part, [...(groupsOf.get(part) ?? []), g]);
@@ -348,6 +391,7 @@ export class RigSprite implements RigInstance {
       container,
       nodes,
       orderKey: rv.order.join(','),
+      baseKey: rv.order.join(','),
       mats: new Map(),
     };
     this.sets.push(set);
@@ -373,11 +417,9 @@ export class RigSprite implements RigInstance {
       const d = decompose(m, n.part.pivot);
       const p = sample.parts.get(n.name);
       let alpha = p?.alpha ?? 1;
-      const imgs = n.boost ? [n.art, n.boost] : [n.art];
-      for (const a of imgs) {
-        a.img.setPosition(d.x - fx, d.y - fy).setRotation(d.rotation);
-        a.img.setScale(d.scaleX / a.ppuX, d.scaleY / a.ppuY);
-      }
+      // No per-part array (FF15 perf: ~1,300 parts a frame at peak).
+      placePart(n.art, d, fx, fy);
+      if (n.boost) placePart(n.boost, d, fx, fy);
       if (n.part.emissive) {
         const level = this.unlit ? 1 : (p?.glow ?? 1) * this.glowLevel;
         alpha *= Math.min(1, level);
@@ -386,9 +428,12 @@ export class RigSprite implements RigInstance {
       }
       n.art.img.setAlpha(alpha);
     }
-    // Per-key draw-order swaps.
-    const order = applyOrder(set.rv.order, sample.order);
-    const key = order.join(',');
+    // Per-key draw-order swaps. Most clips have none: then the order is the view's own, and there is
+    // no copy and join every frame (FF15 perf).
+    const swap = sample.order !== null && sample.order.length > 0;
+    if (!swap && set.orderKey === set.baseKey) return;
+    const order = swap ? applyOrder(set.rv.order, sample.order) : set.rv.order;
+    const key = swap ? order.join(',') : set.baseKey;
     if (key !== set.orderKey) {
       set.orderKey = key;
       const rank = new Map(order.map((p, i) => [p, i]));
@@ -420,6 +465,16 @@ export class RigSprite implements RigInstance {
       }
     }
   }
+}
+
+function placePart(
+  a: ArtImage,
+  d: { x: number; y: number; rotation: number; scaleX: number; scaleY: number },
+  fx: number,
+  fy: number,
+) {
+  a.img.setPosition(d.x - fx, d.y - fy).setRotation(d.rotation);
+  a.img.setScale(d.scaleX / a.ppuX, d.scaleY / a.ppuY);
 }
 
 /** Crops an image to [x0, x1] sprite units of its frame (Phaser keeps it across `@unlit` swaps). */

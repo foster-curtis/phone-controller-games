@@ -690,7 +690,7 @@ files are found with `import.meta.glob`.
   15-wave run on Normal (and a few waves on Easy and Hard); time it (target 22–27 min), note waves that drag
   or spike, card and shop choices that feel useless or mandatory, coin and crate pacing, boss fights, and
   any crash (the debug panel's replay download goes to the fix agent). Then reload the TV mid-build and
-  resume. Notes become fix milestones; tuning goes to `src/content/**`.
+  resume. Notes become fix milestones; tuning goes to `src/content/balance.ts` (SPEC §15.4).
 
 ### Fix milestones (`FF<N>-fix-<k>`)
 
@@ -765,7 +765,8 @@ Rules:
 10. Route checkpoint notes by owner directory: phone UI → FF4-fix; TV DOM screens → FF5-fix; art assembly,
     rigs, clips, bloom, camera → FF3-fix (or the class/enemy milestone that owns that rig's clips after
     FF7); host wiring, net, flow → FF7-fix (FF14-fix after FF14); sim rules → the milestone owning that
-    feature; numbers and pacing → a fix on the owning milestone changing only `src/content/**`. Fix
+    feature; numbers and pacing → a fix on the owning milestone changing only `src/content/balance.ts`
+    (the map layout: `map.ts`). Fix
     milestones touching disjoint directories run in parallel in worktrees.
 11. When everything in §6 is checked, run the Workspace checks once more on `main` via a test-runner, then
     print the §9 Final handoff list.
@@ -796,6 +797,7 @@ Rules:
   - [x] Gallery + stress mode + asset/rig tests + gallery e2e
   - [x] Merged to `main`
   - [x] FF3-fix-1: C1 gallery notes (gauge, enemy hit/death, walks, down pile, respawn, twin flash, smoke, collapse, speeds, glints, stun idle, slow)
+  - [x] FF3-fix-2: C3 floor contrast (lighter arena floor, checked against enemies, effects, player colors)
 - FF4 Controller
   - [x] Client wiring, sender, `layoutCombat` + tests
   - [x] All screens + components + dev mode
@@ -813,50 +815,62 @@ Rules:
   - [x] Recorder, replay script, autopilot, determinism + scenario tests, bench
   - [x] Merged to `main`
 - FF7 Vertical slice
-  - [ ] Host net + party bridge + input staleness + state sync
-  - [ ] World scene + TV UI hookup + run flow
-  - [ ] Debug panel + `__pcg` + smoke/reconnect e2e
-  - [ ] Merged to `main`
-- [ ] **User approved C2** (slice on real phones and TV)
+  - [x] Host net + party bridge + input staleness + state sync
+  - [x] World scene + TV UI hookup + run flow
+  - [x] Debug panel + `__pcg` + smoke/reconnect e2e
+  - [x] Merged to `main`
+  - [x] FF7-fix-1: C2 notes (Ranger bow draw/release, bolt leaves from the bow, super-ready amber ring pulse replaces the head badge)
+  - [x] FF7-fix-2: C3 aim previews shaped like every aimed attack and super (Warden cone fill, Artificer filled cone), Warden narrower + longer slam and super, Ranger super range up
+  - [x] FF7-fix-3: C3 follow-up: Warden slam and Commander slash aimed, cone/arc previews
+  - [x] FF7-fix-4: early C4 note: the aim line hides as soon as a held aimed attack cancels
+  - [x] FF7-fix-6: C4 Ranger aim preview is a transparent amber bar the width of the bolt hitbox
+  - [x] FF7-fix-5: C4 aimed cancel only on release in a center grace zone; dragging out again re-arms and re-shows the aim
+- [x] **User approved C2** (slice on real phones and TV): notes fixed in FF7-fix-1; Citadel collapse deferred to v2; feel and visual notes re-judged at C3
 - FF8 Warden + structures
-  - [ ] Warden kit + clips
-  - [ ] Walls, nets, Fortify, mortar (sim + render)
-  - [ ] Merged to `main`
+  - [x] Warden kit + clips
+  - [x] Walls, nets, Fortify, mortar (sim + render)
+  - [x] Merged to `main`
 - FF9 Support classes
-  - [ ] Artificer kit + gauge + throw + kit use
-  - [ ] Commander + squad + flag
-  - [ ] Merged to `main`
+  - [x] Artificer kit + gauge + throw + kit use
+  - [x] Commander + squad + flag
+  - [x] Merged to `main`
+  - [x] FF9-fix-1: C3 Commander passive as drifting amber motes (no link lines), super flashes affected units' amber parts + rings
 - FF10 Enemies
-  - [ ] Six new AIs + leash + Flyer substitution
-  - [ ] Enemy clips + status visuals
-  - [ ] Waves 1–15 content
-  - [ ] Merged to `main`
-- [ ] **User approved C3** (class kits and enemies)
+  - [x] Six new AIs + leash + Flyer substitution
+  - [x] Enemy clips + status visuals
+  - [x] Waves 1–15 content
+  - [x] Merged to `main`
+  - [x] FF10-fix-1: C3 Wasp jitter, Hunter tower-avoiding path + player-color foot flash, diagonal flow field to the Citadel
+  - [x] FF10-fix-2: early C4 notes: Wasp flies at half height; enemy hitboxes cover the whole body (no arms/tails), Colossus low but a bit bigger
+- [x] **User approved C3** (class kits and enemies): notes fixed in FF3-fix-2, FF7-fix-2, FF9-fix-1, FF10-fix-1, run in parallel with FF11–FF13 at the user's request; feel and visual notes re-judged at C4
 - FF11 Colossus
-  - [ ] Boss module (forms, attacks, stagger, rewards)
-  - [ ] Colossus render + clips + boss bar
-  - [ ] Merged to `main`
+  - [x] Boss module (forms, attacks, stagger, rewards)
+  - [x] Colossus render + clips + boss bar
+  - [x] Merged to `main`
+  - [x] FF11-fix-1: C4 Colossus stun resistance (no Warden stun-lock) + Warden super charges a little slower
 - FF12 Economy
-  - [ ] 64 cards + offers
-  - [ ] Team shop + wishlist + announcements + tier visuals
-  - [ ] Difficulty
-  - [ ] Merged to `main`
+  - [x] 64 cards + offers
+  - [x] Team shop + wishlist + announcements + tier visuals
+  - [x] Difficulty
+  - [x] Merged to `main`
 - FF13 Audio
-  - [ ] SFX picked and converted + LICENSES
-  - [ ] Player + cues + unlock
-  - [ ] Merged to `main`
+  - [x] SFX picked and converted + LICENSES
+  - [x] Player + cues + unlock
+  - [x] Merged to `main`
 - FF14 Lifecycle + resume
-  - [ ] Victory/defeat/summary/end options, late joins
-  - [ ] Snapshot + resume + device-ID claim
-  - [ ] Resume e2e
-  - [ ] Merged to `main`
+  - [x] Victory/defeat/summary/end options, late joins
+  - [x] Snapshot + resume + device-ID claim
+  - [x] Resume e2e (specs written, typechecked and linted; run by the orchestrator's test-runner)
+  - [x] Merged to `main`
+  - [x] FF14-fix-1: C4 team pause from the phone top bar (any player pauses/resumes; TV overlay)
 - FF15 Soak + perf
-  - [ ] Soak + determinism over full runs
-  - [ ] Bench at real peak + stress mode + perf fixes
-  - [ ] Merged to `main`
-- [ ] **User approved C4** (full run, pacing, balance)
-- [ ] Final Workspace checks green on `main`
-- [ ] Final handoff printed
+  - [x] Soak + determinism over full runs
+  - [x] Bench at real peak + stress mode + perf fixes
+  - [x] Merged to `main`
+  - [x] FF15-fix-1: stress overlay counts rig parts only in part sets (crash on code-drawn extras)
+- [x] **User approved C4** (full run, pacing, balance): notes fixed in FF7-fix-5, FF7-fix-6, FF14-fix-1 (team pause), FF11-fix-1 (Colossus stun resistance after the playtest balance), plus the user's playtest balance (0fbe288) with its tests updated
+- [x] Final Workspace checks green on `main` (2026-11-07: pnpm check 1,681 tests, pnpm e2e 90 specs, relay image healthz)
+- [x] Final handoff printed
 
 ## 7. Blockers
 
@@ -1199,6 +1213,542 @@ Format: `- [FF#] decision: one line, with the reason.` (`contract+:` for additiv
   apart and steps half a cycle apart; separate pads and middle legs need new art.
 - [FF3-fix-1] art note for C2: the Brute's and Colossus's legs are single parts (no knee or foot): the stomp
   is lift, slide and body drop; knees and feet would need new art.
+- [FF7] decision: projectile speeds: FF6's 24 tiles/s differed from FF3-fix-1's bolt 26; content now uses 26 for
+  the Engineer's bolt, the pulse turret and the base sentries (all drawn as bolts), and
+  `src/host/__tests__/speeds.test.ts` keeps content equal to render's `PROJECTILE_SPEEDS.bolt`.
+- [FF7] decision: the phone sends the live aim in `mainX/mainY` (`superX/superY`) while aiming, not only with the
+  fire: the TV aim line needs a direction and the sim already reads `mainAim` as the held aim. Field meaning only
+  (no shape change, no proto bump); the `messages.ts` doc comment and the SPEC §15.6 tuple comment say so.
+- [FF7] decision: `PhoneInputSource` (`src/host/net/input.ts`) is its own wall-clock source (receive time,
+  injectable clock), not a wrap of FF6's step-counted `FreshInputSource`, per §15.6 "receive time".
+- [FF7] decision: the session (`src/host/net/session.ts`) connects a phone into the party on `hello` (key from the
+  relay peer event, device ID from hello); `team`/`me` are compared as JSON and sent on change at most every
+  200/100 ms, plus in full to a phone on every hello; `team` and `me` share one increasing rev counter.
+- [FF7] decision: the slice's class intent accepts only content classes (the Engineer); others ack `invalid`
+  until FF8/FF9. The leader's `end` intent (any option) returns to the lobby until FF14; `resume`, `newRun` and
+  `claim` ack `invalid`. The sim's 3 s countdown is the lobby countdown (phones stay on the lobby screen).
+- [FF7] decision: the TV canvas uses Phaser `Scale.NONE` and the same CSS transform as the DOM overlay
+  (`ui/layout.ts` `fitTransform`/`fitToWindow`, tested; the smoke e2e checks the two boxes match).
+- [FF7] decision: the join URL and QR use the TV page's own origin (open the TV on its LAN address); no LAN
+  banner in the slice.
+- [FF7] decision: home rows are Create, theme, difficulty (focus on Create, so Enter or A creates the room);
+  Resume and New run join with FF14.
+- [FF7] decision: the World scene restarts on every run start/end and draws nothing between runs; the overlay
+  re-renders at 10 Hz or on a screen change; the debug speed-up tops out at 8×, with the catch-up cap sized for it.
+- [FF7] decision: every run records a replay (`RunRecorder`); the download (gzip via `CompressionStream`, plain
+  JSON otherwise) and the uncaught-error offer are debug-only (dev or `?debug=1`); `?seed=N` or the panel sets
+  the next run's seed.
+- [FF7] decision: next-wave preview counts are an estimate from the wave budget (the exact groups are rolled at
+  combat start from the players connected then); knights' labels flip below the sprite above world row 4.
+- [FF7] decision: world drawing and world UI live in `src/host/scene/` (`worldView.ts`), which the asset-keys test
+  now scans too; rig sizes still come from `render/gallery/rigInfo.ts`.
+- [FF7] decision: the TV advances the sim and syncs phones on its own 60 Hz timer (`Runtime.tick`), not on
+  Phaser frames, so a starved GPU slows the picture, never the run; `frame()` only hands over what to draw.
+  e2e freezes wall-clock sim time (`__pcg.speed(0)`) and steps it with `__pcg.advance` inside the TV page,
+  runs the TV with `?bloom=0&fps=15` (software GL shared with the phone pages) and uses absolute URLs.
+- [C2] v2 note: the Citadel collapse needs work (user, C2); the current one ships in v1, rework it in v2.
+- [FF7-fix-1] decision: the Ranger's attack clip is draw (0–70 ms, the draw hand reaching from the bow to the
+  anchor) → hold (to 100 ms, rails charging) → release at 100 ms (string snaps past straight and shivers, draw
+  hand flies back past the ear, bow kicks, body rocks) → next bolt nocked and drawn back to the `ready` rest by
+  440 ms; a shot already at full draw (`ready` pose, no one-shot playing: aiming or Steady Aim) starts at 70 ms.
+  The Ranger keeps the shot's facing and pose for the whole clip. The super clip doesn't share the shot pose and
+  is unchanged.
+- [FF7-fix-1] decision: the `ready` bow-glow bakes the drawn string, nocked bolt and rails into one piece (no
+  separate string part), so the clip darkens it during the draw and after the release and the slack/snapping
+  string is code-drawn between the bow tips (`render/bowString.ts`, in the rig's overlay graphics, theme amber at
+  the art's weight); the rails go dark with it until the next bolt is nocked. Art note: a separate string piece
+  would keep the rails lit.
+- [FF7-fix-1] decision: the bolt origin is render-only (`scene/shot.ts`), no sim change: a knight's main-shot
+  projectile stays hidden until the clip's release (100 ms, or 30 ms from full draw), then launches from the
+  rig's `bolt` attach point (the README's shot origin) at bow height and eases onto the sim position over 150 ms;
+  super projectiles launch from the bow at once. The muzzle flash and tracer play at the bow on the release. A
+  shot that hits within about 2.6 tiles lands before the release shows.
+- [FF7-fix-1] decision: super ready is an amber ring (`theme.color.amber`, so the bloom picks it up) just outside
+  the player's ring with a soft halo, pulsing 1.0→1.12 at 1.2 Hz like the phone's ring (§10.1) and drawn under
+  the colored ring (`scene/superPulse.ts`, `GroundMarks.superRing`); the head badge is gone. SPEC §2.6, §10.1,
+  §15.2, §15.4 and §15.11 #38–#39 updated.
+- [FF7-fix-1] decision: `RigSprite` gains `partPoint`, `clipT` and `overlay()` (the class only, not the frozen
+  `RigInstance`), and `rigMath` gains `attachPoint`/`partPoint`, which `attach()` now uses.
+- [FF7-fix-1] decision: root cause of the flaky/slow smoke and reconnect e2e (FF7 bug, also failing on `main`): the
+  World scene called `setColor` on every knight's nametag every frame; each Phaser Text set redraws its canvas and
+  re-uploads the texture, a GPU readback stall under software GL that starved the TV page and the phones sharing the
+  browser. Nametags now change only when their text or color does (`scene/tag.ts`), and the Ranger's string overlay
+  is made on the first shot and cleared once after it; `scene/__tests__/frame-cost.test.ts` counts redraws across
+  frames. The e2e specs are unchanged.
+- [FF9] contract+: `src/content/types.ts` `AttackDef.shape` gains `'buff'` (hits nothing; the super's `effects` go
+  on the attacker and his squad), `CharacterDef.super.selfEffects?` (attacker only) and `CharacterDef.supply?`
+  (`crateDiscount`, `throwRange`, `throwSpeed`, `kitRepair`); `src/shared/ids.ts` `EFFECT_IDS` appends `haste`;
+  `src/host/sim/types.ts` adds `ThrownCrate` and `World.thrown?`. SPEC §15.3/§15.4 sketches updated.
+- [FF9] decision: squad steering is a straight line to the soldier's slot (a fan behind the Commander, or a ring
+  around the planted flag) with the usual structure collision; no flow field was needed (risk fallback). Soldiers
+  engage enemies within 3 tiles of themselves and 5 of their post; with the Commander down or dazed and no flag
+  they hold. Their damage doesn't charge his super.
+- [FF9] decision: squad size counts the boss waves (wave data `boss`) before the current wave; every build start
+  fills each Commander's missing indexes at the base (the dead return, earned ones appear).
+- [FF9] decision: a throw targets the nearest up, connected Engineer or Warden with room within `throwRange` (8);
+  it flies at 12 tiles/s (at least 0.25 s), follows the receiver and lands on them; a receiver down or full on
+  landing drops it there. No target: row 6 doesn't apply and the button falls through (none).
+- [FF9] decision: starting values: crate discount 50% (rounded, at least 1: price 1); kit restores 250 HP and a
+  full base takes none (like crates); Field Medic heals 3 HP/s within 2.5 tiles (himself included), combat only,
+  charging 0.002 per HP (damage: 0.006 per point); only the Field Medic module charges from heals, so the super's
+  healing never does.
+- [FF9] decision: Quartermaster main is 4 bolts over 16° (blocked by walls and towers, the projectile rule); the
+  super cone (110°, 8 tiles, nothing blocks it) heals other players 40 HP and gives towers `tower_defense` (+0.3
+  damage reduction, 6 s, `PulseTurret.setDefenseBonus`) and deals no damage.
+- [FF9] decision: Commander main is a 110° slash (1.4 tiles); morale (`buff`) puts morale (+35% damage and attack
+  speed, 6 s) on him and his living soldiers and haste (+25% move) on him; Lead from the Front gives his soldiers
+  within 3 tiles +25% damage (a 200 ms aura refreshed each step).
+- [FF9] decision: the Quartermaster's and Commander's phone arc is Give alone (`[null, null, null, 'give']`), so
+  the kit's single-slot radial gives on a 0.4 s hold and repeats every 300 ms (FF0); the TV arc never opens.
+- [FF9] decision: render: the Artificer's bolts (via FF7-fix-1's launch path) and thrown cells leave from the
+  `lens` point on the projector arm (C2: from the hand; the README's `pack` throw origin is not used). Support
+  drawing lives in `scene/supportView.ts`, hooked into WorldView by a few lines; soldiers now lerp (game.ts
+  captures them). Ring-adjacent marks stay unlike the amber super-ready stroke: the morale aura is a soft fill,
+  the Field Medic circle is dots, the flag ring is its art.
+- [FF10] contract+: `src/content/types.ts` `EnemyDef.ai` gains `'swarm' | 'brute'` (the deliverable's
+  `ai/swarm.ts` and `ai/brute.ts` need their own registry ids); `src/host/sim/types.ts` `EnemyEnt.wander?`
+  (a mite's in-sim jitter: drift, pace, re-roll tick). SPEC §15.3, §15.4 and §15.5 updated.
+- [FF10] decision: `SimState.huntField(slot)` (internal, not frozen) builds the per-hunted-player ground field
+  into `world.fields.hunted[slot]` on demand, rebuilt when that player's tile changes or the fields rebuild.
+  A Hunter hunts the nearest targetable player (ties by slot), retargets the same way on down or daze, runs
+  straight at its quarry within 1.5 tiles, and with nobody up walks the ground field and attacks the base.
+- [FF10] decision: a Runner's burst kills it with itself as the killer: no coins (§9.1 pays kills) and the
+  `death` event carries `killer: null`. A damageable blocker on its next tile (wall, tower) takes the burst
+  instead of the base (walls answer Runners, §9). Players never stop or take a burst.
+- [FF10] decision: melee can't hit Flyers is enforced in the damage pipeline (`melee` damage to a flying enemy
+  deals 0, no event), so FF8/FF9 melee needs no per-attack check.
+- [FF10] decision: enemy straight shots (`side: 'theirs'`) also hit the Citadel when they reach its footprint;
+  they never hit structures (the Wasp flies over them). Siege shells are an arcing projectile (drawn, apex
+  2.5 tiles, 6 tiles/s, ≥ 0.6 s) plus a `circle` danger marker created at the shot (the damage, landing on
+  players, soldiers, structures and the Citadel); the muzzle charge during the 700 ms wind-up is the tell.
+  Siege targets the nearest tower (arrow or bomb) in range, else the Citadel, and shells a blocker on its path.
+- [FF10] decision: a Brute is a `path` walker on the breaker field; while chasing or walking back it smashes a
+  wall it walks into (2×), then the leash check sends it back to its path (its target was the wall).
+- [FF10] decision: a stunned enemy (any `stun` effect) stands still and loses its wind-up in `stepEnemies`;
+  FF8 supplies the `stun` effect itself.
+- [FF10] decision: a Swarm group spawns scattered in a 0.9-tile disc (combat stream); a group pays once even if
+  several mites die in the same step. The debug panel's spawn sends a whole group (8 mites) and refuses ids
+  without content (the Colossus until FF11).
+- [FF10] decision: enemy parts aren't emissive, so tell flares (Brute furnace, Bombard and Wasp muzzle, Stalker
+  eyes) and the Skitter core throb (0.8 Hz far → 5 Hz at the base, by distance) are violet glows drawn at the
+  rig's attach points on the effects layer (`scene/enemyFx.ts`); the Skitter's walk keeps its pace. Enemy shots
+  leave from the rig's `muzzle` (FF7-fix-1's `anchorToWorld`) with a `muzzle-theirs` flash, the offset fading
+  over the flight. Wasps draw at `WASP_HOVER_TILES` over their ground point (the sim's `z` isn't drawn), the
+  shadow 0.75× on the ground. Mites take `mitePack` size, pace and phase per entity (jitter is in the sim).
+- [FF10] decision: waves (budgets for 2 players at Normal): 8, 12, 16, 22, 12 (boss), 26, 30, 34, 40, 28 (boss),
+  46, 58, 54, 68, 34 (boss); 30–90 s each (~16 min of combat). Every pool holds the Grunt (cost 1) so spend
+  lands within ±1. Boss waves carry `boss: { id: 'colossus', mk }` with escorts per §9.2; until FF11 the boss
+  doesn't spawn and the content test only checks the id is a known `EnemyId`.
+- [FF10] decision: the determinism test's two-wave runs use the first two waves of content (so they still end
+  in the summary); a new test replays a minute of wave 14 (every AI) twice; the replay test records 3 minutes
+  (`maxSteps`), not the whole 15-wave run, to stay inside Vitest's timeout. The bench's peak crowd is the mixed
+  roster with unbreakable towers and footmen (peak mean ≈ 0.38 ms, p99 ≈ 1.0 ms on this machine).
+- [FF9] decision (reconnect e2e after the FF9 merge): the rejoin `me` snapshot is unchanged and valid (a session
+  test now pins it), so the suspect is frame cost: the trace shows every page starving once the run starts.
+  SupportView's two graphics are now made on first use and cleared only after drawing (`scene/support.ts`
+  `Scratch`), so a run without support classes adds no per-frame GPU work over FF7-fix-1. The early steps
+  (page creation 7.6 s, home 8.7 s) were slow too, so machine load may be part of it.
+- [FF8] contract+: `src/content/types.ts` `StructureDef.defense?` (Fortify's damage reduction, 0.35) and a doc
+  comment on `EnemyDef.slowResist` (fraction resisted; Brute/Colossus 0.5); `src/host/sim/types.ts`
+  `AttackState.windupAim?` (a wound-up player attack's direction); `src/host/render/types.ts` optional
+  `EffectSpawner.arcWave?` (sector shockwave). SPEC §15.2–§15.4 sketches updated.
+- [FF8] decision: player `arc` attacks wind up in the sim (`windupMs`): the `attack` event goes out at the press,
+  the hit lands when the wind-up ends, and the player is rooted meanwhile; a super released during a wind-up is lost
+  (no queue, as before). Slam 200 ms, stomp 320 ms = the clips' impact frames (`speeds.test.ts`). Dying or the
+  phase ending calls a wind-up off. A landing wind-up goes through `classes/warden.ts` `landArc` (its stun and
+  knockback) on FF9's `inSector` test; arcs without a wind-up (the Commander's slash) stay on FF9's shapes.
+- [FF8] decision: stun skips the enemy's AI (no walking, no swings; a swing winding up is lost) and zeroes move
+  speed; slow is a `moveSpeed` −strength mod, `strongest` stacking. `slowResist` scales any slow in
+  `applyEffect` (FF8 set the Brute's to 0.5 after FF10 landed; FF11 sets the Colossus's).
+- [FF8] decision: a net discharges when a ground enemy's inner half (radius × 0.5) overlaps its tile, slowing every
+  such enemy; it rearms after 0.5 s and keeps discharging while enemies stand on it. A fizzled net is removed in
+  the deaths pass with no `destroyed` event (its `snareDischarge` with `left: 0` says so) and no rebuild.
+- [FF8] decision: Fortify isn't a tile of its own: it attaches to the nearest unfortified tower whose tile is within
+  0.75 tiles of the builder (you can't stand on a tower), as the `fortified` flag plus a `damageReduction` mod; the
+  `built` event carries the tower's id and tile. The build ghost and the phone's `build.valid` use the same target
+  (`buildTile`). Towers it attaches to: `FORTIFIABLE` (= content `attachesTo`, tested).
+- [FF8] decision: Mason repairs walls within 2.5 tiles at 10 HP/s (`auraRadius`/`repairRate` stats, scope
+  `passive`, so Master Mason can raise them) in combat only, while the Warden is up and connected; repairs are not
+  heals (no events, no healing stat). The TV draws its sparks from the hammer to each damaged wall in reach.
+- [FF8] decision: the mortar lobs at the nearest ground enemy's position (no lead) at 6 tiles/s ground speed, at
+  least 700 ms of flight, starting at muzzle height (0.8 tiles) with a 1.4 + 0.3·d apex (`shellAt`, shared by sim
+  and render); it bursts on its landing step over its radius (1.3). The TV eases the shell off the barrel tip
+  (`shellOrigin`, the FF7-fix-1 launch path) and draws a blast ring sized to the radius where it lands.
+- [FF8] decision: starting values: Warden 170 HP, 3.8 t/s; slam 30 dmg, 1.5 tiles, 120°, 800 ms, knockback 0.5;
+  stomp 45 dmg, 3.2 tiles, 100°, stun 1.4 s; super fills at 160 damage. Wall 300 HP; mortar 220 HP, 32 dmg, 4.5
+  range, 2 s. Costs match the phone's copy (turret 2, mortar 3, wall 1, net 1, Fortify 2; the net ties the wall
+  as cheapest), checked by content.test. The Engineer's build list is now turret, mortar.
+- [FF8] decision: structure drawing moved out of `worldView.ts` into `scene/structuresView.ts` (turrets, mortars,
+  wall and net fields, build sketch/fill and collapse from `render/buildFx.ts`, shells, Mason sparks); the
+  Warden's impact shockwave is `scene/wardenFx.ts`. Per frame it changes alpha, crop and scale only; the wall and
+  net fields rebuild only when their tiles or states change (the FF7-fix-1 frame-cost rule). Charged walls draw
+  once `spiked_walls` is owned and strike back at an attacking enemy (the damage is FF12's).
+- [C3] decision: C3 notes routed by owner: floor color → FF3-fix-2 (map render/theme); aim previews for all
+  knights plus Warden and Ranger range numbers → FF7-fix-2 (aim lines are FF7 world UI; one owner avoids
+  parallel edits to the same aim code); Commander passive/super visuals → FF9-fix-1; Wasp motion, Hunter
+  pathing/indicator and the flow-field shape → FF10-fix-1 (the FF2 flowfield change rides with the Hunter field
+  work). Fixes run in parallel with FF11–FF13 at the user's request; rebase conflicts per §2.
+- [C3] v2 note: Hunter v2 behavior (user, C3): walks in and finds a spot no tower can hit; targets and attacks
+  any player within the Ranger's range; otherwise waits until a player drops below 50% HP (always targeted) or a
+  Brute spawns, then walks slowly behind the Brute as a shield until close to a player.
+- [FF9-fix-1] decision: "the circle beneath them" (C3) is the morale aura circle, drawn under the Commander and
+  every footman (footmen have no player ring, and the ring is the player's color, not amber); the Commander's
+  player ring is left alone, which also keeps clear of FF7-fix-2's ring/aim code in `worldView.ts`.
+- [FF9-fix-1] decision: motes and the flash live in `scene/support.ts` (pure: `leadTargets`, `MoteStream`,
+  `moteDrift`, `superFlashOn`) and `scene/supportView.ts`; no render contract change. Between flashes the aura
+  shows its old fading alpha, so it still doubles as the timer (SPEC §15.11 #40).
+- [FF7-fix-2] decision: one hit-shape source, `sim/classes/hitShape.ts` (`hitShape(attack, stat)`): a single
+  bolt is a `line` of its range, arcs, cones and spread volleys (count > 1) a `cone` (range, half the arc or
+  spread), circles a `circle` (radius), buffs `none`. The sim's sector tests (`sectorOf`, the Warden's
+  `landArc`) now read `sectorGeometry` from it; the TV's preview is `aimPreview(p, def, slot, rules)`
+  (`sim/preview.ts`): the same function through `attackStat` with the registry's effects and the run's stat
+  caps, so content tuning, passives (Steady Aim) and FF12 card stat mods move the preview with the hit. Not
+  covered: an `onAttack` hook that changes a volley's count or spread (the preview reads the def's).
+- [FF7-fix-2] decision: preview look (`scene/aimPreview.ts`): a single bolt keeps the dashed amber line (world
+  UI); cones are a transparent amber-filled sector with a thin amber edge and circles a filled 0.6 ground
+  ellipse, on the ground-overlay Graphics under the units (fill α 0.16, edge α 0.45: amber over the dark floor
+  stays below the bloom's 0.72 value cut, so it never floods the bloom). Drawn into the scene's existing
+  Graphics with a reused frame object; the §2.5 projection is linear on the ground, so vertices are center +
+  scaled offsets, no per-vertex allocation.
+- [FF7-fix-2] decision: previews draw whenever a phone holds an aimed button (main: Ranger, Artificer; super:
+  Warden, Artificer), from the shape alone, so a button made aimed later previews with no render change. A
+  super previews only once it is charged (a release while charging does nothing, §10.1). The Warden's slam
+  and both Commander buttons are tap buttons (§10.1 table): nothing is held, so nothing to preview; the C3 note
+  "Warden's main attack … the entire cone" is met by the aimed stomp's cone (making the slam aimed would be a
+  phone change, out of scope here; ask at C4 if the slam should become aimed).
+- [FF7-fix-2] decision: C3 tuning (content only): Warden slam range 1.5 → 1.75 tiles, arc 120° → 102°; Warden
+  stomp range 3.2 → 3.7, arc 100° → 85° (each ~15% narrower, ~15–17% longer); Ranger super radius 3 → 3.5
+  (+17%; "range" of a circle around him is its radius). Pinned by `content/__tests__/c3-tuning.test.ts`. The
+  stomp scenario's out-of-arc Grunt moved from (12.5, 15) to (12, 16.5): the longer stomp reached it.
+- [FF3-fix-2] decision: floor #262b33 → #62676f because the violet-iron hulls (#2a2340, #3a3150, #4a4068,
+  #4f4570) sat at the old stone's luminance (1.0–1.2:1, ink outlines 1.35:1), so enemies vanished, mites and
+  Skitters worst (C3). Measured (WCAG ratios, `floor-contrast.test.ts`): ink outlines 3.4:1; area-weighted
+  bodies mite 2.3, Skitter 2.1, Drone 2.0, Brute 2.1, Bombard 2.1, Stalker 1.9, Colossus 1.9, Wasp 1.9 (it also
+  has its ground shadow); glows stay brighter (violet 1.55, amber 2.6, hostile core 3.1); bloom weight 0 for
+  every lifted map color; shadows go from invisible (1.1) to 1.65. Lighter (#6a6f77+) pushed violet glows and
+  danger red under 1.4:1 and knights' tops into the floor, so this is the balance point. Drawn as an ADD tint
+  of 0x3c3c3c on ground, edge and decor frames (seam and hash steps unchanged, lanes untinted); no art edits.
+- [FF3-fix-2] contract+: `ThemeHost.map.floorLift?: number` (0xRRGGBB added to ground, edge and decor frames);
+  SPEC §15.4 block, §15.2 Map, §15.11 #43.
+- [FF3-fix-2] decision: player rings and their notch get an opaque `brandInk` edge (1.5 px each side) because
+  cobalt (1.0:1) and forest (1.1:1) match the new floor's luminance; every player color is ≥ 3.1:1 on the ink (cobalt 3.19), the ink 3.2:1 on the floor.
+- [FF3-fix-2] decision: red danger markers get a `brandInk` edge at 0.85 under the red ring because red fell
+  from 3.3 to 1.4:1 on the new floor (red ring 3.6:1 on its edge, edge 2.8:1 on the floor).
+- [FF3-fix-2] decision: the Stalker target thread is `hostileCore` at 0.5 (was `hostile` at 0.32) because the
+  old thread fell to 1.13:1; now 1.8:1 (old floor: 1.5:1), still faint, world UI so never bloomed.
+- [FF3-fix-2] decision: the bloom's band edges moved to `render/bloomPick.ts`, and the select shader is built from
+  them, so tests check colors against the same threshold.
+- [FF3-fix-2] note for C4 (measured, unchanged): knights' #5c6676 tops sit near the floor (1.0:1; their ink
+  outline carries the silhouette); translucent amber, danger and build-ghost fills lose contrast on the lighter
+  floor (their full-alpha strokes carry them); `plate/tile` and lane breaches keep the old dark stone, so
+  structure plates read as dark sockets; near-opaque amber (≥ 0.85) blooms a little more over the lighter floor.
+- [FF10-fix-1] contract+: `src/host/systems/flowfield/index.ts` `buildField(…, into?, opts?: FieldOptions)`
+  (`diagonal`, `solid`; default stays 4-neighbor, so FF2's tests hold as written) and `steerTile(field, from)`
+  (+ `STEER_LOOKAHEAD` 32, `STEER_HALF_WIDTH` 0.3); `src/host/sim/types.ts` `EnemyEnt.huntSince?` (tick of the
+  Hunter's current quarry). SPEC §9, §9.6, §15.2, §15.5, §13 and decision rows updated.
+- [FF10-fix-1] decision: Wasp jitter root cause was render, not sim: `worldView.drawEnemies` drew the ground
+  point with z = 0 lerped from `prev` (which holds the sim's flyer z = 1), so its screen y swung by up to a tile
+  with the accumulator's phase every frame. Fixed with `scene/interp.ts` `lerpGround`; the sim test shows a
+  Wasp's progress was already monotone.
+- [FF10-fix-1] decision: flow-field shape: the sim builds 8-neighbor fields (no corner cutting past blockers or
+  impassable tiles) and every walker steers at `steerTile` (farthest chain tile a ±0.3-tile corridor reaches
+  through tiles no costlier than the next step; cached per tile until the rebuild). Lanes now walk within
+  0.13 tiles of the straight line (was 7.7, path 1.33× straight).
+- [FF10-fix-1] decision: Hunter threat: `ai/threat.ts` counts attackers (structures with an `attack`, the present
+  sentries) covering each tile within range + 1 (`THREAT_PAD`: a tile's half-diagonal plus a body; 0.4 still let
+  a corner graze the range); the hunted field adds 4 (`THREAT_COST`) per attacker. Recomputed in
+  `rebuildFields`, which `startCombat` now also calls (range cards, sentry buys). Peak bench mean 0.44–0.48 ms.
+- [FF10-fix-1] decision: Hunter retarget hysteresis `RETARGET_TILES` = 2: another player must be 2 tiles closer
+  (straight-line) than the current quarry to take over; down, daze or leaving still retargets at once.
+- [FF10-fix-1] decision: the target flash is a pulsing ring (4 pulses, last 500 ms fading, `HUNT_FLASH_MS` 2000)
+  in the quarry's color on WorldView's per-frame ground graphics (one shared object, no per-ring allocation),
+  timed from `world.tick − huntSince`.
+- [FF11] contract+: `src/host/sim/types.ts` `BossAct` and optional `EnemyEnt.boss` fields `act`, `ready`, `stunAt`
+  (the attack winding up, per-attack ready ticks, the last counted stun). SPEC §15.3 sketch updated.
+- [FF11] decision: content's `boss.module` names the `bosses` registry (content.test checked `modules` before), the
+  `boss` AI kind dispatches to it, and tuning lives in `boss.params` (content/balance.ts). Boss-wave rules shared by
+  any boss are `sim/boss/index.ts`: the boss spawns alone up the wave's first lane right after its lane warning; its
+  Mk is the wave data's (debug spawns: by wave number); HP × player-count multiplier at spawn, then × Mk (II 1.6,
+  III 2.4) by the module; once no boss is alive the other enemies collapse as their own killers (no coins), and
+  pending spawns, markers and enemy shots are dropped, so the usual "wave cleared" check ends the wave.
+- [FF11] decision: starting values: Mk I 2500 HP, 0.585 t/s, radius 0.9; slam 60 dmg, 1.5-tile circle 0.7 past its
+  body, 1.5 s wind-up (always 90 steps, the final phase too: the design rule's clear tell), 2.5 s cooldown; walls 3×,
+  the Citadel 1.5×; boulder (Mk II+) 1 s wind-up, 8 t/s lob, 45 dmg, 1.2 radius, range 2.5–9, every 7 s (first after
+  3.5 s); final phase 1.35× speed, 0.6× cooldowns, 5 rings of 0.8 tiles every 130 ms (25 dmg, players and soldiers
+  only), 5 Runners every 6 s; 10 coins for the kill.
+- [FF11] decision: it keeps to its breaker-field path and never chases: it slams a player or soldier within reach,
+  a wall (wall breaker) or tower its body walks into (its radius spans tiles, so it checks its whole leading edge),
+  or the Citadel. Boulder target: the largest group of 2+ players within 2 tiles of one of them, else the nearest
+  tower, else one player. Mk II and III bring 2 Grunts and a Swarm pack beside it at spawn (§9.2 escorts, on top of
+  the budget).
+- [FF11] decision: stagger: damage fills 3 meters per max HP (a third of its HP fills it), a stun adds 0.25 but only
+  one stun counts per 2.5 s and none while staggered; stuns and knockback never apply. Full: 3 s down, +50% damage
+  taken, the wind-up and its marker called off, meter back to 0. A Warden stomping as fast as he can staggers it
+  about a third of the time (boss.test).
+- [FF11] decision: render: `scene/colossusView.ts` drives the Colossus from `EnemyEnt.boss` (clips offset to the
+  sim's act start so they stay in step; hits flash but don't replace its own clips); glows (core by meter, fists,
+  spires, plumes) are drawn at attach points (enemy parts aren't emissive); ring markers aren't red fills but one
+  violet outline rolling on the sim's band; the boulder leaves `fist-near`. No walk ground shake (a camera shake moves
+  every world layer; left for C4). Gallery: a `colossus` page (4 tiers × 8 clips) and the
+  rigs page's clip list gains `slam`, `throw`, `call`, `stagger`.
+- [FF12] contract+: `src/host/sim/types.ts` `HealCalc` and `Hooks.modifyHeal` (Triage changes a heal before it
+  lands); `src/host/sim/events.ts` appends `{ e: 'faultLine'; slot }` (the TV flashes every wall). SPEC §15.3.
+- [FF12] decision: offers: every build phase deals one (the one before wave 1 too), from `offerRng(seed, wave,
+  slot)` so a recomputed offer matches; combos count as rares (at most one of either per offer); an offer not
+  taken is gone at combat start (cards are free). Flyer eligibility reads connected ranged players, the wave
+  start's substitution rule, so Skyhunter drops out when the only ranged player is disconnected.
+- [FF12] decision: unique cards are Light Load (spec), Unshakable, Overflow, Triage and the combos; every other
+  card stacks, and modules get `stacks` (bonus × N, Volley one shot sooner, Piercing one more pierce).
+- [FF12] decision: stat cards scope to their button so aim previews read effective values: Quick Draw
+  `projectileSpeed` main, Blast Radius `radius` super, Heavy Slam/Bladework `arcDeg` main, Earthshaker `stunMs`
+  super and Rally Cry `durationMs` super (effect durations scale when fired), Deadeye `durationMs` passive (the
+  Steady Aim wait), Master Mason `repairRate`/`auraRadius` passive. New caps: `respawnMs` Σ add ≥ −5000 (5 s
+  floor), `durationMs` Σ pct ≥ −0.8.
+- [FF12] decision: Bulk Buyer is "every 3rd crate the Quartermaster buys is free" (one sooner per stack): coins
+  are whole numbers and the 50% discount already sells at the 1-coin floor, so a bigger `crateDiscount` would
+  change nothing.
+- [FF12] decision: Wildfire and Plague spread from the burn/poison effect's `onDeath` when the effect's source
+  owns the combo (1.6 tiles, 3 s, the dying enemy's strength); burn ticks 3 every 0.5 s (≤ 3 stacks), poison 2
+  every 1 s (≤ 5).
+- [FF12] decision: Overflow is a `shield` effect whose strength is the HP it absorbs (damage stage 5), topped up
+  additively to 40 HP and 6 s; with Overflow, Field Medic heals full-HP players too (as shield).
+- [FF12] decision: squad cards put small `squad:*` modifiers on the Commander's soldiers that read his live
+  stacks; Veterans survivors are the soldiers alive at combat end (+10% max HP and damage per wave, max 5;
+  replacements are new entities); soldiers with modifiers refresh their stats every step.
+- [FF12] decision: shop upgrades are `shop:<item>` modifiers fitted on purchase and on creation (structures,
+  soldiers, the base); a higher max HP comes in full. Charged walls deal 10 back to any non-dot enemy hit
+  (source: the wall). Snare charges add 2 discharges a tier to every net, built ones included.
+- [FF12] decision: shop rules not in the spec: squad stats sell one tier per regular wave cleared, shown only
+  right after a regular wave; hold-to-confirm at a price ≥ 10 (`HOLD_CONFIRM_PRICE`); repair at full HP, sold-out,
+  hidden or (for others) Quartermaster-only items ack `invalid`, a second held kit `cap`; requests only for
+  visible items; phone crate buys aren't announced (personal inventory); a repeatable purchase announces tier 1.
+  Starting prices: repair 4→14 (+2 a buy, 150 HP), sentry damage/range 8, third archer 12, turret rate and
+  mortar radius 6/10/14, tower HP 5/8/12, wall HP and snare charges 4/7/10, charged walls 10, base armor
+  8/12/16 (+0.1 DR a tier), kit 6, squad stats 5 + tier.
+- [FF12] decision: difficulty was already baked at spawn since FF6 (enemy HP and damage, base HP, kill coins,
+  wave budget); FF12 keeps the values and tests the Easy < Normal < Hard order.
+- [FF12] decision: render: every structure of an upgraded type (and every wall on a Fault Line) flashes white
+  for 220 ms with sparks while its new parts are already on; `whiteFlash` lives in `render/rig.ts` (it needs
+  Phaser at runtime, and `render/structures.ts` must stay Node-safe for its tests). The mortar gains the
+  defense-bonus pips; the Overflow icon sits right of the HP bar; the TV wishlist names the next tier.
+- [FF7-fix-3] decision: Warden and Commander mains are aimed (user, C3 follow-up); quick tap still auto-aims.
+- [FF7-fix-3] decision: content only plus the phone copy: `input.main: 'aimed'` (warden, commander) and
+  `CLASS_INFO` mode `aim`; the sim already fired every shape along the tuple's aim (0,0 = nearest enemy in
+  range, else facing) and the TV already previewed any held aim from `hitShape`, so no sim, render or contract
+  change. A controller test pins copy modes to content input kinds. A hold past 150 ms that never leaves the
+  dead zone cancels (the kit's aimed rule, §15.7), same as the Ranger and Artificer mains.
+- [FF7-fix-3] decision: FF12's Heavy Slam, Bladework (arcDeg +20%, main scope) and Reach are stat mods, so
+  they reach both the sim's sector and the aimed preview through `hitShape`; `sim/__tests__/aimPreview.test.ts`
+  picks each real card and probes the aimed reach and edge. Aftershock drops its zone along `atk.aim`, the aim.
+
+- [FF13] decision: SFX picks are by name only (not auditioned); swap in `scripts/pick-sfx.ts` `PICKS` and rerun. Cue gate: `Cue.when(e, kindOf)` takes an entity-kind resolver from the world; `marker` is the boss wind-up cue (no new SimEvent added); `purchase`/`cardPicked` already exist. Player: per-cue volume + max-per-window cap in `TUNING`; `createSfx(ThemeHost.sfx)` preloads behind the home bar (min of atlas and audio progress in `main.ts`), unlocks on first key or pointer.
+- [orch] note for FF15: on main after FF10-fix-1/FF11/FF12 the Sim bench peak runs mean ~0.70 ms but p99
+  2.09–2.28 ms (measured while other agents loaded the machine); FF15's Acceptance needs p99 ≤ 2 ms at peak,
+  so profile the new 8-neighbor flowfield + Hunter tower-cost field, boss and card hooks first.
+- [orch] cleanup for FF15: FF3-fix-2's Stalker-thread color (`THREAD_ALPHA`) and its test are unused since
+  FF10-fix-1 removed the thread; delete both.
+- [balance] decision (user, SPEC §15.11 #48): every balance number lives in `src/content/balance.ts`. The eight
+  domain files (`base`, `difficulty`, `characters`, `structures`, `enemies`, `waves`, `cards`, `shop`) are merged
+  into it in that order, under section headers; `map.ts` stays. Constants that leaked into the sim moved there
+  with their values unchanged (replays and hashes are the same): Hunter close range, retarget, threat cost and
+  pad (`hunter.hunt`); Swarm drift, pace and re-roll windows (`swarm.jitter`); Bombard shell speed and minimum
+  flight, mortar minimum flight (`attack.speed`, `attack.minFlightMs`); snare trigger (`triggerFraction`); squad
+  engage, leash, hurry and formation (`commander.squad`); crate throw minimum flight (`supply.throwMinFlightMs`);
+  Colossus boulder minimum flight and slam reaches (`boss.params`); and in `rules` the projectile hit radius,
+  enemy swing and shot slack, Fortify reach, card offer size and rare chance, burn and poison ticks and stack
+  caps, and the Wildfire/Plague spread. Card and passive module params that only had code defaults (aura
+  refresh `auraMs`, Aftershock `maxSlow`/`reachPct`, Fault Line `touch`, Volley/Bulk Buyer `minEvery`) are now
+  in content. Modules read params through `num(p, key)`, which throws on a missing one; the sim reads optional
+  content fields with `!`, not a fallback; content.test builds every module and checks those fields, and pins
+  the phone card copy's numbers (Skyhunter, Volley, Triage…) to content. `RARE_CHANCE` left `sim/index.ts`.
+  What stays in code is plumbing: `SIM_HZ`, flow-field steering (`systems/` can't import content), spatial
+  hash, physics thresholds, spawn scatter, render-only arc heights, the autopilot's heuristics.
+- [balance] contract+: `src/content/types.ts` `AttackDef.minFlightMs?`; `CharacterDef.squad` `aggro?`, `hurry?`,
+  `formation?`; `CharacterDef.supply.throwMinFlightMs?`; `EnemyDef.hunt?`, `jitter?`; `StructureDef.triggerFraction?`;
+  `RulesDef` `projectileRadius`, `enemySwingSlack`, `enemyShotSlack`, `fortifyReach`, `cardOffer`, `dots`,
+  `comboSpread` (only content builds a `RulesDef`). `sim/types.ts` `EffectDef.maxStacks`/`tickEveryMs` stay but are
+  unused (`rules.dots` replaces them). SPEC §15.4 sketch updated.
+- [orch] decision (user, early C4 notes, 2026-11-05): FF7-fix-4 (aim line on cancel) and FF10-fix-2 (Wasp height, body hitboxes incl. the Colossus) run in parallel with FF14 ∥ FF15; the user is re-picking the SFX themselves, so no fix milestone touches audio picks.
+- [orch] decision: since the Changesets setup on main, every FF branch that changes shipped code commits a `.changeset/*.md` note (`pnpm changeset --<level> @pcg/fort-frenzy -m "…"`); FF14 minor, FF15 and fixes patch.
+- [FF14] contract+: `src/host/sim/snapshot.ts` `SnapshotStructure.owner?` and `RunSnapshot.runMs?` (plus the
+  `takeSnapshot` / `parseSnapshot` / `resumeStart` / `restoreSnapshot` functions); `src/host/party/index.ts`
+  `PartyScreen` gains `'claim'`, new `RestoredSlot` and `Party.restore` / `claimable` / `claim`. SPEC §15.6, §15.8 updated.
+- [FF14] decision: the snapshot round-trip test checks that a restored world gives the same snapshot back and that
+  every restore of one snapshot has the same state hash (and plays on identically); the live world's hash can't
+  match, since the frozen snapshot holds no positions, cooldowns or tick.
+- [FF14] decision: a resume restores the build phase with its full timer and the knights at the base (the
+  snapshot holds neither); combat progress since the build start is lost (§11.5).
+- [FF14] decision: the sim's `join` command takes a late joiner in any phase; the party alone gates late joins to
+  the build phase, so the two never disagree about who is in.
+- [FF14] decision: a late joiner joins by tapping Ready on the lobby screen in a build phase (name, class, Ready),
+  not automatically.
+- [FF14] decision: phones send `hello` again when the TV comes back (`host` `back`), since a reloaded TV has no
+  party in memory and matches saved slots by the relay key from the reclaim roster.
+- [FF14] decision: claims are open for any restored slot no phone has matched, in a reclaimed room as well as a new
+  one; an unknown phone sees `claim` while such a slot exists.
+- [FF14] decision: the snapshot autosave checks every 250 ms in the build phase and writes only when the snapshot
+  changed (one rule covers commands, crates moved and debug changes); build start and `pagehide` write at once.
+- [FF14] decision: Play again marks every connected player Ready (auto-start); Return to home kicks every phone,
+  closes the client and drops the `pcg:hostToken:fort-frenzy` session key so the next Create gets a new code; the
+  phone shows "The TV went home" for a kick while the summary is up.
+- [FF14] decision: the TV shows the Resume / New run choice on the home screen (rows from `HomeRow`), with the
+  room code once the relay answers; the build HUD shows the room code for late joiners. `TvScreen` `restoring`
+  stays unused.
+- [FF14] decision: replays build an input source for every slot in the recording (late joiners have no start
+  slot).
+- [FF10-fix-2] contract+: `src/content/types.ts` `EnemyDef.body?: { radius; bottom; top }` (every enemy has
+  one; the sim throws without it); `src/host/sim/types.ts` `SpatialHash.queryBox(x0, y0, x1, y1, out)`.
+  SPEC §2.5, §9, §9.6, §15.2, §15.3 step 6, §15.4 sketch and §15.11 #50 updated.
+- [FF10-fix-2] decision: a body hitbox is the content body (drawn tiles above the feet, measured off each
+  rig's part bboxes at rest: torso, head and legs) swept up the screen as a ground capsule (`sim/body.ts`:
+  `lo` = bottom / 0.6, `hi` = top / 0.6 − r, so its cap reaches the drawn top), symmetric about the feet
+  (no facing; the sim's facing and the render mirror can disagree mid-turn). The 0.6 is §2.5's projection,
+  so it moved to `src/shared/projection.ts` (`render/camera.ts` re-exports it), not into the balance sheet.
+- [FF10-fix-2] decision: bodies are hit by ours only: players' shots, arcs, cones and circles, towers, base
+  archers and mortar shells. Squad soldiers' swings, enemy attacks, walking, separation and ground effects
+  (snares, Aftershock, Wildfire/Plague, Fault Line, charged walls) keep feet circles. Auto-aim, pulse
+  turrets and archers aim at the body's near end (`bodyAimY`: the feet on the ground, so ground aims are
+  unchanged; the Wasp's hull, else a shot at its shadow would now pass under it). The mortar still lobs at
+  the feet (it never hits Flyers).
+- [FF10-fix-2] decision: sizes (radius, top; drawn tiles): Drone 0.42, 1.01 (radius to its head, so the
+  blade arm reaching 0.6 out stays out; spine spikes too); Skitter 0.44, 0.57; mite 0.16, 0.19 (size 1);
+  Brute 0.54, 1.5 (fists, arms, pauldrons out); Bombard 0.56, 1.18 (barrel, splayed legs out); Stalker
+  0.54, 0.8 (tail out); Wasp 0.43, 1.37–1.76 (rotors, masts, thruster glow out); Colossus 1.0, 0.8 (its
+  legs: bigger than its 0.9 feet, under half its 1.69-tile neck).
+- [FF10-fix-2] decision: "half the height" is the gap the room reads, the hull's underside over its shadow:
+  the Wasp art already lifts its hull 1.14 tiles over the rig's foot, so FF10's 1.6-tile hover drew it 2.74
+  up; now 1.37 (`WASP_FLIGHT_TILES`, hover 0.23). Halving the 1.6 constant alone would only have lowered it
+  ~30%. The sim's flyer `z` = 1 isn't drawn or read by any hit test, so it stays (hashes unchanged by it).
+- [FF10-fix-2] decision: the sector test samples the capsule as feet-test circles r / 4 apart (covers it to
+  0.01 r) after a reach reject; segments use exact segment–segment closest points; no per-test allocation.
+  Projectile and blast candidates come from `queryBox`, reaching the tallest body (`Catalog.bodyMax`) south.
+- [FF10-fix-2] decision: test fixtures: the aim-preview probes flatten the Grunt's body to its feet (they
+  measure the shape; `body.test.ts` covers bodies); FF8's stand-in enemies get flat bodies; the Skyhunter
+  Wasp, Plague neighbor and the aimed-melee "behind" Grunt moved so their drawn bodies are where the test
+  means. No hashes or replays are pinned in tests; replays recorded before this change won't match.
+- [FF10-fix-2] decision: the bench crashed on main (it starts all Engineers and `addSoldier` needs a squad
+  lead since the balance sheet), so slot 0 is a Commander (FF15 rewrites the bench: take theirs on
+  conflict). Peak, this machine, same load: main's sim mean 0.43–0.49 ms; this code with flat bodies 0.46;
+  real bodies 0.54 ms, p99 1.4 ms (more footmen survive the run: 20 vs 4).
+- [FF7-fix-4] contract+: `src/shared/messages.ts` `AIM_DEAD_ZONE` (0.12, the kit's aimed dead zone as a fraction of the clamp; a test pins it to `AIMED_DEFAULTS`) and `src/host/sim/types.ts` optional `AttackState.held` (`'out' | 'cancelled' | null`); SPEC §10.1, §15.7, §15.11 #51 updated.
+- [FF7-fix-4] decision: the fix is in the sim (`players.ts` `heldAim`), not the phone: the tuple and its aiming flag are unchanged, and the TV keeps reading `PlayerEnt.mainAim`/`superAim` (null = no preview), so render is untouched. A held aim is `out` once its stick reads past the dead zone and `cancelled` once it reads back at or under it; cancelled hides the preview until the aiming flag drops (the brief's "stays hidden until a new press"). An aim that has not yet read past the dead zone shows nothing, so a slow drag rounding to the edge (stick ints) can't latch a cancel. Known edge: dragging out again after a cancel and releasing still fires (the phone's rule, unchanged) with no line shown; ask at C4 if the line should come back instead.
+- [FF15] decision: soak = `sim/soak.ts` `soakRun`: autopilot in every slot, invincible, and the Citadel held at full
+  HP (without it 6 of the 28 full-form runs fell at waves 9–14, so weak mixes never reached the boss); each player
+  picks a card from every offer (`(wave + slot) % offer`) and tries one team-shop item a wave in a rotation (refused
+  when unaffordable), so card and shop hooks run. Full form `pnpm --filter @pcg/fort-frenzy soak` (`scripts/soak.ts`):
+  seeds 1 and 2 × (2 players in all 10 class pairs, same class twice included; 6 players in the 4 rotations of
+  `CLASS_IDS`, so every class plays every slot), each run twice, state hash every 60 steps; fails on a throw, a run
+  not ending in victory at wave 15, or differing rerun hashes; prints a per-run hash fingerprint. Short form in
+  Vitest (`sim/__tests__/soak.test.ts`): one whole 2-player run and the 6-player boss waves (content waves 14–15).
+- [FF15] decision: soak finding (autopilot, not a game rule): seed 2 Warden + Quartermaster stalled wave 6 for the
+  whole hour cap: the invincible Warden stood under three Flyers it can't hit (holding their aggro), and the
+  Quartermaster's shots hit a Warden wall on its line. The autopilot now picks only enemies its main attack can hit
+  (`hitsFlyers`) and sidesteps (sides switch every 2 s) while a `blockedBy` wall or tower is on its line of fire.
+- [FF15] decision: bench (`scripts/bench.ts`, loads in `sim/peak.ts`, shared with the stress mode): `boss` is the real
+  peak (wave 15, the Colossus Mk III held at 45% HP so its final phase runs, Swarm packs through the `spawn` debug
+  command up to 150 enemies, 60 lattice towers (2 pulse : 1 mortar) healed each step, two Commanders' squads to 30
+  footmen, 100 projectiles, 6 knights of every class); `peak` is the same counts with the whole roster scattered
+  (FF6/FF10's crowd; its footmen now belong to Commanders: on main the bench threw `slot 0 has no squad` since FF9);
+  `run2`/`run6` time whole soak runs. Exits 1 when a peak's p99 or any mean is over 2 ms (was the mean only); each
+  peak line prints the final state hash. `pnpm bench boss peak` runs a subset.
+- [FF15] decision: perf, sim (every result exact: the 28 full-soak fingerprints and both bench state hashes are the
+  same before and after): (1) soft separation finds its pairs on its own center-binned grid over typed copies of the
+  bodies (was a spatial-hash query, sort and Map lookup per body, ~37% of the boss-peak step in dense Swarm packs),
+  still visiting each body's overlapping higher-id neighbors in ascending id order, so pushes sum in the same order;
+  (2) `hooks()` skips the modifier copy for units with no effects (a shared empty list with no mods either);
+  (3) `refreshStats` sums each stat in one pass over the mods (same order and formula as `statValue`);
+  (4) `nearestEnemy` skips the square root for enemies clearly out of range (a 1e-6 margin keeps kept results exact);
+  (5) movement knows players by position (no Map lookup); the autopilot finds the Armory tile once (was a whole-map
+  scan per sample, inside the timed step). The orch's suspects measured small at peak: hunted-field builds ~4% of
+  the step, the Colossus < 1%, card and passive hooks ~2%; left as they are.
+- [FF15] decision: perf, render: `RigSprite` poses parts without a per-part array, skips the per-frame order copy and
+  join when the clip has no order swap (all but the Colossus legs) and builds an empty sample only with no clip; the
+  stress overlay rewrites its DOM text every 15 frames. No visual change. `scene/worldView.ts` left alone (FF7-fix-4
+  and FF10-fix-2 edit it in parallel). GPU and frame numbers are the user's at C4 (software GL here, FF3 decision).
+- [FF15] decision: in-game stress mode `?debug=1&stress=1` (`host/stress.ts`): no relay or session (FF14 owns `net/`
+  and the lifecycle), the `boss` peak load stepped by its own fixed-step loop on a 60 Hz timer as in a run, the real
+  World scene (new optional `SceneHost.onWorld` hands over the RenderWorld) and FF3's overlay, moved to
+  `render/stressOverlay.ts` (the gallery's `&stress=1` uses it too) with a sim line (step mean and p99 over the last
+  600 steps, entity counts; also in `window.__pcgStress`). `&peak=synthetic`, `&seed=N`, `&fps=N`.
+  `e2e/stress.spec.ts` checks it runs with no console errors or fallback shapes (not run by FF15: the orchestrator
+  runs e2e).
+- [FF15-fix-1] decision: the stress overlay's `RenderWorld.partCount` read `.list` off every rig-root child, but the
+  extras graphics (the Ranger's string) has none and threw each frame in `?debug=1&stress=1`; it now counts through
+  `rigMath.ts` `rigPartCount` (part-set children only), unit-tested in `render/__tests__/partCount.test.ts`.
+- [FF15] decision: deleted FF3-fix-2's unused `THREAD_ALPHA` (`render/legibility.ts`) and its floor-contrast
+  assertion ([orch] cleanup).
+- [FF15] decision: after rebasing on FF14, FF10-fix-2 and FF7-fix-4 (a79b3a7): the perf files swapped back to main's
+  give the same 28 full-soak fingerprints and bench state hashes (boss `45404242`, peak `7fa00508`) as FF15's, so
+  the perf pass is still exact on the body hitboxes. Profiled with bodies: `queryBox` + `segmentHitsBody` ≈ 4–5% of
+  the peak step, left as they are. At peak ~350 KB is allocated a step, a 0.4 ms scavenge every ~30 steps, which is
+  what sets the p99; (6) effect modifiers (auras, morale, haste) are now made once per effect and strength
+  (`stats.ts` `effectModifier`, a WeakMap; they are pure in the strength) instead of per unit per step in both
+  `hooks()` and `refreshStats` (~9% of the allocations).
+- [FF15] decision: the bench runs each scenario in its own process (`peak` measured after `boss` in one process ran
+  up to 3× slower, mean 1.4 ms, from the heap and JIT state the first sim left; the TV runs one sim).
+- [FF15] bench (2026-11-06, machine shared with other agents' runs, CPU ~25–30% busy, numbers swing ±50% run to run):
+  main a79b3a7 boss mean 1.23 ms, p99 5.97 ms; peak mean 0.73, p99 2.11 (both over). FF15: boss mean 0.40–0.55 ms,
+  p99 1.0–1.9 ms; peak mean 0.45–0.51 ms, p99 1.4–1.5 ms; whole runs: 2 players mean 0.03 ms, 6 players 0.21 ms.
+- [FF15] soak full form (`pnpm --filter @pcg/fort-frenzy soak`, rebased on a79b3a7): 28 runs × 2, 0 failed, every
+  rerun identical, 1,878.7 s (31 min) under that load (195 s on a quieter machine before the rebase).
+- [FF7-fix-6] decision: the single-bolt `line` preview is now a ground-overlay quad (the cones' `AIM_FILL_ALPHA`
+  fill and 2 px `AIM_EDGE_ALPHA` edge), the shape's range long and 2 × `rules.projectileRadius` (the fired bolt's
+  `r`, same ground projection) wide; `drawAimPreview` drops its unused `ui` Graphics and takes the bolt radius from
+  `worldView` (no sim change; `hitShape` untouched). The Ranger's super is a circle, so it is left as is.
+- [FF7-fix-6] note: `check:fort-frenzy` tests fail on `main` 0fbe288 ("balance updates after playtest") before this
+  branch: 6 tests pin the old numbers (c3-tuning Warden slam/stomp, speeds bolt render speed, boss Warden stun
+  loop, shop + structures snare discharges). Out of this note's scope, left for the orchestrator; every other
+  gate step (typecheck, lint, format, build, bundle, routes, changeset) passes.
+- [FF7-fix-5] decision (C4 note, SPEC §15.11 #53, reverses FF7-fix-4's latch): `players.ts` `heldAim` shows the held aim whenever the aiming flag is set and the aim is outside `AIM_DEAD_ZONE`, hides it while inside; `AttackState.held` is now `out`/`cancelled` for where the aim is right now, not a latch. The phone's fire/cancel rule (the kit's aimed machine) was already "release inside = cancel, outside = fire", so only the grace zone and the encoding changed on the phone.
+- [FF7-fix-5] decision: grace zone widened from 0.12 (8.4 px, about 1.3 mm, too tight to find with a thumb) to 0.25 of the 70 px clamp (17.5 px). Passed from the app (`controller/input.ts` `aimGesture()`, used by the floating aim zones and `bindAttack`), kit defaults untouched. `AIM_DEAD_ZONE` in the frozen `shared/messages.ts` changed value only (no shape change, as the brief allows); its pinning test now checks `aimGesture().config.deadZonePx === AIM_DEAD_ZONE * AIM_MAX_PX` (`host/net/__tests__/aimAgree.test.ts`). It also sets how far a drag must go before aiming starts and the radius a quick tap may wobble in.
+- [FF7-fix-5] decision: phone and TV agree at the zone edge through the tuple: `aimInts` rounds a px aim inside the zone toward zero and one outside away from zero when plain rounding would land on the edge, so the TV's int test matches the phone's px test exactly (a sweep around the edge in `aimAgree.test.ts` drives the real machine → encoders → `tupleToInput` → sim). The fire carries the same ints, so it goes along the shown aim.
+- [FF7-fix-5] decision: Acceptance (c) "release inside the zone right after pressing → no attack" is tested as a press that never leaves the zone and is released after the 150 ms tap window. A quick tap (≤ 150 ms, inside the zone) still fires auto-aimed (SPEC §10.1, #47); the note doesn't mention taps, so that stays.
+- [FF7-fix-5] note: after rebasing on bce257e, `check:fort-frenzy` still fails only on the 6 tests FF7-fix-6 logged (old numbers pinned against 0fbe288's balance); every aim test and every other gate step (typecheck, lint, format, build, bundle, routes, changeset) passes. Left for the orchestrator.
+- [FF14-fix-1] contract+: `src/shared/messages.ts` intent `{ k: 'pause'; paused: boolean }`, `TeamPause`
+  `{ playerId, name, color }` and `TeamView.paused?: TeamPause | null` (absent while running), with their guard
+  cases; `src/host/ui/types.ts` `TvView.paused?: TvPlayer | null`. SPEC §10.5, §15.6, §15.11 #54.
+- [FF14-fix-1] decision (orchestrator defaults, C4 note): the pause button sits top-right in the phone's top bar of
+  the combat (and dead) and build views only, so it is hidden in the lobby, class select, waiting, claim and summary;
+  any phone with a run slot pauses or resumes in the countdown, build and combat phases (`phase` otherwise); a
+  second pause keeps the first pauser and a resume of a running game acks ok. The icon set has no pause icon: a
+  code-drawn two-bar glyph (CSS, brand tokens). In the Shop tab the coin box moves left of it.
+- [FF14-fix-1] decision: the pause lives in the session (`paused`) and the runtime: no sim steps from wall time or
+  `advance` (e2e and the debug panel) while set, and the TV's render `dtMs` is 0. No sim command, so the sim, its
+  types and replays are unchanged (a replay of a paused run simply has no steps in the pause).
+- [FF14-fix-1] decision: no buffered input: going into the pause resets the phone's gestures and zeroes its sticks;
+  the phone keeps streaming tuples, and each `PhoneInputSource` subtracts the counters it saw between `hold()` and
+  `release()`, so a release during the pause never fires on resume (simpler than a sim re-baseline command).
+  Sim-bound intents and late joins ack `phase` while paused, so nothing queues for the resume.
+- [FF14-fix-1] decision: resume is immediate, no 3-2-1: the swallowed counters and the reset gestures leave nothing
+  a held input could cheat, and a countdown would need its own timer outside the sim.
+- [FF14-fix-1] decision: the pause composes with the all-disconnected and hidden-tab pauses: the runtime steps only
+  when none applies, and neither clears the other (`pausedAll` is recomputed each tick; `paused` changes only by
+  intent). The pause isn't in the resume snapshot, so a snapshot saved while paused restores unpaused (the simplest).
+- [FF14-fix-1] decision: the summary's run time leaves the pause out (`runStartedAt` moves on by the paused time);
+  `__pcg.stats()` gains `pausedBy` (name or null) and `steps` (the runtime's step count) for `e2e/pause.spec.ts`.
+  The phone dev harness gains `combat-paused` and `build-paused` samples.
+- [FF14-fix-1] note: rebased on a2ed55f (FF7-fix-5, FF7-fix-6; SPEC rows renumbered: team pause is #54).
+  `check:fort-frenzy` tests fail only on the 6 pre-existing tests FF7-fix-6 logged (old numbers pinned against
+  0fbe288's balance); every pause test and every other gate step (typecheck, lint, format, build, bundle 32.6 KB
+  with no Phaser, routes, changeset) and I pass. `e2e/pause.spec.ts` is written, typechecked and linted, not run.
+- [FF11-fix-1] note (root cause): the Colossus wasn't stun-locked. Under 0fbe288's stomp the Warden-only loop
+  still staggered it 3 s in every ~8.7 s (~35%), but its 25-damage stomps (+50% while down) killed the boss
+  mid-stagger at ~32 s; a dead boss is never ticked again, so its `staggeredUntil` stayed set and the test read
+  every frame after as staggered (the 1741-frame "run"). Under the old 45 damage it happened to die just after
+  standing up. The test now keeps the boss at full HP each frame.
+- [FF11-fix-1] decision (C4 note, SPEC §9.2, §15.11 #55): stun resistance as one rule, the simplest: when a
+  stagger ends, stuns don't count into the meter for `stunImmuneMs` = 4000 (balance.ts `colossus.boss.params`);
+  damage still fills it, and the existing one-stun-per-`stunLockMs` lockout stays. No diminishing returns: the
+  boss never takes the stun itself, so there is no duration to shrink. Kept in `boss.ready.stun` (the per-key
+  ready map), so no contract change. No TV visual: there is no immunity status look.
+- [FF11-fix-1] decision: Warden `superChargeRate` 0.00625 → 0.0054 (~185 damage fills it, ~16% more); the stomp's
+  25 damage / 1800 ms stun is unchanged. The Warden-only loop now staggers it 3 s in every 10 s (~30%).
+- [FF11-fix-1] decision: boss.test's gap between stagger runs is now ≥ `stunImmuneMs` (240 steps, was 120): the
+  rule guarantees it in a Warden-only loop, since the stomp's damage alone (~0.04 of the meter per stomp) can't
+  fill the meter in 4 s. Run length (≤ 3 s) and the under-half share are unchanged. New test: a stomp inside the
+  window fills only its damage share, one after it adds `staggerStun` again.
+- [FF11-fix-1] note: Acceptance after rebasing on cf95d88 (the balance-test fixes): `check:fort-frenzy` fully
+  green (984 tests), boss.test 18/18, soak passes, I passes, bench boss p99 1.48 ms.
 
 ## 9. Final handoff
 
@@ -1251,3 +1801,4 @@ code) and follow it exactly.
 
 {Optional: "Checkpoint approved: C1" / "C2 notes: …"}
 ```
+- [orch] decision: tests pinned to pre-playtest balance numbers updated to 0fbe288's values: Warden stomp range 4.7, snare discharges and rearm (shop, structures; now read from the balance sheet).

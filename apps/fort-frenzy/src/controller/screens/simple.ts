@@ -81,22 +81,41 @@ const STATUS_COPY: Record<string, { title: string; body: string }> = {
   restoring: { title: 'TV is restoring…', body: 'The run comes back in a moment.' },
 };
 
-/** waiting / full / restoring share one view and swap copy. */
-export function createStatus(initial: string): View {
+/**
+ * waiting / full / restoring share one view and swap copy. While the TV restores a saved run, the
+ * party leader's phone can choose Resume or New run too (§15.8, FF14).
+ */
+export function createStatus(initial: string, ctx?: ScreenCtx): View {
   const root = el('section', { class: 'screen status' });
   const title = el('h1', { class: 'h2 status-title' });
   const body = el('p', { class: 'body status-body' });
+  const resume = el('button', { type: 'button', class: 'btn btn-primary', text: 'RESUME' });
+  const fresh = el('button', { type: 'button', class: 'btn', text: 'NEW RUN' });
+  resume.dataset.choice = 'resume';
+  fresh.dataset.choice = 'newRun';
+  resume.addEventListener('click', () => ctx?.intent({ k: 'leader', action: 'resume' }));
+  fresh.addEventListener('click', () => ctx?.intent({ k: 'leader', action: 'newRun' }));
+  const choices = el('div', { class: 'status-choices' }, resume, fresh);
   root.append(
-    el('div', { class: 'status-card chamfer' }, icon('reconnecting', 'status-glyph'), title, body),
+    el(
+      'div',
+      { class: 'status-card chamfer' },
+      icon('reconnecting', 'status-glyph'),
+      title,
+      body,
+      choices,
+    ),
   );
-  const paint = (kind: string) => {
+  const paint = (s: Snapshot | null, kind: string) => {
     const c = STATUS_COPY[kind] ?? { title: kind, body: '' };
     root.dataset.status = kind;
     title.textContent = c.title;
-    body.textContent = c.body;
+    const leads = kind === 'restoring' && !!ctx && !!s?.me.isLeader;
+    body.textContent = leads && s ? `Resume wave ${s.team.wave} or start a new run.` : c.body;
+    choices.hidden = !leads;
   };
-  paint(initial);
-  return { el: root, update: (s) => paint(s.me.screen), destroy() {} };
+  paint(null, initial);
+  return { el: root, update: (s) => paint(s, s.me.screen), destroy() {} };
 }
 
 /** Phone-local note (removed, host unreachable) with one button. */

@@ -395,6 +395,18 @@ export const SAMPLES: Record<string, () => Sample> = {
     team: sampleTeam({ phase: 'combat' }),
     me: sampleMe({ screen: 'dead', hp: 0, respawnMs: 12_000 }),
   }),
+  // Team pause (FF14-fix-1): another player paused; this phone shows Resume.
+  'combat-paused': () => ({
+    team: sampleTeam({
+      phase: 'combat',
+      paused: { playerId: 'p2', name: 'Riley', color: 'jade' },
+    }),
+    me: sampleMe(),
+  }),
+  'build-paused': () => ({
+    team: sampleTeam({ phase: 'build', paused: { playerId: 'dev', name: q.name, color: q.color } }),
+    me: sampleMe({ screen: 'build', crates: 2, buildKit: ['arrow_tower', 'bomb_tower'] }),
+  }),
   'summary-victory': () => ({
     team: sampleTeam({ phase: 'summary', summary: SUMMARY }),
     me: sampleMe({ screen: 'summary' }),

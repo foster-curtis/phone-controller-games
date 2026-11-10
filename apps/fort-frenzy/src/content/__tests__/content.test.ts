@@ -1,9 +1,14 @@
 // Content validation (SPEC §15.4): every referenced id exists, structure costs fit the carry cap, build
-// lists fit the build arc, wave budgets cover their guaranteed spawns, and the map is well formed.
+// lists fit the build arc, wave budgets cover their guaranteed spawns, the map is well formed, and the
+// balance sheet carries every number the sim reads.
 import { describe, expect, it } from 'vitest';
+import { CARD_INFO, STRUCTURE_INFO } from '../../controller/copy';
+import { FORTIFIABLE } from '../../host/sim/building';
 import { modules } from '../../host/sim/registry';
-import { aiKinds, structureBehaviors } from '../../host/sim/registry';
+import { aiKinds, bosses, structureBehaviors } from '../../host/sim/registry';
+import { generateWave, groupsCost, playerScale, waveRng } from '../../host/systems/waves';
 import {
+  type CardId,
   CARD_IDS,
   CLASS_IDS,
   DIFFICULTY_IDS,
@@ -13,7 +18,7 @@ import {
   STRUCTURE_IDS,
 } from '../../shared/ids';
 import { content } from '../index';
-import type { UpgradeTarget } from '../types';
+import type { ModuleRef, UpgradeTarget } from '../types';
 
 const c = content;
 const enemyIds = new Set(c.enemies.map((e) => e.id));
@@ -62,7 +67,8 @@ describe('content ids', () => {
   it('enemies have an AI and boss modules exist; structures with attacks have a behavior', () => {
     for (const e of c.enemies) {
       expect(Object.keys(aiKinds)).toContain(e.ai);
-      if (e.boss) expect(Object.keys(modules)).toContain(e.boss.module);
+      // Boss refs name a boss behavior (FF11: the `bosses` registry, not passive modules).
+      if (e.boss) expect(Object.keys(bosses)).toContain(e.boss.module);
     }
     for (const s of c.structures) {
       if (s.attack) expect(Object.keys(structureBehaviors)).toContain(s.id);
@@ -83,6 +89,67 @@ describe('content ids', () => {
     expect(c.shop.map((s) => s.id)).toContain('crate');
   });
 
+  it('FF12: every card and shop id has content; 64 cards (8 commons × 4 + 8 per class)', () => {
+    expect(c.cards.map((x) => x.id).sort()).toEqual([...CARD_IDS].sort());
+    expect(c.shop.map((x) => x.id).sort()).toEqual([...SHOP_ITEM_IDS].sort());
+    const commons = c.cards.filter((x) => x.owner === 'common');
+    expect(commons).toHaveLength(8);
+    let total = commons.length * CLASS_IDS.length;
+    for (const cls of CLASS_IDS) {
+      const own = c.cards.filter((x) => x.owner === cls);
+      expect(own.filter((x) => x.tier === 'common')).toHaveLength(2);
+      expect(own.filter((x) => x.tier === 'rare')).toHaveLength(5);
+      expect(own.filter((x) => x.tier === 'combo')).toHaveLength(1);
+      total += own.length;
+    }
+    expect(total).toBe(64);
+    // Commons are tuned per class: every class has numbers for each.
+    for (const x of commons)
+      for (const cls of CLASS_IDS) expect(x.perClass?.[cls]?.length).toBeGreaterThan(0);
+    // Every card does something: stats, per-class stats or a registered module.
+    for (const x of c.cards)
+      expect((x.stats?.length ?? 0) > 0 || x.module !== undefined || x.perClass !== undefined).toBe(
+        true,
+      );
+  });
+
+  it('FF12: combos need two cards of their own class that are not combos', () => {
+    for (const x of c.cards.filter((k) => k.tier === 'combo')) {
+      expect(x.requires).toHaveLength(2);
+      for (const r of x.requires!) {
+        const pre = c.cards.find((k) => k.id === r)!;
+        expect(pre.owner).toBe(x.owner);
+        expect(pre.tier).not.toBe('combo');
+      }
+    }
+    for (const x of c.cards.filter((k) => k.tier !== 'combo')) expect(x.requires).toBeUndefined();
+  });
+
+  it('FF12: favored enemies are ones the waves can spawn', () => {
+    const spawnable = new Set(
+      c.waves.flatMap((w) => [...w.allowed, ...(w.boss ? [w.boss.id] : [])]),
+    );
+    for (const x of c.cards) if (x.favoredEnemy) expect(spawnable).toContain(x.favoredEnemy);
+  });
+
+  it('FF12: shop tiers rise in price; tiered structure items have 3 tiers', () => {
+    for (const item of c.shop) {
+      const prices = item.tiers.map((t) => t.price);
+      for (let i = 1; i < prices.length; i++) expect(prices[i]).toBeGreaterThan(prices[i - 1]!);
+    }
+    for (const id of [
+      'arrow_rate',
+      'bomb_radius',
+      'tower_hp',
+      'wall_hp',
+      'snare_charges',
+      'base_armor',
+    ])
+      expect(c.shop.find((s) => s.id === id)?.tiers).toHaveLength(3);
+    for (const id of ['base_armor', 'emergency_kit'])
+      expect(c.shop.find((s) => s.id === id)?.qmOnly).toBe(true);
+  });
+
   it('waves: pools, guaranteed spawns and lanes exist; budgets cover the guaranteed spawns', () => {
     expect(c.waves.map((w) => w.n)).toEqual(c.waves.map((_, i) => i + 1));
     for (const w of c.waves) {
@@ -96,7 +163,8 @@ describe('content ids', () => {
         cost += g.count * c.enemies.find((e) => e.id === g.enemy)!.budget;
       }
       expect(w.budget).toBeGreaterThanOrEqual(cost);
-      if (w.boss) expect(enemyIds).toContain(w.boss.id);
+      // A boss ref names a boss enemy (FF11).
+      if (w.boss) expect(c.enemies.find((e) => e.id === w.boss!.id)?.ai).toBe('boss');
     }
   });
 });
@@ -108,6 +176,21 @@ describe('content rules', () => {
       if (ch.id === 'quartermaster') continue;
       expect(ch.carryCap).toBeGreaterThanOrEqual(maxCost);
     }
+  });
+
+  it('structures (FF8): snares never block and are the cheapest; Fortify attaches to the towers', () => {
+    const by = (id: string) => c.structures.find((s) => s.id === id)!;
+    const snare = by('snare');
+    expect(snare.pathCost).toBe(1);
+    expect(snare.hp).toBeNull();
+    expect(snare.discharges).toBeGreaterThan(0);
+    expect(snare.slow?.effect).toBe('slow');
+    for (const s of c.structures) expect(s.cost).toBeGreaterThanOrEqual(snare.cost);
+    expect(by('wall').pathCost).toBeGreaterThan(c.rules!.breakerWallCost);
+    expect(by('fortify').attachesTo).toEqual([...FORTIFIABLE]);
+    expect(by('fortify').hp).toBeNull();
+    // The phone's build tab shows its own copy of the costs (controller/copy.ts).
+    for (const s of c.structures) expect(STRUCTURE_INFO[s.id].cost).toBe(s.cost);
   });
 
   it('every build list fits the build arc (at most 3)', () => {
@@ -149,5 +232,160 @@ describe('content rules', () => {
     expect(c.rules!.buildCapMs).toBe(45_000);
     expect(c.rules!.inputStaleMs).toBe(250);
     expect(c.scaling).toEqual({ base: 0.5, perPlayer: 0.25 });
+  });
+});
+
+// The sim keeps no tuning numbers of its own (balance.ts header): modules throw on a missing param
+// and the sim reads optional fields without fallbacks, so content must carry them.
+describe('balance sheet (src/content/balance.ts)', () => {
+  it('every passive, card and shop module builds from its content params', () => {
+    const refs: ModuleRef[] = [
+      ...c.characters.map((ch) => ch.passive),
+      ...c.cards.flatMap((x) => (x.module ? [x.module] : [])),
+      ...c.shop.flatMap((s) =>
+        s.tiers.flatMap((t) => (t.effect.kind === 'module' ? [t.effect.module] : [])),
+      ),
+    ];
+    for (const ref of refs) {
+      const make = () => modules[ref.module]!.make({ ...ref.params, stacks: 1 });
+      expect(make, ref.module).not.toThrow();
+    }
+  });
+
+  it('attacks, enemies, structures and classes carry every field the sim reads', () => {
+    const attacks = [
+      ...c.characters.flatMap((ch) => [
+        ch.main,
+        ch.super,
+        ...(ch.squad ? [ch.squad.soldier.attack] : []),
+      ]),
+      ...c.structures.flatMap((s) => (s.attack ? [s.attack] : [])),
+      ...c.enemies.map((e) => e.attack),
+      c.base!.archers.attack,
+    ];
+    for (const a of attacks) if (a.shape === 'projectile') expect(a.speed).toBeGreaterThan(0);
+    // A knight's arc or cone needs its opening (classes/hitShape.ts).
+    for (const ch of c.characters)
+      for (const a of [ch.main, ch.super])
+        if (a.shape === 'arc' || a.shape === 'cone') expect(a.arcDeg, ch.id).toBeGreaterThan(0);
+    // Lobbed shells: the Bombard's and the mortar's.
+    const lobs = [
+      ...c.enemies.filter((e) => e.ai === 'siege').map((e) => e.attack),
+      c.structures.find((s) => s.id === 'bomb_tower')!.attack!,
+    ];
+    for (const a of lobs) {
+      expect(a.speed).toBeGreaterThan(0);
+      expect(a.minFlightMs).toBeGreaterThan(0);
+      expect(a.radius).toBeGreaterThan(0);
+    }
+    for (const e of c.enemies) {
+      if (e.ai === 'swarm') expect(e.jitter, e.id).toBeDefined();
+      if (e.ai === 'hunter') expect(e.hunt, e.id).toBeDefined();
+      if (e.ai === 'boss') {
+        expect(e.attack.windupMs).toBeGreaterThan(0);
+        expect(e.attack.radius).toBeGreaterThan(0);
+      }
+    }
+    for (const s of c.structures) {
+      if (s.discharges === undefined) continue;
+      expect(s.rearmMs, s.id).toBeGreaterThan(0);
+      expect(s.triggerFraction, s.id).toBeGreaterThan(0);
+    }
+    for (const ch of c.characters) {
+      if (ch.squad) {
+        expect(ch.squad.aggro, ch.id).toBeDefined();
+        expect(ch.squad.hurry, ch.id).toBeDefined();
+        expect(ch.squad.formation, ch.id).toBeDefined();
+      }
+      if (ch.supply) expect(ch.supply.throwMinFlightMs, ch.id).toBeGreaterThan(0);
+    }
+  });
+
+  it('the phone card copy quotes the content numbers (controller/copy.ts)', () => {
+    const card = (id: CardId) => c.cards.find((x) => x.id === id)!;
+    const param = (id: CardId, key: string) => card(id).module!.params![key] as number;
+    const pct = (v: number) => `${Math.round(v * 100)}%`;
+    for (const mods of Object.values(card('quick_recovery').perClass!))
+      expect(CARD_INFO.quick_recovery.text).toContain(`${-mods[0]!.add! / 1000} s`);
+    expect(CARD_INFO.skyhunter.text).toContain(pct(param('skyhunter', 'pct')));
+    expect(CARD_INFO.giant_slayer.text).toContain(pct(param('giant_slayer', 'pct')));
+    expect(CARD_INFO.siege_breakers.text).toContain(pct(param('siege_breakers', 'pct')));
+    expect(CARD_INFO.bodyguard.text).toContain(pct(param('bodyguard', 'reduction')));
+    expect(CARD_INFO.triage.text).toContain(pct(param('triage', 'below')));
+    expect(CARD_INFO.volley.text).toBe(
+      `Every ${param('volley', 'every')}th shot fires ${param('volley', 'arrows')} arrows.`,
+    );
+    // "Double healing", "half as heavy".
+    expect(param('triage', 'mult')).toBe(2);
+    expect(param('light_load', 'factor')).toBe(0.5);
+  });
+});
+
+describe('waves 1–15 (SPEC §9.3, §9.4)', () => {
+  const byId = new Map(c.enemies.map((e) => [e.id, e]));
+  const lanesAt = (n: number) => (n <= 2 ? 1 : n <= 7 ? 2 : 3);
+
+  it('are hand-authored for 1–15 with §9.4’s lanes, introductions and boss waves', () => {
+    expect(c.waves.map((w) => w.n)).toEqual(Array.from({ length: 15 }, (_, i) => i + 1));
+    for (const w of c.waves) expect(w.lanes).toHaveLength(lanesAt(w.n));
+    const intro: Record<number, string> = {
+      2: 'runner',
+      3: 'swarm',
+      4: 'brute',
+      6: 'flyer',
+      7: 'siege',
+      8: 'hunter',
+    };
+    const seen = new Set<string>(['grunt']);
+    for (const w of c.waves) {
+      const fresh = w.allowed.filter((id) => !seen.has(id));
+      if (intro[w.n]) {
+        expect(fresh).toEqual([intro[w.n]]);
+        expect(w.guaranteed.map((g) => g.enemy)).toContain(intro[w.n]);
+      } else expect(fresh).toEqual([]);
+      for (const id of w.allowed) seen.add(id);
+      expect(w.boss?.id).toBe([5, 10, 15].includes(w.n) ? 'colossus' : undefined);
+      expect(w.durationMs).toBeGreaterThanOrEqual(30_000);
+      expect(w.durationMs).toBeLessThanOrEqual(90_000);
+    }
+    expect(c.waves.map((w) => w.boss?.mk).filter(Boolean)).toEqual([1, 2, 3]);
+  });
+
+  it('the generator spends every wave to within ±1 of its budget (players, difficulty, Flyers)', () => {
+    for (const w of c.waves) {
+      const pool = w.allowed.map((id) => ({
+        id,
+        cost: byId.get(id)!.budget,
+        groupSize: byId.get(id)!.groupSize,
+      }));
+      const ground = w.allowed.filter((id) => !byId.get(id)!.flying);
+      for (const d of c.difficulties) {
+        for (let players = 1; players <= 6; players++) {
+          for (const flyers of [true, false]) {
+            for (const seed of [1, 2, 3]) {
+              const budget = w.budget * playerScale(players, c.scaling!) * d.budget;
+              const groups = generateWave({
+                budget,
+                pool,
+                guaranteed: w.guaranteed.map((g) => ({
+                  id: g.enemy,
+                  count: g.count,
+                  lane: g.lane,
+                })),
+                lanes: w.lanes,
+                durationMs: w.durationMs,
+                substitute: flyers ? undefined : { flyer: ground },
+                rng: waveRng(seed, w.n),
+              });
+              const spent = groupsCost(groups, pool);
+              expect(Math.abs(spent - budget), `wave ${w.n}`).toBeLessThanOrEqual(1);
+              if (!flyers) expect(groups.some((g) => g.id === 'flyer')).toBe(false);
+              for (const g of groups) expect(w.lanes).toContain(g.lane);
+              for (const g of groups) expect(g.count).toBe(byId.get(g.id)!.groupSize ?? 1);
+            }
+          }
+        }
+      }
+    }
   });
 });

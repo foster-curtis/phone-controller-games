@@ -1,13 +1,33 @@
-// Gameplay content registry (SPEC §15.4): one export per domain file in src/content/, typed with
-// `satisfies` against ./types. Append-only registry (BUILD_PLAN §3): add entries at the end, never
-// reorder or delete.
-import { base, rules } from './base';
-import { engineer } from './characters';
-import { difficulties, scaling } from './difficulty';
-import { grunt } from './enemies';
+// Gameplay content registry (SPEC §15.4): the balance sheet (./balance.ts, every tuning number) and
+// the map (./map.ts), typed with `satisfies` against ./types. Append-only registry (BUILD_PLAN §3):
+// add entries at the end, never reorder or delete.
+import {
+  arrowTower,
+  base,
+  bombTower,
+  brute,
+  cards,
+  colossus,
+  commander,
+  difficulties,
+  engineer,
+  flyer,
+  fortify,
+  grunt,
+  hunter,
+  quartermaster,
+  rules,
+  runner,
+  scaling,
+  shop,
+  siege,
+  snare,
+  swarm,
+  wall,
+  warden,
+  waves,
+} from './balance';
 import { mapV1 } from './map';
-import { crate } from './shop';
-import { arrowTower } from './structures';
 import type {
   BaseDef,
   CardDef,
@@ -21,7 +41,6 @@ import type {
   StructureDef,
   WaveDef,
 } from './types';
-import { waves } from './waves';
 
 export interface Content {
   characters: readonly CharacterDef[];
@@ -39,11 +58,11 @@ export interface Content {
 }
 
 export const content: Content = {
-  characters: [engineer],
-  enemies: [grunt],
-  structures: [arrowTower],
-  cards: [],
-  shop: [crate],
+  characters: [engineer, quartermaster, commander, warden],
+  enemies: [grunt, runner, swarm, brute, flyer, siege, hunter, colossus],
+  structures: [arrowTower, bombTower, wall, snare, fortify],
+  cards: [...cards],
+  shop: [...shop],
   waves: [...waves],
   difficulties: [...difficulties],
   scaling: scaling,

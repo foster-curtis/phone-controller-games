@@ -1,5 +1,6 @@
 // Arrow tower (neon knights: pulse turret, SPEC §8): long range, single target, hits Flyers. Fires at
 // the nearest enemy in range whenever its cooldown allows.
+import { bodyAimY } from '../body';
 import { state } from '../internal';
 import type { SimCtx, StructureEnt } from '../types';
 
@@ -13,8 +14,9 @@ export function turretTick(ctx: SimCtx, st: StructureEnt): void {
   const range = s.attackStat(st, atk.range, 'range');
   const target = s.nearestEnemy(st.x, st.y, range, atk.hitsFlyers);
   if (!target) return;
+  // At its body (a Wasp's flies over its shadow, C4).
   const dx = target.x - st.x;
-  const dy = target.y - st.y;
+  const dy = bodyAimY(target.y, s.cat.body(target.kind)) - st.y;
   const l = Math.sqrt(dx * dx + dy * dy) || 1;
   st.facing = Math.atan2(dy, dx);
   const speedUp = Math.max(0.05, s.attackStat(st, 1, 'attackSpeed'));
@@ -32,7 +34,7 @@ export function turretTick(ctx: SimCtx, st: StructureEnt): void {
     attack: atk,
     damage: s.attackStat(st, atk.damage, 'damage'),
     range: range + target.r,
-    speed: s.attackStat(st, atk.speed ?? 20, 'projectileSpeed'),
+    speed: s.attackStat(st, atk.speed!, 'projectileSpeed'),
     kind: 'ranged',
     tags: [],
     effects: [],

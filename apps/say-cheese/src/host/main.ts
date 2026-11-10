@@ -10,6 +10,7 @@ import {
 } from '@pcg/game-kit';
 import { createHostClient } from '@pcg/net-client';
 import { GAME_ID, MAX_PHONES } from '../shared/messages';
+import { mountVersionTag } from '../shared/version';
 import '../styles/brand.css';
 import '../styles/base.css';
 import '../styles/tv.css';
@@ -22,6 +23,7 @@ import { createHostTimers } from './timers';
 
 const tv = document.getElementById('tv') ?? document.body;
 const params = new URLSearchParams(location.search);
+mountVersionTag();
 
 function boot(): void {
   const debug = debugEnabled(import.meta.env.DEV);

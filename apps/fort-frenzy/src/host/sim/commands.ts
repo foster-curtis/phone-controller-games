@@ -2,9 +2,12 @@
 // a `ref` (the intent ack, BUILD_PLAN §8 FF1).
 import type { AckReason } from '../../shared/messages';
 import { buildAtFeet } from './building';
-import { buyCrate, dropAll, give } from './crates';
+import { offerFor, pickCard } from './cards';
+import { dropAll, give } from './crates';
+import { buy, request } from './shop';
 import { spawnGroup, startBuild } from './lifecycle';
 import { releaseAll } from './players';
+import { fillSquads } from './squad';
 import type { FullState } from './state';
 import type { PlayerEnt, SimCommand } from './types';
 
@@ -17,6 +20,7 @@ function daze(s: FullState, p: PlayerEnt) {
 function apply(s: FullState, cmd: SimCommand): AckReason | null {
   const w = s.world;
   if (cmd.c === 'debug') return debug(s, cmd);
+  if (cmd.c === 'join') return join(s, cmd);
   const p = s.player(cmd.slot);
   if (!p) return 'invalid';
   switch (cmd.c) {
@@ -50,19 +54,39 @@ function apply(s: FullState, cmd: SimCommand): AckReason | null {
       return why;
     }
     case 'buy':
-      // The phone shop (§10.3); only crates until the team shop lands (FF12).
-      if (cmd.item !== 'crate') return 'invalid';
-      if (w.phase !== 'build') return 'phase';
-      return buyCrate(s, p);
+      // The phone shop (§6.2, §10.3; FF12).
+      return buy(s, p, cmd.item);
+    case 'request':
+      return request(s, p, cmd.item, cmd.on);
+    case 'card':
+      return pickCard(s, p, cmd.card);
     case 'give':
       if (p.respawnAt !== null || !p.connected) return 'invalid';
       return give(s, p);
-    case 'join':
-    case 'request':
-    case 'card':
-      // Late joins (FF14), the wishlist and cards (FF12).
-      return 'invalid';
   }
+}
+
+/**
+ * A late join (§11.2, FF14): a new knight at the base with a card offer (build phase) and, for a
+ * Commander, his squad. The party only opens late joins in the build phase, so the sim takes the
+ * command whenever it lands (BUILD_PLAN §8) and the two never disagree about who is in.
+ */
+function join(s: FullState, cmd: Extract<SimCommand, { c: 'join' }>): AckReason | null {
+  if (s.player(cmd.slot) || !Number.isInteger(cmd.slot) || cmd.slot < 0) return 'invalid';
+  const p = s.addPlayer({
+    slot: cmd.slot,
+    name: cmd.name,
+    color: cmd.color,
+    classId: cmd.classId,
+    connected: true,
+  });
+  if (s.world.phase === 'build') {
+    p.offer = offerFor(s.cat, s.world, p);
+    p.picked = null;
+    fillSquads(s);
+  }
+  s.emit({ e: 'lateJoin', slot: p.slot, classId: p.classId });
+  return null;
 }
 
 function debug(s: FullState, cmd: Extract<SimCommand, { c: 'debug' }>): AckReason | null {
@@ -75,7 +99,9 @@ function debug(s: FullState, cmd: Extract<SimCommand, { c: 'debug' }>): AckReaso
       w.team.coins = Math.max(0, w.team.coins + cmd.amount);
       return null;
     case 'spawn':
-      spawnGroup(s, cmd.enemy, cmd.lane, 1);
+      // One group: a Swarm spawns its whole pack (§9.1). The Colossus has no content until FF11.
+      if (!s.cat.content.enemies.some((e) => e.id === cmd.enemy)) return 'invalid';
+      spawnGroup(s, cmd.enemy, cmd.lane, s.cat.enemy(cmd.enemy).groupSize ?? 1);
       return null;
     case 'jumpWave': {
       const last = s.cat.waves[s.cat.waves.length - 1]?.n ?? 1;

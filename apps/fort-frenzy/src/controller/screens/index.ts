@@ -36,7 +36,7 @@ export function createView(s: Snapshot, ctx: ScreenCtx): View {
       view = createLobby(ctx);
       break;
     case 'status':
-      view = createStatus(s.me.screen);
+      view = createStatus(s.me.screen, ctx);
       break;
     case 'claim':
       view = createClaim(ctx);

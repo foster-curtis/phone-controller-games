@@ -112,11 +112,11 @@ export interface ReplayResult {
 /** Re-runs a recording headless, checking the state hash every `hashEvery` steps. */
 export function replayRun(rec: RunRecording): ReplayResult {
   const sources = new Map<number, ReplayInputSource>();
-  for (const s of rec.start.slots) {
-    const mine = rec.inputs
-      .filter(([, slot]) => slot === s.slot)
-      .map(([t, , i]) => [t, i] as const);
-    sources.set(s.slot, new ReplayInputSource(mine));
+  // Late joiners (FF14) have samples but no start slot.
+  const slots = new Set([...rec.start.slots.map((s) => s.slot), ...rec.inputs.map(([, s]) => s)]);
+  for (const slot of slots) {
+    const mine = rec.inputs.filter(([, s]) => s === slot).map(([t, , i]) => [t, i] as const);
+    sources.set(slot, new ReplayInputSource(mine));
   }
   const sim = createSim(rec.start, { sources });
   const expected = new Map(rec.hashes);

@@ -2,6 +2,7 @@
 // team coins, picked up from piles, handed over or dropped, delivered to repair the base, dropped on
 // death or when dazed.
 import type { AckReason } from '../../shared/messages';
+import { bulkBuyerOf } from './cards/quartermaster';
 import { dist } from './geometry';
 import type { FullState } from './state';
 import type { PlayerEnt } from './types';
@@ -24,8 +25,11 @@ export function inZone(s: FullState, p: PlayerEnt, kind: 'repair' | 'armory'): b
   return s.tileKind(Math.floor(p.x), Math.floor(p.y)) === kind;
 }
 
-export function cratePrice(s: FullState): number {
-  return s.cat.shopItem('crate')?.tiers[0]?.price ?? Infinity;
+/** The crate price; a buyer with a discount (the Quartermaster, §6) pays less, at least 1. */
+export function cratePrice(s: FullState, buyer?: PlayerEnt): number {
+  const full = s.cat.shopItem('crate')?.tiers[0]?.price ?? Infinity;
+  const off = Math.min(1, Math.max(0, buyer?.stats.crateDiscount ?? 0));
+  return off > 0 ? Math.max(1, Math.round(full * (1 - off))) : full;
 }
 
 /** Nearest pile in reach this player may take (not their own fresh drop), or null. */
@@ -76,9 +80,13 @@ export function deliver(s: FullState, p: PlayerEnt): void {
 /** Row 4 and the phone shop: one crate for team coins at full price. */
 export function buyCrate(s: FullState, p: PlayerEnt): AckReason | null {
   if (p.crates >= carryCap(s, p)) return 'cap';
-  const price = cratePrice(s);
+  // Bulk Buyer (FF12): every few crates the Quartermaster buys one is free.
+  const bulk = bulkBuyerOf(p);
+  const free = bulk !== undefined && (bulk.bought + 1) % bulk.every === 0;
+  const price = free ? 0 : cratePrice(s, p);
   if (s.world.team.coins < price) return 'coins';
   s.world.team.coins -= price;
+  if (bulk) bulk.bought++;
   p.crates++;
   s.emit({ e: 'crate', action: 'buy', slot: p.slot, to: null, x: p.x, y: p.y });
   return null;
