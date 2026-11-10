@@ -2,7 +2,7 @@
 // without console errors or page errors, the combat layout holds its rules in the browser, and each
 // screen is screenshotted to e2e/__screens__/controller-<viewport>-<screen>.png (gitignored output).
 import { expect, type Page } from '@playwright/test';
-import { test } from './helpers';
+import { serveFonts, test } from './helpers';
 import { SAMPLE_IDS } from '../src/controller/samples';
 
 const VIEWPORTS = [
@@ -12,10 +12,8 @@ const VIEWPORTS = [
 ];
 
 async function open(page: Page, screen: string) {
-  // Offline and deterministic: no Google Fonts.
-  await page.route(/fonts\.(googleapis|gstatic)\.com/, (route) =>
-    route.fulfill({ status: 200, contentType: 'text/css', body: '' }),
-  );
+  // The brand fonts, served locally (helpers `serveFonts`).
+  await serveFonts(page);
   await page.goto(`/play?dev=1&screen=${screen}`);
   await expect(page.locator('.screen-host .screen')).toBeVisible();
   // The icon sprite is fetched; wait for it so screenshots show glyphs.

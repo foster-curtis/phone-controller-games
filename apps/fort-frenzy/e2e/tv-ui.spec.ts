@@ -1,7 +1,7 @@
 // FF5: every `?ui=<screen>` sample renders at 1920×1080 and 1280×720 with every element inside the
 // 96 px TV-safe margin (edge washes excepted) and no console errors. Screenshots: e2e/__screens__/tv-*.png.
 import { expect } from '@playwright/test';
-import { test } from './helpers';
+import { serveFonts, test } from './helpers';
 
 const SCREENS = [
   'loading',
@@ -27,8 +27,8 @@ for (const size of SIZES) {
   for (const name of SCREENS) {
     test(`ui=${name} at ${size.width}×${size.height}`, async ({ page }) => {
       await page.setViewportSize(size);
-      // Offline and deterministic: no Google Fonts.
-      await page.route(/fonts\.(googleapis|gstatic)\.com/, (route) => route.abort());
+      // The brand fonts, served locally (helpers `serveFonts`).
+      await serveFonts(page);
       const errors: string[] = [];
       page.on('pageerror', (e) => errors.push(e.message));
       page.on('console', (m) => {
@@ -77,7 +77,7 @@ for (const size of SIZES) {
 }
 
 test('home: keyboard moves focus and cycles difficulty', async ({ page }) => {
-  await page.route(/fonts\.(googleapis|gstatic)\.com/, (route) => route.abort());
+  await serveFonts(page);
   await page.goto('/?ui=home');
   const focused = () => page.locator('#tv-ui .row.focus .lbl').innerText();
   expect((await focused()).toLowerCase()).toBe('create room');
@@ -89,7 +89,7 @@ test('home: keyboard moves focus and cycles difficulty', async ({ page }) => {
 });
 
 test('lobby: a slot number arms, the second press removes', async ({ page }) => {
-  await page.route(/fonts\.(googleapis|gstatic)\.com/, (route) => route.abort());
+  await serveFonts(page);
   await page.goto('/?ui=lobby');
   await expect(page.locator('#tv-ui .slot:not(.open)')).toHaveCount(4);
   await page.keyboard.press('2');
@@ -102,7 +102,7 @@ test('C1 notes: lobby QR is right-aligned; next-wave card and icons are bigger',
   page,
 }) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
-  await page.route(/fonts\.(googleapis|gstatic)\.com/, (route) => route.abort());
+  await serveFonts(page);
   await page.goto('/?ui=lobby');
   const qr = await page.locator('#tv-ui .lobby .qrbox').boundingBox();
   expect(Math.abs(qr!.x + qr!.width - 1824)).toBeLessThanOrEqual(1);

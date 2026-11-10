@@ -2,7 +2,7 @@
 // load run with no console errors and no fallback shapes, and the overlay reports frame and sim step
 // times. The numbers themselves are judged on the target laptop (software GL here, BUILD_PLAN §8).
 import { expect } from '@playwright/test';
-import { test } from './helpers';
+import { serveFonts, test } from './helpers';
 
 test.use({ viewport: { width: 1920, height: 1080 } });
 
@@ -19,10 +19,8 @@ test('in-game stress mode', async ({ page }) => {
   page.on('console', (m) => {
     if (m.type() === 'error') errors.push(m.text());
   });
-  // Offline: no Google Fonts (an empty stylesheet, so nothing logs a load error).
-  await page.route(/fonts\.(googleapis|gstatic)\.com/, (route) =>
-    route.fulfill({ status: 200, contentType: 'text/css', body: '' }),
-  );
+  // The brand fonts, served locally (helpers `serveFonts`).
+  await serveFonts(page);
   await page.goto('/?debug=1&stress=1');
   const probe = () =>
     page.evaluate(() => (window as unknown as { __pcgStress?: StressProbe }).__pcgStress ?? null);
