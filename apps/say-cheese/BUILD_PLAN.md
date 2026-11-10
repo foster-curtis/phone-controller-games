@@ -497,7 +497,7 @@ Rules:
 - **SC9**
   - [x] Flash, developing, print review, results, podium, rules illustrations
   - [x] Gallery e2e + screenshots
-  - [ ] Merged to `say-cheese` and pushed
+  - [x] Merged to `say-cheese` and pushed
 - **SC10**
   - [ ] Emoji host module + TV layer + tests
   - [ ] Phone emoji bar + e2e
