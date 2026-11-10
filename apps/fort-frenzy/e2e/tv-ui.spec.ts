@@ -1,6 +1,7 @@
 // FF5: every `?ui=<screen>` sample renders at 1920×1080 and 1280×720 with every element inside the
 // 96 px TV-safe margin (edge washes excepted) and no console errors. Screenshots: e2e/__screens__/tv-*.png.
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from './helpers';
 
 const SCREENS = [
   'loading',

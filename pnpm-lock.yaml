@@ -54,6 +54,9 @@ importers:
         specifier: 4.2.1
         version: 4.2.1
     devDependencies:
+      '@pcg/relay':
+        specifier: workspace:*
+        version: link:../relay
       '@playwright/test':
         specifier: 1.64.1
         version: 1.64.1
@@ -128,6 +131,9 @@ importers:
         specifier: workspace:*
         version: link:../../packages/net-client
     devDependencies:
+      '@pcg/relay':
+        specifier: workspace:*
+        version: link:../relay
       '@playwright/test':
         specifier: 1.64.1
         version: 1.64.1
@@ -165,6 +171,9 @@ importers:
         specifier: 4.2.1
         version: 4.2.1
     devDependencies:
+      '@pcg/relay':
+        specifier: workspace:*
+        version: link:../relay
       '@playwright/test':
         specifier: 1.64.1
         version: 1.64.1
@@ -215,6 +224,9 @@ importers:
         specifier: 1.5.4
         version: 1.5.4
     devDependencies:
+      '@playwright/test':
+        specifier: 1.64.1
+        version: 1.64.1
       '@types/node':
         specifier: 24.19.2
         version: 24.19.2

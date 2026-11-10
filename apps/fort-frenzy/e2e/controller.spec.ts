@@ -1,7 +1,8 @@
 // FF4: the phone controller at /play?dev=1 on real landscape viewports. Every dev sample screen renders
 // without console errors or page errors, the combat layout holds its rules in the browser, and each
 // screen is screenshotted to e2e/__screens__/controller-<viewport>-<screen>.png (gitignored output).
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
+import { test } from './helpers';
 import { SAMPLE_IDS } from '../src/controller/samples';
 
 const VIEWPORTS = [

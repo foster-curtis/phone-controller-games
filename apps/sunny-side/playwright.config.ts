@@ -1,9 +1,12 @@
+import { readE2EConfig } from '@pcg/game-kit/e2e';
 import { defineConfig, devices } from '@playwright/test';
 
-// E2E: its own relay (8788, 2 s player window) + Vite dev server (5174) pointed at it.
+// E2E: its own relay (2 s player window) + Vite dev server pointed at it, on
+// the ports in package.json `pcg.e2e` (unique per app, so `pnpm e2e` can run suites side by side).
 // Ports 5173/8787 stay free for `pnpm dev:sunny-side` / `pnpm dev:lan:sunny-side`.
-const RELAY_PORT = 8788;
-const WEB_PORT = 5174;
+const { relayPort: RELAY_PORT, webPort: WEB_PORT } = readE2EConfig(
+  new URL('./package.json', import.meta.url),
+);
 
 export default defineConfig({
   testDir: './e2e',

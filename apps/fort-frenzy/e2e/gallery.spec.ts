@@ -1,6 +1,7 @@
 // FF3 gallery (BUILD_PLAN FF3 acceptance): every page loads with no console errors and no fallback
 // shapes (every frame it draws is in the atlas), and writes e2e/__screens__/gallery-<page>.png.
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
+import { test } from './helpers';
 
 const PAGES = [
   'rigs',

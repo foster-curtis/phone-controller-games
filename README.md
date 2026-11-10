@@ -49,17 +49,28 @@ pnpm build:sunny-side     # Vite build
 pnpm e2e:sunny-side       # Playwright (Chromium)
 ```
 
-Before anything lands on `main` (and after any change to the relay or `packages/`), run the full set:
+Before anything lands on `main`, run the gate over what your changes reach. It works out from git
+which packages changed and which depend on them, which unit tests import a changed file, and which e2e
+specs loaded one (`PLATFORM.md` §4, decision #6). Shared root config runs everything.
+
+```sh
+pnpm affected             # what would run and why, without running it
+pnpm check:affected       # typecheck, lint, format, unit tests, build, bundle/routes, changeset: affected only
+pnpm e2e:affected         # affected e2e specs; suites side by side, Fort Frenzy's alone afterwards
+pnpm retest               # after a fix: the failed e2e tests plus specs the fix reaches; unit tests again
+```
+
+The full set, for when you want everything:
 
 ```sh
 pnpm check                # every package: typecheck, lint, format:check, test, build, check:bundle, check:routes
-pnpm e2e                  # every app's Playwright suite, one app at a time
+pnpm e2e                  # every app's Playwright suite (side by side; exclusive suites alone)
 pnpm format               # Prettier --write
 ```
 
-`check:bundle [<game>]` fails if anything reachable from a game's `play.html` contains Phaser or its
+`check:bundle [<game>...]` fails if anything reachable from a game's `play.html` contains Phaser or its
 gzipped JS exceeds the game's limit (in the script);
-`check:routes [<game>]` serves the build with `vite preview` on :4173 and checks `/`, `/play`, the
+`check:routes [<game>...]` serves the build with `vite preview` on :4173 and checks `/`, `/play`, the
 icons and the brand `<head>`. Without a name they check every game app (any `apps/*` with a
 `play.html`).
 
@@ -75,7 +86,12 @@ Each game, the relay and each package has a semver version and a `CHANGELOG.md`,
 ```sh
 pnpm changeset            # with each change: note which packages changed and major, minor or patch
 pnpm check:changeset      # fails if this branch changed a package without a note
-pnpm changeset version    # on deploy to main: bump versions and write the changelogs, then commit
 ```
+
+Everything lands on `main` through a PR; CI (`.github/workflows/ci.yml`) runs the affected checks and
+e2e suites, and can be run by hand for everything. Merging a feature PR doesn't deploy. The release
+workflow keeps a "Version Packages" PR open with the pending bumps and changelogs; merging it is the
+deploy, and Vercel builds production only for games whose version changed. The relay deploys by hand
+(`fly deploy` from the repo root) after a release bumps it.
 
 The games show their version in a corner of the TV and on the phone's join and lobby screens.

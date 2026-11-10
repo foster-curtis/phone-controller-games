@@ -1,16 +1,156 @@
+# CI (PLATFORM §4, decisions #6 and #7): the affected gate on every PR to main and every push to
+# main; workflow_dispatch runs everything. `check` and `e2e-result` are the required checks, so keep
+# their names stable.
 name: CI
 
-on: push
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # A newer push supersedes a PR's run; runs on main always finish.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # What the affected gate diffs against, worked out once: a PR covers its whole branch (the
+  # merge-base with its base), a push to main its own commits (a zero `before` falls back to main;
+  # an unknown one, e.g. after a force push, runs everything), and a manual run everything.
+  AFFECTED_ARGS: ${{ github.event_name == 'pull_request' && format('--base origin/{0}', github.base_ref) || github.event_name == 'push' && format('--base {0}', github.event.before) || '--all' }}
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 24
+          fetch-depth: 0 # the diff needs history back to the base
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm check
+      - name: Affected
+        run: node scripts/affected.mjs $AFFECTED_ARGS
+      - name: Typecheck
+        run: node scripts/check-affected.mjs $AFFECTED_ARGS --only typecheck
+      - name: Lint
+        run: node scripts/check-affected.mjs $AFFECTED_ARGS --only lint
+      - name: Format
+        run: node scripts/check-affected.mjs $AFFECTED_ARGS --only format
+      - name: Unit tests
+        run: node scripts/check-affected.mjs $AFFECTED_ARGS --only test
+      - name: Build
+        run: node scripts/check-affected.mjs $AFFECTED_ARGS --only build
+      - name: Bundle check
+        run: node scripts/check-affected.mjs $AFFECTED_ARGS --only bundle
+      - name: Route check
+        run: node scripts/check-affected.mjs $AFFECTED_ARGS --only routes
+      # Every shipped change carries a note (PLATFORM §5). Not for Dependabot (§5 says when to add
+      # one by hand) or the Version Packages PR, which uses the notes up.
+      - name: Changesets
+        if: github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]' && github.head_ref != 'changeset-release/main'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: pnpm exec changeset status --since="origin/$BASE_REF"
+
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      e2e-apps: ${{ steps.plan.outputs.e2e-apps }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      # The affected scripts use only Node built-ins and git: no install needed.
+      - id: plan
+        run: |
+          node scripts/affected.mjs $AFFECTED_ARGS --json > "$RUNNER_TEMP/affected.json"
+          apps=$(node -p "JSON.stringify(require(process.argv[1]).e2eApps)" "$RUNNER_TEMP/affected.json")
+          echo "E2E apps: $apps"
+          echo "e2e-apps=$apps" >> "$GITHUB_OUTPUT"
+
+  e2e:
+    needs: plan
+    if: needs.plan.outputs.e2e-apps != '[]'
+    name: e2e (${{ matrix.app }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      # One VM per app, so an `exclusive` suite (Fort Frenzy) runs alone by construction.
+      matrix:
+        app: ${{ fromJSON(needs.plan.outputs.e2e-apps) }}
+    env:
+      APP: ${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - id: playwright
+        run: echo "version=$(node -p "require('./apps/$APP/package.json').devDependencies['@playwright/test']")" >> "$GITHUB_OUTPUT"
+      - id: browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: Install Chromium
+        if: steps.browsers.outputs.cache-hit != 'true'
+        run: pnpm --filter "@pcg/$APP" exec playwright install --with-deps chromium
+      - name: Install Chromium's system deps
+        if: steps.browsers.outputs.cache-hit == 'true'
+        run: pnpm --filter "@pcg/$APP" exec playwright install-deps chromium
+      # The whole suite: CI has no impact map (`.pcg-cache/` is never cached: it carries last-run
+      # failures, and a stale map could select too few specs).
+      - name: E2E
+        run: node scripts/e2e.mjs "$APP"
+      - name: Upload report and traces
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-${{ matrix.app }}
+          path: |
+            apps/${{ matrix.app }}/test-results/
+            apps/${{ matrix.app }}/playwright-report/
+            .pcg-cache/e2e-report/${{ matrix.app }}.json
+          include-hidden-files: true # .pcg-cache/ and test-results/.last-run.json
+          retention-days: 14
+
+  # The one required e2e check, whatever apps the matrix holds. Passes when e2e passed or had
+  # nothing to run; fails when the plan failed (its skipped e2e must not read as a pass).
+  e2e-result:
+    needs: [plan, e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          PLAN: ${{ needs.plan.result }}
+          E2E: ${{ needs.e2e.result }}
+        run: |
+          echo "plan: $PLAN, e2e: $E2E"
+          if [ "$PLAN" != success ]; then echo "::error::plan did not succeed ($PLAN)"; exit 1; fi
+          case "$E2E" in
+            success | skipped) ;;
+            *) echo "::error::e2e $E2E"; exit 1 ;;
+          esac

@@ -2,6 +2,7 @@
 // (own localStorage, so its own player key and device ID). Fonts are stubbed so runs are offline.
 // Timing never sleeps or waits on wall-clock sim time: specs step the sim with `__pcg.advance` and
 // poll its state. Every URL is absolute (contexts made with `browser.newContext` get no baseURL).
+import { readE2EConfig, recordImpact, type ImpactRecorder } from '@pcg/game-kit/e2e';
 import {
   test as base,
   expect,
@@ -25,12 +26,28 @@ export async function noFullscreen(context: BrowserContext): Promise<void> {
   });
 }
 
-export const test = base.extend({
-  context: async ({ context }, use) => {
+export const test = base.extend<{ impact: ImpactRecorder }>({
+  // Records the files each test loads, for coverage-based selection (`scripts/e2e.mjs`). A no-op
+  // unless that runner set `PCG_E2E_IMPACT_DIR`.
+  impact: [
+    async ({ browser }, use, testInfo) => {
+      const recorder = recordImpact(browser, testInfo);
+      await use(recorder);
+      recorder.finish();
+    },
+    { auto: true },
+  ],
+  context: async ({ context, impact }, use) => {
+    impact.watch(context);
     await noFullscreen(context);
     await use(context);
   },
 });
+
+/** This app's e2e ports (package.json `pcg.e2e`). */
+export const { relayPort: RELAY_PORT, webPort: WEB_PORT } = readE2EConfig(
+  new URL('../package.json', import.meta.url),
+);
 
 export async function closeContexts({ browser }: { browser: Browser }): Promise<void> {
   for (const context of browser.contexts()) await context.close();

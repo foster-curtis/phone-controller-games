@@ -1,7 +1,8 @@
 // FF15 in-game stress mode (`?debug=1&stress=1`): the real sim and World scene at the SPEC §15.2 peak
 // load run with no console errors and no fallback shapes, and the overlay reports frame and sim step
 // times. The numbers themselves are judged on the target laptop (software GL here, BUILD_PLAN §8).
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from './helpers';
 
 test.use({ viewport: { width: 1920, height: 1080 } });
 
