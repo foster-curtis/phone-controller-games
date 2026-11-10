@@ -2,7 +2,7 @@
 
 > Repo-wide spec: what every game and the relay share. Only **decided** items go here.
 > Each game's design lives in `apps/<game>/SPEC.md`; the relay and its protocol in [`apps/relay/SPEC.md`](apps/relay/SPEC.md).
-> Last updated: 2026-10-27
+> Last updated: 2026-11-10
 
 ## 1. Overview
 
@@ -11,7 +11,7 @@ A series of same-room party games. A shared screen (TV/laptop browser) runs the 
 | Game | App | Status |
 | --- | --- | --- |
 | Sunny Side Slam | `apps/sunny-side` | Shipped (v1) |
-| Fort Frenzy | `apps/fort-frenzy` | In build (scaffold and contracts, FF1) |
+| Fort Frenzy | `apps/fort-frenzy` | Shipped (v1) |
 | Say Cheese! | `apps/say-cheese` | Shipped (v1) |
 
 ## 2. Architecture (settled)

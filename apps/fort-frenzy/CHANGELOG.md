@@ -1,5 +1,11 @@
 # @pcg/fort-frenzy
 
+## 1.0.0
+
+### Major Changes
+
+- Launch: Fort Frenzy 1.0.0 is live
+
 ## 0.3.0
 
 ### Minor Changes

@@ -8,62 +8,61 @@ A pnpm monorepo of same-room party games. A TV or laptop browser runs the game (
 players' phones load a web page that acts as the **controller**. Host and phones never talk directly:
 every message goes through a shared, game-agnostic WebSocket **relay**.
 
-| Path                      | Package               | Status                                                                               |
-| ------------------------- | --------------------- | ------------------------------------------------------------------------------------ |
-| `apps/relay`              | `@pcg/relay`          | Done. Node WebSocket server, deployed to Fly.io. No game rules.                      |
-| `apps/sunny-side`         | `@pcg/sunny-side`     | Done. Sunny Side Slam, the first game. Vite multi-page app on Vercel.                |
-| `apps/fort-frenzy`        | `@pcg/fort-frenzy`    | In build (FF1: scaffold, frozen contracts, asset manifest). Plan in `BUILD_PLAN.md`. |
-| `apps/say-cheese`         | `@pcg/say-cheese`     | Done. Say Cheese!, the photo-tag party game. Vite multi-page app on Vercel.          |
-| `packages/net-client`     | `@pcg/net-client`     | Done. Relay protocol types plus host and controller clients (TS).                    |
-| `packages/controller-kit` | `@pcg/controller-kit` | Done (FF0). Phone platform, app shell, widgets, gestures, input sender, dev harness. |
-| `packages/game-kit`       | `@pcg/game-kit`       | Done (FF0). Fixed-step loop, lerp, seeded RNG, host helpers; `/vite` plugins.        |
+| Path                      | Package               | What                                                                     |
+| ------------------------- | --------------------- | ------------------------------------------------------------------------ |
+| `apps/relay`              | `@pcg/relay`          | Node WebSocket server, deployed to Fly.io. No game rules.                |
+| `apps/sunny-side`         | `@pcg/sunny-side`     | Sunny Side Slam (Phaser + Matter.js). Vite multi-page app on Vercel.     |
+| `apps/fort-frenzy`        | `@pcg/fort-frenzy`    | Fort Frenzy (Phaser). Vite multi-page app on Vercel.                     |
+| `apps/say-cheese`         | `@pcg/say-cheese`     | Say Cheese!, the photo-tag party game (DOM, no Phaser). Vite on Vercel.  |
+| `packages/net-client`     | `@pcg/net-client`     | Relay protocol types plus host and controller clients (TS).              |
+| `packages/controller-kit` | `@pcg/controller-kit` | Phone platform, app shell, widgets, gestures, input sender, dev harness. |
+| `packages/game-kit`       | `@pcg/game-kit`       | Fixed-step loop, lerp, seeded RNG, host helpers; `/vite` plugins.        |
 
 `apps/` holds deployables (games and the relay). `packages/` holds code shared by more than one app.
+Each game's release status is in `PLATFORM.md` §1.
 
 ## Where to look
 
-| You need…                                                 | Look in                                                                                             |
-| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Repo-wide rules (architecture, phones, hosting, layout)   | `PLATFORM.md`                                                                                       |
-| Relay wire protocol (envelope, rooms, reconnect, errors)  | `apps/relay/SPEC.md` §3, then `packages/net-client/src/protocol.ts`                                 |
-| Host/controller client API (`createHostClient`, etc.)     | `packages/net-client/src/api.ts` (public API is `src/index.ts`)                                     |
-| Relay server internals                                    | `apps/relay/src/` (`rooms.ts`, `heartbeat.ts`, `http.ts`; env in `main.ts`)                         |
-| Relay hosting, config defaults, deploy                    | `apps/relay/SPEC.md` §2, `apps/relay/fly.toml`, `apps/relay/Dockerfile` (deploy from the repo root) |
-| Sunny Side game design and the decision log               | `apps/sunny-side/SPEC.md` (§10 is the decision log)                                                 |
-| Sunny Side build history, contracts, past build decisions | `apps/sunny-side/BUILD_PLAN.md` (§3 freeze points, §8 build decisions)                              |
-| Sunny Side phone↔host game messages                       | `apps/sunny-side/src/shared/messages.ts`                                                            |
-| Physics simulation (Matter.js, no Phaser)                 | `apps/sunny-side/src/host/sim/`                                                                     |
-| Match rules: roster, rounds, scoring, leader, persistence | `apps/sunny-side/src/host/match/`                                                                   |
-| Gameplay tuning constants                                 | `apps/sunny-side/src/host/sim/config.ts`, `apps/sunny-side/src/host/match/config.ts`                |
-| Fort Frenzy balance: every HP, damage, timer, budget      | `apps/fort-frenzy/src/content/balance.ts` (one file; map layout in `content/map.ts`)                |
-| Fixed-step loop, lerp, seeded RNG, host helpers           | `packages/game-kit/src/` (public API `src/index.ts`; Vite plugins `src/vite.ts`)                    |
-| Phone platform, shell, widgets, gestures, input sender    | `packages/controller-kit/src/` (public API `src/index.ts`)                                          |
-| Sunny Side render interpolation                           | `apps/sunny-side/src/host/interpolate.ts`                                                           |
-| Host wiring (client ↔ match ↔ sim)                        | `apps/sunny-side/src/host/game.ts`, entry `src/host/main.ts`                                        |
-| TV rendering (Phaser scenes and drawing)                  | `apps/sunny-side/src/host/scenes/`, `apps/sunny-side/src/host/render/`                              |
-| Phone controller UI, screens, input                       | `apps/sunny-side/src/controller/` (entry `main.ts`, screens in `screens/`)                          |
-| Brand tokens (colors, fonts, spacing)                     | `apps/sunny-side/src/styles/brand.css`, mirrored for Phaser in `src/shared/theme.ts`                |
-| Debug hooks                                               | `apps/sunny-side/src/host/debug.ts` (`window.__pcg`), `src/controller/devMode.ts`                   |
-| Fort Frenzy design and technical design                   | `apps/fort-frenzy/SPEC.md` (§15 is the technical design)                                            |
-| Fort Frenzy build plan, freeze points, build decisions    | `apps/fort-frenzy/BUILD_PLAN.md` (§3 milestones and freeze points, §8 build decisions)              |
-| Fort Frenzy asset pipeline (manifest, icons, portraits)   | `apps/fort-frenzy/scripts/build-atlases.ts` → gitignored `generated/`; licenses in `assets/`        |
-| Versions, changelogs, major/minor/patch rules             | `PLATFORM.md` §5, `.changeset/` (config and pending notes), each package's `CHANGELOG.md`           |
-| Lint boundary rules                                       | `eslint.config.js`                                                                                  |
-| Build checks                                              | `scripts/check-bundle.mjs`, `scripts/check-routes.mjs`                                              |
-| CI                                                        | `.github/workflows/ci.yml` (runs `pnpm check` on every push)                                        |
+Shared code and repo-wide rules:
+
+| You need…                                                | Look in                                                                                             |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Repo-wide rules (architecture, phones, hosting, layout)  | `PLATFORM.md`                                                                                       |
+| Relay wire protocol (envelope, rooms, reconnect, errors) | `apps/relay/SPEC.md` §3, then `packages/net-client/src/protocol.ts`                                 |
+| Host/controller client API (`createHostClient`, etc.)    | `packages/net-client/src/api.ts` (public API is `src/index.ts`)                                     |
+| Relay server internals                                   | `apps/relay/src/` (`rooms.ts`, `heartbeat.ts`, `http.ts`; env in `main.ts`)                         |
+| Relay hosting, config defaults, deploy                   | `apps/relay/SPEC.md` §2, `apps/relay/fly.toml`, `apps/relay/Dockerfile` (deploy from the repo root) |
+| Fixed-step loop, lerp, seeded RNG, host helpers          | `packages/game-kit/src/` (public API `src/index.ts`; Vite plugins `src/vite.ts`)                    |
+| Phone platform, shell, widgets, gestures, input sender   | `packages/controller-kit/src/` (public API `src/index.ts`)                                          |
+| Versions, changelogs, major/minor/patch rules            | `PLATFORM.md` §5, `.changeset/` (config and pending notes), each package's `CHANGELOG.md`           |
+| Lint boundary rules                                      | `eslint.config.js`                                                                                  |
+| Build checks                                             | `scripts/check-bundle.mjs`, `scripts/check-routes.mjs`                                              |
+| CI                                                       | `.github/workflows/ci.yml` (runs `pnpm check` on every push)                                        |
+
+Inside a game (`apps/<game>/`), the layout is the same for every game:
+
+| You need…                                        | Look in                                                                  |
+| ------------------------------------------------ | ------------------------------------------------------------------------ |
+| Game design, technical design, decision log      | `SPEC.md` (the decision log is its last numbered section or table)       |
+| Build history, freeze points, past build choices | `BUILD_PLAN.md` (§3 milestones and freeze points, §8 build decisions)    |
+| Phone↔host game messages                         | `src/shared/messages.ts`                                                 |
+| Host wiring, TV rendering, game logic            | `src/host/` (entry `main.ts`)                                            |
+| Phone controller UI, screens, input              | `src/controller/` (entry `main.ts`)                                      |
+| Brand tokens (colors, fonts, spacing)            | `src/styles/brand.css` (Phaser games mirror it in `src/shared/theme.ts`) |
+| Tuning constants                                 | Named in the game's `SPEC.md`; each game keeps them in one place         |
+| Playwright specs                                 | `e2e/`                                                                   |
 
 Read the spec section that covers your change before you edit code. Source files open with a comment
 that cites the spec section they implement (for example `// ... (SPEC §8)`). Follow those references:
 `SPEC §` is the app's own `SPEC.md`, `PLATFORM §` is the root `PLATFORM.md`, and `relay SPEC §` is
-`apps/relay/SPEC.md`. Sunny Side's spec keeps stub sections where content moved out, so its numbers
-still resolve.
+`apps/relay/SPEC.md`.
 
 ## Commands
 
 Run everything from the repo root with pnpm 10 and Node ≥ 22. Shell commands in the docs are POSIX sh
 (Git Bash on Windows).
 
-Root scripts are per game. `<game>` is the app folder name (`sunny-side`, `fort-frenzy`).
+Root scripts are per game. `<game>` is the app folder name (`sunny-side`, `fort-frenzy`, `say-cheese`).
 
 ```sh
 pnpm install                       # install the workspace
@@ -72,8 +71,8 @@ pnpm dev:lan:<game>                # same, with Vite bound to the LAN for real p
 pnpm dev:relay                     # the relay alone
 pnpm check:<game>                  # that game's gate: typecheck, lint, format:check, test, build, check:bundle, check:routes, check:changeset
 pnpm build:<game>                  # that game's Vite build
-pnpm e2e:<game>                    # that game's Playwright suite (Sunny Side: own relay on 8788, Vite on 5174)
-pnpm --filter @pcg/relay test      # one package's tests (also @pcg/net-client, @pcg/controller-kit, @pcg/game-kit, @pcg/sunny-side, @pcg/say-cheese)
+pnpm e2e:<game>                    # that game's Playwright suite (own relay on 8788, Vite on 5174)
+pnpm --filter @pcg/<package> test  # one package's tests
 pnpm check                         # the full gate, every package (CI runs this)
 pnpm e2e                           # every app's Playwright suite, one app at a time
 pnpm format                        # Prettier --write
@@ -91,12 +90,12 @@ pnpm changeset version             # on deploy only: bump versions, write the CH
   (`eslint.config.js`, `tsconfig.base.json`, `scripts/`, `package.json`) affects every game, so run the
   full `pnpm check` and `pnpm e2e`.
 - `check:<game>` must pass before you call work on a game done. Run `e2e:<game>` when you change host
-  wiring, the controller, or anything on the relay round trip. Sunny Side's first e2e run needs
-  `pnpm --filter @pcg/sunny-side exec playwright install chromium`.
+  wiring, the controller, or anything on the relay round trip. A game's first e2e run needs
+  `pnpm --filter @pcg/<game> exec playwright install chromium`.
 - Offline controller dev: open `/play?dev=1` (no relay; a fake client and a screen switcher).
 - Host debug hooks: `window.__pcg`, on in dev or with `?debug=1`.
 - Ports used: dev 5173/8787, preview 4173 (`check:routes`), e2e 5174/8788. Keep them free. Every game
-  shares the dev ports, so run one game's dev server at a time.
+  shares the same ports, so run one game's dev server or e2e suite at a time.
 
 ## Architecture rules
 
@@ -106,36 +105,38 @@ These rules are enforced by ESLint or by `pnpm check`. Don't work around them.
   only (stick vector plus button bits), never discrete commands. The relay holds no game rules.
 - **`packages/**` must not import from `apps/**`.** Shared code depends on nothing game-specific.
 - **The controller never loads Phaser or host code.** Files in `src/controller/**` must not import
-  `phaser` or anything under `host/`. `check:bundle` fails the build if Phaser reaches `play.html`.
-  The host (`index.html`) and controller (`play.html`) are separate Vite entries so that phones load
-  quickly.
-- **`sim/` and `match/` are plain TS.** They must not import `phaser` or `@pcg/net-client`. Phaser only
-  renders sim snapshots, and `host/game.ts` does the wiring. This keeps the game logic testable headless.
+  `phaser` or anything under `host/`. The host (`index.html`) and controller (`play.html`) are separate
+  Vite entries so that phones load quickly; `check:bundle` fails the build if Phaser reaches `play.html`
+  or its JS passes the game's gzipped limit in `PLAY_JS_LIMIT_KB`.
+- **Game logic is plain TS.** `src/host/{sim,match,systems,party}/**` must not import `phaser` or
+  `@pcg/net-client`, and ESLint adds determinism and no-DOM rules there (`eslint.config.js` has the
+  exact list). Rendering only reads sim snapshots, and the host wiring file connects client, rules and
+  renderer. This keeps game logic testable headless.
 - **Wire encoding lives in `net-client/src/codec.ts`**, so a later move to binary stays a contained change.
 
 ## Contracts and docs
 
-- **Frozen contracts take additive changes only.** These are `net-client/src/protocol.ts`,
-  `net-client/src/api.ts`, `createRelay`/`RelayOptions` in `apps/relay/src/index.ts`, the relay env
-  var names, and in Sunny Side `src/shared/messages.ts`, `src/shared/theme.ts`,
-  `src/shared/fonts.ts`, `src/host/sim/types.ts` and `src/host/match/types.ts`. Their file headers say
-  "Frozen". Since FF0 the public APIs of `@pcg/controller-kit` (`src/index.ts`) and `@pcg/game-kit`
-  (`src/index.ts`, `src/vite.ts`) are frozen too. Every game depends on the relay protocol, so a
-  breaking change there breaks all of them.
-  If you add to a contract, also update the matching spec section (`apps/relay/SPEC.md` for the relay
-  and net-client).
-- **Tuning constants are not frozen.** Change values in the `config.ts` files (Sunny Side) and
-  `apps/fort-frenzy/src/content/balance.ts` freely. Fort Frenzy keeps every balance number in that one
-  file: don't add tuning constants or fallback numbers to its sim, put them in `balance.ts` (SPEC §15.4).
-- **The Sunny Side brand kit is read-only.** Don't edit `src/styles/brand.css`, `public/**` or `brand/**`.
-  Take colors, fonts and sizes from `brand.css` variables (DOM) or `theme.ts` (Phaser), never from
-  literals. `theme.test.ts` fails if `theme.ts` drifts from `brand.css`.
+- **Frozen contracts take additive changes only.** A file is frozen when its header says "Frozen".
+  Repo-wide these are `net-client/src/protocol.ts`, `net-client/src/api.ts`, `createRelay`/`RelayOptions`
+  in `apps/relay/src/index.ts`, the relay env var names, and the public APIs of `@pcg/controller-kit`
+  (`src/index.ts`) and `@pcg/game-kit` (`src/index.ts`, `src/vite.ts`). Each game also freezes its own
+  contracts (always `src/shared/messages.ts`; the rest are listed in its `BUILD_PLAN.md` §3). Every game
+  depends on the relay protocol, so a breaking change there breaks all of them. If you add to a
+  contract, also update the matching spec section (`apps/relay/SPEC.md` for the relay and net-client).
+- **Tuning values are not frozen.** Change balance and timing values freely, in the file the game's
+  spec names for them, even when that file's header says "Frozen" (that freezes the names, not the
+  values). Don't scatter new tuning numbers or fallbacks through game logic.
+- **Brand kits are read-only.** Every game's `src/styles/brand.css`, `public/**` and `brand/**` came from
+  a delivered brand kit. Don't edit them. Take colors, fonts and sizes from `brand.css` variables (DOM)
+  or `theme.ts` (Phaser), never from literals. `theme.test.ts` fails if `theme.ts` drifts from
+  `brand.css`.
 - **Specs record decisions.** When a change settles or reverses a design decision, update the game's
-  spec, and add a row to its decision log if it has one. Settled sections are marked "(settled)".
-  Don't reopen them without the user.
+  spec, and add a row to its decision log. Settled sections are marked "(settled)". Don't reopen them
+  without the user.
 - **Where a decision goes:** rules every game shares go in `PLATFORM.md`. Relay and net-client behavior
   goes in `apps/relay/SPEC.md`. Everything game-specific goes in that game's `SPEC.md` (and its build
-  plan, once it has one) in its app folder. Each of these has its own decision log.
+  plan) in its app folder. Each of these has its own decision log. Game-specific rules belong there,
+  not in this file.
 
 ## Versioning
 
@@ -164,52 +165,43 @@ the major/minor/patch table are in `PLATFORM.md` §5.
 - Dependencies are pinned to exact versions (`.npmrc` has `save-exact=true`). Commit the
   `pnpm-lock.yaml` changes with them.
 - Tests:
-  - Sunny Side keeps tests in `__tests__/` next to the code. Files under `src/controller/**` run in
-    jsdom, and everything else runs in node.
-  - The relay, net-client and kits keep tests in `test/` (controller-kit runs in jsdom) (with fakes and helpers there), plus a few
-    co-located `*.test.ts` files.
-  - Playwright specs are in `apps/sunny-side/e2e/`. Screenshots in `e2e/__screens__/` are gitignored
-    output.
+  - Games keep tests in `__tests__/` next to the code (a few co-located `*.test.ts` files too). Files
+    under `src/controller/**` run in jsdom, and everything else runs in node.
+  - The relay, net-client and kits keep tests in `test/` with fakes and helpers there (controller-kit
+    runs in jsdom), plus a few co-located `*.test.ts` files.
+  - Playwright specs are in `apps/<game>/e2e/`. Screenshots in `e2e/__screens__/` are gitignored output.
 - Line endings are LF (`.gitattributes`), even on Windows. Prettier formats everything except the files
   listed in `.prettierignore`, which include the specs, build plans and the brand `<head>` HTML.
 - Comments are short and explain _why_, often with a spec or decision citation. Match the density of the
   surrounding code.
 
-## Adding or starting a game (Fort Frenzy)
+## Adding a new game
 
-Fort Frenzy is in build: its spec (game design §1–§14, technical design §15) and `BUILD_PLAN.md`
-drive the work, and FF1 scaffolded the app and froze its contracts. When a new game gets code:
+Write the game's `SPEC.md` and `BUILD_PLAN.md` first; they drive the build. When it gets code:
 
-- Model it on `apps/sunny-side`: separate `index.html` (host) and `play.html` (controller) entries,
+- Model it on an existing game: separate `index.html` (host) and `play.html` (controller) entries,
   `src/host`, `src/controller`, `src/shared`, a unique game ID (`GAME_ID`) for the relay namespace, and a
   `@pcg/<name>` package.
-- Reuse `@pcg/net-client` and the relay as they are. Don't fork the protocol.
-- Only extract code into `packages/` once two games really need it. The repo defers shared kits until a
-  second game shows what is common (`PLATFORM.md` §4, decision #1). Fort Frenzy is that second game:
-  `@pcg/controller-kit` and `@pcg/game-kit` are decided (`PLATFORM.md` decision #4, Fort Frenzy SPEC
-  §15.1). Propose any further extraction before making it.
-- Root wiring to add for a new game:
-  - In `package.json`, copy the five Sunny Side scripts (`dev:`, `dev:lan:`, `build:`, `e2e:`,
+- Reuse `@pcg/net-client`, the kits and the relay as they are. Don't fork the protocol.
+- Only extract code into `packages/` once two games really need it (`PLATFORM.md` §4, decisions #1 and
+  #4). Propose any further extraction before making it.
+- Root wiring to add:
+  - In `package.json`, copy an existing game's five scripts (`dev:`, `dev:lan:`, `build:`, `e2e:`,
     `check:<game>`) and swap in the new folder and package names.
+  - Add the game's gzipped `play.html` JS limit to `PLAY_JS_LIMIT_KB` in `scripts/check-bundle.mjs`.
   - Add the game to the tables in `PLATFORM.md` §1, `README.md` and this file.
-- Already generic, so no edits needed:
-  - `eslint.config.js` applies the boundary rules to `apps/*/src/{controller,host/sim,host/match}/**`
-    and Fort Frenzy's `apps/*/src/host/{sim,systems,party}/**` rules (no DOM, determinism, import
-    limits; fixtures in `__fixtures__/` prove them), and reads app package names from
-    `apps/*/package.json`.
-  - `check-bundle.mjs` and `check-routes.mjs` find every `apps/*` with a `play.html`. `check:bundle`
-    checks Phaser only in Phaser apps. One edit needed: add the game's gzipped `play.html` JS limit to
-    `PLAY_JS_LIMIT_KB` there.
-  - `check:routes` expects Sunny Side's conventions: `data-entry` markers, the icon set and manifest, and
-    Google Fonts in the `<head>`. Match them or adjust the script.
-  - `.prettierignore` covers `apps/*/SPEC.md` and `BUILD_PLAN.md`, in either case.
-  - The root `pnpm build` and `pnpm e2e` run every package that defines the script.
-- Playwright suites run one app at a time under `pnpm e2e`. Reusing Sunny Side's e2e ports (5174/8788)
-  is fine.
+- Already generic, so no edits needed: `eslint.config.js` (boundary rules by folder, app names from
+  `apps/*/package.json`), `check-bundle.mjs` and `check-routes.mjs` (find every `apps/*` with a
+  `play.html`), `.prettierignore`, and the root `pnpm build` / `pnpm e2e`.
+- `check:routes` expects the existing games' conventions: `data-entry` markers, the icon set and
+  manifest, and Google Fonts in the `<head>`. Match them or adjust the script.
 
 ## Git
 
+- **On a feature branch, check that it's up to date with `main` before you start.** Run `git fetch origin`
+  and `git log --oneline HEAD..origin/main`. If that lists commits, merge `origin/main` into the branch
+  before beginning the task. If the merge conflicts, stop and ask the user.
 - Commit only when asked, and never push unless asked.
-- Commit subjects are short and imperative. Sunny Side milestone work used an `M<n>:` or `M<n>-fix-<k>:`
-  prefix (see `git log`).
+- Commit subjects are short and imperative. Milestone work uses the build plan's prefix, such as
+  `FF7:`, `SC5-fix-2:` or `M3:` (see `git log`).
 - Don't edit files in `.claude/worktrees/`. They are other agents' checkouts.
