@@ -1,5 +1,7 @@
-// TV rules overview (SPEC §6.2.1, §6.6): one card per screen, progress dots, controls hint.
+// TV rules overview (SPEC §6.2.1, §6.6): one card per screen with an inline-SVG illustration (art.ts),
+// progress dots, controls hint.
 import type { TvView } from '../match/types';
+import { ruleArt } from './art';
 import { h } from './dom';
 
 type Rules = Extract<TvView, { phase: 'rules' }>;
@@ -37,9 +39,7 @@ export function renderRules(v: Rules): HTMLElement {
   const el = h('section', 'view rules');
   const card = RULE_CARDS[Math.min(Math.max(v.card, 0), RULE_CARDS.length - 1)]!;
   el.dataset.card = String(v.card);
-  const art = h('div', 'rule-art', card.icon);
-  art.setAttribute('aria-hidden', 'true');
-  el.append(art, h('h1', 'banner', card.title), h('p', 'rule-text', card.text));
+  el.append(ruleArt(v.card), h('h1', 'banner', card.title), h('p', 'rule-text', card.text));
   const dots = h('div', 'dots');
   for (let i = 0; i < v.cards; i++) dots.append(h('span', i === v.card ? 'dot on' : 'dot'));
   el.append(dots, h('p', 'caption hint', 'Leader: Next / Skip'));

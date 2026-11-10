@@ -136,12 +136,119 @@
 
 /* Rules */
 .rule-art {
-  font-size: 160px;
-  line-height: 1;
+  width: min(480px, 26vh * 1.6);
+  line-height: 0;
+}
+.rule-art svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.a-ink {
+  fill: var(--brand-ink);
+}
+.a-body {
+  fill: var(--surface-strong);
+  stroke: var(--border-control);
+  stroke-width: 4;
+}
+.a-amber {
+  fill: var(--accent);
+}
+.a-pink {
+  fill: var(--pink);
+}
+.a-lens {
+  fill: var(--player-cobalt);
+}
+.a-white {
+  fill: var(--flash);
+}
+.a-print {
+  fill: var(--print);
+}
+.a-ray {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+.a-beam {
+  fill: var(--ray-strong);
+}
+.a-arrow {
+  fill: none;
+  stroke: var(--foreground);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.a-room {
+  fill: var(--surface);
+  stroke: var(--border-control);
+  stroke-width: 4;
+  stroke-dasharray: 14 10;
+}
+.a-couch {
+  fill: var(--presence-off);
+}
+.a-no {
+  fill: none;
+  stroke: var(--danger);
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+.a-check {
+  fill: none;
+  stroke: var(--success);
+  stroke-width: 9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.a-p1 {
+  fill: var(--player-cobalt);
+}
+.a-p2 {
+  fill: var(--player-jade);
+}
+.a-p3 {
+  fill: var(--player-lilac);
+}
+.a-ring {
+  fill: none;
+  stroke-width: 7;
+}
+.a-r1 {
+  stroke: var(--player-jade);
+}
+.a-r2 {
+  stroke: var(--player-sky);
+}
+.a-step {
+  fill: var(--surface-strong);
+  stroke: var(--border-control);
+  stroke-width: 3;
+}
+.a-first {
+  fill: var(--accent);
+  stroke: none;
+}
+.a-text {
+  font: 400 40px/1 var(--font-display);
+  text-anchor: middle;
+}
+.a-plus {
+  fill: var(--danger);
+}
+.a-minus {
+  fill: var(--success);
+}
+.a-num {
+  fill: var(--accent-on);
 }
 .rule-text {
   max-width: 24em;
-  font: 400 40px/1.35 var(--font-sans);
+  font: 400 min(40px, 4.2vh) / 1.35 var(--font-sans);
 }
 .dots {
   display: flex;
@@ -162,11 +269,13 @@
   font-size: 320px;
 }
 .count {
-  font-size: 200px;
+  font-size: min(200px, 18vh);
 }
 .shots {
   font-size: 120px;
 }
+/* Flash: a white overlay decaying over --dur-flash (opacity only, cheap on a TV). The `on` class is
+   set only on the paint that follows a new shot; reduced motion gets none (no strobing). */
 .shoot .flash {
   position: fixed;
   inset: 0;
@@ -175,16 +284,81 @@
   pointer-events: none;
 }
 .shoot .flash.on {
-  opacity: 1;
+  animation: flash var(--dur-flash) ease-out;
+}
+.shots.pop {
+  animation: count-pop var(--dur-base) var(--ease-pop);
+}
+@keyframes count-pop {
+  from {
+    scale: 1.5;
+  }
+  to {
+    scale: 1;
+  }
 }
 
-/* Review: the box is sized to the photo's aspect and fits the stage; tags are relative to the box.
-   The size container is an absolute layer over the flex-grown stage: on the stage itself `100cqh`
-   resolved to 0 (its height isn't definite under #tv's min-height), so the photo box was 0×0. */
+/* View transitions: only a new phase (or rules card) fades in; repaints of the same view stay still.
+   Opacity only: a transform on .view would re-parent the fixed flash overlay. */
+.view.enter {
+  animation: view-in var(--dur-base) var(--ease-out) backwards;
+}
+@keyframes view-in {
+  from {
+    opacity: 0;
+  }
+}
+.rules.enter .rule-art {
+  animation: art-in var(--dur-develop) var(--ease-pop) backwards;
+}
+@keyframes art-in {
+  from {
+    scale: 0.7;
+    opacity: 0;
+  }
+}
+
+/* Upload: a print whose window is still dark; the warm smear fills as photos arrive */
+.up-print {
+  width: min(420px, 28vh * 1.2);
+  transform: rotate(var(--tilt-print));
+}
+.up-print .print-image {
+  overflow: hidden;
+}
+.smear {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, var(--ray-strong), var(--print-image-empty));
+  transform-origin: bottom;
+  scale: 1 calc(0.15 + var(--done) * 0.85);
+  animation: smear-pulse 2.4s ease-in-out infinite alternate;
+}
+@keyframes smear-pulse {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Review: an instant print as large as fits beside the player column. The box is sized to the
+   photo's aspect from the .fit layer's container units; tags are relative to the box (the photo
+   window, inside the cream frame). The size container is an absolute layer over the flex-grown
+   stage: on the stage itself `100cqh` resolved to 0 (its height isn't definite under #tv's
+   min-height), so the photo box was 0×0. */
+.review {
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: stretch;
+  gap: var(--space-8);
+  text-align: left;
+}
 .review .stage {
   flex: 1;
+  min-width: 0;
   min-height: 0;
-  width: 100%;
   position: relative;
 }
 .review .stage > .fit {
@@ -196,19 +370,28 @@
   container-type: size;
 }
 .photo-box {
+  --frame: 16px;
+  --frame-bottom: 60px;
+  box-sizing: content-box;
   position: relative;
   aspect-ratio: var(--aspect);
-  width: min(100cqw, 100cqh * var(--aspect));
+  /* 0.9 leave room for the tilt and the pink offset shadow */
+  width: min(
+    calc(100cqw * 0.9 - 2 * var(--frame)),
+    calc((100cqh * 0.9 - var(--frame) - var(--frame-bottom)) * var(--aspect))
+  );
+  border: var(--frame) solid var(--print);
+  border-bottom-width: var(--frame-bottom);
   background: var(--print-image-empty);
   border-radius: var(--radius-print);
   box-shadow: var(--shadow-pop);
+  transform: rotate(var(--tilt-print));
 }
 .photo-box .photo {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: fill;
-  border-radius: var(--radius-print);
 }
 .photo-box .empty {
   display: grid;
@@ -217,6 +400,17 @@
   font: 400 40px/1 var(--font-marker);
   color: var(--muted);
 }
+.print-note {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  display: flex;
+  align-items: center;
+  height: var(--frame-bottom);
+  color: var(--print-on);
+  font: 400 28px/1 var(--font-marker);
+}
+/* A tag is the circle only: player-color ring with ink keylines (Unknown: grey). Never pink. */
 .tag {
   position: absolute;
   width: calc(var(--tag-size) * var(--short-frac));
@@ -227,17 +421,8 @@
   outline: var(--tag-keyline) solid var(--brand-ink);
   box-shadow: 0 0 0 var(--tag-keyline) var(--brand-ink);
 }
-.tag .tag-name {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-mark);
-  background: var(--pc);
-  color: var(--pc-on);
-  font: 400 28px/1 var(--font-marker);
-  white-space: nowrap;
+.tag.new {
+  animation: pop var(--dur-base) var(--ease-pop) both;
 }
 .tag.unknown {
   border-color: var(--tag-unknown);
@@ -250,18 +435,80 @@
   color: var(--tag-unknown);
   font: 400 40px/1 var(--font-display);
 }
-.caught {
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Players column: sizes follow the viewport height so eight rows always fit */
+.players-col {
+  flex: 0 0 clamp(300px, 28vw, 520px);
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-direction: column;
+  gap: 1.6vh;
+  min-height: 0;
   justify-content: center;
+}
+.players-col .marker-tv {
+  font-size: clamp(20px, 3.6vh, 40px);
+}
+.roster-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1vh;
+}
+.roster-col .row {
+  display: flex;
+  align-items: center;
   gap: var(--space-3);
+  padding: 0.6vh var(--space-3);
+  border-left: 8px solid transparent;
+  border-radius: var(--radius);
+  opacity: 0.75;
+}
+.roster-col .row.has {
+  opacity: 1;
+}
+.roster-col .row[data-here='true'] {
+  border-left-color: var(--pc);
+  background: var(--surface-strong);
+  opacity: 1;
+}
+.roster-col .swatch {
+  flex: none;
+  width: clamp(18px, 3.4vh, 36px);
+  aspect-ratio: 1;
+  border-radius: var(--radius-round);
+  background: var(--pc);
+}
+.roster-col .who {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pc);
+  font: 700 clamp(20px, 4vh, 40px) / 1.1 var(--font-sans);
+}
+.roster-col .n {
+  margin-left: auto;
+  font-size: clamp(22px, 4.4vh, 48px);
 }
 
 /* Results, match end */
 .results {
   flex-direction: row;
   gap: var(--space-12);
+}
+.catch {
+  font-size: 28px;
+}
+.enter .catch {
+  animation: pop var(--dur-base) var(--ease-pop) backwards;
+  animation-delay: calc(150ms + var(--i, 0) * 140ms);
 }
 .standings {
   display: grid;
@@ -280,11 +527,37 @@
 .standing .pts {
   margin-left: auto;
 }
+.matchEnd {
+  gap: var(--space-3);
+}
 .winners {
   display: flex;
   gap: var(--space-6);
   flex-wrap: wrap;
   justify-content: center;
+}
+.matchEnd .chip.huge {
+  font-size: min(96px, 10vh);
+}
+.matchEnd .winners .chip::before {
+  content: '👑 ';
+}
+.matchEnd .board {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--space-12);
+}
+.matchEnd .standings {
+  min-width: 380px;
+  gap: 0.6vh;
+}
+.matchEnd .standing .score {
+  font-size: min(32px, 3.6vh);
+}
+.matchEnd .standing .chip {
+  font-size: min(26px, 3vh);
+  padding-block: 0;
 }
 .podium {
   display: flex;
@@ -296,10 +569,66 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-4) var(--space-6);
-  background: var(--surface-strong);
-  border-radius: var(--radius);
 }
-.podium .step[data-rank='1'] {
-  padding-top: var(--space-12);
+.podium .step[data-place='1'] {
+  order: 2;
+}
+.podium .step[data-place='2'] {
+  order: 1;
+}
+.podium .step[data-place='3'] {
+  order: 3;
+}
+.podium .who-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+.podium .block {
+  display: grid;
+  place-items: center;
+  min-width: 180px;
+  background: var(--surface-strong);
+  border-radius: var(--radius-print);
+  box-shadow: var(--shadow-pop-sm);
+  transform-origin: bottom;
+}
+.podium .step[data-place='1'] .block {
+  height: 17vh;
+  background: var(--accent);
+  color: var(--accent-on);
+}
+.podium .step[data-place='2'] .block {
+  height: 11vh;
+}
+.podium .step[data-place='3'] .block {
+  height: 7vh;
+}
+.enter .podium .block {
+  animation: rise var(--dur-develop) var(--ease-pop) backwards;
+}
+.enter .podium .step[data-place='1'] .block {
+  animation-delay: 500ms;
+}
+.enter .podium .step[data-place='3'] .block {
+  animation-delay: 250ms;
+}
+@keyframes rise {
+  from {
+    scale: 1 0.05;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shoot .flash.on,
+  .shots.pop,
+  .view.enter,
+  .rules.enter .rule-art,
+  .smear,
+  .tag.new,
+  .enter .catch,
+  .enter .podium .block {
+    animation: none;
+  }
 }

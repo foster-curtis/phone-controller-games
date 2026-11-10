@@ -116,7 +116,7 @@ So kids (or anyone without a smartphone) can play, several players can share one
 
 ### 6.4 Review & tagging
 
-- **Only the photographer tags.** Their phone is the only one with tagging controls; the host ignores `tag`/`untag`/`view`/`finishReview` from anyone else. **Everyone watches it happen on the TV:** each circle and name label appears there the moment it's placed.
+- **Only the photographer tags.** Their phone is the only one with tagging controls; the host ignores `tag`/`untag`/`view`/`finishReview` from anyone else. **Everyone watches it happen on the TV:** each circle appears there the moment it's placed (without a name; the player column's count updates, §6.6).
 - The TV shows the current photo large, with "Photo 4 / 15" and the photographer's name. The photographer's phone shows **the same photo** (it already has a local copy, so nothing is sent back) with **‹ Prev** / **Next ›** buttons. The TV follows the phone's navigation.
 - **Tagging:** the photographer taps anywhere on the photo. A circle appears where they tapped, and a bottom sheet lists every other player (name + color) plus **Unknown**. Tapping a name sets the circle to that player's color with a name label. The tag shows on the TV **immediately**, so the room sees (and argues about) every call.
   - No image analysis: the circle just marks where the photographer tapped.
@@ -137,12 +137,12 @@ The photographer, not the leader, drives their own **I'm ready** and the review.
 ### 6.6 TV presentation
 
 - **Lobby:** QR + room code, joined players (name, color, ready, no-camera badge).
-- **Rules overview:** one card per screen (§6.2.1), big text plus a simple illustration, with a progress dots row and the controls hint ("Leader: Next / Skip").
+- **Rules overview:** one card per screen (§6.2.1), big text plus a simple inline-SVG illustration, with a progress dots row and the controls hint ("Leader: Next / Skip").
 - **Announce / scatter:** the photographer's name huge, countdown huge, "Scatter!".
-- **Shoot:** timer + shot count; a white flash + click per shot.
-- **Upload:** "Developing photos… n / N".
-- **Review:** the photo as large as fits, tag circles in player colors with name labels, a "Caught this round" strip (names + counts) that updates live.
-- **Results / match end:** this round's catches, then standings (lowest first); the match end has a winner/podium moment ("Hardest to photograph").
+- **Shoot:** timer + shot count; a white flash + click per shot (the flash decays in 260 ms and the counter pops; neither runs under `prefers-reduced-motion`).
+- **Upload:** "Developing photos… n / N" over a print whose window is still dark and fills as photos arrive.
+- **Review (decision #22):** the photo is an **instant print** (cream frame with the fat bottom strip, a slight tilt, the pink offset shadow) sized as large as fits beside a **player column**. Tags on the photo are **only the circle** in the tagged player's color (Unknown: a grey circle with "?"); they carry no name label, and a new one pops in. The column lists every player still in the match except the photographer (color chip, name in their color, **tags this round**, live; the row of anyone tagged in the current photo is highlighted). A new photo "develops" (fades up from a dark warm smear).
+- **Results / match end:** this round's catches pop in one by one, then standings (lowest first). The match end is a podium ("Hardest to photograph"): one step per distinct rank (top 3), first place in the middle and tallest, **tied winners side by side** on it, with a crown on every winner.
 - **Emoji reactions** from every non-photographer phone during review and results (the same system as Sunny Side's spectator emoji: 5-emoji set 📸 😂 😱 🙈 👀, 0.5 s cooldown, ~12 on screen). Cut first if time runs short.
 
 ### 6.7 Phone UI states
@@ -252,3 +252,4 @@ _Exact fields: `src/shared/messages.ts` (frozen at SC0, additive changes only)._
 | 19 | 2026-11-03 | Timers on phones | Screens carry `endsInMs`; the phone sets its deadline on receipt | Simplest equivalent of a clock-offset handshake; error = one-way relay latency. |
 | 20 | 2026-11-10 | Scatter length and beeps (C2) | Scatter **5 s** (was 10 s, #5); a beep every second (5…2) and a final beep at 1, on the TV and on the photographer's phone (was: TV only, last 3 s) | User's C2 note: 10 s was too long, and the photographer, eyes closed, should hear every count. |
 | 21 | 2026-11-09 | Joining flow (real-device checkpoint) | A separate pre-lobby screen for your name and the other players on the phone, with a Join button; only Join seats anyone and shows them on the TV. The lobby shows the phone's name(s) once with a ✏️ pencil back to that screen; re-Join sends only the diffs. Replaces the lobby's name field and "Players on this phone" panel (amends #15) | Foster, on real phones: setting up who is playing belongs before the lobby, and the lobby shouldn't repeat names or hold forms. No message changes: `profile`, `addSeat`, `removeSeat` as before. |
+| 22 | 2026-11-10 | TV review layout (C3) | The review photo is an instant print as large as fits beside a column of every player's name (in their color), color chip and tag count this round; tag circles carry no name label (amends §6.4/§6.6's "name labels"; the old "Caught this round" strip is replaced by the column) | User's C3 note: photos too small, names on the photo cluttered it. Per-round counts rather than per-photo, because they match the score the round is about to produce; who is in the current photo is shown by a highlighted row. |

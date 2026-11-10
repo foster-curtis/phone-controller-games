@@ -62,6 +62,11 @@ export function galleryViews(): TvView[] {
     player: i === 5 ? null : p,
   }));
   const caught = FIXTURE_PLAYERS.slice(1).map((p, i) => ({ ...p, count: i % 4 }));
+  const roster = (who: PlayerSummary) =>
+    FIXTURE_PLAYERS.filter((p) => p.playerId !== who.playerId).map((p, i) => ({
+      ...p,
+      count: i % 4,
+    }));
   return [
     {
       phase: 'lobby',
@@ -92,6 +97,7 @@ export function galleryViews(): TvView[] {
       photoCount: 15,
       tags,
       caught,
+      roster: roster(photographer),
       canSkipReview: false,
     },
     {
@@ -102,6 +108,7 @@ export function galleryViews(): TvView[] {
       photoCount: 15,
       tags: tags.slice(0, 3),
       caught,
+      roster: roster(g),
       canSkipReview: true,
     },
     {

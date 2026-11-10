@@ -50,7 +50,9 @@ describe('renderTv', () => {
     expect(tag.parentElement).toBe(box);
     expect(tag.style.left).toBe('25%');
     expect(tag.style.top).toBe('50%');
-    expect(tag.textContent).toBe('Ben');
+    // C3: the circle only. The name is visually hidden text for assistive tech and e2e.
+    expect(tag.querySelector('.tag-name')).toBeNull();
+    expect(tag.querySelector('.sr')!.textContent).toBe('Ben');
   });
 
   // C2 (SC5-fix-2): a flex-grown stage as the size container gave `100cqh` = 0, so the photo box
@@ -88,7 +90,7 @@ describe('renderTv', () => {
       canSkipReview: true,
     });
     expect(root.querySelector('.tag.unknown')!.textContent).toBe('?');
-    expect(root.querySelector('.caught')!.textContent).toContain('Ben ×2');
+    expect(root.querySelector('.players-col')!.textContent).toContain('Ben×2');
     expect(root.querySelector('[data-action=skipReview]')).not.toBeNull();
   });
 

@@ -147,6 +147,8 @@ export type TvView =
       tags: (Tag & { player: PlayerSummary | null })[];
       /** "Caught this round", live. */
       caught: Caught[];
+      /** Every dodger still playing, with their tag count this round (SC9, additive; SPEC §6.6). */
+      roster?: Caught[];
       canSkipReview: boolean;
     }
   | {

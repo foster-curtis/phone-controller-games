@@ -1,20 +1,35 @@
 // TV view dispatcher (SPEC §6.6): `renderTv(root, view, controls)` renders one `TvView` into `root`,
-// one module per phase, plus the host's control buttons. Stateless apart from the shoot-flash counter.
+// one module per phase, plus the host's control buttons. Stateless apart from a few `data-*` marks on the
+// root (shot count, last view, last photo and tags) that decide what animates (SPEC §6.6, SC9).
 import { controlsFor } from '../controls';
 import type { TvView } from '../match/types';
 import { h, type TvControls } from './dom';
 import { renderLobby } from './lobby';
 import { renderMatchEnd, renderResults } from './results';
-import { renderReview } from './review';
+import { renderReview, type ReviewFx } from './review';
 import { renderPass } from './pass';
 import { renderAnnounce, renderScatter, renderShoot, renderUpload } from './rounds';
 import { renderRules } from './rules';
 
 export type { TvControls } from './dom';
 
-const FLASH_MS = 120;
+/** The TV repaints on every change, so animations run only for what is new since the last paint. */
+function reviewFx(root: HTMLElement, view: TvView): ReviewFx {
+  if (view.phase !== 'review') {
+    delete root.dataset.photoKey;
+    delete root.dataset.tagIds;
+    return { fresh: false, newTags: new Set() };
+  }
+  const key = `${view.photographer.playerId}:${view.photoIndex}`;
+  const fresh = root.dataset.photoKey !== key;
+  const before = new Set(fresh ? [] : (root.dataset.tagIds ?? '').split(',').filter(Boolean));
+  const ids = view.tags.map((t) => t.tagId);
+  root.dataset.photoKey = key;
+  root.dataset.tagIds = ids.join(',');
+  return { fresh, newTags: new Set(ids.filter((id) => !before.has(id))) };
+}
 
-function screenFor(view: TvView, c: TvControls, flash: boolean): HTMLElement {
+function screenFor(view: TvView, c: TvControls, flash: boolean, fx: ReviewFx): HTMLElement {
   switch (view.phase) {
     case 'lobby':
       return renderLobby(view, c);
@@ -31,7 +46,7 @@ function screenFor(view: TvView, c: TvControls, flash: boolean): HTMLElement {
     case 'upload':
       return renderUpload(view);
     case 'review':
-      return renderReview(view);
+      return renderReview(view, fx);
     case 'results':
       return renderResults(view);
     case 'matchEnd':
@@ -44,8 +59,13 @@ export function renderTv(root: HTMLElement, view: TvView, controls: TvControls):
   const flash = view.phase === 'shoot' && view.shots > last;
   root.dataset.shots = view.phase === 'shoot' ? String(view.shots) : '0';
   root.dataset.tv = view.phase;
-  const screen = screenFor(view, controls, flash);
+  const fx = reviewFx(root, view);
+  const screen = screenFor(view, controls, flash, fx);
   screen.dataset.tv = view.phase;
+  // A new phase (or rules card) fades its view in; repaints of the same view stay still.
+  const key = view.phase === 'rules' ? `rules${view.card}` : view.phase;
+  if (root.dataset.view !== key) screen.classList.add('enter');
+  root.dataset.view = key;
 
   const bar = h('nav', 'host-controls');
   bar.setAttribute('aria-label', 'Host controls');
@@ -62,9 +82,4 @@ export function renderTv(root: HTMLElement, view: TvView, controls: TvControls):
     bar.append(b);
   }
   root.replaceChildren(screen, bar);
-
-  if (flash) {
-    const f = screen.querySelector('.flash');
-    setTimeout(() => f?.classList.remove('on'), FLASH_MS);
-  }
 }

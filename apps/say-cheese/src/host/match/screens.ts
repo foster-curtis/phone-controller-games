@@ -177,6 +177,15 @@ function liveCaught(s: MatchState): ReturnType<typeof caughtView> {
   });
 }
 
+/** Every dodger in the match with this round's tag count (0 included), in join order (SC9). */
+function liveRoster(s: MatchState): ReturnType<typeof caughtView> {
+  if (!s.round) return [];
+  const counts = new Map(liveCaught(s).map((c) => [c.playerId, c.count]));
+  return playing(s)
+    .filter((p) => p.id !== s.round!.photographer)
+    .map((p) => ({ ...summary(p), count: counts.get(p.id) ?? 0 }));
+}
+
 export function tvView(ctx: ViewCtx): TvView {
   const s = ctx.state;
   const ph = photographer(s);
@@ -238,6 +247,7 @@ export function tvView(ctx: ViewCtx): TvView {
             return { ...t, player: p ? summary(p) : null };
           }),
         caught: liveCaught(s),
+        roster: liveRoster(s),
         canSkipReview: canSkipReview(s),
       };
     }

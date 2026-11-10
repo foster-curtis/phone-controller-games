@@ -495,8 +495,8 @@ Rules:
   - [x] Merged to `say-cheese` and pushed
   - [x] User approved C3 (full match, shared phone, disconnects, refresh, sound)
 - **SC9**
-  - [ ] Flash, developing, print review, results, podium, rules illustrations
-  - [ ] Gallery e2e + screenshots
+  - [x] Flash, developing, print review, results, podium, rules illustrations
+  - [x] Gallery e2e + screenshots
   - [ ] Merged to `say-cheese` and pushed
 - **SC10**
   - [ ] Emoji host module + TV layer + tests
@@ -610,6 +610,12 @@ Format: `- [SC#] decision: one line, with the reason.`
 - [SC7-fix-1] decision: a 9th phone that the host refuses stays on the pre-lobby screen showing "Joining…", because the host sends no refusal message and adding one is outside this fix.
 - [SC7-fix-1] decision: e2e `joinPlayer` takes `extras` and uses the pre-lobby screen (new exported `joinOnPage`; sc6's `joinWired` uses it); the old stale `joinPhone` ("Next") uses it too, because no milestone runs in parallel on helpers now.
 - [plan] decision: C3 approved on 2026-11-10 with one note, folded into SC9 (TV polish): review photos display larger on the TV; tags on the photo are only the circle in the player's color (no name label); every player's name and tag count go in a column beside the photo. User's note.
+- [SC9] decision: the player column shows tags this round (not per photo), and highlights the rows of players tagged in the current photo, because the round count is the score the round produces and the highlight answers "who is in this one"; SPEC §6.6 and decision #22 say so.
+- [SC9] decision: `TvView` review gains an optional `roster?: Caught[]` (every dodger still playing with their count, zeros included), filled by `match/screens.ts`, because `caught` lists only players with a tag and the column needs everyone; additive to the frozen type, the view falls back to `caught` without it.
+- [SC9] decision: a tag's name stays in the DOM as a visually hidden `.sr` span (no `.tag-name` label), because the frozen SC5 e2e asserts `toContainText(name)` on `[data-tag]` and C3 forbids only the visible label.
+- [SC9] decision: `renderTv` animates only what is new (`data-view`, `data-photo-key`, `data-tag-ids` on the root: `enter` on a new phase or rules card, `developing` on a new photo, `.new` on a new tag, `.pop` and `.flash.on` on a new shot), because the TV repaints by replacing every node on each change and a CSS animation would otherwise restart on every repaint.
+- [SC9] decision: the shot flash is a CSS animation (`flash`, 260 ms) on the repaint that follows the shot, replacing the 120 ms `setTimeout`; reduced motion gets none, because strobing is the one motion to avoid.
+- [SC9] decision: the gallery e2e steps the gallery with a paused Playwright fake clock (`runFor(4000)` per view) and ignores the console errors of the blocked Google Fonts requests, because the gallery cycles on a 4 s interval and e2e blocks fonts.
 
 ## 9. Final handoff (and early setup)
 
