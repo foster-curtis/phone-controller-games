@@ -892,6 +892,10 @@ input {
  * center stays within a fixed thumb band of the bottom edge (<= 280 px). The button starts at its
  * column center / SLAM's bottom padding and is shifted with left/top.
  */
+.pad-zone.dash[hidden] {
+  display: none;
+}
+
 .pad-zone.dash {
   align-items: flex-end;
   justify-content: center;

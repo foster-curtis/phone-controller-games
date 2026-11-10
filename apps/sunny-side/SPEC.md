@@ -131,6 +131,7 @@ Round results and the match winner screen show a **per-round points breakdown** 
 - **Joining:** room code (prefilled from QR), connecting.
 - **Lobby:** name step, then color + Ready (non-leaders; the button reads "Waiting for {leader}…" once ready); leader sees difficulty + Start.
 - **Playing:** floating joystick, DASH, SLAM, **pause button** in the top-right corner above DASH/SLAM.
+  - **DASH is hidden** (#31): the button is still built but not shown, so SLAM's zone covers the whole right half. The host still handles the dash bit (ghost PULSE uses it). v2 replaces DASH with an action button (§11).
 - **Charging:** while SLAM is held, a tapered arc grows clockwise outside the SLAM button (9:00 to 2:00 over the 1 s gauge time), thickening toward its leading end, in `heat` darkening along its length; it flashes once in `yolk-shine` at full charge and is hidden when SLAM is not held.
 - **Eliminated:** "Respawn as a ghost in" with a very large countdown 5 → 1 beneath it; the number pulses slightly on each change.
 - **Ghost:** same joystick; the DASH/SLAM pair is replaced by a single grey **PULSE** button (not the player color, not dampened). It sends the dash bit/counter, which the host treats as a ghost pulse.
@@ -285,3 +286,9 @@ _None. Spec complete and ready for implementation._
 | 28  | 2026-10-22 | Branding in v1      | Brand kit (`brand.css` tokens mirrored by `theme.ts`, brand fonts, code-drawn eggs in the mark's style); audio stays post-MVP                     | The kit arrived before the build, so the controller and TV are built on-brand instead of restyled later. Supersedes #16.                                                                                                                        |
 | 29  | 2026-10-24 | Leave / removal (C3) | Leave game = full removal (egg off the pan, no points; score/color/spot dropped; same key later = new player); leader phone + host can remove any other player (connected or away); emoji cooldown 0.5 s | Foster at C3: away players held spots and colors with no way to clear them; Leave should mean gone. Disconnects still keep the spot. Supersedes #25 and the 1 s in #22. |
 | 30  | 2026-10-26 | Rename              | **Sunny Side Slam** replaces Sunny Side Shove (amends #8). Domain `sunny-side.fostercurtis.dev` and game ID `sunny-side` are unchanged | Owner's choice (Foster); "Slam" matches the charged slam ability. |
+| 31  | 2026-11-10 | Hide DASH           | The phone's DASH button is hidden (kept in code, `DASH_HIDDEN` in `screens/controller.ts`); SLAM is the only live-egg button. v2 adds power-ups and replaces DASH with an action button (§11) | Owner's choice (Foster). |
+
+## 11. Later (v2)
+
+- **Power-ups** on the pan (reverses "no power-ups" in §6.1 / #2 for v2).
+- **Action button** replaces the hidden DASH button (#31) on the phone.
