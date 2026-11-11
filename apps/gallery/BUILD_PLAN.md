@@ -503,7 +503,7 @@ Rules:
 
 ## 6. Progress checklist
 
-- [ ] Pre-flight passed (S1)
+- [x] Pre-flight passed (S1)
 - **G1**
   - [x] Brand kit unpacked (own commit), Prettier/ESLint ignores, Brand check (B) green
   - [x] Package, configs, root scripts, `pcg.e2e` ports
@@ -514,8 +514,8 @@ Rules:
   - [x] E2E specs (cards, keyboard, mouse, touch, theme, layout, axe) + Lighthouse script
   - [x] `vercel-ignore --catalog` + tests
   - [x] Docs (AGENTS, README, PLATFORM #10, catalog README, SPEC decision log) + changeset
-  - [ ] Acceptance green (test-runner)
-  - [ ] Merged to `catalog-and-gallery`
+  - [x] Acceptance green (test-runner)
+  - [x] Merged to `catalog-and-gallery`
   - [ ] **User approved C1**
 - [ ] Final test-runner pass on `catalog-and-gallery`
 - [ ] Final handoff printed
