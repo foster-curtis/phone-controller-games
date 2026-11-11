@@ -48,7 +48,7 @@
   "devDependencies": {
     "@changesets/cli": "3.0.3",
     "@eslint/js": "10.0.1",
-    "@types/node": "24.19.2",
+    "@types/node": "26.6.6",
     "concurrently": "10.0.6",
     "eslint": "10.13.0",
     "globals": "17.13.0",
