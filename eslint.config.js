@@ -63,6 +63,7 @@ export default defineConfig(
       'apps/*/public/**',
       'apps/*/brand/**',
       'apps/*/generated/**',
+      'apps/gallery/src/brand/**',
       // Lint fixtures break the boundary rules on purpose; `eslint --no-ignore <file>` checks them.
       'apps/*/src/**/__fixtures__/**',
     ],
@@ -193,6 +194,24 @@ export default defineConfig(
             {
               regex: `(^|/)apps(/|$)|^(${appPackages.join('|')})(/|$)`,
               message: 'packages/** must not depend on apps/**.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // The one exception (PLATFORM decision #9): the catalog's list imports each game's game.meta.ts,
+    // and nothing else from apps/.
+    files: ['packages/catalog/src/games.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: `(^|/)apps/(?![^/]+/game\\.meta\\.ts$)|^(${appPackages.join('|')})(/|$)`,
+              message: 'The catalog imports only apps/<game>/game.meta.ts from apps/.',
             },
           ],
         },

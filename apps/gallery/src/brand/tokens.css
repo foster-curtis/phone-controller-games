@@ -1,0 +1,103 @@
+/*
+ * games.fostercurtis.dev — brand tokens
+ *
+ * Same palette, type and focus treatment as fostercurtis.dev
+ * (foster-curtis-dev/src/app/globals.css). Two deliberate differences:
+ *
+ *   1. DARK IS THE DEFAULT. The main site is light until a visitor picks dark;
+ *      the gallery is dark until a visitor picks light. :root holds the dark
+ *      values, so the page is dark with or without JavaScript.
+ *   2. Plain CSS custom properties, not Tailwind @theme, so the tokens work in
+ *      whatever the gallery is built with. tailwind-theme.css maps them if
+ *      Tailwind v4 is used.
+ *
+ * Mirrored in brand.ts for the places that need values in TypeScript
+ * (manifest, theme-color). Keep the two in sync.
+ */
+
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/geist-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/geist-600.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* The wordmark face. Bold lowercase for the wordmark; also the uppercase
+   eyebrows and pills, which is what gives the brand its "technical" read. */
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/fonts/jetbrains-mono-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Raw palette — identical to the main site. Amber never flips. */
+  --brand-ink: #14161a;
+  --brand-paper: #ffffff;
+  --brand-amber: #e8a33d;
+  --brand-gray: #6b7280;
+
+  --brand-font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --brand-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --tracking-eyebrow: 0.18em;
+
+  /* Dark scheme (default). Values copied from the main site's dark block. */
+  color-scheme: dark;
+  --background: var(--brand-ink);
+  --foreground: var(--brand-paper);
+  --surface: #1a1d23;
+  --surface-strong: #22262e;
+  --border: #2e333c;
+  --muted: #9aa1ad;
+}
+
+/* Light applies only once a visitor has picked it (see theme.js). */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: var(--brand-paper);
+  --foreground: var(--brand-ink);
+  --surface: #f6f6f7;
+  --surface-strong: #eeeef0;
+  --border: #dfe0e3;
+  --muted: #5a6270;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--brand-font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* One visible focus treatment for everything interactive, same as the main
+   site: a 2px amber ring hugging the element, then a 2px foreground ring
+   outside it. Amber alone fails 3:1 on white; the foreground ring passes in
+   both schemes, and amber against foreground is 8.4:1. */
+:where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--brand-amber);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

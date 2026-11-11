@@ -21,6 +21,7 @@
     "phaser": "4.2.1"
   },
   "devDependencies": {
+    "@pcg/catalog": "workspace:*",
     "@pcg/relay": "workspace:*",
     "@playwright/test": "1.64.1",
     "@resvg/resvg-js": "2.6.2",

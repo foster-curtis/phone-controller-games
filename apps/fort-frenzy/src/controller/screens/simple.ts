@@ -1,6 +1,7 @@
 // The small screens: join (phone-local: room code entry), status (waiting, full, restoring, removed,
 // connecting), name (SPEC §2.6 join mockup: code, name, one button) and claim (resume into a new room).
 import { el } from '@pcg/controller-kit';
+import { maxPlayers, title as gameTitle } from '../../../game.meta';
 import { NAME_MAX } from '../../shared/messages';
 import { CLASS_INFO } from '../copy';
 import { icon } from '../components';
@@ -13,7 +14,7 @@ const hero = () =>
     'div',
     { class: 'hero' },
     el('img', { class: 'hero-mark', src: '/apple-icon.png', alt: '', width: '96', height: '96' }),
-    el('h1', { class: 'title hero-title', text: 'Fort Frenzy' }),
+    el('h1', { class: 'title hero-title', text: gameTitle }),
   );
 
 /** Phone-local join: a room code field (no `?code=`) or a "connecting" note with the error, if any. */
@@ -77,7 +78,10 @@ const STATUS_COPY: Record<string, { title: string; body: string }> = {
     title: 'Joining at the next build phase',
     body: 'Hang tight. You will drop in between waves.',
   },
-  full: { title: 'Game full', body: 'Fort Frenzy holds six players. Wait for a spot to open.' },
+  full: {
+    title: 'Game full',
+    body: `${gameTitle} holds ${maxPlayers} players. Wait for a spot to open.`,
+  },
   restoring: { title: 'TV is restoring…', body: 'The run comes back in a moment.' },
 };
 

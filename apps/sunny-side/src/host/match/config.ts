@@ -1,11 +1,12 @@
 // Match tuning constants (never frozen; tuned at checkpoints).
+import { minPlayers } from '../../../game.meta';
 import type { Difficulty } from '../../shared/messages';
 
 /** One fixed sim step (SPEC §8). Match time only advances through `tick(dtMs)`. */
 export const STEP_MS = 1000 / 60;
 
-/** Players needed to start a round (SPEC §6.1, §6.5). */
-export const MIN_PLAYERS = 2;
+/** Players needed to start a round (SPEC §6.1, §6.5); the value lives in `game.meta.ts`. */
+export const MIN_PLAYERS = minPlayers;
 
 /** Round-start countdown; eggs are frozen throughout (Build decisions). */
 export const COUNTDOWN_MS = 3000;

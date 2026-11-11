@@ -37,7 +37,13 @@
     "dev:lan:say-cheese": "concurrently -n relay,web -c yellow,cyan \"pnpm --filter @pcg/relay dev\" \"pnpm --filter @pcg/say-cheese dev --host\"",
     "build:say-cheese": "pnpm --filter @pcg/say-cheese build",
     "e2e:say-cheese": "pnpm --filter @pcg/say-cheese e2e",
-    "check:say-cheese": "pnpm --filter @pcg/say-cheese typecheck && eslint apps/say-cheese && prettier --check apps/say-cheese && pnpm --filter @pcg/say-cheese test && pnpm build:say-cheese && pnpm check:bundle say-cheese && pnpm check:routes say-cheese && pnpm check:changeset"
+    "check:say-cheese": "pnpm --filter @pcg/say-cheese typecheck && eslint apps/say-cheese && prettier --check apps/say-cheese && pnpm --filter @pcg/say-cheese test && pnpm build:say-cheese && pnpm check:bundle say-cheese && pnpm check:routes say-cheese && pnpm check:changeset",
+    "dev:gallery": "pnpm --filter @pcg/gallery dev",
+    "dev:lan:gallery": "pnpm --filter @pcg/gallery dev --host",
+    "build:gallery": "pnpm --filter @pcg/gallery build",
+    "e2e:gallery": "pnpm --filter @pcg/gallery e2e",
+    "lighthouse:gallery": "pnpm --filter @pcg/gallery lighthouse",
+    "check:gallery": "pnpm --filter @pcg/gallery typecheck && eslint apps/gallery && prettier --check apps/gallery && pnpm --filter @pcg/gallery test && pnpm build:gallery && pnpm check:changeset"
   },
   "devDependencies": {
     "@changesets/cli": "3.0.3",

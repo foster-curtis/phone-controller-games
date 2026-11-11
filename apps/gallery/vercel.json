@@ -1,0 +1,4 @@
+{
+  "cleanUrls": true,
+  "ignoreCommand": "node ../../scripts/vercel-ignore.mjs gallery --catalog"
+}

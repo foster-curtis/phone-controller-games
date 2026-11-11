@@ -7,6 +7,7 @@
   },
   "include": [
     "src",
+    "game.meta.ts",
     "e2e",
     "scripts",
     "generated",

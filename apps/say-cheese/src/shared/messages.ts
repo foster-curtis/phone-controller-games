@@ -1,18 +1,19 @@
 // Game messages between phones and the host (SPEC §6.7, §7.3, §7.4, §8), carried in relay `send.data`.
 // Frozen at SC0 (BUILD_PLAN §3): additive changes only. Every addition goes in SPEC §7.3 and
 // BUILD_PLAN §8 Build decisions.
+import { maxPlayers, minPlayers } from '../../game.meta';
 import { type Ack, type Chunk, isAck, isChunk } from './blob-transfer/types';
 import type { SeatId } from './seats/types';
 
 /** Relay namespace, game ID "say-cheese" (SPEC §4, §7.1). */
 export const GAME_ID = 'say-cheese';
 
-/** Relay `maxPlayers`: phones, incl. spectators (SPEC §7.1). */
-export const MAX_PHONES = 10;
-/** Player (seat) cap, enforced by the host (SPEC §6.1, §6.3.1). */
-export const MAX_SEATS = 8;
-/** Start needs this many seats (SPEC §6.1). */
-export const MIN_PLAYERS = 3;
+/** Relay `maxPlayers`: phones, incl. spectators (SPEC §7.1): the seat cap plus 2 spectators. */
+export const MAX_PHONES = maxPlayers + 2;
+/** Player (seat) cap, enforced by the host (SPEC §6.1, §6.3.1); the value lives in game.meta.ts. */
+export const MAX_SEATS = maxPlayers;
+/** Start needs this many seats (SPEC §6.1); the value lives in game.meta.ts. */
+export const MIN_PLAYERS = minPlayers;
 /** Name length cap (SPEC §6.3). */
 export const NAME_MAX = 10;
 

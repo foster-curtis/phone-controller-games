@@ -7,15 +7,23 @@ Same-room party games: the TV runs the game in a browser, phones are the control
 - Each game keeps its own `SPEC.md` (design) and `BUILD_PLAN.md` (build plan) in its app folder, e.g.
   [`apps/sunny-side/SPEC.md`](apps/sunny-side/SPEC.md).
 
-| Path                      | Package               | What                                                                    |
-| ------------------------- | --------------------- | ----------------------------------------------------------------------- |
-| `apps/relay`              | `@pcg/relay`          | Game-agnostic WebSocket relay (Fly.io)                                  |
-| `apps/sunny-side`         | `@pcg/sunny-side`     | Sunny Side Slam: host (`/`) + phone controller (`/play`)                |
-| `apps/fort-frenzy`        | `@pcg/fort-frenzy`    | Fort Frenzy: host (`/`) + phone controller (`/play`)                    |
-| `apps/say-cheese`         | `@pcg/say-cheese`     | Say Cheese!: host (`/`) + phone controller (`/play`)                    |
-| `packages/net-client`     | `@pcg/net-client`     | Relay protocol types + host/controller clients (TS source)              |
-| `packages/controller-kit` | `@pcg/controller-kit` | Phone platform, app shell, input widgets, gestures, sender, dev harness |
-| `packages/game-kit`       | `@pcg/game-kit`       | Fixed-step loop, lerp, seeded RNG, host helpers, Vite plugins (`/vite`) |
+| Path                      | Package               | What                                                                     |
+| ------------------------- | --------------------- | ------------------------------------------------------------------------ |
+| `apps/relay`              | `@pcg/relay`          | Game-agnostic WebSocket relay (Fly.io)                                   |
+| `apps/sunny-side`         | `@pcg/sunny-side`     | Sunny Side Slam: host (`/`) + phone controller (`/play`)                 |
+| `apps/fort-frenzy`        | `@pcg/fort-frenzy`    | Fort Frenzy: host (`/`) + phone controller (`/play`)                     |
+| `apps/say-cheese`         | `@pcg/say-cheese`     | Say Cheese!: host (`/`) + phone controller (`/play`)                     |
+| `apps/gallery`            | `@pcg/gallery`        | Game Gallery at games.fostercurtis.dev: one static page from the catalog |
+| `packages/net-client`     | `@pcg/net-client`     | Relay protocol types + host/controller clients (TS source)               |
+| `packages/controller-kit` | `@pcg/controller-kit` | Phone platform, app shell, input widgets, gestures, sender, dev harness  |
+| `packages/game-kit`       | `@pcg/game-kit`       | Fixed-step loop, lerp, seeded RNG, host helpers, Vite plugins (`/vite`)  |
+| `packages/catalog`        | `@pcg/catalog`        | Game catalog: schema, ordered game list, validation, launch URLs         |
+
+Each game describes itself in `apps/<game>/game.meta.ts`: title, short and long description, card and share art
+(`apps/<game>/catalog/`), player range and status. That file is the one source for the game's title
+and player limits. The game's own code and `@pcg/catalog` both read it, and a game's build fails if
+the catalog is invalid. See [`packages/catalog/README.md`](packages/catalog/README.md). The
+[gallery](#gallery) reads the catalog too, so a new `game.meta.ts` gets a card with no gallery change.
 
 ## Setup
 
@@ -78,6 +86,31 @@ Fort Frenzy generates its asset manifest, icon sprite and class portraits into t
 `apps/fort-frenzy/generated/` with `pnpm --filter @pcg/fort-frenzy assets`; its `dev`, `build`,
 `typecheck`, `test` and `e2e` scripts run that first.
 
+## Gallery
+
+`apps/gallery` is the public home page at [games.fostercurtis.dev](https://games.fostercurtis.dev): one
+static page with a card per listed game, prerendered at build time from `@pcg/catalog` (no runtime
+data fetching, no framework). Hidden games never reach the output. Its styles, fonts, icons, OG image
+and 404 page come from its read-only brand kit (`apps/gallery/brand/README.md`). Design:
+[`apps/gallery/SPEC.md`](apps/gallery/SPEC.md).
+
+```sh
+pnpm dev:gallery          # Vite on :5173 (no relay)
+pnpm dev:lan:gallery      # same, bound to the LAN, to check it on a phone
+pnpm check:gallery        # typecheck, lint, format:check, unit + build tests, build, check:changeset
+pnpm e2e:gallery          # Playwright on :5177 (cards, keyboard, mouse, touch, theme, layout, axe)
+pnpm lighthouse:gallery   # build, vite preview on :4173, Lighthouse mobile: performance and accessibility ≥ 90
+```
+
+`lighthouse:gallery` runs Lighthouse with `pnpm dlx` on Playwright's Chromium, so the first run needs
+the network; add `-- --no-build` to reuse the last build.
+
+It deploys to its own Vercel project (Root Directory `apps/gallery`). Its ignore step
+(`vercel-ignore.mjs gallery --catalog`) builds production when the gallery's version or any game's
+version changed, since a change to a game's `game.meta.ts` or card art bumps that game. Previews build
+when the gallery, `packages/`, the lockfile, or any game's `game.meta.ts` or `catalog/` changed.
+Vercel Web Analytics counts page views (the script is injected only in production builds).
+
 ## Versions
 
 Each game, the relay and each package has a semver version and a `CHANGELOG.md`, managed by
@@ -91,7 +124,8 @@ pnpm check:changeset      # fails if this branch changed a package without a not
 Everything lands on `main` through a PR; CI (`.github/workflows/ci.yml`) runs the affected checks and
 e2e suites, and can be run by hand for everything. Merging a feature PR doesn't deploy. The release
 workflow keeps a "Version Packages" PR open with the pending bumps and changelogs; merging it is the
-deploy, and Vercel builds production only for games whose version changed. The relay deploys by hand
+deploy, and Vercel builds production only for apps whose version changed (the gallery also when
+a game's did). The relay deploys by hand
 (`fly deploy` from the repo root) after a release bumps it.
 
 The games show their version in a corner of the TV and on the phone's join and lobby screens.

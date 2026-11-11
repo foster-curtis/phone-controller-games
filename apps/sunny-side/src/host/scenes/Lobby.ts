@@ -2,6 +2,7 @@
 // color pills, and the host's Start button.
 import { joinUrl, qrMatrix } from '@pcg/game-kit';
 import * as Phaser from 'phaser';
+import { title } from '../../../game.meta';
 import { theme } from '../../shared/theme';
 import { lobbyLayout, type Rect } from '../render/layout';
 import { addRemoveButton } from '../render/remove';
@@ -73,7 +74,7 @@ export class LobbyScene extends Phaser.Scene {
         .setDisplaySize(MARK_SIZE, MARK_SIZE)
         .setAngle(theme.tilt.title);
     }
-    addText(this, L.title.x + MARK_SIZE + theme.space[4], titleY, 'Sunny Side Slam', 'title')
+    addText(this, L.title.x + MARK_SIZE + theme.space[4], titleY, title, 'title')
       .setOrigin(0, 0.5)
       .setAngle(theme.tilt.title)
       .setStroke(theme.color.stickerOutline.hex, 10)

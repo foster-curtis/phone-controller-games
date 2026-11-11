@@ -11,6 +11,7 @@ import {
   type ShellClient,
 } from '@pcg/controller-kit';
 import type { StorageLike } from '@pcg/net-client';
+import { title } from '../../game.meta';
 import { PROTOCOL_VERSION, isHostMsg, type Intent, type TeamView } from '../shared/messages';
 import { Toast } from './components';
 import { createPhoneSender, type PhoneSender } from './input';
@@ -31,7 +32,7 @@ export const OVERLAY_NAMES: OverlayName[] = ['reconnecting', 'hostAway', 'rotate
 const OVERLAY_TEXT: Record<OverlayName, { title: string; body: string }> = {
   reconnecting: { title: 'Reconnecting…', body: 'Hang tight, getting you back in.' },
   hostAway: { title: 'TV away', body: 'Waiting for the TV to come back.' },
-  rotate: { title: 'Rotate your phone', body: 'Fort Frenzy plays in landscape.' },
+  rotate: { title: 'Rotate your phone', body: `${title} plays in landscape.` },
   refreshTv: {
     title: 'Refresh the TV',
     body: 'The TV is running an older version. Reload it and rejoin.',

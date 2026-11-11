@@ -47,7 +47,7 @@ Repo-wide hosting and layout: `PLATFORM.md` §4. Relay hosting: relay SPEC §2. 
 
 ### 6.1 Scope
 
-- **Players:** 2–8. No bots (2 players = a duel).
+- **Players:** 2–8. No bots (2 players = a duel). The title and this range live in `game.meta.ts` (the game's catalog entry, `PLATFORM.md` decision #9): code reads them from there, so change them there.
 - **Arena:** one layout, circular, shrinking. **Starting radius scales with player count** for the round.
 - **Scoring:** points per round. Last one standing +3; each knockout you cause +1.
   - **Knockout credit = last touch:** whoever last hit the eliminated player within ~3 s gets the point. No recent hitter → no one scores.
@@ -287,6 +287,7 @@ _None. Spec complete and ready for implementation._
 | 29  | 2026-10-24 | Leave / removal (C3) | Leave game = full removal (egg off the pan, no points; score/color/spot dropped; same key later = new player); leader phone + host can remove any other player (connected or away); emoji cooldown 0.5 s | Foster at C3: away players held spots and colors with no way to clear them; Leave should mean gone. Disconnects still keep the spot. Supersedes #25 and the 1 s in #22. |
 | 30  | 2026-10-26 | Rename              | **Sunny Side Slam** replaces Sunny Side Shove (amends #8). Domain `sunny-side.fostercurtis.dev` and game ID `sunny-side` are unchanged | Owner's choice (Foster); "Slam" matches the charged slam ability. |
 | 31  | 2026-11-10 | Hide DASH           | The phone's DASH button is hidden (kept in code, `DASH_HIDDEN` in `screens/controller.ts`); SLAM is the only live-egg button. v2 adds power-ups and replaces DASH with an action button (§11) | Owner's choice (Foster). |
+| 32  | 2026-11-10 | Catalog entry       | `game.meta.ts` holds the title, player range (2–8), catalog descriptions and card and link-share art (`catalog/card.jpg`, `catalog/share.webp`); `MIN_PLAYERS`, `MAX_PLAYERS` and the TV/phone title read it | One source for the gallery and the game (`PLATFORM.md` #9). No behavior change. |
 
 ## 11. Later (v2)
 

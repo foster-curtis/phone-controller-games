@@ -1,5 +1,6 @@
 // Home (SPEC §2.6 TV screens, §11.1, §15.8): the focused row is lit amber, ◂ ▸ change theme and
 // difficulty, "Resume wave N" appears only when a snapshot exists, and the audio loading bar has a slot.
+import { maxPlayers, minPlayers, title } from '../../../../game.meta';
 import type { Section } from '../render';
 import { esc, panel } from '../html';
 import { DIFFICULTY_NAME, THEME_NAME, fmtSavedAgo, shortUrl } from '../labels';
@@ -46,8 +47,8 @@ export function homeSections(view: TvView): Section[] {
       html:
         `<div class="home">` +
         `<img class="logo" src="/apple-icon.png" alt="" />` +
-        `<div class="title">Fort Frenzy</div>` +
-        `<div class="body tagline">Hold the line together. 2 to 6 players, phones as controllers.</div>` +
+        `<div class="title">${esc(title)}</div>` +
+        `<div class="body tagline">Hold the line together. ${minPlayers} to ${maxPlayers} players, phones as controllers.</div>` +
         `<div class="rows">${rows}</div>` +
         room +
         `<div class="hint tag">Arrows or d-pad to move · Enter or A to select</div>` +
