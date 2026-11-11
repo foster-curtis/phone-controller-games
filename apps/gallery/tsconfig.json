@@ -6,12 +6,5 @@
     "allowImportingTsExtensions": true,
     "allowJs": true
   },
-  "include": [
-    "src",
-    "e2e",
-    "scripts",
-    "vite.config.ts",
-    "vitest.config.ts",
-    "playwright.config.ts"
-  ]
+  "include": ["src", "e2e", "scripts", "vite.config.ts", "vitest.config.ts", "playwright.config.ts"]
 }

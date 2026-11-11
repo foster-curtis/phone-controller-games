@@ -31,7 +31,9 @@ const card = (g: GameMeta, eager = false) =>
 
 describe('escapeHtml', () => {
   it('escapes <, >, &, double and single quotes', () => {
-    expect(escapeHtml(`<a href="x">&'</a>`)).toBe('&lt;a href=&quot;x&quot;&gt;&amp;&#39;&lt;/a&gt;');
+    expect(escapeHtml(`<a href="x">&'</a>`)).toBe(
+      '&lt;a href=&quot;x&quot;&gt;&amp;&#39;&lt;/a&gt;',
+    );
   });
 });
 
@@ -71,7 +73,11 @@ describe('renderCard', () => {
   });
 
   it('escapes every text field', () => {
-    const html = renderCard(evil, { href: gameUrl(evil.id), imageSrc: imageSrc(evil), eager: false });
+    const html = renderCard(evil, {
+      href: gameUrl(evil.id),
+      imageSrc: imageSrc(evil),
+      eager: false,
+    });
     expect(html).not.toContain('<b>');
     expect(html).not.toContain(`"Tom"`);
     expect(html).not.toContain(`'Jerry'`);
