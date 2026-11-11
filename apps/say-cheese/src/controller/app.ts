@@ -10,6 +10,7 @@ import {
   writeStored,
   type ShellClient,
 } from '@pcg/controller-kit';
+import { title } from '../../game.meta';
 import { isHostMsg, type HostMsg, type PhoneMsg, type Screen } from '../shared/messages';
 import { noopSfx, type Sfx } from '../shared/sfx';
 import type { Camera, CapturedPhoto } from './camera/types';
@@ -24,7 +25,7 @@ const NAME_KEY = 'say-cheese:name';
 const TEXT = {
   reconnecting: { title: 'Reconnecting…', body: 'Hang on, finding the game again.' },
   hostAway: { title: 'TV is away', body: 'Waiting for the TV to come back.' },
-  rotate: { title: 'Rotate your phone', body: 'Say Cheese! plays upright.' },
+  rotate: { title: 'Rotate your phone', body: `${title} plays upright.` },
   kicked: { title: 'You were removed', body: 'Ask the group leader if you want back in.' },
   closed: { title: 'Game closed', body: 'This room is gone. Scan the TV for a new code.' },
 };

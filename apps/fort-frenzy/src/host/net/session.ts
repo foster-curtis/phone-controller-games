@@ -7,6 +7,7 @@
 // restored into the same or a new room), and the team pause (C4, FF14-fix-1: any run phone pauses or
 // resumes; the runtime stops stepping while `paused` is set). No Phaser, no relay client: the runtime
 // passes `send` and `kick`.
+import { maxPlayers, minPlayers } from '../../../game.meta';
 import { content as defaultContent, type Content } from '../../content';
 import { PLAYER_COLOR_IDS, type ClassId, type PlayerColorId } from '../../shared/ids';
 import {
@@ -32,8 +33,8 @@ import { PhoneInputSource } from './input';
 import { SAVE_DEBOUNCE_MS, type SnapshotStore } from './resume';
 import { buildSummary, meView, teamView, type FfParty, type ViewCtx } from './views';
 
-/** Game cap (§11.1); the relay room holds 8 for rejoin headroom (§15.6). */
-export const MAX_PARTY = 6;
+/** Game cap (§11.1, from `game.meta.ts`); the relay room holds 2 more for rejoin headroom (§15.6). */
+export const MAX_PARTY = maxPlayers;
 export const TEAM_MIN_MS = 200;
 export const ME_MIN_MS = 100;
 
@@ -126,6 +127,7 @@ export function createSession(deps: SessionDeps): Session {
   const party: FfParty = createParty<PlayerColorId, ClassId>({
     colors: PLAYER_COLOR_IDS,
     maxPlayers: MAX_PARTY,
+    minPlayers,
   });
   const settings: RunSettings = { theme: 'neon-knights', difficulty: 'normal' };
   /** Relay player keys by playerId (from peer events; hello carries the device ID). */

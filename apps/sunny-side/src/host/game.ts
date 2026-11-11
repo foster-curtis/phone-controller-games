@@ -7,6 +7,7 @@ import {
   type HostRoom,
 } from '@pcg/net-client';
 import { catchUpSteps, createFixedStep, relayUrl, type FixedStep } from '@pcg/game-kit';
+import { maxPlayers } from '../../game.meta';
 import { GAME_ID } from '../shared/messages';
 import { createDebugSim, type DebugSim } from './debug';
 import { interpolateSnapshot } from './interpolate';
@@ -14,8 +15,8 @@ import { createMatch, STEP_MS, type Match, type MatchView, type StorageLike } fr
 import { createSim, type Sim, type SimEvent, type SimSnapshot } from './sim';
 import { createHostNet } from './net';
 
-/** Players per room (SPEC §6.1: 2–8; spectators count toward the relay's cap). */
-export const MAX_PLAYERS = 8;
+/** Players per room (SPEC §6.1, from `game.meta.ts`; spectators count toward the relay's cap). */
+export const MAX_PLAYERS = maxPlayers;
 
 /** Elapsed time per frame is clamped to this before the accumulator (a long hitch or a hidden tab). */
 const MAX_FRAME_MS = 250;

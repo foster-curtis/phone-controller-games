@@ -1,5 +1,6 @@
 // Host leader controls (SPEC §6.5, §6.6): buttons + keyboard, no hover. Pure mapping from the TV view
 // to the available controls, so buttons and keys can't disagree. Emits `HostControl` (match/types).
+import { MIN_PLAYERS } from '../shared/messages';
 import type { HostControl, TvView } from './match/types';
 
 export interface ControlSpec {
@@ -17,7 +18,7 @@ export function controlsFor(view: TvView): ControlSpec[] {
     case 'lobby':
       return [
         {
-          label: view.canStart ? 'Start' : 'Start (3+ players, all ready)',
+          label: view.canStart ? 'Start' : `Start (${MIN_PLAYERS}+ players, all ready)`,
           control: { action: 'start' },
           primary: true,
           disabled: !view.canStart,

@@ -2,9 +2,10 @@
 // the right (the play surface mounts its hold-to-pause button there). Neutral before a color is assigned.
 import type { PlayerColorId } from '../shared/messages';
 import { el } from '@pcg/controller-kit';
+import { title } from '../../game.meta';
 import { colorOnVar, colorVar } from './screens/common';
 
-export const DEFAULT_BANNER_TEXT = 'Sunny Side Slam';
+export const DEFAULT_BANNER_TEXT = title;
 
 export interface Banner {
   el: HTMLElement;

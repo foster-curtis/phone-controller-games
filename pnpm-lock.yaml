@@ -54,6 +54,9 @@ importers:
         specifier: 4.2.1
         version: 4.2.1
     devDependencies:
+      '@pcg/catalog':
+        specifier: workspace:*
+        version: link:../../packages/catalog
       '@pcg/relay':
         specifier: workspace:*
         version: link:../relay
@@ -131,6 +134,9 @@ importers:
         specifier: workspace:*
         version: link:../../packages/net-client
     devDependencies:
+      '@pcg/catalog':
+        specifier: workspace:*
+        version: link:../../packages/catalog
       '@pcg/relay':
         specifier: workspace:*
         version: link:../relay
@@ -171,6 +177,9 @@ importers:
         specifier: 4.2.1
         version: 4.2.1
     devDependencies:
+      '@pcg/catalog':
+        specifier: workspace:*
+        version: link:../../packages/catalog
       '@pcg/relay':
         specifier: workspace:*
         version: link:../relay
@@ -192,6 +201,21 @@ importers:
       qrcode:
         specifier: 1.5.4
         version: 1.5.4
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vite:
+        specifier: 8.3.5
+        version: 8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1)
+      vitest:
+        specifier: 5.0.5
+        version: 5.0.5(@types/node@24.19.2)(jsdom@30.1.3)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
+
+  packages/catalog:
+    devDependencies:
+      '@types/node':
+        specifier: 24.19.2
+        version: 24.19.2
       typescript:
         specifier: 5.9.3
         version: 5.9.3

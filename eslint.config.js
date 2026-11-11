@@ -200,6 +200,24 @@ export default defineConfig(
     },
   },
   {
+    // The one exception (PLATFORM decision #9): the catalog's list imports each game's game.meta.ts,
+    // and nothing else from apps/.
+    files: ['packages/catalog/src/games.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: `(^|/)apps/(?![^/]+/game\\.meta\\.ts$)|^(${appPackages.join('|')})(/|$)`,
+              message: 'The catalog imports only apps/<game>/game.meta.ts from apps/.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // The helpers' `test` records which files each test loads; e2e selection needs every spec on it.
     files: ['apps/*/e2e/**/*.spec.ts'],
     rules: {

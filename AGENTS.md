@@ -17,9 +17,15 @@ every message goes through a shared, game-agnostic WebSocket **relay**.
 | `packages/net-client`     | `@pcg/net-client`     | Relay protocol types plus host and controller clients (TS).              |
 | `packages/controller-kit` | `@pcg/controller-kit` | Phone platform, app shell, widgets, gestures, input sender, dev harness. |
 | `packages/game-kit`       | `@pcg/game-kit`       | Fixed-step loop, lerp, seeded RNG, host helpers; `/vite` plugins.        |
+| `packages/catalog`        | `@pcg/catalog`        | Game catalog: schema, ordered list of games, validation, launch URLs.    |
 
 `apps/` holds deployables (games and the relay). `packages/` holds code shared by more than one app.
 Each game's release status is in `PLATFORM.md` §1.
+
+Each game describes itself in `apps/<game>/game.meta.ts` (title, short and long description, card
+art, player range, status). `@pcg/catalog` lists those entries in order and validates them, and the
+gallery, each game's own UI and later surfaces read from it. A game's title and player limits come
+from its `game.meta.ts`: never hardcode them in game code (`PLATFORM.md` §4, decision #9).
 
 ## Where to look
 
@@ -34,6 +40,7 @@ Shared code and repo-wide rules:
 | Relay hosting, config defaults, deploy                   | `apps/relay/SPEC.md` §2, `apps/relay/fly.toml`, `apps/relay/Dockerfile` (deploy from the repo root) |
 | Fixed-step loop, lerp, seeded RNG, host helpers          | `packages/game-kit/src/` (`src/index.ts`; Vite plugins `src/vite.ts`; Playwright `src/e2e.ts`)      |
 | Phone platform, shell, widgets, gestures, input sender   | `packages/controller-kit/src/` (public API `src/index.ts`)                                          |
+| Game catalog: schema, game list, validation, launch URLs | `packages/catalog/` (README; `src/games.ts` order, `src/url.ts` routing, `/node`, `/vite` check)    |
 | Versions, changelogs, major/minor/patch rules            | `PLATFORM.md` §5, `.changeset/` (config and pending notes), each package's `CHANGELOG.md`           |
 | Lint boundary rules                                      | `eslint.config.js`                                                                                  |
 | Build checks                                             | `scripts/check-bundle.mjs`, `scripts/check-routes.mjs`                                              |
@@ -46,6 +53,7 @@ Inside a game (`apps/<game>/`), the layout is the same for every game:
 | You need…                                        | Look in                                                                  |
 | ------------------------------------------------ | ------------------------------------------------------------------------ |
 | Game design, technical design, decision log      | `SPEC.md` (the decision log is its last numbered section or table)       |
+| Title, player range, catalog copy, card art      | `game.meta.ts`, `catalog/card.*` (schema in `packages/catalog`)          |
 | Build history, freeze points, past build choices | `BUILD_PLAN.md` (§3 milestones and freeze points, §8 build decisions)    |
 | Phone↔host game messages                         | `src/shared/messages.ts`                                                 |
 | Host wiring, TV rendering, game logic            | `src/host/` (entry `main.ts`)                                            |
@@ -116,6 +124,14 @@ These rules are enforced by ESLint or by `pnpm check`. Don't work around them.
 - **Host-authoritative.** The host runs the whole simulation and all rendering. Phones send input state
   only (stick vector plus button bits), never discrete commands. The relay holds no game rules.
 - **`packages/**` must not import from `apps/**`.** Shared code depends on nothing game-specific.
+  The one exception is `packages/catalog/src/games.ts`, which may import `apps/<game>/game.meta.ts`
+  and nothing else from `apps/` (`PLATFORM.md` decision #9).
+- **Title and player limits come from `game.meta.ts`.** Game code imports the named `title`,
+  `minPlayers` and `maxPlayers` exports (not the default export, so phones don't bundle the
+  descriptions). Every game's `vite.config.ts` runs `catalogCheck()` from `@pcg/catalog/vite`, which
+  fails the build on an invalid catalog: a missing field, bad player range, duplicate id, a short
+  description over 160 characters, missing card art, or a page `<title>` or web-manifest name that
+  differs from `title`.
 - **The controller never loads Phaser or host code.** Files in `src/controller/**` must not import
   `phaser` or anything under `host/`. The host (`index.html`) and controller (`play.html`) are separate
   Vite entries so that phones load quickly; `check:bundle` fails the build if Phaser reaches `play.html`
@@ -201,6 +217,17 @@ Write the game's `SPEC.md` and `BUILD_PLAN.md` first; they drive the build. When
   `src/host`, `src/controller`, `src/shared`, a unique game ID (`GAME_ID`) for the relay namespace, and a
   `@pcg/<name>` package.
 - Reuse `@pcg/net-client`, the kits and the relay as they are. Don't fork the protocol.
+- Create its catalog entry (`packages/catalog/README.md` has the details):
+  - Create `apps/<game>/game.meta.ts` (copy an existing game's). The `id` is the app folder name,
+    which is also its subdomain. Export `title`, `minPlayers` and `maxPlayers` as named constants and
+    the full entry as the default export (`satisfies GameMeta`). Write the descriptions for players.
+  - Put 16:9 card art at `apps/<game>/catalog/card.<svg|png|jpg|webp>`. Use a placeholder until
+    real art exists. Never use `public/` or `brand/`: those are the brand kit's.
+  - Add the entry to `GAMES` in `packages/catalog/src/games.ts` (the order is the gallery order).
+  - Add `"@pcg/catalog": "workspace:*"` to the game's devDependencies, `catalogCheck()` to its
+    `vite.config.ts` plugins and `"game.meta.ts"` to its `tsconfig.json` `include`.
+  - Take the title and player limits in game code from `game.meta.ts`, never from literals. The
+    page `<title>` in `index.html` and `play.html` must match `title`.
 - Only extract code into `packages/` once two games really need it (`PLATFORM.md` §4, decisions #1 and
   #4). Propose any further extraction before making it.
 - Root wiring to add:
