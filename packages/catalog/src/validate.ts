@@ -4,7 +4,7 @@
 import {
   GAME_STATUSES,
   ID_PATTERN,
-  IMAGE_EXTENSIONS,
+  IMAGE_FIELDS,
   LONG_DESCRIPTION_MAX,
   SHORT_DESCRIPTION_MAX,
   type GameStatus,
@@ -43,17 +43,18 @@ function entryErrors(entry: unknown): string[] {
   push(text(entry, 'shortDescription', SHORT_DESCRIPTION_MAX));
   push(text(entry, 'longDescription', LONG_DESCRIPTION_MAX));
 
-  const imageError = text(entry, 'image');
-  push(imageError);
-  if (!imageError) {
-    const image = entry.image as string;
-    if (image.startsWith('/') || /^[a-z]+:/i.test(image) || image.split(/[\\/]/).includes('..')) {
-      errors.push(`image "${image}" must be a path inside the game's folder`);
+  for (const [key, extensions] of Object.entries(IMAGE_FIELDS)) {
+    const missing = text(entry, key);
+    push(missing);
+    if (missing) continue;
+    const path = entry[key] as string;
+    if (path.startsWith('/') || /^[a-z]+:/i.test(path) || path.split(/[\\/]/).includes('..')) {
+      errors.push(`${key} "${path}" must be a path inside the game's folder`);
     }
-    const dot = image.lastIndexOf('.');
-    const ext = dot === -1 ? '' : image.slice(dot).toLowerCase();
-    if (!IMAGE_EXTENSIONS.includes(ext)) {
-      errors.push(`image "${image}" must be one of ${IMAGE_EXTENSIONS.join(', ')}`);
+    const dot = path.lastIndexOf('.');
+    const ext = dot === -1 ? '' : path.slice(dot).toLowerCase();
+    if (!extensions.includes(ext)) {
+      errors.push(`${key} "${path}" must be one of ${extensions.join(', ')}`);
     }
   }
 

@@ -19,6 +19,7 @@ const good: GameMeta = {
   shortDescription: 'Throw eggs.',
   longDescription: 'One paragraph.\n\nAnother paragraph.',
   image: 'catalog/card.svg',
+  shareImage: 'catalog/share.webp',
   minPlayers: 2,
   maxPlayers: 8,
   status: 'live',
@@ -42,10 +43,11 @@ describe('validateGames', () => {
   });
 
   it('rejects missing required fields', () => {
-    const { title: _t, image: _i, ...rest } = good;
+    const { title: _t, image: _i, shareImage: _s, ...rest } = good;
     const errors = validateGames([rest]);
     expect(errors).toContain('egg-toss: title is missing or empty');
     expect(errors).toContain('egg-toss: image is missing or empty');
+    expect(errors).toContain('egg-toss: shareImage is missing or empty');
     expect(validateGames([{ ...good, id: undefined }])[0]).toMatch(/^entry #0: id is missing/);
     expect(validateGames([null])).toEqual(['entry #0: not an object']);
   });
@@ -85,6 +87,13 @@ describe('validateGames', () => {
     expect(errorsFor({ image: '../other/card.png' })[0]).toMatch(/inside the game's folder/);
     expect(errorsFor({ image: '/card.png' })[0]).toMatch(/inside the game's folder/);
     expect(errorsFor({ image: 'catalog/card.gif' })[0]).toMatch(/must be one of/);
+    expect(errorsFor({ shareImage: '../share.webp' })[0]).toMatch(/inside the game's folder/);
+  });
+
+  it('rejects an SVG share image (link previews do not render SVG)', () => {
+    expect(errorsFor({ shareImage: 'catalog/share.svg' })).toEqual([
+      'egg-toss: shareImage "catalog/share.svg" must be one of .png, .jpg, .jpeg, .webp',
+    ]);
   });
 });
 
@@ -92,12 +101,15 @@ describe('checkCatalog (files)', () => {
   let root: string;
   afterEach(() => rmSync(root, { recursive: true, force: true }));
 
-  function makeApp(opts: { image?: boolean; htmlTitle?: string; meta?: boolean } = {}) {
+  function makeApp(
+    opts: { image?: boolean; share?: boolean; htmlTitle?: string; meta?: boolean } = {},
+  ) {
     root = mkdtempSync(join(tmpdir(), 'pcg-catalog-'));
     const dir = join(root, 'apps', good.id);
     mkdirSync(join(dir, 'catalog'), { recursive: true });
     if (opts.meta !== false) writeFileSync(join(dir, 'game.meta.ts'), '');
     if (opts.image !== false) writeFileSync(join(dir, 'catalog', 'card.svg'), '<svg/>');
+    if (opts.share !== false) writeFileSync(join(dir, 'catalog', 'share.webp'), '');
     if (opts.htmlTitle !== undefined) {
       writeFileSync(join(dir, 'index.html'), `<title>${opts.htmlTitle}</title>`);
     }
@@ -112,6 +124,13 @@ describe('checkCatalog (files)', () => {
     makeApp({ image: false });
     expect(checkCatalog([good], root)).toEqual([
       'egg-toss: image apps/egg-toss/catalog/card.svg does not exist',
+    ]);
+  });
+
+  it('fails when the share image does not exist', () => {
+    makeApp({ share: false });
+    expect(checkCatalog([good], root)).toEqual([
+      'egg-toss: shareImage apps/egg-toss/catalog/share.webp does not exist',
     ]);
   });
 

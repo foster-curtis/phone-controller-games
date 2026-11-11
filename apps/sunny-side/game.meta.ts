@@ -18,7 +18,8 @@ export default {
   longDescription: `Everyone is a wobbly fried egg on one big skillet, and the edge of the pan is sizzling inward. Steer with your phone, dash into your rivals, or charge up a yolk-first belly flop to send them flying. The last egg on the pan scores big, and every egg you knock off earns you a point too.
 
 Getting knocked out isn't the end. You come back as a puff of steam that drifts over the pan and nudges the survivors toward the edge, so nobody sits out for long. Rounds are quick, the match runs to a target score, and the final showdown, with every ghost in the room meddling, gets loud fast.`,
-  image: 'catalog/card.svg',
+  image: 'catalog/card.jpg',
+  shareImage: 'catalog/share.webp',
   minPlayers,
   maxPlayers,
   status: 'live',

@@ -6,16 +6,17 @@ gallery (`games.fostercurtis.dev`, coming next), each game's own lobby, and late
 
 ## Where things live
 
-| What                      | Where                                                              |
-| ------------------------- | ------------------------------------------------------------------ |
-| A game's entry            | `apps/<game>/game.meta.ts` (owned by the game)                     |
-| A game's card art         | `apps/<game>/catalog/card.<svg\|png\|jpg\|webp>` (16:9, ~1600×900) |
-| Schema and limits         | `src/types.ts`                                                     |
-| Ordered list (gallery)    | `src/games.ts` (`GAMES`)                                           |
-| Validation (browser-safe) | `src/validate.ts` (`validateGames`)                                |
-| File checks (Node only)   | `src/node.ts` (`@pcg/catalog/node`: `checkCatalog`, `imageFile`)   |
-| Build check               | `src/vite.ts` (`@pcg/catalog/vite`: `catalogCheck()`)              |
-| Launch URLs               | `src/url.ts` (`gameUrl`, `ROUTING`)                                |
+| What                      | Where                                                            |
+| ------------------------- | ---------------------------------------------------------------- |
+| A game's entry            | `apps/<game>/game.meta.ts` (owned by the game)                   |
+| A game's card art         | `apps/<game>/catalog/card.jpg` (1200×630)                        |
+| A game's link-share image | `apps/<game>/catalog/share.webp` (1200×630, smaller file)        |
+| Schema and limits         | `src/types.ts`                                                   |
+| Ordered list (gallery)    | `src/games.ts` (`GAMES`)                                         |
+| Validation (browser-safe) | `src/validate.ts` (`validateGames`)                              |
+| File checks (Node only)   | `src/node.ts` (`@pcg/catalog/node`: `checkCatalog`, `imageFile`) |
+| Build check               | `src/vite.ts` (`@pcg/catalog/vite`: `catalogCheck()`)            |
+| Launch URLs               | `src/url.ts` (`gameUrl`, `ROUTING`)                              |
 
 ## Fields
 
@@ -25,7 +26,8 @@ gallery (`games.fostercurtis.dev`, coming next), each game's own lobby, and late
 | `title`            | Player-facing name. Must match `<title>` in `index.html` and `play.html`, and the manifest. |
 | `shortDescription` | 1–2 sentences for the card, at most 160 characters.                                         |
 | `longDescription`  | One or two paragraphs behind "read more", at most 1200 characters. Plain text (see below).  |
-| `image`            | Card art path relative to the game's folder. Must exist.                                    |
+| `image`            | Card art path relative to the game's folder (svg/png/jpg/webp). Must exist.                 |
+| `shareImage`       | Link-preview image path relative to the game's folder (png/jpg/webp, no SVG). Must exist.   |
 | `minPlayers`       | Whole number, at least 1.                                                                   |
 | `maxPlayers`       | Whole number, at least `minPlayers`. Counts people, not phones (no spectators or headroom). |
 | `status`           | `live` (listed), `beta` (listed, marked unfinished) or `hidden` (not listed).               |
@@ -53,7 +55,8 @@ values in the game.
 - `minPlayers < 1` or `minPlayers > maxPlayers`
 - a duplicate `id`
 - a `shortDescription` over 160 characters (or a `longDescription` over 1200)
-- an `image` that doesn't exist, is outside the game's folder, or isn't svg/png/jpg/webp
+- an `image` or `shareImage` that doesn't exist, is outside the game's folder, or has the wrong
+  type (`image`: svg/png/jpg/webp; `shareImage`: png/jpg/webp)
 - an `id` with no `apps/<id>/game.meta.ts`
 - a page `<title>` or `public/site.webmanifest` name that differs from `title`
 
@@ -77,17 +80,25 @@ Never hardcode a game's URL. `ROUTING` in `src/url.ts` decides the shape:
 Moving to single-domain paths means changing `ROUTING`. The games would also need a Vite `base` of
 `<prefix>/<id>/`, and their phone page (today `/play`) would then sit at `<prefix>/<id>/play`.
 
-## Card art
+## Card and share art
 
 Art lives beside each game in `apps/<game>/catalog/`, not in the brand kit's read-only `public/` or
-`brand/`. A Vite build anywhere can import it. The gallery can use
+`brand/`. Each game has two 1200×630 images (the 1.91:1 link-preview size, which also suits a card):
+
+- `card.jpg` (`image`): the gallery card and key art.
+- `share.webp` (`shareImage`): the same picture as a smaller file, for link previews
+  (`og:image`). It can't be SVG, because preview crawlers don't render it.
+
+A Vite build anywhere can import them. The gallery can use
 `import.meta.glob('../*/catalog/card.*', { query: '?url', import: 'default' })` keyed by folder (=
-`id`), a game can import its own, and Node builds can use `imageFile(game)`. All three games
-currently use a grey placeholder (`card.svg`, marked PLACEHOLDER) until real art exists.
+`id`), a game can import its own, and Node builds can use `imageFile(game)` or
+`imageFile(game, root, 'shareImage')`. Link-preview tags need an absolute URL, so whatever emits
+them must publish `share.webp` at a stable path. That's for the link-preview work later.
 
 ## Adding a game
 
-1. Create `apps/<game>/game.meta.ts` (copy an existing one) and card art at `apps/<game>/catalog/`.
+1. Create `apps/<game>/game.meta.ts` (copy an existing one), plus `card.jpg` and `share.webp` in
+   `apps/<game>/catalog/`.
 2. Add it to `GAMES` in `src/games.ts`, in gallery order.
 3. In the game: `"@pcg/catalog": "workspace:*"` in devDependencies, `catalogCheck()` in
    `vite.config.ts`, `"game.meta.ts"` in `tsconfig.json` `include`, and title and player limits

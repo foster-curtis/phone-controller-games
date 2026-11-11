@@ -1,12 +1,12 @@
 // @pcg/catalog/node: the catalog checks that read files (Node only, never bundled into a page).
-// On top of `validateGames`: the id names the app folder, the image exists, and the game's page
+// On top of `validateGames`: the id names the app folder, the images exist, and the game's page
 // titles and web manifest name agree with `title`, so the catalog and the game can't drift apart.
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 // Explicit `.ts`: Vite configs load this through Node's type stripping (see `vite.ts`).
 import { GAMES } from './games.ts';
-import type { GameMeta } from './types.ts';
+import { IMAGE_FIELDS, type GameMeta } from './types.ts';
 import { entryLabel, validateGames } from './validate.ts';
 
 export const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
@@ -16,9 +16,13 @@ export function gameDir(id: string, root: string = REPO_ROOT): string {
   return join(root, 'apps', id);
 }
 
-/** The card art's absolute path (for builds that copy or import it). */
-export function imageFile(game: GameMeta, root: string = REPO_ROOT): string {
-  return join(gameDir(game.id, root), game.image);
+/** An image's absolute path (for builds that copy or import it): the card art by default. */
+export function imageFile(
+  game: GameMeta,
+  root: string = REPO_ROOT,
+  field: keyof typeof IMAGE_FIELDS = 'image',
+): string {
+  return join(gameDir(game.id, root), game[field]);
 }
 
 const decode = (s: string) =>
@@ -40,8 +44,10 @@ function fileErrors(game: GameMeta, root: string): string[] {
     return [`no apps/${game.id}/game.meta.ts (the id must be the app folder name)`];
   }
   const errors: string[] = [];
-  if (typeof game.image === 'string' && !existsSync(imageFile(game, root))) {
-    errors.push(`image apps/${game.id}/${game.image} does not exist`);
+  for (const field of Object.keys(IMAGE_FIELDS) as (keyof typeof IMAGE_FIELDS)[]) {
+    if (!existsSync(imageFile(game, root, field))) {
+      errors.push(`${field} apps/${game.id}/${game[field]} does not exist`);
+    }
   }
   for (const page of ['index.html', 'play.html']) {
     const file = join(dir, page);

@@ -18,7 +18,8 @@ export default {
   longDescription: `Each round, one player is the photographer. Eyes closed, they spin around the room snapping photos with their phone while everyone else ducks, dives and slips behind each other to stay out of frame. When time runs out, the photos go up on the TV and the whole room reviews them together, while the photographer tags everyone they can spot. Yes, an elbow counts.
 
 Everyone gets one turn behind the camera, and the lowest score wins. No phone? Players can share one, so kids can join in too. Photos stay on the TV for the match and are never uploaded or saved.`,
-  image: 'catalog/card.svg',
+  image: 'catalog/card.jpg',
+  shareImage: 'catalog/share.webp',
   minPlayers,
   maxPlayers,
   status: 'live',

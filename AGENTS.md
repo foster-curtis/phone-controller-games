@@ -53,7 +53,7 @@ Inside a game (`apps/<game>/`), the layout is the same for every game:
 | You need…                                        | Look in                                                                  |
 | ------------------------------------------------ | ------------------------------------------------------------------------ |
 | Game design, technical design, decision log      | `SPEC.md` (the decision log is its last numbered section or table)       |
-| Title, player range, catalog copy, card art      | `game.meta.ts`, `catalog/card.*` (schema in `packages/catalog`)          |
+| Title, player range, catalog copy, card art      | `game.meta.ts`, `catalog/` (`card.jpg`, `share.webp`; schema in catalog) |
 | Build history, freeze points, past build choices | `BUILD_PLAN.md` (§3 milestones and freeze points, §8 build decisions)    |
 | Phone↔host game messages                         | `src/shared/messages.ts`                                                 |
 | Host wiring, TV rendering, game logic            | `src/host/` (entry `main.ts`)                                            |
@@ -130,7 +130,7 @@ These rules are enforced by ESLint or by `pnpm check`. Don't work around them.
   `minPlayers` and `maxPlayers` exports (not the default export, so phones don't bundle the
   descriptions). Every game's `vite.config.ts` runs `catalogCheck()` from `@pcg/catalog/vite`, which
   fails the build on an invalid catalog: a missing field, bad player range, duplicate id, a short
-  description over 160 characters, missing card art, or a page `<title>` or web-manifest name that
+  description over 160 characters, missing card or share art, or a page `<title>` or web-manifest name that
   differs from `title`.
 - **The controller never loads Phaser or host code.** Files in `src/controller/**` must not import
   `phaser` or anything under `host/`. The host (`index.html`) and controller (`play.html`) are separate
@@ -221,8 +221,9 @@ Write the game's `SPEC.md` and `BUILD_PLAN.md` first; they drive the build. When
   - Create `apps/<game>/game.meta.ts` (copy an existing game's). The `id` is the app folder name,
     which is also its subdomain. Export `title`, `minPlayers` and `maxPlayers` as named constants and
     the full entry as the default export (`satisfies GameMeta`). Write the descriptions for players.
-  - Put 16:9 card art at `apps/<game>/catalog/card.<svg|png|jpg|webp>`. Use a placeholder until
-    real art exists. Never use `public/` or `brand/`: those are the brand kit's.
+  - Put its 1200×630 card art at `apps/<game>/catalog/card.jpg` (`image`) and a smaller link-share
+    copy at `apps/<game>/catalog/share.webp` (`shareImage`, never SVG). Use placeholders until real
+    art exists. Never use `public/` or `brand/`: those are the brand kit's.
   - Add the entry to `GAMES` in `packages/catalog/src/games.ts` (the order is the gallery order).
   - Add `"@pcg/catalog": "workspace:*"` to the game's devDependencies, `catalogCheck()` to its
     `vite.config.ts` plugins and `"game.meta.ts"` to its `tsconfig.json` `include`.

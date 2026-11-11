@@ -18,7 +18,7 @@ Same-room party games: the TV runs the game in a browser, phones are the control
 | `packages/game-kit`       | `@pcg/game-kit`       | Fixed-step loop, lerp, seeded RNG, host helpers, Vite plugins (`/vite`) |
 | `packages/catalog`        | `@pcg/catalog`        | Game catalog: schema, ordered game list, validation, launch URLs        |
 
-Each game describes itself in `apps/<game>/game.meta.ts`: title, short and long description, card art
+Each game describes itself in `apps/<game>/game.meta.ts`: title, short and long description, card and share art
 (`apps/<game>/catalog/`), player range and status. That file is the one source for the game's title
 and player limits. The game's own code and `@pcg/catalog` both read it, and a game's build fails if
 the catalog is invalid. See [`packages/catalog/README.md`](packages/catalog/README.md).
