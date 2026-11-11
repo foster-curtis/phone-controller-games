@@ -516,7 +516,7 @@ Rules:
   - [x] Docs (AGENTS, README, PLATFORM #10, catalog README, SPEC decision log) + changeset
   - [x] Acceptance green (test-runner)
   - [x] Merged to `catalog-and-gallery`
-  - [ ] **User approved C1**
+  - [x] **User approved C1**
 - [ ] Final test-runner pass on `catalog-and-gallery`
 - [ ] Final handoff printed
 
