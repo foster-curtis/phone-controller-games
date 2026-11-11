@@ -224,8 +224,11 @@ test.describe('accessibility', () => {
       await page
         .locator('details')
         .evaluateAll((all) => all.forEach((d) => ((d as HTMLDetailsElement).open = true)));
+      // The kit's amber ".dev" is part of the logotype, which WCAG 1.4.3 exempts from contrast; the
+      // user accepted that exemption (BUILD_PLAN §8). Only that element is excluded.
       const { violations } = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa'])
+        .exclude('.brand-wordmark-tld')
         .analyze();
       expect(violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(', ')}`)).toEqual(
         [],

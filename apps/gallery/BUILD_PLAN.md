@@ -522,7 +522,9 @@ Rules:
 
 ## 7. Blockers
 
-- [G1] 2026-11-10: Acceptance 2 fails on one test: the light-theme axe test reports `color-contrast` on `.brand-wordmark-tld`. The cause is in the kit, not the gallery. The kit colors the lockup's `.dev` amber in both themes (`components.css` `.brand-wordmark-tld { color: var(--brand-amber) }`; README: "`.dev` is in amber, always"). In light mode that is amber `#E8A33D` on paper `#FFFFFF`: axe measures 2.15:1 (18px bold, needs 4.5:1). This breaks the kit's own amber rule. The gallery's header markup is copied exactly from the kit README and the preview, which has the same problem. I tried nothing that would edit the kit or exclude the rule. Needed from the user: either (a) accept the WCAG 1.4.3 logotype exception and let the axe test exclude only `.brand-wordmark-tld` (`AxeBuilder.exclude('.brand-wordmark-tld')`), or (b) ask the brand designer for a light-theme `.dev` color that passes.
+_None open._
+
+- [G1] 2026-11-10: Acceptance 2 fails on one test: the light-theme axe test reports `color-contrast` on `.brand-wordmark-tld`. The cause is in the kit, not the gallery. The kit colors the lockup's `.dev` amber in both themes (`components.css` `.brand-wordmark-tld { color: var(--brand-amber) }`; README: "`.dev` is in amber, always"). In light mode that is amber `#E8A33D` on paper `#FFFFFF`: axe measures 2.15:1 (18px bold, needs 4.5:1). This breaks the kit's own amber rule. The gallery's header markup is copied exactly from the kit README and the preview, which has the same problem. I tried nothing that would edit the kit or exclude the rule. Needed from the user: either (a) accept the WCAG 1.4.3 logotype exception and let the axe test exclude only `.brand-wordmark-tld` (`AxeBuilder.exclude('.brand-wordmark-tld')`), or (b) ask the brand designer for a light-theme `.dev` color that passes. Resolved 2026-11-10: user chose (a), logotype exemption.
 
 Format: `- [G#] YYYY-MM-DD: what's blocked, what was tried, what's needed from whom.`
 
@@ -596,6 +598,7 @@ Format: `- [G#] decision: one line, with the reason.`
   of the process hosting `vite preview`, so the page never loaded until Lighthouse gave up. Playwright's
   Chromium with `--headless=new` works as planned, so neither fallback (old headless or system Chrome)
   is used. A `CHROME_PATH` already in the environment now overrides the browser.
+- [G1] decision: the axe tests exclude the kit's .brand-wordmark-tld (amber .dev on white, 2.15:1) under WCAG 1.4.3's logotype exemption, because the user chose to accept it (2026-11-10) rather than change the kit.
 - [G1] decision: `vercel-ignore.mjs` also exports `catalogOptions()` (the `--catalog` game list) so
   its folder scan is tested against the real repo.
 
