@@ -69,3 +69,13 @@ Everything listed under Later versions below.
 - **Ads** (including the 5-second skippable ad on the phone before the controller appears) and donation links (Patreon or similar).
 - **A page per game** for sharing and SEO, if that is worth it then.
 - Possibly a publicly hosted catalog JSON file, if anything outside the monorepo (e.g. TV apps) needs it.
+
+## Decision log
+
+| # | Date | Decision | Choice | Why |
+| --- | --- | --- | --- | --- |
+| 1 | 2026-11-10 | Framework and tooling | Vite + plain TS + the brand kit's plain CSS; no UI framework, no SSG framework, no Tailwind | One page with a handful of cards needs no framework. It matches the repo's Vite tooling and ships almost no JS, which helps Lighthouse. |
+| 2 | 2026-11-10 | Prerender | A string renderer (`src/build/render.ts`) called by a Vite plugin (`transformIndexHtml`) fills the grid from `@pcg/catalog` at build time; the client never imports the catalog | Static output with no runtime fetching. Hidden entries and their art can't reach the output through a bundle, and a build test checks it. A new `game.meta.ts` adds a card with no gallery change. |
+| 3 | 2026-11-10 | Brand kit | Unpacked read-only: `public/` and `src/brand/` at the kit's paths, `marks/`, `preview.html` and `README.md` in `brand/`; head values (`THEME_INIT`, `theme-color`, OG alt text) injected from the kit files | The kit comes from the brand designer. Injecting from its files means the page can't drift from it. |
+| 4 | 2026-11-10 | Keyboard | One stop per game for the game itself: the image and title links are out of the tab order, so each card has two stops, Read more and Play (named `Play <title>`) | The kit README's intent. Fewer stops make the grid quick to tab through, and every action stays reachable. |
+| 5 | 2026-11-10 | Analytics | Vercel Web Analytics page views only, injected in production builds; no custom events | The account is on Hobby, which has no custom events. Per-game click counts wait for v2. |

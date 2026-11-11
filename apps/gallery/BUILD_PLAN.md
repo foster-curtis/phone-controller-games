@@ -582,6 +582,17 @@ Format: `- [G#] decision: one line, with the reason.`
   note. 1.0.0 is for the public launch on its own domain (SPEC: Later versions).
 - [plan] Ports: dev 5173 (shared with the games: one dev server at a time), preview and Lighthouse
   4173 (shared with `check:routes`: never at the same time), e2e 5177.
+- [G1] decision: e2e reads the catalog through `e2e/catalog.ts` (a child `node` with type stripping,
+  returning `listedGames()` + `gameUrl()` as JSON) from the start, because G1 can't run Playwright to
+  confirm its loader handles the catalog's `.ts` imports.
+- [G1] decision: the three stylesheets are `<link rel="stylesheet">` tags in `index.html` (kit order),
+  not CSS imports in `main.ts`, because then they never depend on JS and dev has no unstyled flash.
+- [G1] decision: `main.ts` runs each kit init in its own try/catch, because the kit's
+  `initLockupAnimation()` calls `matchMedia` unguarded and must not stop the theme toggle.
+- [G1] decision: `render.test.ts` runs in jsdom (`@vitest-environment` docblock) only to parse the
+  rendered strings with `DOMParser`; `render.ts` itself uses no DOM.
+- [G1] decision: `vercel-ignore.mjs` also exports `catalogOptions()` (the `--catalog` game list) so
+  its folder scan is tested against the real repo.
 
 ## 9. Final handoff
 

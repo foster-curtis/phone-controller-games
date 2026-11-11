@@ -14,6 +14,8 @@ A series of same-room party games. A shared screen (TV/laptop browser) runs the 
 | Fort Frenzy | `apps/fort-frenzy` | Shipped (v1) |
 | Say Cheese! | `apps/say-cheese` | Shipped (v1) |
 
+The **Game Gallery** (`apps/gallery`, [games.fostercurtis.dev](https://games.fostercurtis.dev)) is the public home page: one static page with a card per listed game, built from the game catalog (decision #10; design in `apps/gallery/SPEC.md`).
+
 ## 2. Architecture (settled)
 
 - **Same-room only.** No remote/online play.
@@ -35,7 +37,7 @@ A series of same-room party games. A shared screen (TV/laptop browser) runs the 
 ## 4. Hosting & repo (settled)
 
 - **Relay:** one deployment shared by all games at `relay.fostercurtis.dev` (hosting details: relay SPEC §2).
-- **Frontends:** static Vite builds on Vercel, one subdomain of fostercurtis.dev per game. Each game's spec names its domain and its game ID (the relay namespace).
+- **Frontends:** static Vite builds on Vercel, one subdomain of fostercurtis.dev per game. Each game's spec names its domain and its game ID (the relay namespace). The gallery is its own Vercel project at `games.fostercurtis.dev`; besides its own releases, it redeploys when any game's version changes, because the cards show each game's `game.meta.ts` and art (decision #10).
 - **Repo:** pnpm monorepo:
 
 ```
@@ -48,6 +50,7 @@ apps/
     catalog/          card.jpg (card art) + share.webp (link previews), both 1200×630
     src/host/  src/controller/  src/shared/
     SPEC.md  BUILD_PLAN.md
+  gallery/          games.fostercurtis.dev: one static Vite page prerendered from the catalog → Vercel
 packages/
   net-client/       protocol types + host & controller clients
   controller-kit/   phone platform (Wake Lock, fullscreen on tap, rotate), input widgets, sender, app shell
@@ -98,3 +101,4 @@ What each level means:
 | 7 | 2026-11-10 | CI | Everything lands through PRs. CI on PRs to `main`, pushes to `main` and by hand (full run); PRs diffed against the merge-base, pushes against `before`; one Actions step per gate; changeset check on PRs (not Dependabot or the Version PR); e2e as a per-app matrix (one VM each) behind a single `e2e-result` check; actions pinned to SHAs; weekly grouped Dependabot for actions and npm | A push's own diff can go green after an earlier push failed; the PR's merge-base covers the whole branch. Per-app VMs keep exclusive suites alone for free, and one aggregate check stays required as games are added. |
 | 8 | 2026-11-10 | Release | changesets/action keeps a "Version Packages" PR open (PAT-opened so its checks run); merging it is the deploy; Vercel production builds only when the app's version changed; the relay deploys by hand | Nobody has to remember `changeset version`, and production moves only at a release. Revises #5's "versions bumped on deploy" mechanism: bumps still happen once, at release. |
 | 9 | 2026-11-10 | Game catalog | Per-game `apps/<game>/game.meta.ts` (id = folder = subdomain, title, short description ≤ 160 chars, plain-text long description, 1200×630 card art and a WebP share image, min/max players, `live`/`beta`/`hidden`); `@pcg/catalog` holds the schema, the ordered list, hand-written validation (no schema library, as in the games' `messages.ts`) and `gameUrl()` with one `ROUTING` config; card art in `apps/<game>/catalog/`; games import title and player limits from their meta file; `catalogCheck()` in every game's Vite build; the catalog's `games.ts` is the one exception to "packages don't import apps" | The gallery, each game's lobby and later surfaces need the same facts, so one typed, validated source keeps them from disagreeing. Each game owns its entry. Building URLs from config makes the later move to single-domain paths a config change. Art beside the game keeps it out of the read-only brand kits and lets any Vite build import it. |
+| 10 | 2026-11-10 | Game Gallery | `apps/gallery` (`@pcg/gallery`) at `games.fostercurtis.dev`: one static Vite page prerendered from `@pcg/catalog` at build time by a small Vite plugin, no UI or SSG framework and no Tailwind; its brand kit unpacked read-only like the games'; the only JS is the theme toggle, the lockup animation and Vercel Web Analytics page views (Hobby: no custom events); `vercel-ignore.mjs gallery --catalog` builds production when the gallery's or any game's version changed, and previews when any game's `game.meta.ts` or `catalog/` changed | A static page with almost no JS is the fastest and most accessible way to list a handful of games, and it matches the repo's tooling. Prerendering from the catalog means a new `game.meta.ts` adds a card with no gallery change and hidden games never ship. Meta and art changes bump the game, not the gallery, so the deploy rule follows the games' versions. |

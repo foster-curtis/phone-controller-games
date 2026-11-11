@@ -14,6 +14,7 @@ every message goes through a shared, game-agnostic WebSocket **relay**.
 | `apps/sunny-side`         | `@pcg/sunny-side`     | Sunny Side Slam (Phaser + Matter.js). Vite multi-page app on Vercel.     |
 | `apps/fort-frenzy`        | `@pcg/fort-frenzy`    | Fort Frenzy (Phaser). Vite multi-page app on Vercel.                     |
 | `apps/say-cheese`         | `@pcg/say-cheese`     | Say Cheese!, the photo-tag party game (DOM, no Phaser). Vite on Vercel.  |
+| `apps/gallery`            | `@pcg/gallery`        | Game Gallery (games.fostercurtis.dev): one static page from the catalog. |
 | `packages/net-client`     | `@pcg/net-client`     | Relay protocol types plus host and controller clients (TS).              |
 | `packages/controller-kit` | `@pcg/controller-kit` | Phone platform, app shell, widgets, gestures, input sender, dev harness. |
 | `packages/game-kit`       | `@pcg/game-kit`       | Fixed-step loop, lerp, seeded RNG, host helpers; `/vite` plugins.        |
@@ -72,7 +73,8 @@ that cites the spec section they implement (for example `// ... (SPEC §8)`). Fo
 Run everything from the repo root with pnpm 10 and Node ≥ 22. Shell commands in the docs are POSIX sh
 (Git Bash on Windows).
 
-Root scripts are per game. `<game>` is the app folder name (`sunny-side`, `fort-frenzy`, `say-cheese`).
+Root scripts are per app. `<game>` is the app folder name (`sunny-side`, `fort-frenzy`, `say-cheese`).
+The gallery has its own set, listed after the block.
 
 ```sh
 pnpm install                       # install the workspace
@@ -94,6 +96,17 @@ pnpm changeset                     # add a version note for your change (see Ver
 pnpm check:changeset               # fails if this branch changed a package without a note
 ```
 
+The gallery (`apps/gallery`, no relay):
+
+```sh
+pnpm dev:gallery                   # Vite on :5173
+pnpm dev:lan:gallery               # same, bound to the LAN
+pnpm check:gallery                 # typecheck, lint, format:check, test (unit + build tests), build, check:changeset
+pnpm build:gallery                 # its Vite build
+pnpm e2e:gallery                   # its Playwright suite (Vite on :5177)
+pnpm lighthouse:gallery            # build, vite preview on :4173, Lighthouse mobile ≥ 90 (performance, accessibility)
+```
+
 Never run `pnpm changeset version`: the release workflow does it (see Versioning).
 
 - **Stay in your app.** While working on one game, run only that game's `check:<game>`, `build:<game>`
@@ -112,10 +125,11 @@ Never run `pnpm changeset version`: the release workflow does it (see Versioning
   `pnpm --filter @pcg/<game> exec playwright install chromium`.
 - Offline controller dev: open `/play?dev=1` (no relay; a fake client and a screen switcher).
 - Host debug hooks: `window.__pcg`, on in dev or with `?debug=1`.
-- Ports used: dev 5173/8787 (every game shares them, so run one dev server at a time), preview 4173
-  (`check:routes`), Docker relay smoke 8789. E2E ports are per game in its `package.json` `pcg.e2e`
-  (Sunny Side 8788/5174, Fort Frenzy 8790/5175, Say Cheese 8791/5176), so suites can run side by side.
-  Keep them free.
+- Ports used: dev 5173/8787 (every game and the gallery share them, so run one dev server at a time),
+  preview 4173 (`check:routes`, `lighthouse:gallery`), Docker relay smoke 8789. E2E ports are per app
+  in its `package.json` `pcg.e2e` (Sunny Side 8788/5174, Fort Frenzy 8790/5175, Say Cheese 8791/5176,
+  gallery 5177 with relay port 8792 reserved but unused), so suites can run side by side. Keep them
+  free.
 
 ## Architecture rules
 
@@ -157,7 +171,8 @@ These rules are enforced by ESLint or by `pnpm check`. Don't work around them.
 - **Brand kits are read-only.** Every game's `src/styles/brand.css`, `public/**` and `brand/**` came from
   a delivered brand kit. Don't edit them. Take colors, fonts and sizes from `brand.css` variables (DOM)
   or `theme.ts` (Phaser), never from literals. `theme.test.ts` fails if `theme.ts` drifts from
-  `brand.css`.
+  `brand.css`. The gallery's kit is the same: `apps/gallery/src/brand/**`, `public/**` and `brand/**`
+  are read-only, and its colors, fonts and sizes come from the kit's CSS variables and classes.
 - **Specs record decisions.** When a change settles or reverses a design decision, update the game's
   spec, and add a row to its decision log. Settled sections are marked "(settled)". Don't reopen them
   without the user.
@@ -225,6 +240,8 @@ Write the game's `SPEC.md` and `BUILD_PLAN.md` first; they drive the build. When
     copy at `apps/<game>/catalog/share.webp` (`shareImage`, never SVG). Use placeholders until real
     art exists. Never use `public/` or `brand/`: those are the brand kit's.
   - Add the entry to `GAMES` in `packages/catalog/src/games.ts` (the order is the gallery order).
+    The gallery (`apps/gallery`) then shows it from `GAMES` at its next build, with no gallery change,
+    unless its `status` is `hidden`.
   - Add `"@pcg/catalog": "workspace:*"` to the game's devDependencies, `catalogCheck()` to its
     `vite.config.ts` plugins and `"game.meta.ts"` to its `tsconfig.json` `include`.
   - Take the title and player limits in game code from `game.meta.ts`, never from literals. The

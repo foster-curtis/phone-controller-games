@@ -1,7 +1,7 @@
 # @pcg/catalog
 
 The game catalog: one typed, validated source for the facts that describe and launch each game. The
-gallery (`games.fostercurtis.dev`, coming next), each game's own lobby, and later surfaces
+gallery (`games.fostercurtis.dev`, `apps/gallery`), each game's own lobby, and later surfaces
 (single-domain launch, link-preview tags) all read from it. Decision: `PLATFORM.md` §4, decision #9.
 
 ## Where things live
@@ -110,5 +110,8 @@ them must publish `share.webp` at a stable path. That's for the link-preview wor
 `apps/<game>/game.meta.ts` and nothing else (`eslint.config.js` enforces both). This package does
 not list the games as dependencies (they depend on it, for the type and the Vite check), so the
 affected gate doesn't rerun this package's tests when only a meta file changes. That game's build
-still runs `catalogCheck()` over the whole catalog. When the gallery app exists, its Vercel ignore
-step needs to count `apps/*/game.meta.ts` and `apps/*/catalog/**` as gallery changes.
+still runs `catalogCheck()` over the whole catalog. The gallery doesn't depend on the games either,
+so its Vercel ignore step runs with `--catalog` (`scripts/vercel-ignore.mjs gallery --catalog`): for
+every `apps/*` folder with a `game.meta.ts`, a version change builds the gallery's production
+deployment (a meta or art change bumps that game), and a change to `game.meta.ts` or `catalog/`
+builds a preview. Catalog bumps reach the gallery anyway, since it depends on this package.
