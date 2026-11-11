@@ -1,7 +1,8 @@
 // The gallery's only shipped script (SPEC: Build and hosting; BUILD_PLAN §8). Everything else on the
 // page (cards, Read more, Play) works without JavaScript. This adds the kit's theme toggle and lockup
 // animation, and Vercel Web Analytics page views in production (Hobby plan: no custom events).
-// Never import @pcg/catalog or src/build here: the catalog must not reach the client bundle.
+// Never import the game catalog or the build-time renderer here: game data must not reach the
+// client bundle (the build tests check it).
 import { inject } from '@vercel/analytics';
 import { initLockupAnimation } from '../brand/lockup-animation.js';
 import { initThemeToggle } from '../brand/theme.js';

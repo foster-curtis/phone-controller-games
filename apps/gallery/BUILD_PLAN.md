@@ -505,15 +505,15 @@ Rules:
 
 - [ ] Pre-flight passed (S1)
 - **G1**
-  - [ ] Brand kit unpacked (own commit), Prettier/ESLint ignores, Brand check (B) green
-  - [ ] Package, configs, root scripts, `pcg.e2e` ports
-  - [ ] `render.ts` + tests (kit card markup)
-  - [ ] Prerender plugin (cards, `THEME_INIT`, theme-color, OG alt), `index.html`, `gallery.css`
-  - [ ] Hidden-game and real-catalog build tests
-  - [ ] `main.ts` (theme toggle, lockup animation, analytics page views) + test
-  - [ ] E2E specs (cards, keyboard, mouse, touch, theme, layout, axe) + Lighthouse script
-  - [ ] `vercel-ignore --catalog` + tests
-  - [ ] Docs (AGENTS, README, PLATFORM #10, catalog README, SPEC decision log) + changeset
+  - [x] Brand kit unpacked (own commit), Prettier/ESLint ignores, Brand check (B) green
+  - [x] Package, configs, root scripts, `pcg.e2e` ports
+  - [x] `render.ts` + tests (kit card markup)
+  - [x] Prerender plugin (cards, `THEME_INIT`, theme-color, OG alt), `index.html`, `gallery.css`
+  - [x] Hidden-game and real-catalog build tests
+  - [x] `main.ts` (theme toggle, lockup animation, analytics page views) + test
+  - [x] E2E specs (cards, keyboard, mouse, touch, theme, layout, axe) + Lighthouse script
+  - [x] `vercel-ignore --catalog` + tests
+  - [x] Docs (AGENTS, README, PLATFORM #10, catalog README, SPEC decision log) + changeset
   - [ ] Acceptance green (test-runner)
   - [ ] Merged to `catalog-and-gallery`
   - [ ] **User approved C1**
