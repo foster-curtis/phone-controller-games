@@ -517,8 +517,8 @@ Rules:
   - [x] Acceptance green (test-runner)
   - [x] Merged to `catalog-and-gallery`
   - [x] **User approved C1**
-- [ ] Final test-runner pass on `catalog-and-gallery`
-- [ ] Final handoff printed
+- [x] Final test-runner pass on `catalog-and-gallery`
+- [x] Final handoff printed
 
 ## 7. Blockers
 
