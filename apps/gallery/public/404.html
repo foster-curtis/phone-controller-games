@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>(function(){try{var l=localStorage.getItem("theme")==="light";document.documentElement.dataset.theme=l?"light":"dark"}catch(e){document.documentElement.dataset.theme="dark"}})();</script>
+<title>Page not found · fostercurtis.dev games</title>
+<meta name="theme-color" content="#14161A">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/geist-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/geist-600.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/fonts/jetbrains-mono-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  
+  --brand-ink: #14161a;
+  --brand-paper: #ffffff;
+  --brand-amber: #e8a33d;
+  --brand-gray: #6b7280;
+
+  --brand-font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --brand-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --tracking-eyebrow: 0.18em;
+
+  
+  color-scheme: dark;
+  --background: var(--brand-ink);
+  --foreground: var(--brand-paper);
+  --surface: #1a1d23;
+  --surface-strong: #22262e;
+  --border: #2e333c;
+  --muted: #9aa1ad;
+}
+
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: var(--brand-paper);
+  --foreground: var(--brand-ink);
+  --surface: #f6f6f7;
+  --surface-strong: #eeeef0;
+  --border: #dfe0e3;
+  --muted: #5a6270;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--brand-font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+
+:where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--brand-amber);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+
+
+
+
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--foreground);
+  text-decoration: none;
+}
+
+.brand-mark {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+
+.brand-mark svg {
+  display: block;
+  width: 1.75rem;
+  height: 1.75rem;
+  overflow: visible;
+}
+
+
+.brand-lockup-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  will-change: transform;
+}
+
+
+.brand-wordmark {
+  font-family: var(--brand-font-mono);
+  font-weight: 700;
+  font-size: 1.125rem;
+  text-transform: lowercase;
+}
+
+.brand-wordmark-tld {
+  color: var(--brand-amber);
+}
+
+.brand-divider {
+  width: 1px;
+  height: 1.25rem;
+  margin: 0 0.25rem;
+  background: var(--muted);
+  opacity: 0.5;
+}
+
+
+.brand-label {
+  font-family: var(--brand-font-sans);
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: var(--muted);
+}
+
+
+@media (max-width: 359px) {
+  .brand-divider,
+  .brand-label {
+    display: none;
+  }
+}
+
+
+
+.eyebrow {
+  margin: 0;
+  font-family: var(--brand-font-mono);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+
+
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.625rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: var(--surface-strong);
+  color: var(--foreground);
+  font: 600 0.875rem/1.25 var(--brand-font-sans);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    color 150ms;
+}
+
+.button:hover,
+.button:focus-visible {
+  background: var(--brand-amber);
+  border-color: var(--brand-amber);
+  color: var(--brand-ink);
+}
+
+
+.text-link {
+  color: var(--foreground);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--brand-amber);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.text-link:hover {
+  opacity: 0.8;
+}
+
+
+
+.game-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+}
+
+
+.game-card-image {
+  display: block;
+  text-decoration: none;
+  aspect-ratio: 16 / 9;
+  background: var(--surface-strong);
+}
+
+.game-card-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.game-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.game-card-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.game-card-title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.game-card-title a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--brand-amber);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.game-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.game-card-description {
+  margin: 0;
+  color: var(--muted);
+}
+
+.game-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+
+
+.game-card-actions .button {
+  margin-left: auto;
+}
+
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border: 1.5px solid var(--brand-amber);
+  border-radius: 999px;
+  font-family: var(--brand-font-mono);
+  font-weight: 700;
+  font-size: 0.6875rem;
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--foreground);
+}
+
+
+
+.read-more summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  cursor: pointer;
+  list-style: none;
+  color: var(--foreground);
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: underline;
+  text-decoration-color: var(--brand-amber);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.read-more summary::-webkit-details-marker {
+  display: none;
+}
+
+.read-more summary::after {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 150ms;
+}
+
+.read-more[open] summary::after {
+  transform: translateY(2px) rotate(-135deg);
+}
+
+.read-more .long-description p {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+}
+
+
+
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.375rem;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 150ms;
+}
+
+.theme-toggle:hover {
+  color: var(--foreground);
+}
+
+.theme-toggle svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.theme-toggle .icon-moon,
+:root[data-theme="light"] .theme-toggle .icon-sun {
+  display: none;
+}
+
+:root[data-theme="light"] .theme-toggle .icon-moon {
+  display: block;
+}
+
+
+
+@keyframes signal-lost-jump {
+  0%,
+  70% {
+    transform: translate(0, 0);
+  }
+  74% {
+    transform: translate(6%, -5%);
+  }
+  76% {
+    transform: translate(-5%, 4%);
+  }
+  78% {
+    transform: translate(0, 0);
+  }
+  86% {
+    transform: translate(4%, 5%);
+  }
+  88% {
+    transform: translate(-4%, -4%);
+  }
+  90%,
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes signal-lost-flicker {
+  0%,
+  71% {
+    opacity: 1;
+  }
+  74% {
+    opacity: 0.15;
+  }
+  77%,
+  84% {
+    opacity: 1;
+  }
+  87% {
+    opacity: 0.2;
+  }
+  90%,
+  100% {
+    opacity: 1;
+  }
+}
+
+.signal-lost .brand-mark-ring,
+.signal-lost .brand-mark-inner {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.signal-lost .brand-mark-ring {
+  animation: signal-lost-jump 3s steps(1) infinite;
+}
+
+.signal-lost .brand-mark-inner {
+  animation:
+    signal-lost-jump 3s steps(1) infinite,
+    signal-lost-flicker 3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signal-lost .brand-mark-ring,
+  .signal-lost .brand-mark-inner {
+    animation: none;
+  }
+}
+
+.wrap{max-width:72rem;margin:0 auto;padding:0 1.25rem}
+@media(min-width:640px){.wrap{padding:0 2rem}}
+.site-header{border-bottom:1px solid var(--border)}
+.site-header .wrap{display:flex;align-items:center;justify-content:space-between;gap:1rem;min-height:4rem;padding-top:.75rem;padding-bottom:.75rem}
+.site-footer{border-top:1px solid var(--border);color:var(--muted);font-size:.875rem}
+.site-footer .wrap{padding-top:1.5rem;padding-bottom:1.5rem;display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;justify-content:space-between}
+.skip{position:absolute;left:-9999px}.skip:focus{left:.5rem;top:.5rem;z-index:50;background:var(--brand-amber);color:var(--brand-ink);padding:.5rem 1rem;border-radius:.375rem;font-weight:600}
+h1.display{margin:0;font-size:clamp(2rem,5vw,3rem);line-height:1.1;font-weight:600;letter-spacing:-.02em;text-wrap:balance}
+.lede{margin:0;color:var(--muted);font-size:1.125rem;line-height:1.6;max-width:42rem;text-wrap:pretty}
+
+.signal-lost.brand-mark svg{width:100%;height:auto}</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header"><div class="wrap"><a class="brand-lockup" href="/" aria-label="fostercurtis.dev games — home"><span class="brand-mark"><svg class="brand-mark-morph" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><g class="m-all"><rect class="m-ring" x="6" y="6" width="52" height="52" rx="12" fill="none" stroke="currentColor" stroke-width="6"/><circle class="m-stick" cx="8" cy="32" r="10" fill="none" stroke="currentColor" stroke-width="4" opacity="0"/><rect class="m-inner" x="24" y="24" width="16" height="16" rx="4" fill="var(--brand-amber)"/><circle class="m-b1" cx="54" cy="37" r="0" fill="var(--brand-amber)"/><circle class="m-b2" cx="67" cy="27" r="0" fill="var(--brand-amber)"/></g></svg></span><span class="brand-lockup-text"><span class="brand-wordmark">fostercurtis<span class="brand-wordmark-tld">.dev</span></span><span class="brand-divider" aria-hidden="true"></span><span class="brand-label">games</span></span></a><button type="button" class="theme-toggle" aria-label="Switch to light mode"><svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button></div></header>
+<main id="main" class="wrap" style="padding-bottom:4rem">
+<div style="display:flex;flex-direction:column;align-items:center;gap:2rem;padding-top:clamp(2.5rem,6vw,5rem);text-align:center">
+<div class="signal-lost brand-mark" style="width:clamp(83px,11vw,143px)"><svg style="width:100%;height:auto" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect class="brand-mark-ring" x="6" y="6" width="52" height="52" rx="12" fill="none" stroke="currentColor" stroke-width="6"/><rect class="brand-mark-inner" x="24" y="24" width="16" height="16" rx="4" fill="var(--brand-amber)"/></svg></div>
+<div style="display:flex;flex-direction:column;align-items:center;gap:1.25rem">
+<p class="eyebrow">404</p>
+<h1 class="display">Signal lost</h1>
+<p class="lede">That page doesn’t exist, or it moved. The games are all on the home page.</p>
+<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:.75rem"><a class="button" href="/">Back to the games</a><a class="button" href="https://fostercurtis.dev">fostercurtis.dev</a></div>
+</div></div></main>
+<footer class="site-footer"><div class="wrap"><span>© 2026 Foster Curtis</span><a class="text-link" href="https://fostercurtis.dev">fostercurtis.dev</a></div></footer>
+<script>(function(){var b=[].slice.call(document.querySelectorAll(".theme-toggle"));function c(){return document.documentElement.dataset.theme==="light"?"light":"dark"}function s(){b.forEach(function(x){x.setAttribute("aria-label",c()==="dark"?"Switch to light mode":"Switch to dark mode")})}b.forEach(function(x){x.addEventListener("click",function(){var n=c()==="dark"?"light":"dark";document.documentElement.dataset.theme=n;try{localStorage.setItem("theme",n)}catch(e){}s()})});s()})();</script>
+<script>/*
+ * The lockup's controller animation.
+ *
+ * At rest the lockup is the main site's mark + wordmark, then a divider and a
+ * muted "games" label. On page load, on hover and every two minutes, the mark
+ * turns into a phone controller, plays a short scripted bit, and turns back:
+ *
+ *   0–450ms     Transform: the square stretches into a landscape phone, the
+ *               amber center shrinks into the joystick nub, the stick ring
+ *               fades in and two action buttons pop in. The text slides right
+ *               to make room.
+ *   450–1350    Steer left: glide left with the stick pushed left, pause,
+ *               tilt -8°, tap the lower button.
+ *   1350–2450   Steer right: swing across, tilt +8°, double-tap the upper
+ *               button.
+ *   2450–3300   Center and jump: settle level, press both buttons with a hop.
+ *   3300–3900   Fold back into the original mark.
+ *
+ * Constraints this is built around:
+ *   - Under 5s, so auto-playing motion needs no pause control (WCAG 2.2.2).
+ *   - Transforms and SVG attributes only. The text moves with `transform`,
+ *     never layout, so it adds nothing to CLS.
+ *   - prefers-reduced-motion: never plays. The static lockup is the design;
+ *     the animation is a bonus.
+ *   - The timer skips while the tab is hidden.
+ *
+ * Markup it expects (see README):
+ *   .brand-lockup
+ *     svg.brand-mark-morph  (.m-all > .m-ring, .m-stick, .m-inner, .m-b1, .m-b2)
+ *     .brand-lockup-text    (wordmark, divider, "games")
+ */
+
+const TOTAL = 3900;
+const REPEAT_MS = 120_000;
+const FIRST_PLAY_MS = 600;
+/** How far the text slides while the controller is out, in mark units (64 = mark width). */
+const TEXT_SHIFT = 30;
+
+const inOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const out = (t) => 1 - Math.pow(1 - t, 3);
+
+/** Keyframe track: [timeMs, value, easing?][]; easing applies to the segment ending at that key. */
+function track(keys, t) {
+  if (t <= keys[0][0]) return keys[0][1];
+  for (let i = 1; i < keys.length; i++) {
+    const [a, va] = keys[i - 1];
+    const [b, vb, ease = inOut] = keys[i];
+    if (t <= b) return va + (vb - va) * ease((t - a) / (b - a));
+  }
+  return keys[keys.length - 1][1];
+}
+
+/** 0→1→0 over `len` ms from each start time: a button press. */
+function press(starts, t, len = 150) {
+  for (const s of starts) if (t >= s && t < s + len) return Math.sin(((t - s) / len) * Math.PI);
+  return 0;
+}
+
+const MORPH = [[0, 0], [450, 1], [3300, 1], [3900, 0]];
+const SLIDE_X = [[450, 0], [800, -6, out], [1350, -6], [1750, 6], [2450, 6], [2850, 0]];
+const TILT = [[800, 0], [1000, -8, out], [1350, -8], [1750, 0], [1950, 8, out], [2450, 8], [2850, 0]];
+const STICK_X = [[450, 0], [650, -3.5, out], [1350, -3.5], [1650, 3.5], [2450, 3.5], [2750, 0]];
+const HOP = [[2950, 0], [3050, -4, out], [3200, 0]];
+const PRESS_LOWER = [1150, 3000];
+const PRESS_UPPER = [2050, 2250, 3000];
+
+// Geometry in the mark's 64×64 viewBox. Start = the brand mark; end = controller.
+// The controller grows out from the mark's center (both sides), so the text only
+// has to move half as far and narrow headers keep room for the toggle.
+const RING = { from: [6, 6, 52, 52, 12], to: [-17, 12, 98, 40, 11] };
+const INNER = { from: [24, 24, 16, 16, 4], to: [3.5, 27.5, 9, 9, 4.5] };
+const BUTTON_R = 5.5;
+const RECT_ATTRS = ["x", "y", "width", "height", "rx"];
+
+function draw(svg, t) {
+  const p = track(MORPH, t);
+  const lerp = (g, k) => g.from[k] + (g.to[k] - g.from[k]) * p;
+  const stickX = track(STICK_X, t) * p;
+
+  RECT_ATTRS.forEach((attr, k) => {
+    svg.querySelector(".m-ring").setAttribute(attr, lerp(RING, k));
+    svg.querySelector(".m-inner").setAttribute(attr, lerp(INNER, k) + (k === 0 ? stickX : 0));
+  });
+  svg.querySelector(".m-stick").setAttribute("opacity", Math.max(0, (p - 0.5) * 2));
+  svg.querySelector(".m-b1").setAttribute("r", BUTTON_R * p * (1 - 0.35 * press(PRESS_LOWER, t)));
+  svg.querySelector(".m-b2").setAttribute("r", BUTTON_R * p * (1 - 0.35 * press(PRESS_UPPER, t)));
+  svg
+    .querySelector(".m-all")
+    .setAttribute(
+      "transform",
+      `translate(${track(SLIDE_X, t)} ${track(HOP, t)}) rotate(${track(TILT, t)} 32 32)`,
+    );
+  return p;
+}
+
+function play(lockup) {
+  if (lockup.dataset.playing) return;
+  const svg = lockup.querySelector(".brand-mark-morph");
+  const text = lockup.querySelector(".brand-lockup-text");
+  if (!svg || !text) return;
+
+  lockup.dataset.playing = "true";
+  // offsetWidth, not getBoundingClientRect: ignores any CSS scale on ancestors.
+  const unit = svg.parentElement.offsetWidth / 64;
+  const start = performance.now();
+
+  const frame = (now) => {
+    const t = Math.min(TOTAL, now - start);
+    const p = draw(svg, t);
+    text.style.transform = `translateX(${TEXT_SHIFT * unit * p}px)`;
+    if (t < TOTAL) {
+      requestAnimationFrame(frame);
+    } else {
+      draw(svg, 0);
+      text.style.transform = "";
+      delete lockup.dataset.playing;
+    }
+  };
+  requestAnimationFrame(frame);
+}
+
+/** Call once after the DOM is ready. Safe to call when there is no lockup. */
+function initLockupAnimation(root = document) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const lockups = [...root.querySelectorAll(".brand-lockup")];
+  if (!lockups.length) return;
+
+  lockups.forEach((lockup) => lockup.addEventListener("mouseenter", () => play(lockup)));
+  const playAll = () => {
+    if (!document.hidden) lockups.forEach(play);
+  };
+  setTimeout(playAll, FIRST_PLAY_MS);
+  setInterval(playAll, REPEAT_MS);
+}
+
+initLockupAnimation();</script>
+</body>
+</html>

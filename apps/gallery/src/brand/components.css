@@ -1,0 +1,393 @@
+/*
+ * games.fostercurtis.dev — component styles
+ *
+ * The handful of pieces the gallery needs, written against tokens.css. Plain
+ * class names so they work with or without Tailwind; if the gallery uses
+ * Tailwind, port these to utilities rather than restyling from scratch.
+ *
+ * The amber rule (same as the main site): amber is never a text color on a
+ * light background. It is a fill, a stroke, or text only on ink.
+ * Amber on white is 2.16:1.
+ */
+
+/* ---------- Lockup: mark + wordmark | games ---------- */
+
+/* At rest: the main site's lockup, a hairline divider, and a muted "games"
+   label. The label is what tells visitors they're on a different site; the
+   controller animation (lockup-animation.js) is the bit of fun on top. */
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--foreground);
+  text-decoration: none;
+}
+
+.brand-mark {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+/* overflow: visible on the SVG lets the controller grow past the mark's box
+   during the animation; the text moves out of the way with a transform. */
+.brand-mark svg {
+  display: block;
+  width: 1.75rem;
+  height: 1.75rem;
+  overflow: visible;
+}
+
+/* Wordmark, divider and label move together during the animation. */
+.brand-lockup-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  will-change: transform;
+}
+
+/* JetBrains Mono bold lowercase, `.dev` in amber. Always. */
+.brand-wordmark {
+  font-family: var(--brand-font-mono);
+  font-weight: 700;
+  font-size: 1.125rem;
+  text-transform: lowercase;
+}
+
+.brand-wordmark-tld {
+  color: var(--brand-amber);
+}
+
+.brand-divider {
+  width: 1px;
+  height: 1.25rem;
+  margin: 0 0.25rem;
+  background: var(--muted);
+  opacity: 0.5;
+}
+
+/* Geist semibold, lowercase to match the wordmark, muted so it reads as a
+   section label rather than a third color in the wordmark. --muted is
+   7.0:1 on ink and 6.1:1 on paper. */
+.brand-label {
+  font-family: var(--brand-font-sans);
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: var(--muted);
+}
+
+/* Very narrow phones: the label goes before the wordmark shrinks. */
+@media (max-width: 359px) {
+  .brand-divider,
+  .brand-label {
+    display: none;
+  }
+}
+
+/* ---------- Eyebrow: small mono uppercase label ---------- */
+
+.eyebrow {
+  margin: 0;
+  font-family: var(--brand-font-mono);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ---------- Buttons ---------- */
+
+/* One button style in the gallery: secondary gray at rest, amber on hover or
+   keyboard focus. Every card has a Play button, so none of them is amber at
+   rest — the grid never shows more than one amber button at a time.
+   Ink text on amber in both schemes (8.4:1); foreground text on amber would
+   fail in dark mode. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.625rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: var(--surface-strong);
+  color: var(--foreground);
+  font: 600 0.875rem/1.25 var(--brand-font-sans);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    color 150ms;
+}
+
+.button:hover,
+.button:focus-visible {
+  background: var(--brand-amber);
+  border-color: var(--brand-amber);
+  color: var(--brand-ink);
+}
+
+/* The amber-underlined inline link. Also used for "Read more". */
+.text-link {
+  color: var(--foreground);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--brand-amber);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.text-link:hover {
+  opacity: 0.8;
+}
+
+/* ---------- Game card ---------- */
+
+.game-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--surface);
+}
+
+/* Image and title are links to the game too. The image link is
+   aria-hidden + tabindex="-1" so keyboard users get one stop per game for
+   the same destination, not three. */
+.game-card-image {
+  display: block;
+  text-decoration: none;
+  aspect-ratio: 16 / 9;
+  background: var(--surface-strong);
+}
+
+.game-card-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.game-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.game-card-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.game-card-title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.game-card-title a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--brand-amber);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.game-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.game-card-description {
+  margin: 0;
+  color: var(--muted);
+}
+
+.game-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+
+/* Play stays bottom-right even when an open Read more wraps the row. */
+.game-card-actions .button {
+  margin-left: auto;
+}
+
+/* "Playtest" badge for beta games. Outlined, not filled, so a grid full of
+   betas doesn't turn into a wall of amber. Foreground text, amber stroke. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border: 1.5px solid var(--brand-amber);
+  border-radius: 999px;
+  font-family: var(--brand-font-mono);
+  font-weight: 700;
+  font-size: 0.6875rem;
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--foreground);
+}
+
+/* ---------- Read more: native <details> ---------- */
+
+.read-more summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  cursor: pointer;
+  list-style: none;
+  color: var(--foreground);
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: underline;
+  text-decoration-color: var(--brand-amber);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.read-more summary::-webkit-details-marker {
+  display: none;
+}
+
+.read-more summary::after {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 150ms;
+}
+
+.read-more[open] summary::after {
+  transform: translateY(2px) rotate(-135deg);
+}
+
+.read-more .long-description p {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+}
+
+/* ---------- Theme toggle ---------- */
+
+/* Discreet: icon-only, muted, no fill, so it never competes with the lockup.
+   The sun/moon swap is CSS, keyed on data-theme, so the right icon shows
+   before any script runs. Dark is the default here, so the sun (the "go
+   light" action) is the default icon. */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.375rem;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 150ms;
+}
+
+.theme-toggle:hover {
+  color: var(--foreground);
+}
+
+.theme-toggle svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.theme-toggle .icon-moon,
+:root[data-theme="light"] .theme-toggle .icon-sun {
+  display: none;
+}
+
+:root[data-theme="light"] .theme-toggle .icon-moon {
+  display: block;
+}
+
+/* ---------- 404 "signal lost" (same animation as the main site) ---------- */
+
+@keyframes signal-lost-jump {
+  0%,
+  70% {
+    transform: translate(0, 0);
+  }
+  74% {
+    transform: translate(6%, -5%);
+  }
+  76% {
+    transform: translate(-5%, 4%);
+  }
+  78% {
+    transform: translate(0, 0);
+  }
+  86% {
+    transform: translate(4%, 5%);
+  }
+  88% {
+    transform: translate(-4%, -4%);
+  }
+  90%,
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes signal-lost-flicker {
+  0%,
+  71% {
+    opacity: 1;
+  }
+  74% {
+    opacity: 0.15;
+  }
+  77%,
+  84% {
+    opacity: 1;
+  }
+  87% {
+    opacity: 0.2;
+  }
+  90%,
+  100% {
+    opacity: 1;
+  }
+}
+
+.signal-lost .brand-mark-ring,
+.signal-lost .brand-mark-inner {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.signal-lost .brand-mark-ring {
+  animation: signal-lost-jump 3s steps(1) infinite;
+}
+
+.signal-lost .brand-mark-inner {
+  animation:
+    signal-lost-jump 3s steps(1) infinite,
+    signal-lost-flicker 3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signal-lost .brand-mark-ring,
+  .signal-lost .brand-mark-inner {
+    animation: none;
+  }
+}

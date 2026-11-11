@@ -63,6 +63,7 @@ export default defineConfig(
       'apps/*/public/**',
       'apps/*/brand/**',
       'apps/*/generated/**',
+      'apps/gallery/src/brand/**',
       // Lint fixtures break the boundary rules on purpose; `eslint --no-ignore <file>` checks them.
       'apps/*/src/**/__fixtures__/**',
     ],
