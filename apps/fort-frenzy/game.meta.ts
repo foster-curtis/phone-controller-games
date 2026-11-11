@@ -22,5 +22,5 @@ Every class helps and none is required, so any mix of friends can win. Call out 
   shareImage: 'catalog/share.webp',
   minPlayers,
   maxPlayers,
-  status: 'live',
+  status: 'beta',
 } satisfies GameMeta;
