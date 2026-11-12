@@ -456,6 +456,8 @@ Crates therefore have two uses: building or repairing.
   screen.
 - **Summary screen:** shows waves survived and fun per-player stats, such as most damage dealt and most
   crates delivered.
+  - **Feedback (#57):** a QR to the feedback form pre-filled for this game in the top-right corner
+    (PLATFORM decision #11); every phone's summary has **Give feedback**, which opens it in a new tab.
 - **End-of-run options** (chosen by the party leader's phone, §11.1):
   1. **Play again** (default): every player keeps their class and goes straight to Ready.
   2. **Change classes:** players return to class select.
@@ -2367,3 +2369,4 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 54 | 2026-11-06 | Team pause | Reverses "No pausing in v1" (§11.3): a pause button in the phone's top bar during a run; any player pauses the whole run for everyone and the TV, any player resumes; the TV and every phone show who paused; presses made while paused never fire, and resume is immediate (§10.5, §15.6) | C4 note (Foster): "Add a pause button on the controller on the top bar. When one player pauses, it should pause for all players and the host." |
 | 55 | 2026-11-07 | Colossus stun resistance and Warden charge | For `stunImmuneMs` (4 s) after a stagger ends, stuns don't count into the Colossus's meter (damage still does); the Warden's super charges at 0.0054 per damage (~185 damage fills it, was 160); the stomp's 25 damage / 1.8 s stun on other enemies is unchanged (§9.2, content) | C4 note (Foster): "Stun resistance works great, or charge the warden's super a little more slowly. Maybe a little of both." A Warden-only team staggers it about 30% of the time (was ~35%), with at least 4 s between staggers |
 | 56 | 2026-11-10 | Catalog entry | `game.meta.ts` holds the title, player range (2–6), catalog descriptions and card and link-share art (`catalog/card.jpg`, `catalog/share.webp`); `MAX_PARTY`, the party's min, `RELAY_MAX_PLAYERS` (= cap + 2), the TV home tagline and the phone titles read it; the "Game full" note says "holds 6 players" (was "six") | One source for the gallery and the game (`PLATFORM.md` #9). Foster approved the digit. |
+| 57 | 2026-11-11 | Feedback link | Summary screen only: a 360 px QR (`host/ui/feedback.ts`, error level L, 8 px modules) top right, where the lobby's join QR sits; **Give feedback** on every phone's summary, a new-tab link | PLATFORM decision #11. The run's last screen, so it never interrupts play; the leader's end options are on the phone and unchanged. |

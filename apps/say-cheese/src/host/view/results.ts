@@ -1,8 +1,10 @@
 // TV results and match end (SPEC §6.2 step 6, §6.6). Standings lowest first; ties share a rank. The
-// catches pop in one by one; the match end is a podium where tied winners share the top step (SC9).
+// catches pop in one by one; the match end is a podium where tied winners share the top step (SC9),
+// with the feedback QR in a corner (PLATFORM decision #11).
 import { icon } from '../../shared/icons';
 import type { TvView } from '../match/types';
 import { chip, h, rankStandings, rays, standingsList } from './dom';
+import { feedbackPanel } from './feedback';
 
 export function renderResults(v: Extract<TvView, { phase: 'results' }>): HTMLElement {
   const el = h('section', 'view results');
@@ -51,6 +53,6 @@ export function renderMatchEnd(v: Extract<TvView, { phase: 'matchEnd' }>): HTMLE
   }
   const board = h('div', 'board');
   board.append(podium, standingsList(v.standings));
-  el.append(board);
+  el.append(board, feedbackPanel());
   return el;
 }

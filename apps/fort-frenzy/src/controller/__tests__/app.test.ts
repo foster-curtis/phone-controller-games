@@ -142,6 +142,22 @@ describe('screens follow me.screen', () => {
     expect(root.querySelector('.summary-banner')!.textContent).toBe('DEFEAT');
   });
 
+  it('summary: everyone gets Give feedback, a new-tab link to the pre-filled form (decision #11)', () => {
+    const { client } = mount();
+    emitSample(client, 'summary-victory', 1);
+    const a = root.querySelector<HTMLAnchorElement>('[data-feedback]')!;
+    expect(a.tagName).toBe('A');
+    expect(a.href).toBe(
+      'https://docs.google.com/forms/d/e/1FAIpQLSdPubA2byBsxMQwW150t_6hfZ8tZno02ZdCDnrVDpBAqcwtCg/viewform?usp=pp_url&entry.1921122279=Yes',
+    );
+    expect(a.target).toBe('_blank');
+    expect(a.rel.split(' ')).toContain('noopener');
+    emitSample(client, 'summary-defeat', 2);
+    expect(root.querySelector('[data-feedback]')).toBe(a);
+    emitSample(client, 'combat', 3);
+    expect(root.querySelector('[data-feedback]')).toBeNull();
+  });
+
   it('lobby: leader sees difficulty and Start (disabled under 2 ready); members do not', () => {
     const { client } = mount();
     emitSample(client, 'lobby', 1);

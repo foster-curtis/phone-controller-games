@@ -90,6 +90,27 @@ describe('screens', () => {
     expect(root.textContent).toContain('Watch the TV');
   });
 
+  it('match end: everyone gets Give feedback, a new-tab link to the pre-filled form (decision #11)', () => {
+    for (const isLeader of [true, false]) {
+      show(withLeader(samples.matchEnd!, isLeader));
+      const a = q<HTMLAnchorElement>('[data-feedback]')!;
+      expect(a.tagName).toBe('A');
+      expect(a.href).toBe(
+        'https://docs.google.com/forms/d/e/1FAIpQLSdPubA2byBsxMQwW150t_6hfZ8tZno02ZdCDnrVDpBAqcwtCg/viewform?usp=pp_url&entry.222963833=Yes',
+      );
+      expect(a.target).toBe('_blank');
+      expect(a.rel.split(' ')).toContain('noopener');
+    }
+    // The same node across re-renders, so an update never eats a tap.
+    const a = q('[data-feedback]');
+    show(withLeader(samples.matchEnd!, true));
+    expect(q('[data-feedback]')).toBe(a);
+    for (const s of Object.values(samples).filter((x) => x.kind !== 'matchEnd')) {
+      show(s);
+      expect(q('[data-feedback]'), s.kind).toBeNull();
+    }
+  });
+
   it('rules: Next becomes Let’s play! on the last card', () => {
     show({ ...samples.rules!, card: 4 } as Screen);
     expect(q('[data-action=next]')?.textContent).toBe("Let's play!");

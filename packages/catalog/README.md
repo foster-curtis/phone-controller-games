@@ -17,6 +17,7 @@ gallery (`games.fostercurtis.dev`, `apps/gallery`), each game's own lobby, and l
 | File checks (Node only)   | `src/node.ts` (`@pcg/catalog/node`: `checkCatalog`, `imageFile`) |
 | Build check               | `src/vite.ts` (`@pcg/catalog/vite`: `catalogCheck()`)            |
 | Launch URLs               | `src/url.ts` (`gameUrl`, `ROUTING`)                              |
+| Feedback survey links     | `src/feedback.ts` (`feedbackUrl`, form URLs, entry ids)          |
 
 ## Fields
 

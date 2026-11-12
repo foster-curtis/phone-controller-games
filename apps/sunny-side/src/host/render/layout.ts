@@ -198,6 +198,49 @@ export function screenLayout(): { header: Rect; content: Rect } {
   };
 }
 
+/** Width of the winner screen's feedback panel: room for a 9 px-module QR of the form URL. */
+export const FEEDBACK_W = 480;
+const FB_PAD = theme.space[3];
+
+export interface WinnerLayout {
+  /** Where the breakdown (or standings) goes: the content area minus the feedback column. */
+  breakdown: Rect;
+  /** Feedback panel (PLATFORM decision #11), right of the breakdown, full content height. */
+  feedback: Rect;
+  caption: Rect;
+  /** The largest square the QR (with its quiet zone) may fill, bottom of the panel. */
+  qrMax: Rect;
+}
+
+/** Match winner: breakdown on the left, feedback QR panel on the right. */
+export function winnerLayout(): WinnerLayout {
+  const { content } = screenLayout();
+  const feedback: Rect = {
+    x: content.x + content.w - FEEDBACK_W,
+    y: content.y,
+    w: FEEDBACK_W,
+    h: content.h,
+  };
+  const side = FEEDBACK_W - FB_PAD * 2;
+  const qrMax: Rect = {
+    x: feedback.x + FB_PAD,
+    y: feedback.y + feedback.h - FB_PAD - side,
+    w: side,
+    h: side,
+  };
+  return {
+    breakdown: { ...content, w: content.w - FEEDBACK_W - theme.space[6] },
+    feedback,
+    caption: {
+      x: feedback.x + FB_PAD,
+      y: feedback.y + FB_PAD,
+      w: side,
+      h: qrMax.y - feedback.y - FB_PAD * 2,
+    },
+    qrMax,
+  };
+}
+
 export interface LobbyLayout {
   title: Rect;
   qrPanel: Rect;

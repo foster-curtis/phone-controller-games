@@ -1,5 +1,5 @@
 // The prerender plugin (SPEC: Build and hosting, Game cards, Status handling): fills index.html's
-// game grid from @pcg/catalog at build time, and injects the head values that come from the brand
+// game grid and the feedback banner's link from @pcg/catalog at build time, and injects the head values that come from the brand
 // kit (THEME_INIT, theme-color, og:image:alt) so index.html never holds a copy that could drift.
 // Node only, loaded by vite.config.ts through Node's type stripping: explicit `.ts` imports and
 // erasable TS only. The client bundle never imports this or the catalog.
@@ -10,9 +10,10 @@ import { imageFile } from '@pcg/catalog/node';
 import type { HtmlTagDescriptor, Plugin } from 'vite';
 import { brand } from '../brand/brand.ts';
 import { THEME_INIT } from '../brand/theme.js';
-import { renderGrid } from './render.ts';
+import { renderFeedbackLink, renderGrid } from './render.ts';
 
 export const CARDS_MARKER = '<!--gallery:cards-->';
+export const FEEDBACK_MARKER = '<!--gallery:feedback-->';
 
 const OG_ALT_FILE = new URL('../../public/og-image.alt.txt', import.meta.url);
 
@@ -33,8 +34,10 @@ export function prerenderGallery({ games = GAMES }: PrerenderOptions = {}): Plug
     transformIndexHtml: {
       order: 'pre',
       handler(html, ctx) {
-        if (!html.includes(CARDS_MARKER)) {
-          throw new Error(`prerenderGallery: index.html has no ${CARDS_MARKER}`);
+        for (const marker of [CARDS_MARKER, FEEDBACK_MARKER]) {
+          if (!html.includes(marker)) {
+            throw new Error(`prerenderGallery: index.html has no ${marker}`);
+          }
         }
         const dev = ctx.server !== undefined;
         // Build: a path relative to index.html, which Vite's HTML pipeline hashes into assets/.
@@ -57,7 +60,10 @@ export function prerenderGallery({ games = GAMES }: PrerenderOptions = {}): Plug
           { tag: 'meta', attrs: { property: 'og:image:alt', content: ogAlt }, injectTo: 'head' },
           { tag: 'meta', attrs: { name: 'twitter:image:alt', content: ogAlt }, injectTo: 'head' },
         ];
-        return { html: html.replace(CARDS_MARKER, renderGrid(games, { imageSrc })), tags };
+        const page = html
+          .replace(CARDS_MARKER, renderGrid(games, { imageSrc }))
+          .replace(FEEDBACK_MARKER, renderFeedbackLink());
+        return { html: page, tags };
       },
     },
   };

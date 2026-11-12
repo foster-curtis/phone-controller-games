@@ -50,6 +50,14 @@ body {
 .btn {
   min-height: 56px;
 }
+/* A link styled as a button (Give feedback): centered like a <button>, no underline. */
+.btn-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  text-decoration: none;
+}
 
 .leader-row,
 .nav-row,

@@ -5,6 +5,7 @@ import * as Phaser from 'phaser';
 import { title } from '../../../game.meta';
 import { theme } from '../../shared/theme';
 import { lobbyLayout, type Rect } from '../render/layout';
+import { drawQr, qrFit } from '../render/qr';
 import { addRemoveButton } from '../render/remove';
 import { drawPanel, drawPill, drawSticker } from '../render/sticker';
 import {
@@ -24,7 +25,6 @@ import {
 
 const DIFFICULTY_LABEL = { easy: 'Easy', medium: 'Medium', hard: 'Hard' } as const;
 const QR_BOX = 480;
-const QR_QUIET = 4;
 const MARK_KEY = 'brand-mark';
 const MARK_SIZE = 130;
 
@@ -222,22 +222,11 @@ export class LobbyScene extends Phaser.Scene {
 
   private drawQr(url: string, panel: Rect): void {
     for (const o of this.qrObjects) o.destroy();
-    const { size, modules } = qrMatrix(url, 'M');
-    const cell = Math.floor(QR_BOX / (size + QR_QUIET * 2));
-    const box = cell * (size + QR_QUIET * 2);
-    const x = panel.x + (panel.w - box) / 2;
-    const y = panel.y + (panel.h - box) / 2;
+    const qr = qrMatrix(url, 'M');
+    const { size, modules } = qr;
+    const { cell, box } = qrFit(qr, QR_BOX);
     const g = this.add.graphics();
-    g.fillStyle(theme.color.cream.num, 1);
-    g.fillRoundedRect(x, y, box, box, theme.radius.sticker);
-    g.fillStyle(theme.color.eggOutline.num, 1);
-    const ox = x + cell * QR_QUIET;
-    const oy = y + cell * QR_QUIET;
-    for (let r = 0; r < size; r++) {
-      for (let c = 0; c < size; c++) {
-        if (modules[r * size + c]) g.fillRect(ox + c * cell, oy + r * cell, cell, cell);
-      }
-    }
+    drawQr(g, qr, panel.x + (panel.w - box) / 2, panel.y + (panel.h - box) / 2, cell);
     this.qrObjects = [g];
     this.qrFor = url;
     hostContext(this).qr = { url, size, modules };

@@ -16,3 +16,9 @@ export {
 export { GAMES, gameById, listedGames } from './games.ts';
 export { validateGames } from './validate.ts';
 export { ROUTING, gameUrl, type Routing } from './url.ts';
+export {
+  FEEDBACK_ENTRY_IDS,
+  FEEDBACK_FORM_URL,
+  FEEDBACK_SHORT_URL,
+  feedbackUrl,
+} from './feedback.ts';
