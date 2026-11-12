@@ -1,5 +1,11 @@
 # @pcg/sunny-side
 
+## 1.2.0
+
+### Minor Changes
+
+- d6d1029: The final screen shows a QR to the feedback survey, and every phone gets a Give feedback button that opens it in a new tab
+
 ## 1.1.1
 
 ### Patch Changes

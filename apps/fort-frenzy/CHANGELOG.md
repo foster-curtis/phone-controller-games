@@ -1,5 +1,15 @@
 # @pcg/fort-frenzy
 
+## 1.1.0
+
+### Minor Changes
+
+- d6d1029: The final screen shows a QR to the feedback survey, and every phone gets a Give feedback button that opens it in a new tab
+
+### Patch Changes
+
+- ea99e0e: The Game full note reads "holds 6 players"; title and player range now come from game.meta.ts
+
 ## 1.0.0
 
 ### Major Changes
