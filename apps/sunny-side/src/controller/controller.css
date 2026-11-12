@@ -132,6 +132,15 @@ input {
   color: var(--accent-on);
 }
 
+/* A link styled as a sticker button (Give feedback): centered like a <button>, no underline. */
+.btn-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  text-decoration: none;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

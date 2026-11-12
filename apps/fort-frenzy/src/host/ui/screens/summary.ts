@@ -1,5 +1,7 @@
 // Victory and defeat summary (SPEC §4, §2.6): banner over the keep, run stats, one award card per
 // player in their color. The party leader's phone picks what happens next (§4), so the TV only waits.
+// Top right: the feedback QR (PLATFORM decision #11).
+import { feedbackHtml } from '../feedback';
 import type { Section } from '../render';
 import { badge, esc } from '../html';
 import { AWARD, CLASS_ICON, COLOR_VAR, DIFFICULTY_NAME, fmtClock, fmtInt } from '../labels';
@@ -38,6 +40,7 @@ export function summarySections(view: TvView): Section[] {
         `<div class="banner">${win ? 'The Citadel stands' : 'The Citadel has fallen'}</div>` +
         `<div class="body sub">${esc(bits.join(' · '))}</div>` +
         `<div class="awards">${cards}</div>` +
+        feedbackHtml() +
         `<div class="body foot">${leader ? `Waiting for ${esc(leader)} to choose: ` : 'Choose: '}Play again, Change classes or Return to home</div>` +
         `</div>`,
     },

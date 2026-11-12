@@ -5,7 +5,7 @@ import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { GAMES, listedGames, type GameMeta } from '@pcg/catalog';
+import { FEEDBACK_FORM_URL, GAMES, listedGames, type GameMeta } from '@pcg/catalog';
 import { imageFile } from '@pcg/catalog/node';
 import { build } from 'vite';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -153,6 +153,16 @@ describe('build with the real catalog', () => {
 
   it('renders one card per listed game, in catalog order', () => {
     expect(gameIds(html)).toEqual(listedGames().map((g) => g.id));
-    expect(html.match(/class="button"/g)).toHaveLength(listedGames().length);
+    expect(html.match(/class="button"[^>]*aria-label="Play /g)).toHaveLength(listedGames().length);
+  });
+
+  it('links the plain feedback form from a banner above the footer (PLATFORM decision #11)', () => {
+    const banner = html.slice(html.indexOf('class="feedback-banner"'), html.indexOf('</main>'));
+    expect(banner).toContain('Played one of my games?');
+    const link = /<a class="button" href="([^"]+)">Give feedback here!/.exec(banner);
+    expect(decode(link?.[1] ?? '')).toBe(FEEDBACK_FORM_URL);
+    expect(html.slice(html.indexOf('<footer'))).not.toContain('docs.google.com');
+    expect(html).not.toContain('<!--gallery:');
+    expect(html).not.toContain('entry.');
   });
 });

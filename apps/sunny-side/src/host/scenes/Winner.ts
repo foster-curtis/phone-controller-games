@@ -1,10 +1,12 @@
 // Match winner (SPEC §6.6 Screens): "Winner!" banner, the winner's sticker, the final round's
-// points breakdown and host Rematch / Back to lobby.
+// points breakdown, host Rematch / Back to lobby, and the feedback QR (PLATFORM decision #11).
 import * as Phaser from 'phaser';
 import { theme } from '../../shared/theme';
 import { drawBreakdown } from '../render/breakdown';
-import { screenLayout } from '../render/layout';
-import { drawPill } from '../render/sticker';
+import { FEEDBACK_CAPTION, FEEDBACK_SUBCAPTION, feedbackQr } from '../render/feedback';
+import { screenLayout, winnerLayout } from '../render/layout';
+import { drawQr, qrFit } from '../render/qr';
+import { drawPanel, drawPill } from '../render/sticker';
 import {
   SAFE,
   SCENE,
@@ -51,6 +53,33 @@ export class WinnerScene extends Phaser.Scene {
       () => runtime.match.hostAction('lobby'),
       'plain',
     );
+    this.drawFeedback();
+  }
+
+  /** Static: drawn once per visit, outside the refresh, so it never holds up the buttons. */
+  private drawFeedback(): void {
+    const L = winnerLayout();
+    const qr = feedbackQr();
+    const { cell, box } = qrFit(qr, L.qrMax.w);
+    const g = this.add.graphics();
+    drawPanel(g, L.feedback);
+    drawQr(g, qr, L.qrMax.x + (L.qrMax.w - box) / 2, L.qrMax.y + L.qrMax.h - box, cell);
+    const cx = L.caption.x + L.caption.w / 2;
+    const head = addText(this, cx, L.caption.y, FEEDBACK_CAPTION, 'h2', theme.color.foreground)
+      .setOrigin(0.5, 0)
+      .setAlign('center')
+      .setWordWrapWidth(L.caption.w);
+    addText(
+      this,
+      cx,
+      head.y + head.height + theme.space[3],
+      FEEDBACK_SUBCAPTION,
+      'pad',
+      theme.color.muted,
+    )
+      .setOrigin(0.5, 0)
+      .setAlign('center')
+      .setWordWrapWidth(L.caption.w);
   }
 
   private removeControls() {
@@ -67,7 +96,8 @@ export class WinnerScene extends Phaser.Scene {
     ctx.removeButtons = [];
     const view = runtime.view();
     const winner = view.players.find((p) => p.id === view.winnerId);
-    const { header, content } = screenLayout();
+    const { header } = screenLayout();
+    const content = winnerLayout().breakdown;
     const lineY = header.y + header.h + theme.space[3];
 
     const banner = addText(this, header.x, header.y, 'Winner!', 'banner', theme.color.accentText);

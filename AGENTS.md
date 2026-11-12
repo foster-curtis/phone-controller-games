@@ -32,22 +32,22 @@ from its `game.meta.ts`: never hardcode them in game code (`PLATFORM.md` §4, de
 
 Shared code and repo-wide rules:
 
-| You need…                                                | Look in                                                                                             |
-| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Repo-wide rules (architecture, phones, hosting, layout)  | `PLATFORM.md`                                                                                       |
-| Relay wire protocol (envelope, rooms, reconnect, errors) | `apps/relay/SPEC.md` §3, then `packages/net-client/src/protocol.ts`                                 |
-| Host/controller client API (`createHostClient`, etc.)    | `packages/net-client/src/api.ts` (public API is `src/index.ts`)                                     |
-| Relay server internals                                   | `apps/relay/src/` (`rooms.ts`, `heartbeat.ts`, `http.ts`; env in `main.ts`)                         |
-| Relay hosting, config defaults, deploy                   | `apps/relay/SPEC.md` §2, `apps/relay/fly.toml`, `apps/relay/Dockerfile` (deploy from the repo root) |
-| Fixed-step loop, lerp, seeded RNG, host helpers          | `packages/game-kit/src/` (`src/index.ts`; Vite plugins `src/vite.ts`; Playwright `src/e2e.ts`)      |
-| Phone platform, shell, widgets, gestures, input sender   | `packages/controller-kit/src/` (public API `src/index.ts`)                                          |
-| Game catalog: schema, game list, validation, launch URLs | `packages/catalog/` (README; `src/games.ts` order, `src/url.ts` routing, `/node`, `/vite` check)    |
-| Versions, changelogs, major/minor/patch rules            | `PLATFORM.md` §5, `.changeset/` (config and pending notes), each package's `CHANGELOG.md`           |
-| Lint boundary rules                                      | `eslint.config.js`                                                                                  |
-| Build checks                                             | `scripts/check-bundle.mjs`, `scripts/check-routes.mjs`                                              |
-| Affected selection, e2e runner, retest                   | `scripts/check-affected.mjs`, `scripts/e2e.mjs`, `scripts/lib/` (state in gitignored `.pcg-cache/`) |
-| CI                                                       | `.github/workflows/ci.yml` (affected gate + e2e matrix on PRs and pushes to `main`)                 |
-| Release, Vercel production builds, Dependabot            | `.github/workflows/release.yml`, `scripts/vercel-ignore.mjs`, `.github/dependabot.yml`              |
+| You need…                                                               | Look in                                                                                             |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Repo-wide rules (architecture, phones, hosting, layout)                 | `PLATFORM.md`                                                                                       |
+| Relay wire protocol (envelope, rooms, reconnect, errors)                | `apps/relay/SPEC.md` §3, then `packages/net-client/src/protocol.ts`                                 |
+| Host/controller client API (`createHostClient`, etc.)                   | `packages/net-client/src/api.ts` (public API is `src/index.ts`)                                     |
+| Relay server internals                                                  | `apps/relay/src/` (`rooms.ts`, `heartbeat.ts`, `http.ts`; env in `main.ts`)                         |
+| Relay hosting, config defaults, deploy                                  | `apps/relay/SPEC.md` §2, `apps/relay/fly.toml`, `apps/relay/Dockerfile` (deploy from the repo root) |
+| Fixed-step loop, lerp, seeded RNG, host helpers                         | `packages/game-kit/src/` (`src/index.ts`; Vite plugins `src/vite.ts`; Playwright `src/e2e.ts`)      |
+| Phone platform, shell, widgets, gestures, input sender                  | `packages/controller-kit/src/` (public API `src/index.ts`)                                          |
+| Game catalog: schema, game list, validation, launch URLs, feedback form | `packages/catalog/` (README; `src/games.ts` order, `src/url.ts` routing, `/node`, `/vite` check)    |
+| Versions, changelogs, major/minor/patch rules                           | `PLATFORM.md` §5, `.changeset/` (config and pending notes), each package's `CHANGELOG.md`           |
+| Lint boundary rules                                                     | `eslint.config.js`                                                                                  |
+| Build checks                                                            | `scripts/check-bundle.mjs`, `scripts/check-routes.mjs`                                              |
+| Affected selection, e2e runner, retest                                  | `scripts/check-affected.mjs`, `scripts/e2e.mjs`, `scripts/lib/` (state in gitignored `.pcg-cache/`) |
+| CI                                                                      | `.github/workflows/ci.yml` (affected gate + e2e matrix on PRs and pushes to `main`)                 |
+| Release, Vercel production builds, Dependabot                           | `.github/workflows/release.yml`, `scripts/vercel-ignore.mjs`, `.github/dependabot.yml`              |
 
 Inside a game (`apps/<game>/`), the layout is the same for every game:
 

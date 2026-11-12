@@ -1,7 +1,8 @@
 // Results and match end (SPEC §6.7): this phone's round score plus standings; the leader sees their
-// buttons (SPEC §6.5).
+// buttons (SPEC §6.5). Match end also has Give feedback for everyone (PLATFORM decision #11).
+import { feedbackUrl } from '@pcg/catalog';
 import { el } from '@pcg/controller-kit';
-import type { Screen, Standing } from '../../shared/messages';
+import { GAME_ID, type Screen, type Standing } from '../../shared/messages';
 import type { Ctx } from '../ctx';
 import { emojiBar } from './emojiBar';
 import { button, chip, heading, para, renderedView, type View } from './view';
@@ -51,7 +52,25 @@ export function resultsView(first: Screen, ctx: Ctx): View {
   });
 }
 
+/**
+ * The feedback form in a new tab. A plain link, so this page never navigates away; `noopener` cuts the
+ * form's tab off from this one. The socket stays up, and net-client reconnects at once if the phone
+ * dropped it while the player was in the other tab.
+ */
+function feedbackLink(): HTMLAnchorElement {
+  return el('a', {
+    class: 'btn btn--pink btn-link',
+    href: feedbackUrl(GAME_ID),
+    target: '_blank',
+    rel: 'noopener',
+    'data-feedback': '',
+    text: 'Give feedback',
+  });
+}
+
 export function matchEndView(first: Screen, ctx: Ctx): View {
+  // Built once: the screen re-renders on every update and must never swap it out from under a tap.
+  const feedback = feedbackLink();
   return renderedView('matchEnd', first, (s) => [
     heading('Game over'),
     standingsList(s.standings, s.winners),
@@ -66,5 +85,6 @@ export function matchEndView(first: Screen, ctx: Ctx): View {
           }),
         )
       : para('Watch the TV', 'caption'),
+    feedback,
   ]);
 }

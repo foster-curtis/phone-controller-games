@@ -2,7 +2,7 @@
 // (brand/preview.html, "Game grid") as an HTML string, rendered at build time by the prerender
 // plugin. Pure TS with no Node or DOM APIs, so it unit-tests directly and the Vite config can load
 // it through Node's type stripping (hence the explicit `.ts` imports and erasable TS only).
-import { gameUrl, listedGames, type GameMeta } from '@pcg/catalog';
+import { FEEDBACK_FORM_URL, gameUrl, listedGames, type GameMeta } from '@pcg/catalog';
 
 const ENTITIES: Record<string, string> = {
   '&': '&amp;',
@@ -65,6 +65,11 @@ export function renderCard(game: GameMeta, { href, imageSrc, eager }: CardOption
 </div>
 </div>
 </article>`;
+}
+
+/** The feedback banner's button (SPEC decision #6; PLATFORM decision #11): the plain form, no game pre-filled. */
+export function renderFeedbackLink(): string {
+  return `<a class="button" href="${escapeHtml(FEEDBACK_FORM_URL)}">Give feedback here!<span aria-hidden="true">→</span></a>`;
 }
 
 export interface GridOptions {

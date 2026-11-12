@@ -1,6 +1,6 @@
 // TV lobby (SPEC §6.6, §6.3.1): QR + room code, joined players (color, ready, no-camera badge), leader,
 // sound. Seats sharing a phone are grouped under the phone's first player with a phone marker.
-import { joinUrl, qrMatrix } from '@pcg/game-kit';
+import { joinUrl, qrMatrix, type QrMatrix } from '@pcg/game-kit';
 import { icon } from '../../shared/icons';
 import type { TvView } from '../match/types';
 import { chip, h, lockup, rays, type TvControls } from './dom';
@@ -11,7 +11,11 @@ const SVG = 'http://www.w3.org/2000/svg';
 
 /** The join link as inline SVG (no canvas, so it renders in jsdom and scales crisply). */
 export function qrSvg(text: string): SVGSVGElement {
-  const { size, modules } = qrMatrix(text);
+  return qrSvgOf(qrMatrix(text), 'Join QR code');
+}
+
+/** A QR matrix as inline SVG: black on white with a 2-module quiet zone. */
+export function qrSvgOf({ size, modules }: QrMatrix, label: string): SVGSVGElement {
   const pad = 2;
   const full = String(size + pad * 2);
   const svg = document.createElementNS(SVG, 'svg');
@@ -19,7 +23,7 @@ export function qrSvg(text: string): SVGSVGElement {
   svg.setAttribute('viewBox', `0 0 ${full} ${full}`);
   svg.setAttribute('shape-rendering', 'crispEdges');
   svg.setAttribute('role', 'img');
-  svg.setAttribute('aria-label', 'Join QR code');
+  svg.setAttribute('aria-label', label);
   const bg = document.createElementNS(SVG, 'rect');
   bg.setAttribute('width', full);
   bg.setAttribute('height', full);

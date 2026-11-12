@@ -906,6 +906,29 @@
   color: var(--muted);
   font-size: 24px;
 }
+/* Feedback QR (PLATFORM decision #11): top right like the lobby's join QR, 8 px modules, clear of
+   the centered banner and above the award cards (top 540). */
+#tv-ui .summary > .feedback {
+  left: 1464px; /* right edge on the safe margin (1824) */
+  top: 112px;
+  width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+#tv-ui .summary .feedback .qrbox {
+  width: 360px;
+  height: 360px;
+  margin-bottom: 6px;
+}
+#tv-ui .summary .feedback .qr {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--brand-paper);
+}
 #tv-ui .restoring {
   left: 96px;
   width: 1728px;

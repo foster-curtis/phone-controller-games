@@ -1,7 +1,9 @@
 // End of run (SPEC §4, §2.6): result banner, waves survived, one award card per player in their color,
-// and the party leader's three options (play again, change classes, home).
+// and the party leader's three options (play again, change classes, home). Everyone gets Give feedback
+// (PLATFORM decision #11).
+import { feedbackUrl } from '@pcg/catalog';
 import { el } from '@pcg/controller-kit';
-import type { RunSummary } from '../../shared/messages';
+import { GAME_ID, type RunSummary } from '../../shared/messages';
 import { colorOnVar, colorVar, icon } from '../components';
 import { CLASS_INFO, STAT_LABEL } from '../copy';
 import { formatClock, type ScreenCtx, type Snapshot, type View } from './common';
@@ -19,7 +21,18 @@ export function createSummary(ctx: ScreenCtx): View {
   const awards = el('div', { class: 'awards' });
   const options = el('div', { class: 'summary-options' });
   const wait = el('p', { class: 'hint body', text: 'Waiting for the party leader…' });
-  root.append(banner, sub, awards, options, wait);
+  // The form in a new tab: a plain link, so this page never navigates away (`noopener` cuts the
+  // form's tab off from this one). The socket stays up; net-client reconnects at once on return if
+  // the phone dropped it. Built once, never re-rendered under a tap.
+  const feedback = el('a', {
+    class: 'btn btn-link',
+    href: feedbackUrl(GAME_ID),
+    target: '_blank',
+    rel: 'noopener',
+    'data-feedback': '',
+    text: 'GIVE FEEDBACK',
+  });
+  root.append(banner, sub, awards, options, wait, feedback);
 
   const card = (p: RunSummary['players'][number], mine: boolean) => {
     const info = CLASS_INFO[p.classId];

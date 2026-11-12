@@ -38,7 +38,7 @@ export function enemyArt(enemy: EnemyId): string {
 }
 
 /** QR as one SVG path, quiet zone of 2 modules. White ground, ink modules (a scannable code needs contrast). */
-export function qrSvg(qr: QrMatrix): string {
+export function qrSvg(qr: QrMatrix, label = 'QR code to join'): string {
   const q = 2;
   const n = qr.size + q * 2;
   let d = '';
@@ -48,7 +48,7 @@ export function qrSvg(qr: QrMatrix): string {
     }
   }
   return (
-    `<svg class="qr" viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges" aria-label="QR code to join">` +
+    `<svg class="qr" viewBox="0 0 ${n} ${n}" shape-rendering="crispEdges" role="img" aria-label="${esc(label)}">` +
     `<rect width="${n}" height="${n}" fill="var(--brand-paper)"/><path d="${d}" fill="var(--brand-ink)"/></svg>`
   );
 }

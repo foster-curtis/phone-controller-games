@@ -124,6 +124,7 @@ _All numbers are starting values for tuning._
   - Glyphs draw with the system emoji stack `theme.emojiFont` (OS-provided; not a brand.css token).
 
 **Screens:** lobby (QR + room code + joined players), round results, match winner.
+**Feedback (#33):** the match winner screen has a QR to the feedback form pre-filled for this game (PLATFORM decision #11), in a panel right of the breakdown; every phone's match-end screen has **Give feedback**, which opens the form in a new tab.
 Round results and the match winner screen show a **per-round points breakdown** of the round just played (`MatchView.breakdown`, §7.3): for each player who had an egg, the points earned and why (+1 per knockout, naming the victim; +3 survivor) plus who knocked them out (or "fell off", or "Knocked out by ghost" with no name when a ghost pulse pushed them out and no living player got the credit: `out.by` null + `out.ghost` true). Not available right after a host refresh. A player who leaves or is removed drops out of the breakdown shown.
 
 ### 6.7 Phone UI states
@@ -288,6 +289,7 @@ _None. Spec complete and ready for implementation._
 | 30  | 2026-10-26 | Rename              | **Sunny Side Slam** replaces Sunny Side Shove (amends #8). Domain `sunny-side.fostercurtis.dev` and game ID `sunny-side` are unchanged | Owner's choice (Foster); "Slam" matches the charged slam ability. |
 | 31  | 2026-11-10 | Hide DASH           | The phone's DASH button is hidden (kept in code, `DASH_HIDDEN` in `screens/controller.ts`); SLAM is the only live-egg button. v2 adds power-ups and replaces DASH with an action button (§11) | Owner's choice (Foster). |
 | 32  | 2026-11-10 | Catalog entry       | `game.meta.ts` holds the title, player range (2–8), catalog descriptions and card and link-share art (`catalog/card.jpg`, `catalog/share.webp`); `MIN_PLAYERS`, `MAX_PLAYERS` and the TV/phone title read it | One source for the gallery and the game (`PLATFORM.md` #9). No behavior change. |
+| 33  | 2026-11-11 | Feedback link       | Match winner only: a QR (`render/feedback.ts`, error level L, 9 px modules) in a 480 px panel right of the breakdown, drawn once per visit; **Give feedback** on every phone's match end, a new-tab link | PLATFORM decision #11. The final screen, so it never interrupts a match; outside the refresh, so it never holds up Rematch. |
 
 ## 11. Later (v2)
 

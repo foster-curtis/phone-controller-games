@@ -20,7 +20,8 @@ One page, top to bottom:
 2. **Intro:** one or two sentences on what the collection is.
 3. **How it works:** a three-step strip: open a game on a TV or laptop → scan the QR code with your phone → play. No app needed.
 4. **Game grid:** one card per game.
-5. **Footer:** minimal (name or copyright, link to fostercurtis.dev).
+5. **Feedback banner:** "Played one of my games?" with a **Give feedback here!** button to the plain survey form (decision #6).
+6. **Footer:** minimal (name or copyright, link to fostercurtis.dev).
 
 ### Game cards
 - Show: image, title, player range (e.g. "2–8 players"), shortDescription.
@@ -58,7 +59,7 @@ Everything listed under Later versions below.
 ## Later versions
 
 ### v2 (on games.fostercurtis.dev)
-- **Feedback survey link:** a link to a Google Form, e.g. in the footer and/or the intro.
+- ~~**Feedback survey link**~~: done, a banner above the footer (decision #6).
 - **"More games" link inside each game:** a link back to the gallery from each game's title or end screen. It changes each game, not the gallery.
 - **Player-count filter:** "We have N people." Worth adding once the collection outgrows one screen.
 - **Per-game click counts:** turn on Vercel Web Analytics in each game and read its referrers from games.fostercurtis.dev, or track Play clicks as custom events if the Vercel plan is upgraded.
@@ -79,3 +80,4 @@ Everything listed under Later versions below.
 | 3 | 2026-11-10 | Brand kit | Unpacked read-only: `public/` and `src/brand/` at the kit's paths, `marks/`, `preview.html` and `README.md` in `brand/`; head values (`THEME_INIT`, `theme-color`, OG alt text) injected from the kit files | The kit comes from the brand designer. Injecting from its files means the page can't drift from it. |
 | 4 | 2026-11-10 | Keyboard | One stop per game for the game itself: the image and title links are out of the tab order, so each card has two stops, Read more and Play (named `Play <title>`) | The kit README's intent. Fewer stops make the grid quick to tab through, and every action stays reachable. |
 | 5 | 2026-11-10 | Analytics | Vercel Web Analytics page views only, injected in production builds; no custom events | The account is on Hobby, which has no custom events. Per-game click counts wait for v2. |
+| 6 | 2026-11-11 | Feedback banner | A banner between the game grid and the footer: "Played one of my games?", a line on the survey, and a **Give feedback here!** button to the plain form (no game pre-filled), same tab like every other gallery link; the prerender fills the button from `@pcg/catalog` (`FEEDBACK_FORM_URL`) at a `<!--gallery:feedback-->` marker. The button is the kit's gray one; the banner stands out by size and an amber accent bar | Foster: a footer link was too easy to miss; the banner invites action. PLATFORM decision #11: the form URL lives only in the catalog. The kit allows one amber button at a time and none at rest. |

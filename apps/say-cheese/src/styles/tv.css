@@ -713,6 +713,61 @@
   font-size: min(26px, 3vh);
   padding-block: 0;
 }
+/* Feedback QR (PLATFORM decision #11): a column reserved on the right of the view (its padding), QR
+   bottom-aligned, so the winners, podium and standings center in what's left and nothing overlaps.
+   1080p TV: 335 px, about 7.5 px a module. Smaller windows: up to 200 px, and the board's minimum
+   widths come down so it still fits a 1280×720 window. */
+.view.matchEnd {
+  --fb: min(200px, 22vh);
+  padding-right: calc(var(--fb) + var(--space-6));
+}
+.matchEnd .feedback {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: var(--fb);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+.matchEnd .feedback .qr {
+  width: var(--fb);
+  height: var(--fb);
+  margin-bottom: var(--space-1);
+}
+.matchEnd .feedback .pad {
+  font-size: 18px;
+}
+.matchEnd .feedback .caption {
+  font-size: 16px;
+  line-height: 1.25;
+}
+@media (max-width: 1599px), (max-height: 899px) {
+  .matchEnd .board {
+    gap: var(--space-6);
+  }
+  .matchEnd .standings {
+    min-width: 300px;
+  }
+  .matchEnd .podium .block {
+    min-width: 140px;
+  }
+}
+@media (min-width: 1600px) and (min-height: 900px) {
+  .view.matchEnd {
+    --fb: min(340px, 31vh);
+  }
+  .matchEnd .feedback {
+    gap: var(--space-2);
+  }
+  .matchEnd .feedback .pad {
+    font-size: 28px;
+  }
+  .matchEnd .feedback .caption {
+    font-size: 22px;
+  }
+}
 .podium {
   display: flex;
   align-items: flex-end;
