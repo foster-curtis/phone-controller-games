@@ -295,3 +295,5 @@ _None. Spec complete and ready for implementation._
 
 - **Power-ups** on the pan (reverses "no power-ups" in §6.1 / #2 for v2).
 - **Action button** replaces the hidden DASH button (#31) on the phone.
+- **Amber "Slam"**: show the word "Slam" in the title in amber (`--brand-amber` / `theme.ts`).
+- **Fall-off animation**: when an egg goes off the pan, animate it falling or splatting instead of having it just disappear.
