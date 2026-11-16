@@ -73,8 +73,62 @@ export interface RulesPhoneScreen {
 }
 
 export function createRulesPhoneScreen(
-  _initial: RulesPhoneState,
-  _opts: RulesPhoneScreenOptions,
+  initial: RulesPhoneState,
+  opts: RulesPhoneScreenOptions,
 ): RulesPhoneScreen {
-  throw new Error('createRulesPhoneScreen: not implemented (H1)');
+  const root = document.createElement('section');
+  root.className = opts.className ?? 'screen rules';
+  root.dataset.screen = 'rules';
+
+  const defaultButton = (b: RulesPhoneButton, onClick: () => void): HTMLElement => {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.id = b.id;
+    el.textContent = b.label;
+    el.addEventListener('click', onClick);
+    return el;
+  };
+  const defaultHeading = (text: string): HTMLElement => {
+    const el = document.createElement('h1');
+    el.textContent = text;
+    return el;
+  };
+  const defaultText = (text: string, kind: 'caption' | 'body'): HTMLElement => {
+    const el = document.createElement('p');
+    el.className = kind;
+    el.textContent = text;
+    return el;
+  };
+
+  let last = '';
+  const render = (s: RulesPhoneState): void => {
+    const m = rulesPhoneModel(s);
+    const key = JSON.stringify(m);
+    if (key === last) return;
+    last = key;
+    const kids: HTMLElement[] = [
+      (opts.heading ?? defaultHeading)(m.heading),
+      (opts.text ?? defaultText)(m.caption, 'caption'),
+      (opts.text ?? defaultText)(m.watch, 'body'),
+    ];
+    if (m.next) {
+      const row = document.createElement('div');
+      row.className = 'leader-row';
+      const mkBtn = (b: RulesPhoneButton): HTMLElement =>
+        (opts.button ?? defaultButton)(b, () => opts.onAction(b.action));
+      row.append(mkBtn(m.next));
+      if (m.skip) row.append(mkBtn(m.skip));
+      kids.push(row);
+    }
+    root.replaceChildren(...kids);
+  };
+  render(initial);
+
+  return {
+    element: root,
+    update: render,
+    destroy() {
+      root.remove();
+    },
+  };
 }
