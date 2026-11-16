@@ -2,6 +2,8 @@
 // → upload → review → results)×N → matchEnd → rematch/lobby. Pure and headless: events in, effects
 // out; timers are effects and the clock is injected (BUILD_PLAN SC2). Disconnects, late rejoin by
 // player key, Leave/Remove and the host-refresh replay follow SPEC §6.3 / §6.3.1 (BUILD_PLAN SC6).
+import { openRulesOverview, stepRulesOverview } from '@pcg/game-kit';
+import type { RulesAction, RulesSource } from '@pcg/game-kit';
 import type { PhoneMsg, Screen } from '../../shared/messages';
 import { MAX_SEATS } from '../../shared/messages';
 import { nextSeatIndex, type SeatId } from '../../shared/seats';
@@ -95,7 +97,7 @@ export function createMatch(opts: MatchOptions): Match {
   const phones: Phones = new Map();
   let timer: { id: TimerId; deadline: number } | null = null;
   /** Where the rules overview leads: the first match, or back to the lobby (How to play). */
-  let rulesThen: 'play' | 'lobby' = 'play';
+  let rulesSource: RulesSource = 'firstStart';
   const sent = new Map<string, string>();
   let persisted = '';
   let out: Effect[] = [];
@@ -142,15 +144,21 @@ export function createMatch(opts: MatchOptions): Match {
     s.phase = 'lobby';
   }
 
-  function startRules(then: 'play' | 'lobby'): void {
-    rulesThen = then;
-    s.rulesCard = 0;
+  // The card process is the shared kit's (PLATFORM #12); `rulesCard` stays the persisted field.
+  function startRules(source: RulesSource): void {
+    rulesSource = source;
+    s.rulesCard = openRulesOverview(source, RULES_CARDS).card;
     s.phase = 'rules';
-    if (then === 'play') s.rulesSeen = true;
+    if (source === 'firstStart') s.rulesSeen = true;
   }
 
-  function finishRules(): void {
-    if (rulesThen === 'play') beginMatch();
+  function stepRules(action: RulesAction): void {
+    const r = stepRulesOverview(
+      { source: rulesSource, card: s.rulesCard, cards: RULES_CARDS },
+      action,
+    );
+    if (!r.done) s.rulesCard = r.state.card;
+    else if (r.source === 'firstStart') beginMatch();
     else s.phase = 'lobby';
   }
 
@@ -261,21 +269,19 @@ export function createMatch(opts: MatchOptions): Match {
       case 'start':
         if (s.phase !== 'lobby' || !canStart(s)) return;
         if (s.rulesSeen) beginMatch();
-        else startRules('play');
+        else startRules('firstStart');
         return;
       case 'howToPlay':
         if (s.phase === 'lobby') startRules('lobby');
         return;
       case 'next':
-        if (s.phase === 'rules') {
-          if (s.rulesCard + 1 >= RULES_CARDS) finishRules();
-          else s.rulesCard++;
-        } else if (s.phase === 'results') {
+        if (s.phase === 'rules') stepRules('next');
+        else if (s.phase === 'results') {
           nextTurn();
         }
         return;
       case 'skip':
-        if (s.phase === 'rules') finishRules();
+        if (s.phase === 'rules') stepRules('skip');
         return;
       case 'skipReview':
         if (canSkipReview(s)) finishReview();

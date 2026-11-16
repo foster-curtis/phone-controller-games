@@ -350,7 +350,7 @@
 .a-num {
   fill: var(--accent-on);
 }
-.rule-text {
+.view.rules .rule-text {
   max-width: 24em;
   font: 400 min(40px, 4.2vh) / 1.35 var(--font-sans);
 }
@@ -366,6 +366,43 @@
 }
 .dot.on {
   background: var(--accent);
+}
+/* The card is the shared rules shell (PLATFORM #12, game-kit createRulesShell). Its stylesheet reads the
+   --pcg-rules-* vars (set here from brand tokens) and is injected at runtime, so the overrides below use
+   .view.rules (two classes) to win over its single-class rules whatever the load order. They restore
+   the pre-kit look: the slot is transparent to layout, the dots and hint keep their brand styling. */
+.view.rules {
+  --pcg-rules-bg: transparent;
+  --pcg-rules-fg: inherit;
+  --pcg-rules-muted: var(--muted);
+  --pcg-rules-accent: var(--accent);
+  --pcg-rules-gap: var(--space-6);
+  --pcg-rules-pad: 0;
+  --pcg-rules-dot-size: 20px;
+  --pcg-rules-dot: var(--presence-off);
+  --pcg-rules-dot-on: var(--accent);
+  width: auto;
+  height: auto;
+  padding: 0;
+  font-family: inherit;
+}
+.view.rules .pcg-rules__slot {
+  display: contents;
+}
+.view.rules .banner {
+  font: 400 72px/1 var(--font-display);
+}
+.view.rules .dots {
+  gap: var(--space-3);
+}
+.view.rules .dot,
+.view.rules .dot.on {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+.view.rules .hint {
+  opacity: 1;
 }
 
 /* Round views */

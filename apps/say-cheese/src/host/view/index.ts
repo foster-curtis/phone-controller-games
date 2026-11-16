@@ -9,7 +9,7 @@ import { renderMatchEnd, renderResults } from './results';
 import { renderReview, type ReviewFx } from './review';
 import { renderPass } from './pass';
 import { renderAnnounce, renderScatter, renderShoot, renderUpload } from './rounds';
-import { renderRules } from './rules';
+import { disposeRules, renderRules } from './rules';
 
 export type { TvControls } from './dom';
 
@@ -29,12 +29,18 @@ function reviewFx(root: HTMLElement, view: TvView): ReviewFx {
   return { fresh, newTags: new Set(ids.filter((id) => !before.has(id))) };
 }
 
-function screenFor(view: TvView, c: TvControls, flash: boolean, fx: ReviewFx): HTMLElement {
+function screenFor(
+  root: HTMLElement,
+  view: TvView,
+  c: TvControls,
+  flash: boolean,
+  fx: ReviewFx,
+): HTMLElement {
   switch (view.phase) {
     case 'lobby':
       return renderLobby(view, c);
     case 'rules':
-      return renderRules(view);
+      return renderRules(root, view, c);
     case 'pass':
       return renderPass(view);
     case 'announce':
@@ -60,11 +66,14 @@ export function renderTv(root: HTMLElement, view: TvView, controls: TvControls):
   root.dataset.shots = view.phase === 'shoot' ? String(view.shots) : '0';
   root.dataset.tv = view.phase;
   const fx = reviewFx(root, view);
-  const screen = screenFor(view, controls, flash, fx);
+  if (view.phase !== 'rules') disposeRules(root);
+  const screen = screenFor(root, view, controls, flash, fx);
   screen.dataset.tv = view.phase;
   // A new phase (or rules card) fades its view in; repaints of the same view stay still.
   const key = view.phase === 'rules' ? `rules${view.card}` : view.phase;
+  // (A rules shell is reused across repaints, so a stale `enter` must go or the fade would replay.)
   if (root.dataset.view !== key) screen.classList.add('enter');
+  else screen.classList.remove('enter');
   root.dataset.view = key;
 
   const bar = h('nav', 'host-controls');
