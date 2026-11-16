@@ -162,6 +162,24 @@ Round results and the match winner screen show a **per-round points breakdown** 
 - Rebrand = replace the kit files and update `theme.ts` until the parity test passes.
 - All audio stays **post-MVP**.
 
+### 6.9 How to play
+
+A rules overview on the TV, built on the shared kit (PLATFORM decision #12): `@pcg/game-kit` runs the card sequence and the DOM card shell, `@pcg/controller-kit` the phone screen; this game owns the copy, the illustrations and the styling. The flow copies Say Cheese (its SPEC §6.2.1).
+
+- **When:** after the leader taps **Start** on the room's **first match**, before the first countdown. **Rematch** skips it. The leader can reopen it from the lobby with **How to play** (TV lobby button and the leader's lobby screen); it then returns to the lobby.
+- **Controls:** the leader's phone has **Next** and **Skip** (on the last card only **Let's play!**); the host has Enter / → / Space (Next), Esc (Skip) and gamepad A (Next) / B (Skip). Nobody else can advance it. Every other phone shows "Watch the TV" with the card count.
+- **During it:** a leader handoff moves the buttons to the new leader. A player who joins is seated for the match, as in the lobby; a player who leaves is gone, as in the lobby. After the last card or a Skip: the first match starts (from Start) if enough players are still connected, else back to the lobby; from the lobby, back to the lobby. A host refresh during it lands in the lobby, and the room still counts as having seen it.
+- **Cards** (`src/host/howToPlay/cards.ts`; DASH is never mentioned or shown, #31):
+  1. **Last egg on the pan.** Shove the other eggs off the pan. The last egg left wins the round.
+  2. **Steer with your thumb.** Drag anywhere on the left side of your phone to slide your egg. Keep your eyes on the TV.
+  3. **Hold SLAM, then let go.** Hold SLAM to charge, release to belly-flop. The longer you charge, the harder you hit, but you're slow while charging.
+  4. **The pan is heating up.** About 10 seconds in, the edge starts sizzling inward. The pan only gets smaller.
+  5. **Scoring.** Knock an egg off: +1. Last egg standing: +3. First to {target} wins. Small print: "Fall off on your own and nobody scores." {target} is the live target for the current player count.
+  6. **Come back as a ghost.** Knocked off? In 4 seconds you're back as steam. Tap PULSE to puff eggs toward the edge. Ghosts can't score, but revenge is free.
+- **Illustrations:** each card is a looping, timeline-scripted scene (about 3–5 s, a short pause, then again) drawn with the real renderers (`render/egg`, `ghost`, `slamRing`, `arena`, theme tokens), with no physics and no `src/host/sim` imports. The phone outline, thumb, joystick and SLAM button on cards 2 and 3 are drawn in the controller's brand style. Under reduced motion each card shows one still frame. Scripts are pure functions of loop time (`howToPlay/types.ts`), so the loop and the still are testable without Phaser.
+- **Placement:** one illustration scene on the existing host canvas, whose camera viewport follows the shell slot's on-screen rect (re-measured on resize); the shell's DOM sits over the canvas. One WebGL context and the already-loaded fonts and textures, so the cards look exactly like the game; a second Phaser instance in the slot was the fallback.
+- **Debug:** `?debug=1&howto=<1–6>[&players=<n>]` opens the overview on that card without a room.
+
 ## 7. Protocols
 
 ### 7.1 Relay protocol
@@ -290,6 +308,7 @@ _None. Spec complete and ready for implementation._
 | 31  | 2026-11-10 | Hide DASH           | The phone's DASH button is hidden (kept in code, `DASH_HIDDEN` in `screens/controller.ts`); SLAM is the only live-egg button. v2 adds power-ups and replaces DASH with an action button (§11) | Owner's choice (Foster). |
 | 32  | 2026-11-10 | Catalog entry       | `game.meta.ts` holds the title, player range (2–8), catalog descriptions and card and link-share art (`catalog/card.jpg`, `catalog/share.webp`); `MIN_PLAYERS`, `MAX_PLAYERS` and the TV/phone title read it | One source for the gallery and the game (`PLATFORM.md` #9). No behavior change. |
 | 33  | 2026-11-11 | Feedback link       | Match winner only: a QR (`render/feedback.ts`, error level L, 9 px modules) in a 480 px panel right of the breakdown, drawn once per visit; **Give feedback** on every phone's match end, a new-tab link | PLATFORM decision #11. The final screen, so it never interrupts a match; outside the refresh, so it never holds up Rematch. |
+| 34  | 2026-11-16 | How to play         | Rules overview after the first Start and from the lobby (§6.9), on the shared rules kit (PLATFORM #12); six cards with timeline-scripted illustrations on the host canvas (a camera viewport under the shell's slot) | New players learned by playing a round; Say Cheese already had the flow, so both games share it. |
 
 ## 11. Later (v2)
 

@@ -14,6 +14,12 @@ import { mountVersionTag } from '../shared/version';
 import '../styles/brand.css';
 import { debugEnabled, type PcgDebugApi } from './debug';
 import { createGameRuntime } from './game';
+import { RULES_CARD_COUNT } from './howToPlay/cards';
+import {
+  openRulesPreview,
+  previewCardFromSearch,
+  previewPlayersFromSearch,
+} from './howToPlay/preview';
 import { STORAGE_KEY } from './match/config';
 import { RemoveArm } from './render/remove';
 import { BootScene } from './scenes/Boot';
@@ -148,4 +154,10 @@ if (debug) {
       remove: (id) => runtime.removePlayer(id),
     },
   });
+}
+
+// How to play preview (SPEC §6.9): `?debug=1&howto=<1-6>` jumps straight to a card, no room needed.
+if (debug) {
+  const card = previewCardFromSearch(location.search, RULES_CARD_COUNT);
+  if (card !== null) openRulesPreview(game, card, previewPlayersFromSearch(location.search));
 }

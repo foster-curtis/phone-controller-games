@@ -28,3 +28,39 @@ export {
 } from './lan';
 export { qrMatrix, type QrMatrix } from './qr';
 export { debugEnabled, installDebug } from './debug';
+
+// Rules overview / How to play (PLATFORM decision #12; added at H0 of how-to-play).
+export type {
+  RulesAction,
+  RulesCard,
+  RulesCardContext,
+  RulesIllustration,
+  RulesIllustrationHandle,
+  RulesOverviewState,
+  RulesSource,
+  RulesStepResult,
+  RulesText,
+} from './rules/types';
+export {
+  RULES_FINISH_LABEL,
+  RULES_HINT,
+  RULES_NEXT_LABEL,
+  RULES_SKIP_LABEL,
+  clampRulesCard,
+  isLastRulesCard,
+  isRulesAction,
+  openRulesOverview,
+  resolveRulesCard,
+  resolveRulesText,
+  rulesNextLabel,
+  stepRulesOverview,
+} from './rules/sequencer';
+export {
+  RULES_SHELL_VARS,
+  createRulesShell,
+  type KeyTarget,
+  type RulesShell,
+  type RulesShellEnv,
+  type RulesShellOptions,
+  type RulesShellPart,
+} from './rules/shell';
