@@ -159,14 +159,23 @@ export function hostTexts(host: Host): Promise<string[]> {
 }
 
 /** The leader's phone taps a leader action button (`data-leader`). */
-export async function leaderTap(phone: Phone, action: 'start' | 'next' | 'rematch' | 'lobby') {
+export async function leaderTap(
+  phone: Phone,
+  action: 'start' | 'next' | 'rematch' | 'lobby' | 'howToPlay' | 'skip',
+) {
   const button = phone.page.locator(`[data-leader=${action}]`);
   await expect(button).toBeEnabled();
   await button.click();
 }
 
-/** Starts round play from the lobby and waits for `playing` on the host. */
+/**
+ * Starts round play from the lobby and waits for `playing` on the host. The room's first Start opens
+ * the How to play overview (SPEC §6.9), which the leader skips here (H5 covers the overview itself).
+ */
 export async function startMatch(host: Host, leader: Phone): Promise<void> {
   await leaderTap(leader, 'start');
+  // Wait for whatever Start led to: the overview (first Start of the room) or the countdown.
+  await expect.poll(() => phase(host)).not.toBe('lobby');
+  if ((await phase(host)) === 'rules') await leaderTap(leader, 'skip');
   await expect.poll(() => phase(host), { timeout: 10_000 }).toBe('playing');
 }

@@ -95,6 +95,14 @@ export class LobbyScene extends Phaser.Scene {
     this.start = addButton(this, WIDTH - SAFE, L.startButton.y, 'Start', () =>
       ctx.runtime.match.hostAction('start'),
     );
+    addButton(
+      this,
+      L.howToPlayButton.x + L.howToPlayButton.w,
+      L.howToPlayButton.y,
+      'How to play',
+      () => ctx.runtime.match.hostAction('howToPlay'),
+      'plain',
+    );
     this.render();
   }
 
@@ -213,7 +221,7 @@ export class LobbyScene extends Phaser.Scene {
         L.footer.x,
         L.footer.y + 24,
         `First to ${view.targetScore} points wins · ${DIFFICULTY_LABEL[view.difficulty]} pan`,
-        'h2',
+        'pad',
         theme.color.muted,
       ),
     );

@@ -222,7 +222,7 @@ export function createLobby(ctx: ScreenCtx, first: LobbyScreen): ScreenView<Lobb
     if (current.isLeader) {
       const start = leaderButton(ctx, 'Start', 'start');
       start.disabled = !current.canStart;
-      actions.append(difficultyPicker(), start);
+      actions.append(difficultyPicker(), start, leaderButton(ctx, 'How to play', 'howToPlay', ''));
       const others = current.standings.filter(
         (s) => s.connected && !s.left && s.name !== current.name,
       );

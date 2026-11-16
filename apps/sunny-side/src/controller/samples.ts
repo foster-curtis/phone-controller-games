@@ -72,10 +72,14 @@ export function sampleStandings(n = 5, long = false): Standing[] {
   }));
 }
 
-export function sampleScreen(kind: ScreenKind, color: PlayerColorId = 'crimson'): Screen {
+export function sampleScreen(
+  kind: ScreenKind,
+  color: PlayerColorId = 'crimson',
+  isLeader = true,
+): Screen {
   const longList = kind === 'spectating' || kind === 'results' || kind === 'matchEnd';
   const base = {
-    isLeader: true,
+    isLeader,
     round: 2,
     targetScore: 11,
     name: longList ? 'Benedict_1' : 'Benedict',
@@ -85,6 +89,8 @@ export function sampleScreen(kind: ScreenKind, color: PlayerColorId = 'crimson')
   switch (kind) {
     case 'lobby':
       return { ...base, kind, takenColors: ['cobalt', 'jade'], canStart: true };
+    case 'rules':
+      return { ...base, kind, card: 1, cards: 6 };
     case 'countdown':
       return { ...base, kind, ms: 3000 };
     case 'eliminated':

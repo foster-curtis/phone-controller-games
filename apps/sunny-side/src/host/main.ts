@@ -25,6 +25,7 @@ import { RemoveArm } from './render/remove';
 import { BootScene } from './scenes/Boot';
 import { LobbyScene } from './scenes/Lobby';
 import { ResultsScene } from './scenes/Results';
+import { RulesScene } from './scenes/Rules';
 import { RoundScene } from './scenes/Round';
 import { WinnerScene } from './scenes/Winner';
 import {
@@ -67,6 +68,7 @@ const game = new Phaser.Game({
       showPhase();
     }),
     LobbyScene,
+    RulesScene,
     RoundScene,
     ResultsScene,
     WinnerScene,
@@ -87,7 +89,13 @@ const ctx: HostContext = {
 };
 setHostContext(game, ctx);
 
-const PHASE_SCENES: readonly SceneKey[] = [SCENE.lobby, SCENE.round, SCENE.results, SCENE.winner];
+const PHASE_SCENES: readonly SceneKey[] = [
+  SCENE.lobby,
+  SCENE.rules,
+  SCENE.round,
+  SCENE.results,
+  SCENE.winner,
+];
 
 function showPhase(): void {
   if (!booted) return;
@@ -126,6 +134,7 @@ if (debug) {
     phase: () => runtime.view().phase,
     players: () => runtime.view().players,
     view: () => runtime.view(),
+    rules: () => runtime.view().rules ?? null,
     code: () => runtime.code,
     joinUrl: () => (runtime.code ? joinUrl(ctx.origin, runtime.code) : null),
     qr: () => (ctx.qr ? { size: ctx.qr.size, modules: ctx.qr.modules } : null),

@@ -130,7 +130,8 @@ Round results and the match winner screen show a **per-round points breakdown** 
 ### 6.7 Phone UI states
 
 - **Joining:** room code (prefilled from QR), connecting.
-- **Lobby:** name step, then color + Ready (non-leaders; the button reads "Waiting for {leader}…" once ready); leader sees difficulty + Start.
+- **Lobby:** name step, then color + Ready (non-leaders; the button reads "Waiting for {leader}…" once ready); leader sees difficulty, **How to play** and Start.
+- **Rules** (§6.9): "Watch the TV" and the card count; the leader also has **Next** and **Skip** (the last card's Next reads "Let's play!").
 - **Playing:** floating joystick, DASH, SLAM, **pause button** in the top-right corner above DASH/SLAM.
   - **DASH is hidden** (#31): the button is still built but not shown, so SLAM's zone covers the whole right half. The host still handles the dash bit (ghost PULSE uses it). v2 replaces DASH with an action button (§11).
 - **Charging:** while SLAM is held, a tapered arc grows clockwise outside the SLAM button (9:00 to 2:00 over the 1 s gauge time), thickening toward its leading end, in `heat` darkening along its length; it flashes once in `yolk-shine` at full charge and is hidden when SLAM is not held.
@@ -226,6 +227,8 @@ Phone → host (JSON objects; inputs are arrays, so `Array.isArray` distinguishe
 { t: "pause" } | { t: "resume" }
 { t: "emoji", i }                      // index into the 5-emoji set
 { t: "leader", action: "start" | "next" | "rematch" | "lobby" }
+{ t: "leader", action: "howToPlay" }    // lobby only: open How to play (§6.9)
+{ t: "leader", action: "skip" }         // How to play only; "next" also steps it
 { t: "leader", action: "difficulty", difficulty: "easy" | "medium" | "hard" }   // lobby, leader only
 { t: "ready", ready: boolean }         // lobby
 { t: "leader", action: "remove", playerId } // leader only: remove another player (§6.5)
@@ -233,6 +236,8 @@ Phone → host (JSON objects; inputs are arrays, so `Array.isArray` distinguishe
 ```
 
 The host's own controls (`Match.hostAction`) take the same leader actions plus `{ kind: "remove", playerId }` (TV-side removal, `GameRuntime.removePlayer(id)`).
+
+The `rules` screen (`{ kind: "rules", card, cards }`, 0-based card) is shown on every phone while the overview is open; the TV's `MatchView.rules` carries `{ source, card, cards, playerCount }` (null otherwise) and the match phase is `rules`. `rulesSeen` (persisted; absent = false) records that the room saw it after a first Start.
 
 Host → phone: the host drives each phone's UI state (§6.7), e.g. `{ t: "screen", screen, ...data }`, sent per phone or broadcast.
 Every screen also carries `leaderName` (the session leader's name, or null) so non-leader phones can show "Waiting for {leader}…" (§6.5); it is re-sent when leadership changes.

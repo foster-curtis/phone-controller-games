@@ -14,6 +14,7 @@ export { HEIGHT, SAFE, WIDTH };
 export const SCENE = {
   boot: 'boot',
   lobby: 'lobby',
+  rules: 'rules',
   round: 'round',
   results: 'results',
   winner: 'winner',
@@ -23,6 +24,7 @@ export type SceneKey = (typeof SCENE)[keyof typeof SCENE];
 /** Which scene shows each match phase. */
 export const SCENE_FOR_PHASE: Record<MatchPhase, SceneKey> = {
   lobby: SCENE.lobby,
+  rules: SCENE.rules,
   countdown: SCENE.round,
   playing: SCENE.round,
   results: SCENE.results,

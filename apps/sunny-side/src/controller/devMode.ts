@@ -32,6 +32,10 @@ export function startDev(root: HTMLElement): App {
         emit();
       },
     })),
+    {
+      id: 'rules (player)',
+      onClick: () => client.emit({ t: 'screen', screen: sampleScreen('rules', curColor, false) }),
+    },
     { id: 'removed', onClick: () => app.showRemoved() },
   ]);
   dev.addRow(

@@ -5,11 +5,13 @@ import { createController } from './controller';
 import { createEliminated } from './eliminated';
 import { createLobby } from './lobby';
 import { createMatchEnd, createResults } from './results';
+import { createRules } from './rules';
 import { createGamePaused, createLeft } from './simple';
 import { createSpectating } from './spectating';
 
 export type ViewGroup =
   | 'lobby'
+  | 'rules'
   | 'controller'
   | 'eliminated'
   | 'spectating'
@@ -20,6 +22,7 @@ export type ViewGroup =
 
 export const GROUP_OF: Record<ScreenKind, ViewGroup> = {
   lobby: 'lobby',
+  rules: 'rules',
   countdown: 'controller',
   playing: 'controller',
   ghost: 'controller',
@@ -38,6 +41,8 @@ export function createView(screen: Screen, ctx: ScreenCtx): ScreenView<any> {
   switch (screen.kind) {
     case 'lobby':
       return createLobby(ctx, screen);
+    case 'rules':
+      return createRules(ctx, screen);
     case 'countdown':
     case 'playing':
     case 'ghost':

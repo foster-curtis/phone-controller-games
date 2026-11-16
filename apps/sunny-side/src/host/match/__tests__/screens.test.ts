@@ -6,6 +6,7 @@ import { setup } from './fakeSim';
 /** Record<ScreenKind, …> makes TS fail here if a Screen variant is added and not listed. */
 const ALL_KINDS: Record<ScreenKind, true> = {
   lobby: true,
+  rules: true,
   countdown: true,
   playing: true,
   eliminated: true,
@@ -24,7 +25,7 @@ describe('screens', () => {
     h.join('b');
     h.join('c');
     h.readyAll();
-    h.match.hostAction('start'); // countdown
+    h.start(); // countdown
     h.runMs(3000); // playing
     h.join('s'); // spectating
     h.eliminate('c', 'a'); // eliminated
@@ -81,7 +82,7 @@ describe('screens', () => {
     for (const id of ['a', 'b', 'c']) h.join(id);
     h.match.playerLeft('c');
     h.readyAll();
-    h.match.hostAction('start');
+    h.start();
     h.match.playerRejoined('c', 'key-c');
     expect(h.last('c').kind).toBe('spectating');
     h.runMs(3000);
