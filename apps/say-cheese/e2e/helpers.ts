@@ -225,3 +225,16 @@ export function sendRaw(phone: Phone, msg: unknown): Promise<void> {
     (window as unknown as { __pcg: { send(m: unknown): void } }).__pcg.send(m);
   }, msg);
 }
+
+// Cross-browser compat fixtures (controller-compat F4), re-exported for the compat*.spec.ts specs.
+export {
+  collectPageErrors,
+  dropSockets,
+  halfOpenSockets,
+  installSocketControl,
+  phoneContextOptions,
+  removeApis,
+  setOffline,
+  setVisibility,
+  simulateBfcacheRestore,
+} from '@pcg/game-kit/e2e';

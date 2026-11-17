@@ -26,7 +26,36 @@ export default defineConfig({
       args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'],
     },
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    // Cross-browser compat (controller-compat F4): only compat*.spec.ts runs on these two, so the
+    // suite doesn't triple. Those specs open phones with phoneContextOptions(browserName).
+    {
+      name: 'firefox',
+      testMatch: /compat.*\.spec\.ts/,
+      use: {
+        ...devices['Desktop Firefox'],
+        permissions: [],
+        // Firefox's fake camera: no prompt, synthetic stream.
+        launchOptions: {
+          args: [],
+          firefoxUserPrefs: {
+            'media.navigator.streams.fake': true,
+            'media.navigator.permission.disabled': true,
+          },
+        },
+      },
+    },
+    {
+      name: 'webkit',
+      testMatch: /compat.*\.spec\.ts/,
+      use: {
+        ...devices['Desktop Safari'],
+        permissions: [],
+        launchOptions: { args: [] },
+      },
+    },
+  ],
   webServer: [
     {
       command: 'pnpm --filter @pcg/relay start',

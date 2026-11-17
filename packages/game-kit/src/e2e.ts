@@ -76,3 +76,17 @@ export function recordImpact(browser: Browser, testInfo: TestInfo): ImpactRecord
     },
   };
 }
+
+// Cross-browser compat helpers (controller-compat F4).
+export { phoneContextOptions, type PhoneBrowser } from './e2e-phone.ts';
+export {
+  collectPageErrors,
+  dropSockets,
+  halfOpenSockets,
+  installSocketControl,
+  removeApis,
+  setOffline,
+  setVisibility,
+  simulateBfcacheRestore,
+  type RemovableApi,
+} from './e2e-hostile.ts';

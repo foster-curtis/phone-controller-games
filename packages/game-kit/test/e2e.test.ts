@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Browser, BrowserContext, TestInfo } from '@playwright/test';
 import { afterEach, describe, expect, it } from 'vitest';
-import { IMPACT_DIR_ENV, readE2EConfig, recordImpact } from '../src/e2e';
+import { IMPACT_DIR_ENV, phoneContextOptions, readE2EConfig, recordImpact } from '../src/e2e';
 
 const tmp = () => mkdtempSync(join(tmpdir(), 'pcg-e2e-'));
 
@@ -74,5 +74,17 @@ describe('recordImpact', () => {
       file: '/app/e2e/smoke.spec.ts',
       urls: ['http://localhost:5174/@vite/client', 'http://localhost:5174/src/host/main.ts'],
     });
+  });
+});
+
+describe('phoneContextOptions', () => {
+  it('gives each engine phone options; Firefox gets touch without isMobile', () => {
+    expect(phoneContextOptions('webkit').isMobile).toBe(true);
+    expect(phoneContextOptions('chromium').hasTouch).toBe(true);
+    const ff = phoneContextOptions('firefox');
+    expect(ff.hasTouch).toBe(true);
+    expect(ff).not.toHaveProperty('isMobile');
+    const land = phoneContextOptions('firefox', { landscape: true }).viewport!;
+    expect(land.width).toBeGreaterThan(land.height);
   });
 });

@@ -179,3 +179,16 @@ export async function startMatch(host: Host, leader: Phone): Promise<void> {
   if ((await phase(host)) === 'rules') await leaderTap(leader, 'skip');
   await expect.poll(() => phase(host), { timeout: 10_000 }).toBe('playing');
 }
+
+// Cross-browser compat fixtures (controller-compat F4), re-exported for the compat*.spec.ts specs.
+export {
+  collectPageErrors,
+  dropSockets,
+  halfOpenSockets,
+  installSocketControl,
+  phoneContextOptions,
+  removeApis,
+  setOffline,
+  setVisibility,
+  simulateBfcacheRestore,
+} from '@pcg/game-kit/e2e';

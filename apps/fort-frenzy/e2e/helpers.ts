@@ -228,3 +228,16 @@ export function stepped<T>(host: Host, read: () => Promise<T>, steps = 2): () =>
     return read();
   };
 }
+
+// Cross-browser compat fixtures (controller-compat F4), re-exported for the compat*.spec.ts specs.
+export {
+  collectPageErrors,
+  dropSockets,
+  halfOpenSockets,
+  installSocketControl,
+  phoneContextOptions,
+  removeApis,
+  setOffline,
+  setVisibility,
+  simulateBfcacheRestore,
+} from '@pcg/game-kit/e2e';

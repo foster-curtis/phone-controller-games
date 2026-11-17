@@ -47,6 +47,19 @@ With `dev:lan:<game>`, open `http://<laptop-LAN-IP>:5173` on the TV and
 `http://<laptop-LAN-IP>:5173/play` on phones. The client connects to `VITE_RELAY_URL` if set, else
 `ws://<page host>:8787`. Over plain http, Wake Lock / fullscreen / orientation lock are skipped.
 
+### Real phones over HTTPS
+
+```sh
+pnpm dev:https:sunny-side   # also dev:https:fort-frenzy, dev:https:say-cheese
+```
+
+Serves the game over HTTPS on the LAN (default `https://<LAN-IP>:5443`, flags `--port` and
+`--relay-port`), so phones get a secure context for the camera, Wake Lock and the rest. It starts
+its own relay (default port 8793) behind the same origin at `/relay`, so a phone accepts one
+self-signed certificate and nothing else. The script prints the TV and phone URLs with QR codes;
+open each URL once on the TV and every phone and accept the certificate warning (Advanced, then
+proceed). Relay events are appended to `.pcg-cache/relay-lan.log`. Ctrl+C stops everything.
+
 ## Test
 
 While working on one game, run only that game's checks:
