@@ -68,6 +68,11 @@ describe('How to play flow', () => {
     h.match.hostAction('next');
     h.msg('a', { t: 'leader', action: 'skip' });
     expect(h.match.view().phase).toBe('countdown');
+    // The countdown then runs out on ticks alone and the eggs go live.
+    h.runMs(3000);
+    expect(h.match.view()).toMatchObject({ phase: 'playing', countdownMs: 0 });
+    expect(h.match.simRunning).toBe(true);
+    expect(h.sim.frozen.get('a')).toBe(false);
   });
 
   it('How to play from the lobby returns to the lobby and keeps Ready and difficulty', () => {
