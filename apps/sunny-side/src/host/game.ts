@@ -12,6 +12,7 @@ import { GAME_ID } from '../shared/messages';
 import { createDebugSim, type DebugSim } from './debug';
 import { interpolateSnapshot } from './interpolate';
 import { createMatch, STEP_MS, type Match, type MatchView, type StorageLike } from './match';
+import { clearPersisted } from './match/persist';
 import { createSim, type Sim, type SimEvent, type SimSnapshot } from './sim';
 import { createHostNet } from './net';
 
@@ -71,12 +72,8 @@ export function createGameRuntime(opts: GameRuntimeOptions = {}): GameRuntime {
   const debugSim = opts.debug ? createDebugSim(realSim) : null;
   const sim: Sim = debugSim ?? realSim;
   const net = createHostNet(client);
-  const match = createMatch({
-    sim,
-    send: net.deps.send,
-    kick: net.deps.kick,
-    storage: opts.storage ?? sessionStorage,
-  });
+  const storage = opts.storage ?? sessionStorage;
+  const match = createMatch({ sim, send: net.deps.send, kick: net.deps.kick, storage });
   const loop: FixedStep = createFixedStep({
     stepMs: STEP_MS,
     maxSteps: catchUpSteps(MAX_FRAME_MS, STEP_MS),
@@ -106,7 +103,11 @@ export function createGameRuntime(opts: GameRuntimeOptions = {}): GameRuntime {
       // A new round re-seeds the world: drop the old frames so nothing lerps across rounds.
       if (e.type === 'phase' && e.phase === 'countdown') resetSnapshots();
     }),
-    client.onRoom(bump),
+    client.onRoom((room) => {
+      // A room we didn't reclaim (the old one expired) must not restore the old room's save later.
+      if (!room.reclaimed) clearPersisted(storage);
+      bump();
+    }),
     client.onStatus(bump),
   ];
 

@@ -76,6 +76,12 @@ export function createMatch(deps: MatchDeps): Match {
   /** Last screen JSON sent per player id (sends only on change). */
   const lastSent = new Map<string, string>();
   let lastPersisted = '';
+  /**
+   * Saving starts once there is a room to save: after `restore()` (reclaimed) or the first join (new
+   * room). Before that, `tick()`'s per-frame sync would overwrite the save a host refresh is about
+   * to restore with an empty lobby.
+   */
+  let persistArmed = false;
   /** The open How to play overview (phase `rules`, SPEC §6.9), else null. */
   let rules: RulesOverviewState | null = null;
   /** The room has seen the overview after a first Start; Rematch never shows it. Persisted. */
@@ -195,7 +201,7 @@ export function createMatch(deps: MatchDeps): Match {
       lastSent.set(p.id, json);
       deps.send({ t: 'screen', screen }, p.id);
     }
-    lastPersisted = savePersisted(deps.storage, persisted(), lastPersisted);
+    if (persistArmed) lastPersisted = savePersisted(deps.storage, persisted(), lastPersisted);
   }
 
   // ---- flow ----
@@ -462,6 +468,7 @@ export function createMatch(deps: MatchDeps): Match {
         match.playerRejoined(playerId, playerKey);
         return;
       }
+      persistArmed = true;
       const known = roster.byKey(playerKey);
       if (known) joinKnown(known, playerId);
       else roster.add(playerId, playerKey, { spectating: joinsSpectating() });
@@ -527,6 +534,7 @@ export function createMatch(deps: MatchDeps): Match {
       round = 0;
       difficulty = DEFAULT_DIFFICULTY;
       const saved = loadPersisted(deps.storage);
+      persistArmed = true;
       if (saved) {
         round = saved.round;
         matchTarget = saved.targetScore;

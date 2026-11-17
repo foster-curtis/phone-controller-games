@@ -124,6 +124,33 @@ describe('host-refresh restore', () => {
     expect(h.last('b').kind).toBe('lobby');
   });
 
+  it('frames before the reclaim leave the save alone (names, rulesSeen survive a host refresh)', () => {
+    const storage = new MemStorage();
+    const h1 = setup(storage);
+    for (const id of ['a', 'b']) h1.join(id);
+    h1.msg('a', { t: 'profile', name: 'Ann', color: 'crimson' });
+    h1.readyAll();
+    h1.match.hostAction('start');
+    expect(h1.match.view().phase).toBe('rules');
+
+    // The reloaded host ticks and toggles visibility before the relay answers the reclaim.
+    const h2 = setup(storage);
+    h2.runMs(500);
+    h2.match.setHostVisible(false);
+    h2.match.setHostVisible(true);
+    expect(loadPersisted(storage)).toMatchObject({ rulesSeen: true });
+
+    h2.match.restore([
+      { playerId: 'a', playerKey: 'key-a', connected: true },
+      { playerId: 'b', playerKey: 'key-b', connected: true },
+    ]);
+    expect(h2.match.view().phase).toBe('lobby');
+    expect(h2.match.view().players.find((p) => p.id === 'a')?.name).toBe('Ann');
+    h2.readyAll();
+    h2.match.hostAction('start');
+    expect(h2.match.view().phase).toBe('countdown');
+  });
+
   it('storage errors never throw', () => {
     const throwing = {
       getItem: () => {
