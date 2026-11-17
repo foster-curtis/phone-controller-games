@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { el } from '../src/dom';
-import { createKeepAwakeHint, KEEP_AWAKE_SEEN_KEY } from '../src/platform/keepAwake';
+import {
+  createKeepAwakeHint,
+  KEEP_AWAKE_HINT_MS,
+  KEEP_AWAKE_SEEN_KEY,
+} from '../src/platform/keepAwake';
 import type { WakeLock } from '../src/platform/wakeLock';
 
 function mem() {
@@ -102,5 +106,22 @@ describe('keep-awake hint', () => {
     touch(host);
     expect(host.querySelector('.pcg-hint-title')!.textContent).toBe('Hi');
     h2.destroy();
+  });
+
+  it('lets taps through except on the dismiss button', () => {
+    createKeepAwakeHint({ host, wakeLock: lock(false), storage: mem() });
+    touch(host);
+    const hint = host.querySelector<HTMLElement>('.pcg-hint')!;
+    expect(hint.style.pointerEvents).toBe('none');
+    expect(host.querySelector<HTMLElement>('.pcg-hint-dismiss')!.style.pointerEvents).toBe('auto');
+  });
+
+  it('hides itself after KEEP_AWAKE_HINT_MS', () => {
+    createKeepAwakeHint({ host, wakeLock: lock(false), storage: mem() });
+    touch(host);
+    vi.advanceTimersByTime(KEEP_AWAKE_HINT_MS - 1);
+    expect(host.querySelector('.pcg-hint')).not.toBeNull();
+    vi.advanceTimersByTime(2);
+    expect(host.querySelector('.pcg-hint')).toBeNull();
   });
 });

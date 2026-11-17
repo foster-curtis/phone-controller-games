@@ -39,6 +39,9 @@ export interface KeepAwakeHint {
 /** How long after the first touch the lock gets to be taken before the hint decides it isn't coming. */
 const GRACE_MS = 1000;
 
+/** How long the hint stays up before hiding itself (dismiss works earlier). */
+export const KEEP_AWAKE_HINT_MS = 8000;
+
 export function createKeepAwakeHint(opts: KeepAwakeHintOptions): KeepAwakeHint {
   const { host, wakeLock } = opts;
   const text = { ...KEEP_AWAKE_TEXT, ...opts.text };
@@ -67,7 +70,10 @@ export function createKeepAwakeHint(opts: KeepAwakeHintOptions): KeepAwakeHint {
     }
   };
 
+  let hideTimer: ReturnType<typeof setTimeout> | null = null;
   const hide = () => {
+    if (hideTimer) clearTimeout(hideTimer);
+    hideTimer = null;
     node?.remove();
     node = null;
   };
@@ -76,6 +82,7 @@ export function createKeepAwakeHint(opts: KeepAwakeHintOptions): KeepAwakeHint {
     if (destroyed || node) return;
     const dismiss = el('button', { type: 'button', class: 'pcg-hint-dismiss', text: text.dismiss });
     dismiss.addEventListener('click', hide);
+    dismiss.style.pointerEvents = 'auto';
     node = el(
       'div',
       { class: 'pcg-hint', role: 'status' },
@@ -83,7 +90,7 @@ export function createKeepAwakeHint(opts: KeepAwakeHintOptions): KeepAwakeHint {
       el('div', { class: 'pcg-hint-body', text: text.body }),
       dismiss,
     );
-    // Layout only; the game styles the look. Only the notice takes touches, so the controls stay live.
+    // Layout only; the game styles the look. Taps pass through the notice (only the dismiss button takes them), so the controls stay live.
     Object.assign(node.style, {
       position: 'fixed',
       top: 'calc(env(safe-area-inset-top, 0px) + 8px)',
@@ -91,9 +98,10 @@ export function createKeepAwakeHint(opts: KeepAwakeHintOptions): KeepAwakeHint {
       transform: 'translateX(-50%)',
       maxWidth: 'min(92vw, 28rem)',
       zIndex: '2147483000',
-      pointerEvents: 'auto',
+      pointerEvents: 'none',
     });
     host.append(node);
+    hideTimer = setTimeout(hide, KEEP_AWAKE_HINT_MS);
     markSeen();
   };
 
