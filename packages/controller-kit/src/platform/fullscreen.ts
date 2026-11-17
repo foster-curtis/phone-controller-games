@@ -1,35 +1,22 @@
-// Fullscreen on tap (PLATFORM §3): no secure context needed, unlike Wake Lock. Must run inside a user
-// gesture. iPhone Safari has no element fullscreen: everything here is then a silent no-op.
+// Fullscreen helpers kept for compatibility (PLATFORM §3). The shell no longer asks for full screen on
+// tap: players choose it with `createFullscreenButton`. Built on `fullscreenApi` (webkit fallback).
+import { fullscreenApi } from '@pcg/game-kit';
 
-type FsElement = HTMLElement & {
-  requestFullscreen?: (opts?: FullscreenOptions) => Promise<void>;
-  webkitRequestFullscreen?: () => Promise<void> | void;
-};
-type FsDocument = Document & { webkitFullscreenElement?: Element | null };
-
-/** Requests fullscreen unless already fullscreen. Never throws; rejections are swallowed. */
+/**
+ * Requests fullscreen unless already fullscreen. Never throws; rejections are swallowed.
+ * @deprecated Use `createFullscreenButton`; automatic full screen on tap is gone.
+ */
 export function requestFullscreen(doc: Document = document): void {
   try {
-    const d = doc as FsDocument;
-    if (d.fullscreenElement || d.webkitFullscreenElement) return;
-    const root = doc.documentElement as FsElement;
-    let result: Promise<void> | void | undefined;
-    if (typeof root.requestFullscreen === 'function') {
-      result = root.requestFullscreen({ navigationUI: 'hide' });
-    } else if (typeof root.webkitRequestFullscreen === 'function') {
-      result = root.webkitRequestFullscreen();
-    }
-    if (result && typeof (result as Promise<void>).catch === 'function') {
-      (result as Promise<void>).catch(() => {});
-    }
+    void fullscreenApi(doc).enter();
   } catch {
     /* unsupported or refused */
   }
 }
 
 /**
- * Asks for fullscreen on every tap/click inside `target` (the first tap, and again after the
- * user left fullscreen). Returns an unsubscribe function.
+ * Asks for fullscreen on every tap/click inside `target`. Returns an unsubscribe function.
+ * @deprecated Use `createFullscreenButton`; automatic full screen on tap is gone.
  */
 export function fullscreenOnTap(target: HTMLElement, doc: Document = document): () => void {
   const go = () => requestFullscreen(doc);

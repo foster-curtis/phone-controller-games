@@ -59,6 +59,32 @@ async function checkApp(app) {
       for (const s of HEAD_MUST) check(body.includes(s), `${path} lacks ${s}`);
       for (const s of HEAD_MUST_NOT) check(!body.includes(s), `${path} contains ${s}`);
     }
+    // Web-app checks apply once a game adopts the webApp() plugin (its play.html links /play.webmanifest).
+    const controller = (await get('/play')).body;
+    if (controller.includes('/play.webmanifest')) {
+      for (const path of ['/', '/play']) {
+        const { body } = await get(path);
+        check(
+          /name="apple-mobile-web-app-capable"/.test(body),
+          `${path} lacks apple-mobile-web-app-capable`,
+        );
+      }
+      const res = await get('/play.webmanifest');
+      check(res.status === 200, `/play.webmanifest → ${res.status}, expected 200`);
+      check(
+        existsSync(join(appRoot, 'dist', 'play.webmanifest')),
+        'dist/play.webmanifest is missing',
+      );
+      try {
+        const m = JSON.parse(res.body);
+        check(
+          m.start_url === '/play',
+          `play.webmanifest start_url is ${m.start_url}, expected /play`,
+        );
+      } catch {
+        check(false, 'play.webmanifest does not parse as JSON');
+      }
+    }
     for (const path of PUBLIC_FILES) {
       const { status } = await get(path);
       check(status === 200, `${path} → ${status}, expected 200`);

@@ -1,3 +1,5 @@
+import { fullscreenApi } from '@pcg/game-kit';
+
 // Landscape handling: phones play in landscape. iOS Safari cannot lock orientation, so portrait shows a
 // rotate overlay (the app shell wires it).
 
@@ -21,8 +23,9 @@ export function watchOrientation(
 }
 
 /**
- * Best effort: fullscreen + landscape lock (Android Chrome). Needs a user gesture and a secure
- * context; skipped otherwise. Never throws.
+ * Best effort landscape lock (Android Chrome). Locks only when the page is already full screen (the
+ * player's full-screen button gets it there); never requests full screen itself. Needs a secure
+ * context. Never throws.
  */
 export async function tryLockLandscape(
   win: Window = window,
@@ -30,7 +33,7 @@ export async function tryLockLandscape(
 ): Promise<boolean> {
   if (!win.isSecureContext) return false;
   try {
-    if (!doc.fullscreenElement) await doc.documentElement.requestFullscreen?.();
+    if (!fullscreenApi(doc).isActive()) return false;
     const orientation = win.screen?.orientation as
       (ScreenOrientation & { lock?: (o: string) => Promise<void> }) | undefined;
     if (!orientation?.lock) return false;

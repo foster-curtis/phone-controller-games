@@ -4,6 +4,8 @@
 // way in. Feature-detected through `fullscreenApi`; where the API is missing the button stays hidden.
 // Frozen at controller-compat F0: additive changes only.
 
+import { fullscreenApi } from './capabilities';
+
 export const HOST_FULLSCREEN_LABEL = 'Full screen';
 export const HOST_EXIT_FULLSCREEN_LABEL = 'Exit full screen';
 export const HOST_FULLSCREEN_FAILED =
@@ -43,20 +45,87 @@ export interface HostFullscreenButton {
   destroy(): void;
 }
 
-/** F3 implements. F0 stub: an inert, hidden button. */
+const TOAST_MS = 3_000;
+
+/** Private, tiny toast (game-kit can't import controller-kit). Never throws. */
+function toast(parent: HTMLElement, message: string): void {
+  try {
+    const node = parent.ownerDocument.createElement('div');
+    node.className = 'pcg-toast';
+    node.setAttribute('role', 'status');
+    node.textContent = message;
+    Object.assign(node.style, {
+      position: 'fixed',
+      left: '50%',
+      bottom: '16px',
+      transform: 'translateX(-50%)',
+      zIndex: '1000',
+      pointerEvents: 'none',
+    });
+    parent.append(node);
+    setTimeout(() => node.remove(), TOAST_MS);
+  } catch {
+    /* nothing to show it in */
+  }
+}
+
+/** Toggles full screen; reports a refusal through `onFail`. Call only from a user-activation handler. */
+async function toggleFullscreen(
+  doc: Document,
+  onFail: (message: string) => void,
+): Promise<boolean> {
+  const api = fullscreenApi(doc);
+  if (!api.supported) return false;
+  if (api.isActive()) {
+    await api.exit();
+    return api.isActive();
+  }
+  const ok = await api.enter();
+  if (!ok) onFail(HOST_FULLSCREEN_FAILED);
+  return ok;
+}
+
 export function createHostFullscreenButton(
   opts: HostFullscreenButtonOptions,
 ): HostFullscreenButton {
   const doc = opts.document ?? opts.parent.ownerDocument;
+  const label = opts.label ?? HOST_FULLSCREEN_LABEL;
+  const exitLabel = opts.exitLabel ?? HOST_EXIT_FULLSCREEN_LABEL;
+  const api = fullscreenApi(doc);
+  const onFail = opts.onError ?? ((m: string) => toast(opts.parent, m));
+
   const element = doc.createElement('button');
   element.type = 'button';
-  element.hidden = true;
+  element.className = opts.className ?? 'pcg-fullscreen-btn';
+  let visible = true;
+  const render = () => {
+    element.textContent = api.isActive() ? exitLabel : label;
+    element.hidden = !api.supported || !visible;
+  };
+  render();
+  element.addEventListener('click', () => void toggleFullscreen(doc, onFail));
+  const offChange = api.onChange(render);
+  opts.parent.append(element);
+  const offKey =
+    opts.shortcut === false
+      ? () => {}
+      : bindFullscreenShortcut({
+          onError: onFail,
+          document: doc,
+          ...(opts.window ? { window: opts.window } : {}),
+        });
+
   return {
     element,
-    supported: false,
-    setVisible() {},
-    toggle: () => Promise.resolve(false),
+    supported: api.supported,
+    setVisible(v) {
+      visible = v;
+      render();
+    },
+    toggle: () => toggleFullscreen(doc, onFail),
     destroy() {
+      offChange();
+      offKey();
       element.remove();
     },
   };
@@ -72,8 +141,29 @@ export interface FullscreenShortcutOptions {
 
 /**
  * `F` toggles full screen on the TV: ignored with Ctrl / Alt / Meta held, on key repeat, and while a
- * text field or contenteditable has focus. Returns an unsubscribe. F3 implements; F0 stub: no-op.
+ * text field or contenteditable has focus. Returns an unsubscribe.
  */
-export function bindFullscreenShortcut(_opts: FullscreenShortcutOptions = {}): () => void {
-  return () => {};
+export function bindFullscreenShortcut(opts: FullscreenShortcutOptions = {}): () => void {
+  const doc = opts.document ?? document;
+  const target: Pick<Window, 'addEventListener' | 'removeEventListener'> =
+    opts.window ?? doc.defaultView ?? window;
+  const key = (opts.key ?? 'f').toLowerCase();
+  const onFail =
+    opts.onError ?? ((m: string) => toast((doc.body ?? doc.documentElement) as HTMLElement, m));
+  const onKey = (e: Event) => {
+    const k = e as KeyboardEvent;
+    if (k.key?.toLowerCase() !== key) return;
+    if (k.ctrlKey || k.altKey || k.metaKey || k.repeat) return;
+    const t = k.target as HTMLElement | null;
+    if (
+      t &&
+      (/^(input|textarea|select)$/i.test(t.tagName) ||
+        t.isContentEditable ||
+        t.closest?.('[contenteditable]:not([contenteditable="false"])'))
+    )
+      return;
+    void toggleFullscreen(doc, onFail);
+  };
+  target.addEventListener('keydown', onKey);
+  return () => target.removeEventListener('keydown', onKey);
 }
