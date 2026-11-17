@@ -20,7 +20,8 @@ const PLAY_JS_LIMIT_KB = {
   'fort-frenzy': 100,
   // Say Cheese: no Phaser, a DOM controller plus the kits.
   'say-cheese': 40,
-  'sunny-side': 18,
+  // controller-compat: the shared heartbeat, full-screen, keep-awake and diagnostics code (+3.4 KB).
+  'sunny-side': 23,
 };
 
 function fail(msg) {
