@@ -18,7 +18,7 @@ describe('session leader', () => {
     expect(s.kind === 'lobby' && s.canStart).toBe(false);
     h.msg('a', { t: 'leader', action: 'start' });
     h.readyAll();
-    h.match.hostAction('start');
+    h.start();
     expect(h.match.view().phase).toBe('lobby');
     expect(h.sim.rounds).toHaveLength(0);
   });
@@ -33,6 +33,7 @@ describe('session leader', () => {
     const s = h.last('a');
     expect(s.kind === 'lobby' && s.canStart).toBe(true);
     h.msg('a', { t: 'leader', action: 'start' });
+    h.msg('a', { t: 'leader', action: 'skip' });
     expect(h.match.view().phase).toBe('countdown');
   });
 
@@ -41,7 +42,7 @@ describe('session leader', () => {
     h.join('a');
     h.join('b');
     h.readyAll();
-    h.match.hostAction('start');
+    h.start();
     expect(h.match.view().phase).toBe('countdown');
     expect(h.match.view().round).toBe(1);
   });
@@ -64,7 +65,7 @@ describe('session leader', () => {
     const h = setup();
     for (const id of ['a', 'b', 'c']) h.join(id);
     h.readyAll();
-    h.match.hostAction('start');
+    h.start();
     h.msg('a', { t: 'leave' });
     expect(h.match.view().leaderId).toBe('b');
   });
@@ -108,12 +109,13 @@ describe('session leader', () => {
     expect(h.last('a').standings.find((s) => s.playerId === 'c')?.ready).toBe(true);
     h.msg('c', { t: 'ready', ready: false });
     expect(canStart()).toBe(false);
-    h.match.hostAction('start');
+    h.start();
     expect(h.match.view().phase).toBe('lobby');
     // An away player doesn't block Start.
     h.match.playerLeft('c');
     expect(canStart()).toBe(true);
     h.msg('a', { t: 'leader', action: 'start' });
+    h.msg('a', { t: 'leader', action: 'skip' });
     expect(h.match.view().phase).toBe('countdown');
   });
 
@@ -136,6 +138,7 @@ describe('session leader', () => {
     });
     h.msg('b', { t: 'ready', ready: true });
     h.msg('a', { t: 'leader', action: 'start' });
+    h.msg('a', { t: 'leader', action: 'skip' });
     expect(h.match.view().players.every((p) => !p.ready)).toBe(true);
     h.msg('b', { t: 'ready', ready: true }); // ignored outside the lobby
     expect(h.match.view().players.find((p) => p.id === 'b')!.ready).toBe(false);
@@ -154,7 +157,7 @@ describe('session leader', () => {
     expect(h.match.view().difficulty).toBe('hard');
     expect(h.last('b')).toMatchObject({ kind: 'lobby', difficulty: 'hard' });
     h.readyAll();
-    h.match.hostAction('start');
+    h.start();
     expect(h.sim.roundOpts.at(-1)).toEqual({ difficulty: 'hard' });
     h.match.hostAction({ kind: 'difficulty', difficulty: 'easy' }); // ignored mid-match
     expect(h.match.view().difficulty).toBe('hard');

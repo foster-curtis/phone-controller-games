@@ -24,6 +24,9 @@ export interface ScreenContext {
   standings: Standing[];
   canStart: boolean;
   difficulty: Difficulty;
+  /** Phase `rules`: open card and card count (SPEC §6.9). */
+  rulesCard?: number;
+  rulesCards?: number;
   takenColors(p: PlayerRecord): PlayerColorId[];
   /** Player has an egg on the pan this round (under their current id). */
   hasEgg(p: PlayerRecord): boolean;
@@ -55,6 +58,8 @@ export function screenFor(ctx: ScreenContext, p: PlayerRecord): Screen {
         ready: p.ready,
         difficulty: ctx.difficulty,
       };
+    case 'rules':
+      return { ...base, kind: 'rules', card: ctx.rulesCard ?? 0, cards: ctx.rulesCards ?? 1 };
     case 'countdown':
       if (p.spectating || !ctx.hasEgg(p)) return { ...base, kind: 'spectating' };
       return { ...base, kind: 'countdown', ms: ceilSecondsMs(ctx.countdownMs) };

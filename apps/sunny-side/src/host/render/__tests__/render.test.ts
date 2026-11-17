@@ -139,6 +139,15 @@ describe('layout', () => {
     expect(overlaps(l.startButton, l.playersPanel)).toBe(false);
   });
 
+  it('lobby How to play sits beside Start and clear of the footer and players', () => {
+    const l = lobbyLayout(8);
+    expect(insideSafe(l.howToPlayButton)).toBe(true);
+    expect(insideSafe(l.footer)).toBe(true);
+    for (const r of [l.startButton, l.footer, l.playersPanel, l.qrPanel, l.codePanel])
+      expect(overlaps(l.howToPlayButton, r)).toBe(false);
+    expect(overlaps(l.footer, l.startButton)).toBe(false);
+  });
+
   it.each([2, 8])('breakdown layout for %i players is safe with no overlapping rows', (n) => {
     const { header, content } = screenLayout();
     expect(insideSafe(header) && insideSafe(content)).toBe(true);

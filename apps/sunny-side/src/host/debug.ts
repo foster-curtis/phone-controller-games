@@ -154,6 +154,8 @@ export interface PcgDebugApi {
   phase(): MatchPhase;
   players(): PlayerView[];
   view(): MatchView;
+  /** The open How to play overview (phase `rules`), else null (SPEC §6.9). */
+  rules(): MatchView['rules'];
   /** Room code, or null before the relay answered. */
   code(): string | null;
   /** The URL the lobby QR encodes (`${origin}/play?code=CODE`). */

@@ -95,6 +95,9 @@ describe('screens', () => {
 describe('leader controls', () => {
   const leaderCases: Array<[ScreenKind, string, string]> = [
     ['lobby', 'start', 'Start'],
+    ['lobby', 'howToPlay', 'How to play'],
+    ['rules', 'next', 'Next'],
+    ['rules', 'skip', 'Skip'],
     ['results', 'next', 'Next round'],
     ['matchEnd', 'rematch', 'Rematch'],
     ['matchEnd', 'lobby', 'Back to lobby'],

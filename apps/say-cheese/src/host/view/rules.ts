@@ -1,8 +1,11 @@
 // TV rules overview (SPEC §6.2.1, §6.6): one card per screen with an inline-SVG illustration (art.ts),
-// progress dots, controls hint.
+// progress dots, controls hint. The card shell is the shared kit's (PLATFORM #12); the cards, copy and
+// art are ours, styled onto the kit through tv.css.
+import { createRulesShell } from '@pcg/game-kit';
+import type { RulesCard, RulesShell } from '@pcg/game-kit';
 import type { TvView } from '../match/types';
 import { ruleArt } from './art';
-import { h } from './dom';
+import type { TvControls } from './dom';
 
 type Rules = Extract<TvView, { phase: 'rules' }>;
 
@@ -30,13 +33,53 @@ export const RULE_CARDS: { title: string; text: string }[] = [
   },
 ];
 
-export function renderRules(v: Rules): HTMLElement {
-  const el = h('section', 'view rules');
-  const card = RULE_CARDS[Math.min(Math.max(v.card, 0), RULE_CARDS.length - 1)]!;
-  el.dataset.card = String(v.card);
-  el.append(ruleArt(v.card), h('h1', 'banner', card.title), h('p', 'rule-text', card.text));
-  const dots = h('div', 'dots');
-  for (let i = 0; i < v.cards; i++) dots.append(h('span', i === v.card ? 'dot on' : 'dot'));
-  el.append(dots, h('p', 'caption hint', 'Leader: Next / Skip'));
-  return el;
+const CARDS: RulesCard[] = RULE_CARDS.map((c, i) => ({
+  title: c.title,
+  body: c.text,
+  illustration: {
+    mount(slot) {
+      const art = ruleArt(i);
+      slot.append(art);
+      return { destroy: () => art.remove() };
+    },
+  },
+}));
+
+// One shell per TV root and card: repaints of the same card reuse it (the art stays mounted); a new
+// card or another phase destroys it (PLATFORM #12). A fresh shell per card keeps the per-card fade-in.
+const shells = new WeakMap<HTMLElement, RulesShell>();
+
+export function disposeRules(root: HTMLElement): void {
+  shells.get(root)?.destroy();
+  shells.delete(root);
+}
+
+export function renderRules(root: HTMLElement, v: Rules, controls: TvControls): HTMLElement {
+  let shell = shells.get(root);
+  if (shell && shell.card !== Math.min(Math.max(v.card, 0), CARDS.length - 1)) {
+    disposeRules(root);
+    shell = undefined;
+  }
+  if (!shell) {
+    shell = createRulesShell({
+      cards: CARDS,
+      // The host keys live in controls.ts (one mapping for buttons and keys), so the shell has none.
+      onAction: (action) => controls.emit({ action }),
+      keys: false,
+      gamepad: false,
+      buttons: false,
+      classes: {
+        root: 'view rules',
+        title: 'banner',
+        body: 'rule-text',
+        dots: 'dots',
+        dot: 'dot',
+        dotOn: 'on',
+        hint: 'caption hint',
+      },
+    });
+    shells.set(root, shell);
+  }
+  shell.show({ card: v.card, cards: v.cards }, { playerCount: 0 });
+  return shell.element;
 }

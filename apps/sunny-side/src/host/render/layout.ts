@@ -249,6 +249,8 @@ export interface LobbyLayout {
   rows: Rect[];
   removes: RemoveRects[];
   startButton: Rect;
+  /** How to play (SPEC §6.9): beside Start, to its left. */
+  howToPlayButton: Rect;
   footer: Rect;
 }
 
@@ -270,6 +272,18 @@ export function lobbyLayout(n: number): LobbyLayout {
   }
   const removes = rows.map(removeRects);
   const startButton: Rect = { x: SAFE_RECT.x + SAFE_RECT.w - 280, y: 900, w: 280, h: 84 };
-  const footer: Rect = { x: 760, y: 900, w: 700, h: 84 };
-  return { title, qrPanel, codePanel, playersPanel, rows, removes, startButton, footer };
+  const howToPlayButton: Rect = { x: startButton.x - PAD - 300, y: 900, w: 300, h: 84 };
+  // Ends before How to play; the footer text is one line at the pad size.
+  const footer: Rect = { x: 760, y: 900, w: howToPlayButton.x - PAD - 760, h: 84 };
+  return {
+    title,
+    qrPanel,
+    codePanel,
+    playersPanel,
+    rows,
+    removes,
+    startButton,
+    howToPlayButton,
+    footer,
+  };
 }

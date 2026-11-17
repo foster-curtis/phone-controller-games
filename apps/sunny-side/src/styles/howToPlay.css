@@ -1,0 +1,33 @@
+/* How to play overlay (SPEC §6.9): sets the rules shell's --pcg-rules-* properties from brand.css
+   tokens. The frame covers the canvas; sizes use container units so the card scales with the TV. */
+.htp-frame {
+  position: absolute;
+  pointer-events: none;
+  container-type: size;
+  z-index: 10;
+}
+
+.htp {
+  pointer-events: auto;
+  --pcg-rules-bg: transparent;
+  --pcg-rules-fg: var(--foreground);
+  --pcg-rules-muted: var(--muted);
+  --pcg-rules-accent: var(--accent);
+  --pcg-rules-title-font: var(--font-display);
+  --pcg-rules-body-font: var(--font-sans);
+  --pcg-rules-title-size: 6.7cqh;
+  --pcg-rules-body-size: 3.3cqh;
+  --pcg-rules-note-size: 2.4cqh;
+  --pcg-rules-hint-size: 2cqh;
+  --pcg-rules-gap: 2cqh;
+  --pcg-rules-pad: 8.9cqh;
+  --pcg-rules-radius: var(--radius-sticker);
+  --pcg-rules-slot-aspect: 16 / 9;
+  --pcg-rules-slot-max-height: 50cqh;
+  --pcg-rules-dot-size: 1.5cqh;
+  --pcg-rules-dot: var(--border-control);
+  --pcg-rules-dot-on: var(--accent);
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}

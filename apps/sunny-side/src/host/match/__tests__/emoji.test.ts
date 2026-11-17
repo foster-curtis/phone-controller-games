@@ -34,7 +34,7 @@ describe('spectator emoji', () => {
     h.join('b');
     h.msg('a', { t: 'emoji', i: 0 }); // lobby
     h.readyAll();
-    h.match.hostAction('start');
+    h.start();
     h.runMs(3000);
     h.msg('a', { t: 'emoji', i: 0 }); // playing
     h.eliminate('b', 'a');

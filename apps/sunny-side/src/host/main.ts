@@ -14,11 +14,18 @@ import { mountVersionTag } from '../shared/version';
 import '../styles/brand.css';
 import { debugEnabled, type PcgDebugApi } from './debug';
 import { createGameRuntime } from './game';
+import { RULES_CARD_COUNT } from './howToPlay/cards';
+import {
+  openRulesPreview,
+  previewCardFromSearch,
+  previewPlayersFromSearch,
+} from './howToPlay/preview';
 import { STORAGE_KEY } from './match/config';
 import { RemoveArm } from './render/remove';
 import { BootScene } from './scenes/Boot';
 import { LobbyScene } from './scenes/Lobby';
 import { ResultsScene } from './scenes/Results';
+import { RulesScene } from './scenes/Rules';
 import { RoundScene } from './scenes/Round';
 import { WinnerScene } from './scenes/Winner';
 import {
@@ -61,6 +68,7 @@ const game = new Phaser.Game({
       showPhase();
     }),
     LobbyScene,
+    RulesScene,
     RoundScene,
     ResultsScene,
     WinnerScene,
@@ -81,7 +89,13 @@ const ctx: HostContext = {
 };
 setHostContext(game, ctx);
 
-const PHASE_SCENES: readonly SceneKey[] = [SCENE.lobby, SCENE.round, SCENE.results, SCENE.winner];
+const PHASE_SCENES: readonly SceneKey[] = [
+  SCENE.lobby,
+  SCENE.rules,
+  SCENE.round,
+  SCENE.results,
+  SCENE.winner,
+];
 
 function showPhase(): void {
   if (!booted) return;
@@ -120,6 +134,7 @@ if (debug) {
     phase: () => runtime.view().phase,
     players: () => runtime.view().players,
     view: () => runtime.view(),
+    rules: () => runtime.view().rules ?? null,
     code: () => runtime.code,
     joinUrl: () => (runtime.code ? joinUrl(ctx.origin, runtime.code) : null),
     qr: () => (ctx.qr ? { size: ctx.qr.size, modules: ctx.qr.modules } : null),
@@ -148,4 +163,10 @@ if (debug) {
       remove: (id) => runtime.removePlayer(id),
     },
   });
+}
+
+// How to play preview (SPEC §6.9): `?debug=1&howto=<1-6>` jumps straight to a card, no room needed.
+if (debug) {
+  const card = previewCardFromSearch(location.search, RULES_CARD_COUNT);
+  if (card !== null) openRulesPreview(game, card, previewPlayersFromSearch(location.search));
 }

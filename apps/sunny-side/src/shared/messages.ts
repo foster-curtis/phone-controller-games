@@ -57,7 +57,11 @@ export function isInput(v: unknown): v is InputTuple {
   );
 }
 
-export type LeaderAction = 'start' | 'next' | 'rematch' | 'lobby';
+/**
+ * `howToPlay` (lobby only) and `skip` (rules phase) were added at H2 (SPEC §6.9); `next` also
+ * advances the rules overview.
+ */
+export type LeaderAction = 'start' | 'next' | 'rematch' | 'lobby' | 'howToPlay' | 'skip';
 
 /** Pan size setting (bigger pan = easier); picked by the leader in the lobby. */
 export const DIFFICULTIES = ['easy', 'medium', 'hard'] as const;
@@ -172,6 +176,8 @@ export type Screen =
       /** Current pan size setting (absent = 'medium'). */
       difficulty?: Difficulty;
     })
+  /** How to play overlay on the TV (SPEC §6.9, H2): `card` is 0-based. */
+  | (ScreenBase & { kind: 'rules'; card: number; cards: number })
   | (ScreenBase & { kind: 'countdown'; ms: number })
   | (ScreenBase & { kind: 'playing' })
   | (ScreenBase & { kind: 'eliminated'; respawnMs: number })

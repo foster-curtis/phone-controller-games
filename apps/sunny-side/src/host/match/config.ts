@@ -32,3 +32,6 @@ export const STORAGE_KEY = 'sunny-side:match';
 
 /** Float slack when counting fractional step times down to zero. */
 export const TIME_EPSILON_MS = 1e-6;
+
+/** Cards in the How to play overview (SPEC §6.9); a test pins it to `RULES_CARD_COUNT`. */
+export const RULES_CARDS = 6;

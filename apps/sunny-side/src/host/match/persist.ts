@@ -29,6 +29,8 @@ export interface PersistedMatch {
   players: PersistedPlayer[];
   /** Pan size; absent in older saves (→ default). */
   difficulty?: Difficulty;
+  /** The room has seen the How to play overview (SPEC §6.9); absent in older saves (→ false). */
+  rulesSeen?: boolean;
 }
 
 /** Writes if changed since the last write; returns the serialized form. Storage errors are swallowed. */
@@ -95,7 +97,8 @@ export function loadPersisted(storage: StorageLike): PersistedMatch | null {
     !isNum(m.nextJoinIndex) ||
     !Array.isArray(m.players) ||
     !m.players.every(isPlayer) ||
-    (m.difficulty !== undefined && !isDifficulty(m.difficulty))
+    (m.difficulty !== undefined && !isDifficulty(m.difficulty)) ||
+    (m.rulesSeen !== undefined && typeof m.rulesSeen !== 'boolean')
   ) {
     return null;
   }

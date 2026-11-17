@@ -28,7 +28,7 @@ describe('disconnect mid-round', () => {
     const h = setup();
     for (const id of ['a', 'b']) h.join(id);
     h.readyAll();
-    h.match.hostAction('start');
+    h.start();
     h.match.playerLeft('b');
     h.runMs(3000);
     expect(h.sim.frozen.get('a')).toBe(false);
@@ -129,7 +129,7 @@ describe('host visibility', () => {
     h.join('a');
     h.join('b');
     h.readyAll();
-    h.match.hostAction('start');
+    h.start();
     h.match.setHostVisible(false);
     h.runMs(5000);
     expect(h.match.view().phase).toBe('countdown');

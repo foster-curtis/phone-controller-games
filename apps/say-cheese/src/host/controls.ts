@@ -1,5 +1,6 @@
 // Host leader controls (SPEC §6.5, §6.6): buttons + keyboard, no hover. Pure mapping from the TV view
 // to the available controls, so buttons and keys can't disagree. Emits `HostControl` (match/types).
+import { rulesNextLabel } from '@pcg/game-kit';
 import { MIN_PLAYERS } from '../shared/messages';
 import type { HostControl, TvView } from './match/types';
 
@@ -29,7 +30,7 @@ export function controlsFor(view: TvView): ControlSpec[] {
     case 'rules':
       return [
         {
-          label: view.card >= view.cards - 1 ? "Let's play!" : 'Next',
+          label: rulesNextLabel(view),
           control: { action: 'next' },
           primary: true,
           key: 'Enter',

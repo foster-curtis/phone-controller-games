@@ -87,7 +87,7 @@ describe('Leave = full removal (C3 note 1)', () => {
     const h = setup();
     for (const id of ['a', 'b']) h.join(id);
     h.readyAll();
-    h.match.hostAction('start');
+    h.start();
     h.msg('b', { t: 'leave' });
     expect(h.sim.removedEggs).toEqual(['b']);
     h.runMs(3000);

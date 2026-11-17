@@ -121,3 +121,17 @@ export {
   type DevItem,
   type LocalClient,
 } from './dev';
+
+// Rules overview phone screen (PLATFORM decision #12; added at H0 of how-to-play)
+export {
+  RULES_PHONE_HEADING,
+  RULES_PHONE_WATCH,
+  createRulesPhoneScreen,
+  rulesPhoneModel,
+  type RulesPhoneAction,
+  type RulesPhoneButton,
+  type RulesPhoneModel,
+  type RulesPhoneScreen,
+  type RulesPhoneScreenOptions,
+  type RulesPhoneState,
+} from './rules/phone';

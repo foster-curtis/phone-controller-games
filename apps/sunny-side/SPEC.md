@@ -130,7 +130,8 @@ Round results and the match winner screen show a **per-round points breakdown** 
 ### 6.7 Phone UI states
 
 - **Joining:** room code (prefilled from QR), connecting.
-- **Lobby:** name step, then color + Ready (non-leaders; the button reads "Waiting for {leader}…" once ready); leader sees difficulty + Start.
+- **Lobby:** name step, then color + Ready (non-leaders; the button reads "Waiting for {leader}…" once ready); leader sees difficulty, **How to play** and Start.
+- **Rules** (§6.9): "Watch the TV" and the card count; the leader also has **Next** and **Skip** (the last card's Next reads "Let's play!").
 - **Playing:** floating joystick, DASH, SLAM, **pause button** in the top-right corner above DASH/SLAM.
   - **DASH is hidden** (#31): the button is still built but not shown, so SLAM's zone covers the whole right half. The host still handles the dash bit (ghost PULSE uses it). v2 replaces DASH with an action button (§11).
 - **Charging:** while SLAM is held, a tapered arc grows clockwise outside the SLAM button (9:00 to 2:00 over the 1 s gauge time), thickening toward its leading end, in `heat` darkening along its length; it flashes once in `yolk-shine` at full charge and is hidden when SLAM is not held.
@@ -161,6 +162,24 @@ Round results and the match winner screen show a **per-round points breakdown** 
 - Brand fonts (Lilita One, Geist, JetBrains Mono) load from Google Fonts per `brand/head.html`, with fallback stacks. Eggs are code-drawn in the mark's style.
 - Rebrand = replace the kit files and update `theme.ts` until the parity test passes.
 - All audio stays **post-MVP**.
+
+### 6.9 How to play
+
+A rules overview on the TV, built on the shared kit (PLATFORM decision #12): `@pcg/game-kit` runs the card sequence and the DOM card shell, `@pcg/controller-kit` the phone screen; this game owns the copy, the illustrations and the styling. The flow copies Say Cheese (its SPEC §6.2.1).
+
+- **When:** after the leader taps **Start** on the room's **first match**, before the first countdown. **Rematch** skips it. The leader can reopen it from the lobby with **How to play** (TV lobby button and the leader's lobby screen); it then returns to the lobby.
+- **Controls:** the leader's phone has **Next** and **Skip** (on the last card only **Let's play!**); the host has Enter / → / Space (Next), Esc (Skip) and gamepad A (Next) / B (Skip). Nobody else can advance it. Every other phone shows "Watch the TV" with the card count.
+- **During it:** a leader handoff moves the buttons to the new leader. A player who joins is seated for the match, as in the lobby; a player who leaves is gone, as in the lobby. After the last card or a Skip: the first match starts (from Start) if enough players are still connected, else back to the lobby; from the lobby, back to the lobby. A host refresh during it lands in the lobby, and the room still counts as having seen it.
+- **Cards** (`src/host/howToPlay/cards.ts`; DASH is never mentioned or shown, #31):
+  1. **Last egg on the pan.** Shove the other eggs off the pan. The last egg left wins the round.
+  2. **Steer with your thumb.** Drag anywhere on the left side of your phone to slide your egg. Keep your eyes on the TV.
+  3. **Hold SLAM, then let go.** Hold SLAM to charge, release to belly-flop. The longer you charge, the harder you hit, but you're slow while charging.
+  4. **The pan is heating up.** About 10 seconds in, the edge starts sizzling inward. The pan only gets smaller.
+  5. **Scoring.** Knock an egg off: +1. Last egg standing: +3. First to {target} wins. Small print: "Fall off on your own and nobody scores." {target} is the live target for the current player count.
+  6. **Come back as a ghost.** Knocked off? In 4 seconds you're back as steam. Tap PULSE to puff eggs toward the edge. Ghosts can't score, but revenge is free.
+- **Illustrations:** each card is a looping, timeline-scripted scene (about 3–5 s, a short pause, then again) drawn with the real renderers (`render/egg`, `ghost`, `slamRing`, `arena`, theme tokens), with no physics and no `src/host/sim` imports. The phone outline, thumb, joystick and SLAM button on cards 2 and 3 are drawn in the controller's brand style. Under reduced motion each card shows one still frame. Scripts are pure functions of loop time (`howToPlay/types.ts`), so the loop and the still are testable without Phaser.
+- **Placement:** one illustration scene on the existing host canvas, whose camera viewport follows the shell slot's on-screen rect (re-measured on resize); the shell's DOM sits over the canvas. One WebGL context and the already-loaded fonts and textures, so the cards look exactly like the game; a second Phaser instance in the slot was the fallback.
+- **Debug:** `?debug=1&howto=<1–6>[&players=<n>][&t=<ms>]` opens the overview on that card without a room, over an opaque backdrop; `t` freezes the illustration at that loop time (screenshots in `e2e/howToPlayScreens.spec.ts`).
 
 ## 7. Protocols
 
@@ -208,6 +227,8 @@ Phone → host (JSON objects; inputs are arrays, so `Array.isArray` distinguishe
 { t: "pause" } | { t: "resume" }
 { t: "emoji", i }                      // index into the 5-emoji set
 { t: "leader", action: "start" | "next" | "rematch" | "lobby" }
+{ t: "leader", action: "howToPlay" }    // lobby only: open How to play (§6.9)
+{ t: "leader", action: "skip" }         // How to play only; "next" also steps it
 { t: "leader", action: "difficulty", difficulty: "easy" | "medium" | "hard" }   // lobby, leader only
 { t: "ready", ready: boolean }         // lobby
 { t: "leader", action: "remove", playerId } // leader only: remove another player (§6.5)
@@ -215,6 +236,8 @@ Phone → host (JSON objects; inputs are arrays, so `Array.isArray` distinguishe
 ```
 
 The host's own controls (`Match.hostAction`) take the same leader actions plus `{ kind: "remove", playerId }` (TV-side removal, `GameRuntime.removePlayer(id)`).
+
+The `rules` screen (`{ kind: "rules", card, cards }`, 0-based card) is shown on every phone while the overview is open; the TV's `MatchView.rules` carries `{ source, card, cards, playerCount }` (null otherwise) and the match phase is `rules`. `rulesSeen` (persisted; absent = false) records that the room saw it after a first Start.
 
 Host → phone: the host drives each phone's UI state (§6.7), e.g. `{ t: "screen", screen, ...data }`, sent per phone or broadcast.
 Every screen also carries `leaderName` (the session leader's name, or null) so non-leader phones can show "Waiting for {leader}…" (§6.5); it is re-sent when leadership changes.
@@ -290,6 +313,7 @@ _None. Spec complete and ready for implementation._
 | 31  | 2026-11-10 | Hide DASH           | The phone's DASH button is hidden (kept in code, `DASH_HIDDEN` in `screens/controller.ts`); SLAM is the only live-egg button. v2 adds power-ups and replaces DASH with an action button (§11) | Owner's choice (Foster). |
 | 32  | 2026-11-10 | Catalog entry       | `game.meta.ts` holds the title, player range (2–8), catalog descriptions and card and link-share art (`catalog/card.jpg`, `catalog/share.webp`); `MIN_PLAYERS`, `MAX_PLAYERS` and the TV/phone title read it | One source for the gallery and the game (`PLATFORM.md` #9). No behavior change. |
 | 33  | 2026-11-11 | Feedback link       | Match winner only: a QR (`render/feedback.ts`, error level L, 9 px modules) in a 480 px panel right of the breakdown, drawn once per visit; **Give feedback** on every phone's match end, a new-tab link | PLATFORM decision #11. The final screen, so it never interrupts a match; outside the refresh, so it never holds up Rematch. |
+| 34  | 2026-11-16 | How to play         | Rules overview after the first Start and from the lobby (§6.9), on the shared rules kit (PLATFORM #12); six cards with timeline-scripted illustrations on the host canvas (a camera viewport under the shell's slot) | New players learned by playing a round; Say Cheese already had the flow, so both games share it. |
 
 ## 11. Later (v2)
 

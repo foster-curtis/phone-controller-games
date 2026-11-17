@@ -1,10 +1,12 @@
-// Match state machine (SPEC §6.3, §6.5, §6.7): lobby → countdown → playing → results/matchEnd.
-// Clock-free: `tick(dtMs)` is the only source of time.
+// Match state machine (SPEC §6.3, §6.5, §6.7, §6.9): lobby → (rules) → countdown → playing →
+// results/matchEnd. Clock-free: `tick(dtMs)` is the only source of time.
+import { openRulesOverview, stepRulesOverview, type RulesOverviewState } from '@pcg/game-kit';
 import {
   isDifficulty,
   isInput,
   isPlayerColorId,
   type Difficulty,
+  type LeaderAction,
   type RoundBreakdown,
 } from '../../shared/messages';
 import { RoundTally } from './breakdown';
@@ -15,6 +17,7 @@ import {
   EMOJI_COOLDOWN_MS,
   KNOCKOUT_POINTS,
   MIN_PLAYERS,
+  RULES_CARDS,
   SURVIVOR_POINTS,
   TIME_EPSILON_MS,
 } from './config';
@@ -34,6 +37,19 @@ import type {
   PlayerView,
   RelayPeer,
 } from './types';
+
+const LEADER_ACTIONS: readonly string[] = [
+  'start',
+  'next',
+  'rematch',
+  'lobby',
+  'howToPlay',
+  'skip',
+] satisfies LeaderAction[];
+
+function isLeaderAction(a: unknown): a is LeaderAction {
+  return typeof a === 'string' && LEADER_ACTIONS.includes(a);
+}
 
 export function createMatch(deps: MatchDeps): Match {
   const { sim } = deps;
@@ -60,6 +76,16 @@ export function createMatch(deps: MatchDeps): Match {
   /** Last screen JSON sent per player id (sends only on change). */
   const lastSent = new Map<string, string>();
   let lastPersisted = '';
+  /**
+   * Saving starts once there is a room to save: after `restore()` (reclaimed) or the first join (new
+   * room). Before that, `tick()`'s per-frame sync would overwrite the save a host refresh is about
+   * to restore with an empty lobby.
+   */
+  let persistArmed = false;
+  /** The open How to play overview (phase `rules`, SPEC §6.9), else null. */
+  let rules: RulesOverviewState | null = null;
+  /** The room has seen the overview after a first Start; Rematch never shows it. Persisted. */
+  let rulesSeen = false;
 
   // ---- helpers ----
 
@@ -96,7 +122,9 @@ export function createMatch(deps: MatchDeps): Match {
   }
 
   function targetScore(): number {
-    return phase === 'lobby' ? targetScoreFor(roster.eligible().length) : matchTarget;
+    return phase === 'lobby' || phase === 'rules'
+      ? targetScoreFor(roster.eligible().length)
+      : matchTarget;
   }
 
   /** Stop an egg dead and zero its input (disconnect / self-pause / leave rules, SPEC §6.3). */
@@ -131,6 +159,8 @@ export function createMatch(deps: MatchDeps): Match {
       standings: standings(roster.players),
       canStart: canStart(),
       difficulty,
+      rulesCard: rules?.card,
+      rulesCards: rules?.cards,
       takenColors: (p) => roster.takenColors(p),
       hasEgg,
     };
@@ -147,6 +177,7 @@ export function createMatch(deps: MatchDeps): Match {
       winnerKey: phase === 'matchEnd' ? keyOf(winnerId) : null,
       nextJoinIndex: roster.nextJoinIndex,
       difficulty,
+      rulesSeen,
       players: roster.players.map((p) => ({
         playerId: p.id,
         playerKey: p.playerKey,
@@ -170,7 +201,7 @@ export function createMatch(deps: MatchDeps): Match {
       lastSent.set(p.id, json);
       deps.send({ t: 'screen', screen }, p.id);
     }
-    lastPersisted = savePersisted(deps.storage, persisted(), lastPersisted);
+    if (persistArmed) lastPersisted = savePersisted(deps.storage, persisted(), lastPersisted);
   }
 
   // ---- flow ----
@@ -196,6 +227,26 @@ export function createMatch(deps: MatchDeps): Match {
     sim.startRound(spawns, { difficulty });
     countdownMs = COUNTDOWN_MS;
     setPhase('countdown');
+  }
+
+  /** Open How to play (SPEC §6.9). A first Start marks the room as having seen it. */
+  function openRules(source: 'firstStart' | 'lobby'): void {
+    rules = openRulesOverview(source, RULES_CARDS);
+    if (source === 'firstStart') rulesSeen = true;
+    setPhase('rules');
+  }
+
+  /** Next / Skip on the overview; after the last card or a Skip, the match or the lobby follows. */
+  function stepRules(action: 'next' | 'skip'): void {
+    if (!rules) return;
+    const r = stepRulesOverview(rules, action);
+    if (!r.done) {
+      rules = r.state;
+      return;
+    }
+    rules = null;
+    if (r.source === 'firstStart' && roster.eligible().length >= MIN_PLAYERS) beginMatch();
+    else setPhase('lobby');
   }
 
   function beginMatch(): void {
@@ -251,10 +302,20 @@ export function createMatch(deps: MatchDeps): Match {
     }
     switch (action) {
       case 'start':
-        if (phase === 'lobby' && canStart()) beginMatch();
+        if (phase === 'lobby' && canStart()) {
+          if (rulesSeen) beginMatch();
+          else openRules('firstStart');
+        }
+        break;
+      case 'howToPlay':
+        if (phase === 'lobby') openRules('lobby');
         break;
       case 'next':
         if (phase === 'results' && canStart()) startRound();
+        else if (phase === 'rules') stepRules('next');
+        break;
+      case 'skip':
+        if (phase === 'rules') stepRules('skip');
         break;
       case 'rematch':
         if (phase === 'matchEnd' && canStart()) {
@@ -371,7 +432,7 @@ export function createMatch(deps: MatchDeps): Match {
           }
           return;
         }
-        if (a !== 'start' && a !== 'next' && a !== 'rematch' && a !== 'lobby') return;
+        if (!isLeaderAction(a)) return;
         doAction(a);
         return;
       }
@@ -379,6 +440,11 @@ export function createMatch(deps: MatchDeps): Match {
         removePlayer(p, true);
         return;
     }
+  }
+
+  /** Lobby and rules joiners are seated for the match; later joiners watch (SPEC §6.3, §6.9). */
+  function joinsSpectating(): boolean {
+    return phase !== 'lobby' && phase !== 'rules';
   }
 
   function joinKnown(p: PlayerRecord, id: string): void {
@@ -391,7 +457,7 @@ export function createMatch(deps: MatchDeps): Match {
     p.ghost = false;
     p.respawnMs = 0;
     p.ready = false;
-    p.spectating = phase !== 'lobby';
+    p.spectating = joinsSpectating();
   }
 
   // ---- public API ----
@@ -402,9 +468,10 @@ export function createMatch(deps: MatchDeps): Match {
         match.playerRejoined(playerId, playerKey);
         return;
       }
+      persistArmed = true;
       const known = roster.byKey(playerKey);
       if (known) joinKnown(known, playerId);
-      else roster.add(playerId, playerKey, { spectating: phase !== 'lobby' });
+      else roster.add(playerId, playerKey, { spectating: joinsSpectating() });
       emit({ type: 'roster' });
       updateLeader();
       sync();
@@ -462,13 +529,17 @@ export function createMatch(deps: MatchDeps): Match {
       winnerId = null;
       breakdown = null;
       leaderId = null;
+      rules = null;
+      rulesSeen = false;
       round = 0;
       difficulty = DEFAULT_DIFFICULTY;
       const saved = loadPersisted(deps.storage);
+      persistArmed = true;
       if (saved) {
         round = saved.round;
         matchTarget = saved.targetScore;
         difficulty = saved.difficulty ?? DEFAULT_DIFFICULTY;
+        rulesSeen = saved.rulesSeen ?? false;
         roster.nextJoinIndex = saved.nextJoinIndex;
         for (const sp of saved.players) {
           const peer = peers.find((q) => q.playerKey === sp.playerKey);
@@ -591,6 +662,8 @@ export function createMatch(deps: MatchDeps): Match {
         survivorId: phase === 'results' || phase === 'matchEnd' ? survivorId : null,
         winnerId: phase === 'matchEnd' ? winnerId : null,
         breakdown: phase === 'results' || phase === 'matchEnd' ? breakdown : null,
+        rules:
+          phase === 'rules' && rules ? { ...rules, playerCount: roster.eligible().length } : null,
       };
     },
 

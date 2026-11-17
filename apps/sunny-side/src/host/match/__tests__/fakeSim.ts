@@ -139,11 +139,16 @@ export function setup(storage: StorageLike = new MemStorage()) {
       for (const p of match.view().players)
         if (p.connected) h.msg(p.id, { t: 'ready', ready: true });
     },
+    /** Host Start; the first Start opens How to play (SPEC §6.9), which this skips. */
+    start() {
+      match.hostAction('start');
+      if (match.view().phase === 'rules') match.hostAction('skip');
+    },
     /** Join each id (first = leader), ready up, Start from the host, run out the countdown. */
     startGame(ids: string[]) {
       for (const id of ids) h.join(id);
       h.readyAll();
-      match.hostAction('start');
+      h.start();
       h.runMs(3000);
     },
     /** Queue an elimination and run one step (`byGhost`: a ghost pulse pushed it out). */

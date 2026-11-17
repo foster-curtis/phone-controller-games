@@ -8,6 +8,7 @@ import type {
   PlayerColorId,
   RoundBreakdown,
 } from '../../shared/messages';
+import type { RulesOverviewState } from '@pcg/game-kit';
 import type { Sim, SimEvent } from '../sim/types';
 
 export type StorageLike = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
@@ -29,7 +30,7 @@ export interface MatchDeps {
   storage: StorageLike;
 }
 
-export type MatchPhase = 'lobby' | 'countdown' | 'playing' | 'results' | 'matchEnd';
+export type MatchPhase = 'lobby' | 'rules' | 'countdown' | 'playing' | 'results' | 'matchEnd';
 
 export interface PlayerView {
   id: string;
@@ -83,6 +84,11 @@ export interface MatchView {
    * other phases and after a host-refresh restore (in-round state isn't persisted).
    */
   breakdown?: RoundBreakdown | null;
+  /**
+   * Phase `rules` (SPEC §6.9, H2): the open How to play overview, with the player count the match
+   * would use (for the scoring card's target). null in other phases.
+   */
+  rules?: (RulesOverviewState & { playerCount: number }) | null;
 }
 
 export type MatchEvent =
