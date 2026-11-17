@@ -96,6 +96,8 @@ styles the class hooks `.pcg-fullscreen-btn`, `.pcg-fullscreen-corner`, `.pcg-sh
 
 ## 4. Contract additions after F0
 
-| Milestone  | Addition | Why |
-| ---------- | -------- | --- |
-| (none yet) |          |     |
+| Milestone | Addition                                                          | Why                                                                                    |
+| --------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| F2        | `WakeLock.supported`, `WakeLock.held` (planned at F0)             | The hint and the diagnostics need to know whether the lock is held.                    |
+| F2        | `createWakeLock(nav, secure, doc, win?)`: a fourth optional `win` | It re-takes the lock on `pageshow` and `focus` too, and needs the window to listen on. |
+| F2        | `DiagnosticsReport.extra?`                                        | It carries `DiagnosticsOptions.extra` rows into the copied report.                     |
