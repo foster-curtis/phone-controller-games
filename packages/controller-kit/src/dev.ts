@@ -1,6 +1,6 @@
 // Offline dev mode (`play.html?dev=1`): no relay. A local fake client drives the real app, with a live
 // input-tuple readout and a panel of switcher rows (screens, colors, overlays…) the game fills in.
-import type { ConnectionStatus, ControllerClient } from '@pcg/net-client';
+import type { ConnectionStats, ConnectionStatus, ControllerClient } from '@pcg/net-client';
 import { el } from './dom';
 import type { ShellClient } from './shell/app';
 
@@ -31,11 +31,22 @@ export function createLocalClient(): LocalClient {
     set.add(cb);
     return () => void set.delete(cb);
   };
+  const opened = Date.now();
   const client = {
     status: 'open' as ConnectionStatus,
     playerId: 'dev',
     hostStatus: 'present' as 'present' | 'away',
     sent: [] as unknown[],
+    getStats: (): ConnectionStats => ({
+      status: client.status,
+      reconnects: 0,
+      failedAttempts: 0,
+      lastClose: null,
+      rttMs: 12,
+      heartbeat: true,
+      lastMessageAt: Date.now(),
+      openSince: opened,
+    }),
     connect: () => Promise.resolve({ playerId: 'dev' }),
     send(d: unknown) {
       client.sent.push(d);
