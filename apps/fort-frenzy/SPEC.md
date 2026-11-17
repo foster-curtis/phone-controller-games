@@ -1070,7 +1070,8 @@ target.
 General rules:
 - Phones are held in landscape.
 - The controller follows the platform requirements: `touch-action: none`, locked viewport, Wake Lock,
-  fullscreen on tap where the browser supports it, reconnect handling, and no vibration
+  a manual full-screen button (never automatic; an Add-to-Home-Screen sheet where the browser has no
+  full-screen API, e.g. iPhone), reconnect handling, and no vibration
   (`PLATFORM.md` §3).
 - Every measurement below is inside the device safe area: offsets are added to
   `env(safe-area-inset-*)`.
@@ -1422,9 +1423,10 @@ in `apps/sunny-side` (its `SPEC.md` and `BUILD_PLAN.md` §8).
   onto both in the same milestone, behavior-preserving, gated by its existing `check:sunny-side` and
   `e2e:sunny-side`. Both ship as TS source like `net-client` and import nothing from `apps/**`.
   - **`@pcg/controller-kit`** (DOM only, never Phaser):
-    - platform: Wake Lock, **`fullscreenOnTap()`** (every tap requests fullscreen while not fullscreen,
-      so it also re-enters after an exit; a silent no-op where unsupported, e.g. iPhone Safari),
-      landscape lock and the rotate overlay, `touch-action`/viewport setup, safe-area helpers
+    - platform: Wake Lock, a manual **full-screen button** (`createFullscreenButton`: no automatic
+      full screen on tap; where the API is missing, e.g. iPhone Safari, it opens the Add-to-Home-Screen
+      sheet instead), landscape lock after full screen is entered, the rotate overlay,
+      `touch-action`/viewport setup, safe-area helpers
     - an app shell that wires the platform pieces on by default, the overlays (reconnecting, host away,
       rotate) and a screen router that reuses DOM between screens in the same group
     - input widgets: the floating joystick (radius, dead zone, idle opacity and ease-back as

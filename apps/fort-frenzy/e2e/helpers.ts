@@ -20,7 +20,7 @@ export function url(path: string): string {
   return new URL(path, test.info().project.use.baseURL).toString();
 }
 
-/** The controller's fullscreen-on-tap would really fullscreen headless Chromium on Windows. */
+/** Stops a stray full-screen request from really fullscreening headless Chromium on Windows. */
 export async function noFullscreen(context: BrowserContext): Promise<void> {
   await context.addInitScript(() => {
     Element.prototype.requestFullscreen = () => Promise.resolve();

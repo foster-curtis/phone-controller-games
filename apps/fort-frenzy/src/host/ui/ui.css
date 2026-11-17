@@ -1007,3 +1007,61 @@
   border: 1px dashed var(--stone-edge);
   box-sizing: border-box;
 }
+
+/* ---- platform kit hooks (controller-compat, PLATFORM §3). Mounted on the TV page outside #tv-ui, so
+   it is clickable (the overlay is pointer-events: none). Brand tokens only. ---- */
+.pcg-fullscreen-btn {
+  position: fixed;
+  right: var(--space-6);
+  bottom: var(--space-12);
+  z-index: 20;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 2px solid var(--stone-edge);
+  background: var(--surface-strong);
+  color: var(--foreground);
+  clip-path: var(--clip-chamfer-sm);
+  font: 700 16px/1 var(--font-display);
+  letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.pcg-fullscreen-btn:hover,
+.pcg-fullscreen-btn:focus-visible {
+  opacity: 1;
+  outline: var(--stroke-select) solid var(--select);
+}
+
+.pcg-fullscreen-btn[hidden] {
+  display: none;
+}
+
+.pcg-toast {
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-strong);
+  color: var(--foreground);
+  border-left: var(--stroke-tag) solid var(--danger);
+  clip-path: var(--clip-tag);
+  font: 600 16px/20px var(--font-sans);
+}
+
+/* The TV's own relay socket is down: a small corner pill, off the play area's centre. */
+.tv-conn {
+  position: fixed;
+  left: var(--space-6);
+  bottom: var(--space-6);
+  z-index: 20;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-strong);
+  color: var(--foreground);
+  border-left: var(--stroke-tag) solid var(--danger);
+  clip-path: var(--clip-tag);
+  font: 600 14px/1 var(--font-sans);
+  pointer-events: none;
+}
+
+.tv-conn[hidden] {
+  display: none;
+}

@@ -1,7 +1,7 @@
 // Lobby and class select (SPEC §11.1, §2.6): one view, so a thumb survives the switch. No class yet (or
 // "Change class") shows the swipeable class cards; otherwise the lobby: your knight, Ready, the lineup
 // with the leader mark, and for the party leader difficulty, theme, Start and remove.
-import { el } from '@pcg/controller-kit';
+import { createFullscreenButton, el } from '@pcg/controller-kit';
 import {
   CLASS_IDS,
   DIFFICULTY_IDS,
@@ -63,6 +63,9 @@ export function createLobby(ctx: ScreenCtx): View {
   const change = el('button', { type: 'button', class: 'link-btn', text: 'Change class' });
   const ready = el('button', { type: 'button', class: 'btn btn-primary ready' });
   const hint = el('p', { class: 'hint body' });
+  // Manual full screen (PLATFORM §3): never automatic, so the player chooses it here.
+  const fullscreen = createFullscreenButton({ variant: 'inline', landscape: true });
+  fullscreen.element.classList.add('btn', 'fs-inline');
   const colorsHost = el('div', { class: 'color-host' });
   const lineupTitle = el('p', { class: 'lineup-title tag' });
   const lineupHost = el('div', { class: 'lineup' });
@@ -81,7 +84,7 @@ export function createLobby(ctx: ScreenCtx): View {
     'div',
     { class: 'lobby-main' },
     el('div', { class: 'lobby-knight' }, knight, className, change, colorsHost),
-    el('div', { class: 'lobby-ready' }, ready, hint),
+    el('div', { class: 'lobby-ready' }, ready, hint, fullscreen.element),
     el('div', { class: 'lobby-side' }, lineupTitle, lineupHost, leaderBox),
   );
   root.append(select, lobby);
@@ -218,6 +221,7 @@ export function createLobby(ctx: ScreenCtx): View {
     destroy() {
       swipe.destroy();
       lineup.destroy();
+      fullscreen.destroy();
     },
   };
 }
