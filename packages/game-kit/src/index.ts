@@ -64,3 +64,24 @@ export {
   type RulesShellOptions,
   type RulesShellPart,
 } from './rules/shell';
+
+// Capabilities and full screen (controller-compat F0). Feature detection shared with
+// @pcg/controller-kit; the host's full-screen button and `F` shortcut.
+export {
+  detectCapabilities,
+  fullscreenApi,
+  isStandalone,
+  type Capabilities,
+  type CapabilityEnv,
+  type FullscreenApi,
+} from './capabilities';
+export {
+  HOST_EXIT_FULLSCREEN_LABEL,
+  HOST_FULLSCREEN_FAILED,
+  HOST_FULLSCREEN_LABEL,
+  bindFullscreenShortcut,
+  createHostFullscreenButton,
+  type FullscreenShortcutOptions,
+  type HostFullscreenButton,
+  type HostFullscreenButtonOptions,
+} from './fullscreen';

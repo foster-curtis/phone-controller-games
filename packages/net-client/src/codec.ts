@@ -18,6 +18,7 @@ const REQUIRED_STRINGS: Record<RelayToClient['t'], readonly string[]> = {
   host: ['status'],
   kicked: [],
   error: ['code'],
+  pong: [],
 };
 
 /** Never throws: malformed input yields `{ ok: false }`. */

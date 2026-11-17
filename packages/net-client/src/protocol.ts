@@ -40,13 +40,34 @@ export type LockMsg = { t: 'lock' };
 export type UnlockMsg = { t: 'unlock' };
 export type KickMsg = { t: 'kick'; playerId: PlayerId };
 
+/**
+ * App-level heartbeat (relay SPEC §3, liveness; added at F0 of controller-compat). Any socket, in any
+ * state, may send it; the relay answers that socket alone with a `pong` echoing `n`. Clients send it
+ * only after the handshake reply advertised `heartbeat: true`, so they never send it to an older relay.
+ */
+export type PingMsg = { t: 'ping'; n: number };
+
 export type ClientToRelay =
-  CreateMsg | ReclaimMsg | JoinMsg | SendMsg | LockMsg | UnlockMsg | KickMsg;
+  CreateMsg | ReclaimMsg | JoinMsg | SendMsg | LockMsg | UnlockMsg | KickMsg | PingMsg;
+
+/**
+ * Handshake replies carry `heartbeat: true` from relays that answer `ping` (added at F0 of
+ * controller-compat). Absent = an older relay: clients must not send `ping`.
+ */
+export interface HeartbeatFlag {
+  heartbeat?: true;
+}
 
 // relay → client
-export type CreatedMsg = { t: 'created'; code: RoomCode; hostToken: string };
-export type ReclaimedMsg = { t: 'reclaimed'; code: RoomCode; roster: RosterEntry[] };
-export type JoinedMsg = { t: 'joined'; playerId: PlayerId; token: string };
+export type CreatedMsg = { t: 'created'; code: RoomCode; hostToken: string } & HeartbeatFlag;
+export type ReclaimedMsg = {
+  t: 'reclaimed';
+  code: RoomCode;
+  roster: RosterEntry[];
+} & HeartbeatFlag;
+export type JoinedMsg = { t: 'joined'; playerId: PlayerId; token: string } & HeartbeatFlag;
+/** Answer to `ping`, to the pinging socket only. */
+export type PongMsg = { t: 'pong'; n: number };
 export type PeerMsg = { t: 'peer'; event: PeerEvent; playerId: PlayerId; playerKey: string };
 /** `from` is the sender's playerId (to the host) or `HOST_SENDER` (to phones). */
 export type RelayDataMsg = { t: 'msg'; from: PlayerId; data: unknown };
@@ -63,4 +84,5 @@ export type RelayToClient =
   | RelayDataMsg
   | HostStatusMsg
   | KickedMsg
-  | ErrorMsg;
+  | ErrorMsg
+  | PongMsg;

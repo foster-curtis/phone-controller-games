@@ -262,6 +262,9 @@ importers:
 
   packages/controller-kit:
     dependencies:
+      '@pcg/game-kit':
+        specifier: workspace:*
+        version: link:../game-kit
       '@pcg/net-client':
         specifier: workspace:*
         version: link:../net-client

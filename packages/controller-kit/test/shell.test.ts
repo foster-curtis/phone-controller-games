@@ -219,7 +219,12 @@ describe('app shell', () => {
 
   it('lays out header, screen host and overlay host', () => {
     const { root, shell, header } = mount();
-    expect([...root.children]).toEqual([header, shell.screenHost, shell.overlayHost]);
+    expect([...root.children]).toEqual([
+      header,
+      shell.screenHost,
+      shell.overlayHost,
+      shell.fullscreenButton!.element,
+    ]);
     expect(shell.screenHost.className).toBe('screen-host');
     expect(shell.overlayHost.className).toBe('overlay-host');
   });
@@ -254,16 +259,14 @@ describe('app shell', () => {
     expect(shell.overlays()).toEqual([]);
   });
 
-  it('fullscreen on tap is on by default and can be turned off', () => {
+  it('never requests full screen by itself (controller-compat: manual button only)', () => {
     const fn = vi.fn(() => Promise.resolve());
     (document.documentElement as unknown as Record<string, unknown>).requestFullscreen = fn;
-    const on = mount();
-    on.root.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    expect(fn).toHaveBeenCalledTimes(1);
-    const off = mount({ fullscreen: false, landscape: false });
-    off.root.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    pointer(off.root, 'pointerdown', 1);
-    expect(fn).toHaveBeenCalledTimes(1);
+    const { root } = mount();
+    pointer(root, 'pointerdown', 1);
+    root.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    pointer(root, 'pointerdown', 2);
+    expect(fn).not.toHaveBeenCalled();
   });
 
   it('takes the wake lock on the first touch only', () => {

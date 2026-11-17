@@ -2,6 +2,7 @@
 // backoff after unexpected closes, and retries at once when the tab becomes visible / online.
 import type {
   CloseReason,
+  ConnectionStats,
   ConnectionStatus,
   DocumentLike,
   EventTargetLike,
@@ -72,6 +73,20 @@ export class Connection {
   ready(): void {
     this.attempt = 0;
     this.setStatus('open');
+  }
+
+  /** Health snapshot. F0 stub: F1 (controller-compat) fills in heartbeat, RTT and close details. */
+  stats(): ConnectionStats {
+    return {
+      status: this.status,
+      reconnects: 0,
+      failedAttempts: 0,
+      lastClose: null,
+      rttMs: null,
+      heartbeat: false,
+      lastMessageAt: null,
+      openSince: null,
+    };
   }
 
   /** Returns false (and drops the message) unless the socket is open. */

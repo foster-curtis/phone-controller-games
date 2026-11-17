@@ -51,3 +51,6 @@ export function lanUrl(): Plugin {
     },
   };
 }
+
+// Web-app manifest + home-screen meta tags (controller-compat F0).
+export { webApp, type WebAppOptions } from './webapp.ts';

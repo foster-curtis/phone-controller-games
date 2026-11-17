@@ -142,5 +142,6 @@ export function createControllerClientImpl(opts: ControllerClientOptions): Contr
     onHostStatus: (cb) => hostEvents.on(cb),
     onKicked: (cb) => kickedEvents.on(cb),
     onError: (cb) => errors.on(cb),
+    getStats: () => conn.stats(),
   };
 }

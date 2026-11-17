@@ -20,6 +20,46 @@ export interface RelayOptions {
   maxMissedPings?: number;
   /** Max inbound message size in bytes. Default 16 KB. */
   maxPayloadBytes?: number;
+  /**
+   * Connection log sink (added at F0 of controller-compat). Default none. `main.ts` turns it on with
+   * `RELAY_LOG=1` (one JSON line per event on stdout); the LAN dev script always does.
+   */
+  log?: (event: RelayLogEvent) => void;
+}
+
+/**
+ * One connection-lifecycle event. Holds no message payloads and no IP addresses; the user agent
+ * appears only on `connect`.
+ */
+export interface RelayLogEvent {
+  /** `Date.now()`. */
+  at: number;
+  kind:
+    | 'connect' // socket opened (ua)
+    | 'create' // host created a room
+    | 'reclaim' // host reclaimed a room
+    | 'join' // new phone slot
+    | 'rejoin' // phone took its slot back with its token (takeover: the old socket was still open)
+    | 'close' // socket closed (closeCode, reason, cause)
+    | 'kick'
+    | 'player-expired' // reconnect window ran out; the slot is gone
+    | 'room-closed' // host reclaim window ran out
+    | 'error'; // an `error` reply (errorCode)
+  /** Per-process socket number, so one socket's events can be followed. */
+  conn: number;
+  role?: 'host' | 'phone' | 'none';
+  game?: string;
+  code?: string;
+  playerId?: string;
+  ua?: string;
+  takeover?: boolean;
+  closeCode?: number;
+  reason?: string;
+  /** For `close`: `client` (the peer closed), `heartbeat` (terminated for missed pings), `server`. */
+  cause?: 'client' | 'heartbeat' | 'server';
+  /** For `close`: how long the socket was open, in ms. */
+  durationMs?: number;
+  errorCode?: string;
 }
 
 export interface Relay {

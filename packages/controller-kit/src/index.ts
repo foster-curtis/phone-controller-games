@@ -135,3 +135,35 @@ export {
   type RulesPhoneScreenOptions,
   type RulesPhoneState,
 } from './rules/phone';
+
+// Controller compatibility (controller-compat F0): manual full screen, keep-screen-on hint, toasts,
+// diagnostics overlay. Feature detection itself lives in @pcg/game-kit (`detectCapabilities`,
+// `fullscreenApi`, `isStandalone`), shared with the TV.
+export {
+  FULLSCREEN_TEXT,
+  createFullscreenButton,
+  type FullscreenButton,
+  type FullscreenButtonOptions,
+  type FullscreenButtonText,
+  type FullscreenCorner,
+} from './widgets/fullscreenButton';
+export { openInstallSheet, type InstallSheetText } from './shell/installSheet';
+export {
+  KEEP_AWAKE_SEEN_KEY,
+  KEEP_AWAKE_TEXT,
+  createKeepAwakeHint,
+  type KeepAwakeHint,
+  type KeepAwakeHintOptions,
+  type KeepAwakeText,
+} from './platform/keepAwake';
+export { TOAST_MS, showToast, type ToastOptions } from './platform/toast';
+export {
+  createDiagnosticsOverlay,
+  diagnosticsEnabled,
+  formatDiagnostics,
+  type DiagnosticsClient,
+  type DiagnosticsEvent,
+  type DiagnosticsOptions,
+  type DiagnosticsOverlay,
+  type DiagnosticsReport,
+} from './diagnostics/overlay';

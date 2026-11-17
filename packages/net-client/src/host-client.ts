@@ -129,5 +129,6 @@ export function createHostClientImpl(opts: HostClientOptions): HostClient {
     onRoom: (cb) => rooms.on(cb),
     onStatus: (cb) => conn.statusEvents.on(cb),
     onError: (cb) => errors.on(cb),
+    getStats: () => conn.stats(),
   };
 }
