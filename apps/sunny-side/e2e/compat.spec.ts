@@ -226,11 +226,11 @@ test('full screen starts only from a tap on a full-screen button', async ({
   expect(await fsCalls(ann.page)).toBe(0);
   expect(await fsCalls(host.page)).toBe(0);
   await startMatch(host, ann);
-  // Wait for the playing controller itself (its pads stay hidden until the phone's countdown ends).
+  // Wait for the playing controller itself (the slam pad shows once the countdown ends; dash is hidden by design, DASH_HIDDEN).
   await expect(screen(ann.page, 'playing')).toBeVisible();
-  await expect(ann.page.locator('[data-pad=dash]')).toBeVisible();
+  await expect(ann.page.locator('[data-pad=slam]')).toBeVisible();
   await ann.page.locator('.stick-zone').click();
-  await ann.page.locator('[data-pad=dash]').click();
+  await ann.page.locator('[data-pad=slam]').click();
   expect(await fsCalls(ann.page)).toBe(0);
   expect(await fsCalls(host.page)).toBe(0);
 
