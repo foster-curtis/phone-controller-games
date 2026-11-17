@@ -9,6 +9,7 @@ import {
 } from '@pcg/game-kit';
 import type * as Phaser from 'phaser';
 import '../../styles/howToPlay.css';
+import { theme } from '../../shared/theme';
 import { rulesCards } from './cards';
 import { createStage } from './stage';
 
@@ -25,11 +26,34 @@ export interface RulesOverlayOptions {
   onAction(action: RulesAction): void;
   /** Passed to the shell (tests). */
   shell?: Partial<Pick<RulesShellOptions, 'keys' | 'gamepad' | 'reducedMotion' | 'env'>>;
+  /**
+   * Covers whatever scene is running with the opaque brand background (the debug preview, which has
+   * no rules scene of its own). Additive; the real rules phase already runs over its own backdrop.
+   */
+  backdrop?: boolean;
+  /** Debug preview only: draw each illustration still at this loop time (ms) instead of looping. */
+  freezeMs?: number;
 }
+
+let backdropCount = 0;
 
 /** Mounts the overlay over `game.canvas` and keeps it on the canvas's on-screen rect. */
 export function mountRulesOverlay(game: Phaser.Game, opts: RulesOverlayOptions): RulesOverlay {
-  const stage = createStage(game);
+  const stage = createStage(game, opts.freezeMs);
+  // A Phaser scene, not DOM: the illustrations draw on the canvas, so the cover must sit under them.
+  const backdropKey = opts.backdrop ? `htp-backdrop-${++backdropCount}` : null;
+  if (backdropKey) {
+    game.scene.add(
+      backdropKey,
+      {
+        create(this: Phaser.Scene) {
+          this.cameras.main.setBackgroundColor(theme.color.background.hex);
+        },
+      },
+      true,
+    );
+    game.scene.bringToTop(backdropKey);
+  }
   const shell = createRulesShell({
     cards: rulesCards(stage),
     onAction: opts.onAction,
@@ -68,6 +92,7 @@ export function mountRulesOverlay(game: Phaser.Game, opts: RulesOverlayOptions):
       window.removeEventListener('resize', place);
       shell.destroy();
       stage.destroy();
+      if (backdropKey) game.scene.remove(backdropKey);
       frame.remove();
     },
   };

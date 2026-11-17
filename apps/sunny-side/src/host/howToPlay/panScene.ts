@@ -1,13 +1,15 @@
-// Shared pan staging for How to play cards 4-6 (SPEC §6.9): one pan placement in the 960x540
-// illustration box and small pure helpers, so the three scripts frame the pan the same way.
-import { ILLUSTRATION_H } from './types';
+// Shared pan staging for How to play cards 4-6 (SPEC §6.9): the big pan layer from panArt (same
+// backdrop and framing as card 1), with positions in the pan's local game units (center 0, 0).
+import { BIG_PAN } from './panArt';
 
-/** Pan center and start radius in illustration units (the handle runs right, still inside 960). */
-export const PAN_CX = 420;
-export const PAN_CY = ILLUSTRATION_H / 2;
-export const PAN_R = 220;
-/** Egg radius used on the cards (the sim's own size, 36 px). */
-export const EGG_R = 36;
+export { addBigPanLayer, boxPoint } from './panArt';
+
+/** Pan center and start radius in the pan layer's local units (the layer draws at game scale). */
+export const PAN_CX = 0;
+export const PAN_CY = 0;
+export const PAN_R = BIG_PAN.r;
+/** Egg radius on the cards (the sim's own size, 56 game px). */
+export const EGG_R = BIG_PAN.eggR;
 
 export interface Vec {
   x: number;

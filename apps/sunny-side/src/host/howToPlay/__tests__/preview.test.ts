@@ -5,13 +5,17 @@ import { RULES_CARD_COUNT } from '../cards';
 
 const mounted: {
   onAction(a: RulesAction): void;
+  backdrop?: boolean;
   show: ReturnType<typeof vi.fn>;
   destroy: ReturnType<typeof vi.fn>;
 }[] = [];
 
 vi.mock('../overlay', () => ({
-  mountRulesOverlay: (_game: unknown, opts: { onAction(a: RulesAction): void }) => {
-    const o = { onAction: opts.onAction, show: vi.fn(), destroy: vi.fn() };
+  mountRulesOverlay: (
+    _game: unknown,
+    opts: { onAction(a: RulesAction): void; backdrop?: boolean },
+  ) => {
+    const o = { onAction: opts.onAction, backdrop: opts.backdrop, show: vi.fn(), destroy: vi.fn() };
     mounted.push(o);
     return o;
   },
@@ -26,6 +30,8 @@ describe('openRulesPreview', () => {
     openRulesPreview(game, RULES_CARD_COUNT - 1, 5);
     const o = mounted[0]!;
     const ctx = { playerCount: 5 };
+    // The preview has no rules scene under it, so it asks for the opaque brand backdrop.
+    expect(o.backdrop).toBe(true);
     expect(o.show).toHaveBeenLastCalledWith({ card: RULES_CARD_COUNT - 1, cards: 6 }, ctx);
     o.onAction('next');
     expect(o.show).toHaveBeenLastCalledWith({ card: 0, cards: 6 }, ctx);

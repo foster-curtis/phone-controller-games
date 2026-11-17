@@ -46,7 +46,8 @@ export function slotViewport(
 
 let nextKey = 0;
 
-export function createStage(game: Phaser.Game): IllustrationStage {
+/** `freezeMs` (debug preview `&t=`) draws every script once at that loop time instead of animating. */
+export function createStage(game: Phaser.Game, freezeMs?: number): IllustrationStage {
   const live = new Set<{ destroy(): void }>();
   let stageDestroyed = false;
 
@@ -58,6 +59,8 @@ export function createStage(game: Phaser.Game): IllustrationStage {
       let rig: IllustrationRig | null = null;
       let destroyed = false;
       let startTime: number | null = null;
+
+      const still = opts.reducedMotion || freezeMs !== undefined;
 
       const place = () => {
         if (!scene) return;
@@ -83,11 +86,11 @@ export function createStage(game: Phaser.Game): IllustrationStage {
           // Transparent so the shell's DOM and the canvas behind show through.
           this.cameras.main.transparent = true;
           this.scene.bringToTop();
-          if (opts.reducedMotion) rig.draw(script.stillMs);
+          if (still) rig.draw(freezeMs ?? script.stillMs);
           game.scale.on('resize', place);
         },
         // Reduced motion has no per-frame work at all.
-        update: opts.reducedMotion
+        update: still
           ? undefined
           : (time: number) => {
               if (destroyed || !rig) return;

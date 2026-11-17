@@ -4,18 +4,18 @@ import type * as Phaser from 'phaser';
 import { theme } from '../../shared/theme';
 import { drawArena, heatPulse, RIM_WIDTH } from '../render/arena';
 import { drawEgg } from '../render/egg';
-import { alongFromCenter, EGG_R, PAN_CX, PAN_CY, PAN_R } from './panScene';
+import { addBigPanLayer, alongFromCenter, EGG_R, PAN_CX, PAN_CY, PAN_R } from './panScene';
 import { clamp01, easeInOutQuad, phase, track } from './timeline';
 import type { IllustrationScript } from './types';
 
 const WARN_START = 500;
 const SHRINK_START = 2100;
 const SHRINK_END = 3900;
-const MIN_R = 130;
+const MIN_R = 195;
 const EGGS = [
-  { id: 'a', color: theme.players.crimson.fill, ang: -2.2, dist: 160 },
-  { id: 'b', color: theme.players.cobalt.fill, ang: 0.4, dist: 175 },
-  { id: 'c', color: theme.players.jade.fill, ang: 2.2, dist: 165 },
+  { id: 'a', color: theme.players.crimson.fill, ang: -2.2, dist: 240 },
+  { id: 'b', color: theme.players.cobalt.fill, ang: 0.4, dist: 262 },
+  { id: 'c', color: theme.players.jade.fill, ang: 2.2, dist: 248 },
 ] as const;
 
 /** Safe radius at loop time `t`: full until the shrink starts, then easing down (never grows). */
@@ -29,7 +29,7 @@ export const card4Script: IllustrationScript = {
   loopMs: 5400,
   stillMs: 3200,
   create(scene: Phaser.Scene) {
-    const g = scene.add.graphics();
+    const { bg, g } = addBigPanLayer(scene);
     return {
       draw(t) {
         g.clear();
@@ -50,7 +50,7 @@ export const card4Script: IllustrationScript = {
             y: PAN_CY + Math.sin(e.ang) * e.dist,
           };
           // The heat pushes an egg inward just enough to stay inside the safe edge.
-          const p = alongFromCenter(home, Math.min(e.dist, radius - EGG_R - 8));
+          const p = alongFromCenter(home, Math.min(e.dist, radius - EGG_R - 12));
           drawEgg(g, {
             x: p.x,
             y: p.y,
@@ -63,7 +63,10 @@ export const card4Script: IllustrationScript = {
           });
         }
       },
-      destroy: () => g.destroy(),
+      destroy() {
+        bg.destroy();
+        g.destroy();
+      },
     };
   },
 };

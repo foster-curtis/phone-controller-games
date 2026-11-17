@@ -5,15 +5,25 @@ import { theme } from '../../shared/theme';
 import { drawArena } from '../render/arena';
 import { drawEgg, jiggleAt } from '../render/egg';
 import { addText } from '../scenes/ui';
-import { alongFromCenter, EGG_R, mix, PAN_CX, PAN_CY, PAN_R, type Vec } from './panScene';
+import {
+  addBigPanLayer,
+  alongFromCenter,
+  boxPoint,
+  EGG_R,
+  mix,
+  PAN_CX,
+  PAN_CY,
+  PAN_R,
+  type Vec,
+} from './panScene';
 import { backOut, easeInCubic, easeOutCubic, phase, track } from './timeline';
 import type { IllustrationScript } from './types';
 
 const HIT_AT = 1100;
-const B_HOME: Vec = { x: PAN_CX + 70, y: PAN_CY - 30 };
-const B_OUT = alongFromCenter(B_HOME, PAN_R + EGG_R + 90);
-const A_HOME: Vec = { x: PAN_CX - 120, y: PAN_CY + 60 };
-const A_HIT: Vec = { x: PAN_CX + 10, y: PAN_CY - 5 };
+const B_HOME: Vec = { x: PAN_CX + 105, y: PAN_CY - 45 };
+const B_OUT = alongFromCenter(B_HOME, PAN_R + EGG_R + 135);
+const A_HOME: Vec = { x: PAN_CX - 180, y: PAN_CY + 90 };
+const A_HIT: Vec = { x: PAN_CX + 15, y: PAN_CY - 8 };
 const POP1 = [1300, 2400] as const;
 const POP3 = [3000, 4300] as const;
 
@@ -43,7 +53,7 @@ const aPos = track([
   [0, A_HOME],
   [700, A_HOME],
   [HIT_AT, A_HIT, easeInCubic],
-  [1500, { x: A_HIT.x - 20, y: A_HIT.y + 8 }, easeOutCubic],
+  [1500, { x: A_HIT.x - 30, y: A_HIT.y + 12 }, easeOutCubic],
 ]);
 
 export const card5Script: IllustrationScript = {
@@ -51,7 +61,7 @@ export const card5Script: IllustrationScript = {
   loopMs: 5200,
   stillMs: 3400,
   create(scene: Phaser.Scene) {
-    const g = scene.add.graphics();
+    const { bg, g } = addBigPanLayer(scene);
     const label = addText(scene, 0, 0, '+1', 'banner', theme.color.yolk)
       .setOrigin(0.5)
       .setStroke(theme.color.stickerOutline.hex, 10)
@@ -98,12 +108,14 @@ export const card5Script: IllustrationScript = {
         if (which) {
           const pop = which === '+1' ? popAt(t, POP1[0], POP1[1]) : popAt(t, POP3[0], POP3[1]);
           label.setText(which);
-          label.setPosition(a.x, a.y - EGG_R - 44 - pop.rise);
+          const at = boxPoint(a);
+          label.setPosition(at.x, at.y - EGG_R * 0.66 - 44 - pop.rise);
           label.setScale(pop.scale * (which === '+3' ? 1.3 : 1));
           label.setAlpha(pop.alpha);
         }
       },
       destroy() {
+        bg.destroy();
         g.destroy();
         label.destroy();
       },

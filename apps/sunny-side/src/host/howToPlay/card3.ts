@@ -3,11 +3,18 @@
 // second egg, which flies off the pan. Real egg, slam ring and arena renderers.
 import type * as Phaser from 'phaser';
 import { theme } from '../../shared/theme';
-import { drawArena, drawCounter } from '../render/arena';
+import { drawArena } from '../render/arena';
 import { drawEgg, jiggleAt } from '../render/egg';
-import { HEIGHT, WIDTH } from '../render/layout';
 import { SLAM_FLASH_MS, drawSlamRing } from '../render/slamRing';
-import { PAN_ARENA, PAN_CENTER, PAN_EGG_RADIUS, PAN_SCALE, drawTvPane, fall } from './panArt';
+import {
+  PAN_ARENA,
+  PAN_CENTER,
+  PAN_EGG_RADIUS,
+  PAN_SCALE,
+  addBackdrop,
+  drawTvPane,
+  fall,
+} from './panArt';
 import {
   PHONE,
   addSlamLabel,
@@ -41,10 +48,10 @@ const victim = track([
 ]);
 /** The thumb slides onto SLAM, presses, and lifts off at release. */
 const thumb = track([
-  [0, { x: PHONE.slam.x + 60, y: PHONE.slam.y + 50 }],
+  [0, { x: PHONE.slam.x + 30, y: PHONE.slam.y + 70 }],
   [PRESS, { x: PHONE.slam.x, y: PHONE.slam.y }, easeOutQuad],
   [RELEASE, { x: PHONE.slam.x, y: PHONE.slam.y }],
-  [RELEASE + 350, { x: PHONE.slam.x + 20, y: PHONE.slam.y + 30 }, easeOutQuad],
+  [RELEASE + 350, { x: PHONE.slam.x + 20, y: PHONE.slam.y + 60 }, easeOutQuad],
 ]);
 
 export const card3Script: IllustrationScript = {
@@ -53,8 +60,7 @@ export const card3Script: IllustrationScript = {
   // Full charge: egg squashed, ring full and flashing, arc full.
   stillMs: 2500,
   create(scene: Phaser.Scene) {
-    const bg = scene.add.graphics().setScale(0.5);
-    drawCounter(bg, WIDTH / 2, HEIGHT / 2, 1);
+    const bg = addBackdrop(scene);
     const ui = scene.add.graphics();
     const pan = scene.add.graphics().setPosition(PAN_CENTER.x, PAN_CENTER.y).setScale(PAN_SCALE);
     const label = addSlamLabel(scene);
@@ -69,9 +75,9 @@ export const card3Script: IllustrationScript = {
         const pressed = t >= PRESS && t < RELEASE;
         drawSlamButton(ui, pressed);
         label.setPosition(PHONE.slam.x + (pressed ? 4 : 0), PHONE.slam.y + (pressed ? 4 : 0));
-        drawChargeArc(ui, SLAMMER, c, f);
         const th = thumb(t);
-        drawThumb(ui, th.x, th.y, 1 - phase(t, RELEASE + 150, RELEASE + 450));
+        drawThumb(ui, th.x, th.y, 1 - phase(t, RELEASE + 150, RELEASE + 450), 'right', 62);
+        drawChargeArc(ui, SLAMMER, c, f);
 
         drawArena(pan, 0, 0, PAN_ARENA, 0, false);
         const a = slammer(t);

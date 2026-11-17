@@ -5,22 +5,35 @@ import { closeContexts, joinPhone, leaderTap, openHost, screen, test } from './h
 test.afterEach(closeContexts);
 test.setTimeout(120_000);
 
-async function shoot(browser: Browser, n: number, name: string, reduced = false) {
+/** `t`: freeze every illustration at that loop time (ms) so key moments are reproducible. */
+async function shoot(browser: Browser, n: number, name: string, reduced = false, t?: number) {
   const context = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
   await context.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, (r) => r.abort());
   const page = await context.newPage();
   if (reduced) await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto(`/?debug=1&howto=${n}`);
+  await page.goto(`/?debug=1&howto=${n}${t === undefined ? '' : `&t=${t}`}`);
   await expect(page.locator('.pcg-rules')).toBeVisible({ timeout: 20_000 });
-  await page.waitForTimeout(2500);
+  await page.waitForTimeout(t === undefined ? 2500 : 800);
   await page.screenshot({ path: `e2e/__screens__/${name}.png` });
   await context.close();
 }
 
+// Key moments per card (loop ms): thumb dragging, charge arc, squash and flash, shrink, score pops, ghost puff.
+const MOMENTS: Record<number, number[]> = {
+  1: [1500, 4500],
+  2: [1200, 1900, 3300],
+  3: [1200, 2500, 3400],
+  4: [1000, 3200],
+  5: [1600, 3400],
+  6: [1500, 3500, 4300],
+};
+
 for (let n = 1; n <= 6; n++) {
-  test(`screenshot card ${n}`, async ({ browser }) => {
-    await shoot(browser, n, `htp-card-${n}`);
-  });
+  for (const t of MOMENTS[n]!) {
+    test(`screenshot card ${n} at ${t} ms`, async ({ browser }) => {
+      await shoot(browser, n, `htp-card-${n}-${t}`, false, t);
+    });
+  }
 }
 
 test('screenshot card 3 with reduced motion', async ({ browser }) => {

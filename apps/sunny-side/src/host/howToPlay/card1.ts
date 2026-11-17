@@ -3,18 +3,15 @@
 // graphics scaled by 0.5, so the real arena and egg renderers look exactly like the game.
 import type * as Phaser from 'phaser';
 import { theme, type ColorToken } from '../../shared/theme';
-import { drawArena, drawCounter } from '../render/arena';
+import { drawArena } from '../render/arena';
 import { drawEgg, jiggleAt } from '../render/egg';
-import { HEIGHT, WIDTH } from '../render/layout';
 import type { SimSnapshot } from '../sim/types';
-import { drawCrown, fall } from './panArt';
+import { BIG_PAN, addBigPanLayer, drawCrown, fall } from './panArt';
 import { easeInOutQuad, easeOutCubic, easeOutQuad, phase, track, type Point } from './timeline';
 import type { IllustrationScript } from './types';
 
-const CX = WIDTH / 2;
-const CY = HEIGHT / 2;
-const PAN_R = 330;
-const EGG_R = 56;
+const PAN_R = BIG_PAN.r;
+const EGG_R = BIG_PAN.eggR;
 const ARENA: SimSnapshot['arena'] = { radius: PAN_R, startRadius: PAN_R, shrinking: false };
 
 interface Egg {
@@ -96,21 +93,20 @@ export const card1Script: IllustrationScript = {
   // Everyone else is off the pan and the last egg wears the crown.
   stillMs: 4500,
   create(scene: Phaser.Scene) {
-    // Game coordinates, shown at half size to fill the 960x540 box.
-    const g = scene.add.graphics().setScale(0.5);
+    // Game coordinates around (0, 0), shown at the shared big-pan scale in the 960x540 box.
+    const { bg, g } = addBigPanLayer(scene);
     return {
       draw(t: number) {
         g.clear();
-        drawCounter(g, CX, CY, PAN_R);
-        drawArena(g, CX, CY, ARENA, 0, false);
+        drawArena(g, 0, 0, ARENA, 0, false);
         for (const egg of EGGS) {
           const pos = egg.path(t);
           const f = egg.fallAt === null ? { dy: 0, scale: 1, alpha: 1 } : fall(t, egg.fallAt);
           let jiggle = 0;
           for (const [at, amp] of egg.hits) jiggle += jiggleAt(t - at, amp);
           drawEgg(g, {
-            x: CX + pos.x,
-            y: CY + pos.y + f.dy,
+            x: pos.x,
+            y: pos.y + f.dy,
             radius: EGG_R * f.scale,
             id: egg.id,
             color: egg.color,
@@ -121,9 +117,12 @@ export const card1Script: IllustrationScript = {
           });
         }
         const win = EGGS[0]!.path(t);
-        drawCrown(g, CX + win.x, CY + win.y - EGG_R * 1.1, phase(t, 3900, 4300));
+        drawCrown(g, win.x, win.y - EGG_R * 1.1, phase(t, 3900, 4300), 1.6);
       },
-      destroy: () => g.destroy(),
+      destroy() {
+        bg.destroy();
+        g.destroy();
+      },
     };
   },
 };

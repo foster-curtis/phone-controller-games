@@ -6,17 +6,17 @@ import { theme, type ColorToken } from '../../shared/theme';
 
 /** The phone's body and where its controls sit. */
 export const PHONE = {
-  x: 35,
-  y: 190,
-  w: 420,
-  h: 210,
+  x: 30,
+  y: 185,
+  w: 400,
+  h: 220,
   /** Where the floating stick appears under the thumb (left half). */
-  stick: { x: 135, y: 305 },
-  stickRadius: 34,
-  knobRadius: 15,
+  stick: { x: 130, y: 295 },
+  stickRadius: 54,
+  knobRadius: 22,
   /** Farthest the knob moves from the base center. */
-  knobTravel: 20,
-  slam: { x: 375, y: 300, r: 32 },
+  knobTravel: 30,
+  slam: { x: 345, y: 295, r: 40 },
 };
 
 const edge = theme.stroke.sticker;
@@ -84,13 +84,16 @@ export function addSlamLabel(scene: Phaser.Scene): Phaser.GameObjects.Text {
   return scene.add
     .text(PHONE.slam.x, PHONE.slam.y, 'SLAM', {
       fontFamily: t.family,
-      fontSize: '17px',
+      fontSize: '22px',
       color: theme.color.accentOn.hex,
     })
     .setOrigin(0.5);
 }
 
-/** Charge arc around the button: a clockwise wedge from the top in the player's color, plus a flash. */
+/**
+ * Charge arc around the button: a dim track, then a clockwise wedge from the top in the player's
+ * color (ink-outlined so it reads on the dark screen), plus a bright flash at max charge.
+ */
 export function drawChargeArc(
   g: Phaser.GameObjects.Graphics,
   color: ColorToken,
@@ -98,34 +101,87 @@ export function drawChargeArc(
   flash: number,
 ): void {
   const { x, y, r } = PHONE.slam;
-  const R = r * 1.3;
+  const R = r + 16;
+  g.lineStyle(10, theme.color.borderControl.num, 0.5);
+  g.strokeCircle(x, y, R);
   if (charge > 0) {
-    g.lineStyle(7, color.num, 1);
+    const end = -Math.PI / 2 + Math.PI * 2 * Math.min(1, charge);
+    g.lineStyle(16, theme.color.stickerOutline.num, 1);
     g.beginPath();
-    g.arc(x, y, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, charge), false);
+    g.arc(x, y, R, -Math.PI / 2, end, false);
+    g.strokePath();
+    g.lineStyle(10, color.num, 1);
+    g.beginPath();
+    g.arc(x, y, R, -Math.PI / 2, end, false);
     g.strokePath();
   }
   if (flash > 0) {
-    g.lineStyle(7 + 6 * flash, theme.color.yolkShine.num, flash);
+    g.lineStyle(10 + 8 * flash, theme.color.yolkShine.num, flash);
     g.strokeCircle(x, y, R + 4 * (1 - flash));
   }
 }
 
-/** A thumb: a rounded finger reaching in from the lower left to a fingertip at (x, y). */
-export function drawThumb(g: Phaser.GameObjects.Graphics, x: number, y: number, alpha = 1): void {
+/** Which side the thumb reaches in from (the left stick's thumb from the left, SLAM's from the right). */
+export type ThumbSide = 'left' | 'right';
+
+const THUMB_W = 74;
+
+/** Unit vector from a fingertip back along the thumb toward the player's hand (below the phone). */
+function thumbDir(side: ThumbSide): { x: number; y: number } {
+  const x = side === 'left' ? -0.3 : 0.3;
+  const len = Math.hypot(x, 1);
+  return { x: x / len, y: 1 / len };
+}
+
+/** Closed polygon of an ellipse at (x, y) turned by `rot`, for the nail. */
+function ellipsePoints(x: number, y: number, rx: number, ry: number, rot: number) {
+  const pts: { x: number; y: number }[] = [];
+  const c = Math.cos(rot);
+  const s = Math.sin(rot);
+  for (let i = 0; i < 20; i++) {
+    const a = (i / 20) * Math.PI * 2;
+    const px = Math.cos(a) * rx;
+    const py = Math.sin(a) * ry;
+    pts.push({ x: x + px * c - py * s, y: y + px * s + py * c });
+  }
+  return pts as unknown as Phaser.Math.Vector2[];
+}
+
+/**
+ * A thumb pressing the screen at (x, y): a cream, sticker-outlined finger coming up from below the
+ * phone with a rounded tip and a nail. The pad sits `reach` px back along the finger so the control
+ * under it (the stick knob, the button's face) still shows above the fingertip.
+ */
+export function drawThumb(
+  g: Phaser.GameObjects.Graphics,
+  x: number,
+  y: number,
+  alpha = 1,
+  side: ThumbSide = 'left',
+  reach = 56,
+): void {
   if (alpha <= 0) return;
-  const w = 30;
-  const bx = x - 80;
-  const by = y + 90;
-  g.lineStyle(w + edge * 2, theme.color.stickerOutline.num, alpha);
-  g.lineBetween(bx, by, x, y);
-  g.fillStyle(theme.color.stickerOutline.num, alpha);
-  g.fillCircle(x, y, w / 2 + edge);
-  g.lineStyle(w, theme.players.rose.fill.num, alpha);
-  g.lineBetween(bx, by, x, y);
-  g.fillStyle(theme.players.rose.fill.num, alpha);
-  g.fillCircle(x, y, w / 2);
-  // Nail.
+  const d = thumbDir(side);
+  const tx = x + d.x * reach;
+  const ty = y + d.y * reach;
+  const bx = tx + d.x * 200;
+  const by = ty + d.y * 200;
+  const r = THUMB_W / 2;
+  const ink = theme.color.stickerOutline.num;
+  // Outline pass, then the fill: a capsule from the hand to a round fingertip.
+  g.lineStyle(THUMB_W + edge * 2, ink, alpha);
+  g.lineBetween(bx, by, tx, ty);
+  g.fillStyle(ink, alpha);
+  g.fillCircle(tx, ty, r + edge);
+  g.lineStyle(THUMB_W, theme.color.cream.num, alpha);
+  g.lineBetween(bx, by, tx, ty);
   g.fillStyle(theme.color.cream.num, alpha);
-  g.fillCircle(x - 1, y - 3, 7);
+  g.fillCircle(tx, ty, r);
+  // Nail near the tip, turned along the finger.
+  const rot = Math.atan2(d.y, d.x) + Math.PI / 2;
+  const nail = ellipsePoints(tx - d.x * 6, ty - d.y * 6 - 3, 21, 26, rot);
+  g.fillStyle(theme.color.brandPaper.num, alpha);
+  g.fillPoints(nail, true, true);
+  g.lineStyle(3, ink, alpha);
+  g.strokePoints(nail, true, true);
 }

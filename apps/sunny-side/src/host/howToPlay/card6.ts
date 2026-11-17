@@ -7,7 +7,17 @@ import { drawArena } from '../render/arena';
 import { drawEgg } from '../render/egg';
 import { drawGhost, drawPuff, PUFF_MS } from '../render/ghost';
 import { addText } from '../scenes/ui';
-import { alongFromCenter, EGG_R, mix, PAN_CX, PAN_CY, PAN_R, type Vec } from './panScene';
+import {
+  addBigPanLayer,
+  alongFromCenter,
+  boxPoint,
+  EGG_R,
+  mix,
+  PAN_CX,
+  PAN_CY,
+  PAN_R,
+  type Vec,
+} from './panScene';
 import { countdownDigit, easeInOutQuad, easeOutCubic, easeOutQuad, phase } from './timeline';
 import type { IllustrationScript } from './types';
 
@@ -20,11 +30,11 @@ const WINDUP_END = 4200;
 const PUFF_END = WINDUP_END + PUFF_MS;
 const PUSH_END = 5000;
 /** Where the first egg left the pan, and where its countdown and then the ghost appear. */
-const EXIT: Vec = { x: 110, y: PAN_CY };
-const FALL_FROM: Vec = { x: 250, y: PAN_CY + 30 };
-const GHOST_AT: Vec = { x: PAN_CX - 20, y: PAN_CY + 30 };
-const TARGET_HOME: Vec = { x: PAN_CX + 60, y: PAN_CY - 70 };
-const TARGET_OUT = alongFromCenter(TARGET_HOME, PAN_R + EGG_R + 110);
+const EXIT: Vec = { x: PAN_CX - 465, y: PAN_CY };
+const FALL_FROM: Vec = { x: PAN_CX - 255, y: PAN_CY + 45 };
+const GHOST_AT: Vec = { x: PAN_CX - 30, y: PAN_CY + 45 };
+const TARGET_HOME: Vec = { x: PAN_CX + 90, y: PAN_CY - 105 };
+const TARGET_OUT = alongFromCenter(TARGET_HOME, PAN_R + EGG_R + 165);
 
 /** The countdown digit shown at loop time `t` (4, 3, 2, 1) or null. */
 export const countdownAt = (t: number): number | null =>
@@ -35,8 +45,9 @@ export const card6Script: IllustrationScript = {
   loopMs: 5800,
   stillMs: 4300,
   create(scene: Phaser.Scene) {
-    const g = scene.add.graphics();
-    const digit = addText(scene, EXIT.x, EXIT.y, '4', 'title', theme.color.yolk)
+    const { bg, g } = addBigPanLayer(scene);
+    const at = boxPoint(EXIT);
+    const digit = addText(scene, at.x, at.y, '4', 'title', theme.color.yolk)
       .setOrigin(0.5)
       .setStroke(theme.color.stickerOutline.hex, 12)
       .setVisible(false);
@@ -110,6 +121,7 @@ export const card6Script: IllustrationScript = {
         }
       },
       destroy() {
+        bg.destroy();
         g.destroy();
         digit.destroy();
       },
