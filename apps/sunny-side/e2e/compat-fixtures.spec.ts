@@ -1,7 +1,7 @@
 // Self-test of the controller-compat hostile fixtures (@pcg/game-kit/e2e, controller-compat F4). Runs
 // on every compat project (chromium, firefox, webkit). It needs no host: the controller page's dev
 // mode is just a page, and sockets are opened straight to this suite's relay.
-import { expect, type BrowserContext } from '@playwright/test';
+import { expect, type BrowserContext, type Page } from '@playwright/test';
 import {
   RELAY_PORT,
   collectPageErrors,
@@ -28,6 +28,7 @@ declare global {
 async function probePage(context: BrowserContext) {
   const page = await context.newPage();
   await page.goto('/play.html?dev=1');
+  await page.evaluate(() => ((window as unknown as { __marker: boolean }).__marker = true));
   await page.evaluate(async (port) => {
     window.__openProbe = async () => {
       const ws = new WebSocket(`ws://localhost:${port}`);
@@ -45,6 +46,14 @@ async function probePage(context: BrowserContext) {
   }, RELAY_PORT);
   await expect.poll(() => page.evaluate(() => window.__probe.messages)).toBeGreaterThan(0);
   return page;
+}
+
+/** The page kept its state: a drop must not make Vite's client reload it. */
+async function expectNoReload(page: Page) {
+  await page.waitForTimeout(500);
+  expect(await page.evaluate(() => (window as unknown as { __marker?: boolean }).__marker)).toBe(
+    true,
+  );
 }
 
 test.describe('compat fixtures', () => {
@@ -144,6 +153,7 @@ test.describe('compat fixtures', () => {
     const page = await probePage(context);
     expect(await dropSockets(page)).toBeGreaterThan(0);
     await expect.poll(() => page.evaluate(() => window.__probe.closes)).toEqual([1006]);
+    await expectNoReload(page);
     expect(await page.evaluate(() => window.__probe.open.readyState)).toBe(3);
     await context.close();
   });
@@ -191,6 +201,7 @@ test.describe('compat fixtures', () => {
       'pageshow:true',
     ]);
     await expect.poll(() => page.evaluate(() => window.__probe.closes)).toEqual([1006]);
+    await expectNoReload(page);
     await context.close();
   });
 

@@ -71,7 +71,8 @@ type PcgWindow = Window & { __pcgSockets?: SocketControl };
 
 /**
  * Wraps `window.WebSocket` so the page's sockets are tracked and `dropSockets`/`halfOpenSockets`
- * can misbehave on demand. Install on the context before the page navigates.
+ * can misbehave on demand. Install on the context before the page navigates. Vite's own dev sockets
+ * (subprotocols `vite-hmr`, `vite-ping`) are neither tracked nor affected by any fixture here.
  */
 export async function installSocketControl(context: BrowserContext): Promise<void> {
   await context.addInitScript(() => {
@@ -95,6 +96,11 @@ export async function installSocketControl(context: BrowserContext): Promise<voi
 
     class Tracked extends Native {
       constructor(url: string | URL, protocols?: string | string[]) {
+        // Vite's HMR and ping sockets are left alone: dropping them makes its client reload the page.
+        const names = ([] as string[]).concat(protocols ?? []);
+        if (names.some((n) => n === 'vite-hmr' || n === 'vite-ping')) {
+          return new Native(url, protocols) as unknown as Tracked;
+        }
         super(url, protocols);
         const self = this as unknown as PcgSocket;
         sockets.push(self);
@@ -212,7 +218,9 @@ export async function setOffline(
   offline: boolean,
 ): Promise<void> {
   await context.setOffline(offline);
+  // The browsers already flip onLine and fire the events; only fill in what they didn't.
   await page.evaluate((off) => {
+    if (navigator.onLine === !off) return;
     Object.defineProperty(navigator, 'onLine', { get: () => !off, configurable: true });
     window.dispatchEvent(new Event(off ? 'offline' : 'online'));
   }, offline);
