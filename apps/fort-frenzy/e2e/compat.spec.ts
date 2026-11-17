@@ -210,7 +210,7 @@ test('a phone with no optional APIs plays through every hostile connection event
         await setOffline(ann.context, ann.page, false);
       },
       25_000,
-      true,
+      false,
     ],
     ['bfcache restore', () => simulateBfcacheRestore(ann.page), 15_000, true],
   ];
@@ -240,8 +240,9 @@ test('full screen never starts without a button tap', async ({ browser, browserN
   );
 
   // Joining, picking a knight, tapping around and readying up: none of it asks for full screen.
-  await ann.page.mouse.click(40, 200);
-  await ann.page.mouse.click(400, 300);
+  // Known non-button spots only (never `.pcg-fullscreen-btn`): the knight name and the room code.
+  await ann.page.locator('.screen.lobby .knight-name').click();
+  await ann.page.locator('.screen.lobby .room-code').click({ force: true });
   await ann.page.locator('.screen.lobby .ready').click();
   await expect(ann.page.locator('.screen.lobby .ready')).toHaveAttribute('aria-pressed', 'true');
   expect(await calls(ann.page)).toBe(0);
