@@ -878,3 +878,48 @@
     animation: none;
   }
 }
+
+/* Host chrome outside #tv (src/host/chrome.ts): full-screen button, reconnect pill, toasts. */
+.host-chrome {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: 5;
+}
+.host-chrome .pcg-fullscreen-btn {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  font-size: 18px;
+  opacity: 0.8;
+}
+.host-chrome .pcg-fullscreen-btn:focus-visible,
+.host-chrome .pcg-fullscreen-btn:hover {
+  opacity: 1;
+}
+.host-conn {
+  position: fixed;
+  top: var(--space-4);
+  left: var(--space-4);
+  z-index: 5;
+  padding: var(--space-1) var(--space-4);
+  border: 2px solid var(--border-control);
+  border-radius: var(--radius-pill);
+  background: var(--surface-strong);
+  color: var(--muted);
+  font: 600 18px/1.4 var(--font-sans);
+  pointer-events: none;
+}
+.host-conn[hidden] {
+  display: none;
+}
+.pcg-toast {
+  padding: var(--space-3) var(--space-6);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-strong);
+  color: var(--foreground);
+  font: 600 24px/1.3 var(--font-sans);
+}
+.pcg-fullscreen-btn[hidden] {
+  display: none;
+}

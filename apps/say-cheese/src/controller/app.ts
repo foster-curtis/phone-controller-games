@@ -1,4 +1,4 @@
-// Phone app (SPEC §6.7, PLATFORM §3): the controller-kit app shell (Wake Lock, fullscreen on tap,
+// Phone app (SPEC §6.7, PLATFORM §3): the controller-kit app shell (Wake Lock, manual full-screen button,
 // overlays for reconnecting / host away / kicked / room closed, portrait) plus a router keyed by
 // `Screen.kind`. Client, camera and sfx are injected: SC5 passes the real ones, dev mode and tests
 // fakes. Never imports host code (lint).
@@ -11,7 +11,8 @@ import {
   type ShellClient,
 } from '@pcg/controller-kit';
 import { title } from '../../game.meta';
-import { isHostMsg, type HostMsg, type PhoneMsg, type Screen } from '../shared/messages';
+import { GAME_ID, isHostMsg, type HostMsg, type PhoneMsg, type Screen } from '../shared/messages';
+import { GAME_VERSION } from '../shared/version';
 import { noopSfx, type Sfx } from '../shared/sfx';
 import type { Camera, CapturedPhoto } from './camera/types';
 import { DEFAULT_COOLDOWN_MS, type Ctx } from './ctx';
@@ -72,7 +73,12 @@ export function createApp(opts: AppOptions): App {
     client,
     overlays: OVERLAYS,
     text: TEXT,
-    platform: { landscape: false, rotate: false, ...opts.platform },
+    game: GAME_ID,
+    version: GAME_VERSION,
+    // Portrait game: no landscape lock or rotate overlay. The corner full-screen button sits top-left,
+    // clear of the leave menu (top-right), the shutter and the bottom controls. Full screen is only
+    // ever the player's tap on a button, never automatic.
+    platform: { landscape: false, rotate: false, fullscreenCorner: 'top-left', ...opts.platform },
   });
 
   const ctx: Ctx = {

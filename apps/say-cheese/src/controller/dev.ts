@@ -145,7 +145,7 @@ export function startDev(root: HTMLElement): void {
       g.fillRect(0, 0, 400, 300);
       return c.toDataURL('image/jpeg', 0.5);
     },
-    platform: { fullscreen: false, wakeLock: false },
+    platform: { wakeLock: false },
   });
   const samples = sampleScreens();
   harness.addRow(
