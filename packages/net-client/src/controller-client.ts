@@ -39,6 +39,8 @@ export function createControllerClientImpl(opts: ControllerClientOptions): Contr
     WebSocket: opts.WebSocket ?? globalThis.WebSocket,
     document: opts.document ?? (typeof document === 'undefined' ? undefined : document),
     window: opts.window ?? (typeof window === 'undefined' ? undefined : window),
+    heartbeat: opts.heartbeat,
+    now: opts.now,
     onOpen: handshake,
     onMessage,
   });
@@ -61,7 +63,7 @@ export function createControllerClientImpl(opts: ControllerClientOptions): Contr
         playerId = msg.playerId;
         token = msg.token;
         safeSet(session, tokenKey, msg.token);
-        conn.ready();
+        conn.ready(msg.heartbeat === true);
         pending?.resolve({ playerId: msg.playerId });
         pending = null;
         break;

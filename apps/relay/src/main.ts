@@ -15,6 +15,8 @@ const opts: RelayOptions = {
   hostReclaimMs: envInt('HOST_RECLAIM_MS'),
   pingIntervalMs: envInt('PING_INTERVAL_MS'),
   maxMissedPings: envInt('MAX_MISSED_PINGS'),
+  // One JSON line per connection event, no payloads or IPs (relay SPEC §3.1).
+  log: process.env.RELAY_LOG === '1' ? (e) => console.log(JSON.stringify(e)) : undefined,
 };
 
 const relay = await createRelay(opts);

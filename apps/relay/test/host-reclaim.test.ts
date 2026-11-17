@@ -27,6 +27,7 @@ describe('host reclaim', () => {
     expect(await host2.next('reclaimed')).toEqual({
       t: 'reclaimed',
       code,
+      heartbeat: true,
       roster: [
         { playerId: a.playerId, playerKey: 'key-a', connected: true },
         { playerId: b.playerId, playerKey: 'key-b', connected: false },

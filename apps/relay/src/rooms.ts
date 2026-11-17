@@ -10,6 +10,7 @@ import {
   type RosterEntry,
 } from '@pcg/net-client';
 import { generateCode, generateToken } from './codes';
+import type { RelayLogEvent } from './index';
 
 export interface Peer {
   /** Sends a pre-serialized JSON frame. */
@@ -21,6 +22,8 @@ export interface RoomsConfig {
   playerReconnectMs: number;
   hostReclaimMs: number;
   maxPlayersCap: number;
+  /** Connection log sink (relay SPEC §3.1); `at` is stamped here. */
+  log?: (event: RelayLogEvent) => void;
 }
 
 interface Player {
@@ -28,6 +31,8 @@ interface Player {
   playerKey: string;
   token: string;
   session: Session | null;
+  /** Socket number of the last session (for `player-expired`). */
+  conn: number;
   /** Reconnect-window timer while disconnected. */
   timer: ReturnType<typeof setTimeout> | null;
 }
@@ -39,6 +44,8 @@ interface Room {
   locked: boolean;
   hostToken: string;
   host: Session | null;
+  /** Socket number of the last host session (for `room-closed`). */
+  hostConn: number;
   hostTimer: ReturnType<typeof setTimeout> | null;
   players: Map<PlayerId, Player>;
   nextPlayerNum: number;
@@ -47,6 +54,8 @@ interface Room {
 /** Per-socket state. The role is fixed by the first successful create/reclaim/join. */
 export interface Session {
   peer: Peer;
+  /** Per-process socket number, for the connection log. */
+  conn: number;
   role: 'none' | 'host' | 'phone';
   room: Room | null;
   player: Player | null;
@@ -58,10 +67,6 @@ const roomKey = (game: string, code: string) => `${game}\u0000${code}`;
 
 function send(session: Session | null, msg: RelayToClient) {
   session?.peer.sendRaw(JSON.stringify(msg));
-}
-
-function error(session: Session, code: RelayErrorCode, message?: string) {
-  send(session, message ? { t: 'error', code, message } : { t: 'error', code });
 }
 
 const isStr = (v: unknown): v is string => typeof v === 'string' && v.length > 0;
@@ -103,6 +108,8 @@ export function parseClientMessage(raw: string): ClientToRelay | null {
       return { t: 'unlock' };
     case 'kick':
       return isStr(m.playerId) ? { t: 'kick', playerId: m.playerId } : null;
+    case 'ping':
+      return typeof m.n === 'number' && Number.isFinite(m.n) ? { t: 'ping', n: m.n } : null;
     default:
       return null;
   }
@@ -119,19 +126,48 @@ export class Rooms {
     return this.rooms.size;
   }
 
-  newSession(peer: Peer): Session {
-    return { peer, role: 'none', room: null, player: null };
+  newSession(peer: Peer, conn = 0): Session {
+    return { peer, conn, role: 'none', room: null, player: null };
+  }
+
+  /** Room context of a socket, for its `close` log line (read before `handleClose`). */
+  describe(s: Session): Pick<RelayLogEvent, 'role' | 'game' | 'code' | 'playerId'> {
+    return {
+      role: s.role,
+      ...(s.room ? { game: s.room.game, code: s.room.code } : {}),
+      ...(s.player ? { playerId: s.player.playerId } : {}),
+    };
+  }
+
+  private log(kind: RelayLogEvent['kind'], s: Session | null, extra: Partial<RelayLogEvent> = {}) {
+    if (!this.cfg.log) return;
+    this.cfg.log({
+      at: Date.now(),
+      kind,
+      conn: s?.conn ?? 0,
+      ...(s ? this.describe(s) : {}),
+      ...extra,
+    });
+  }
+
+  private error(session: Session, code: RelayErrorCode, message?: string) {
+    this.log('error', session, { errorCode: code });
+    send(session, message ? { t: 'error', code, message } : { t: 'error', code });
   }
 
   handleRaw(s: Session, raw: string) {
     const msg = parseClientMessage(raw);
-    if (!msg) return error(s, 'bad-request', 'malformed or unknown message');
+    if (!msg) return this.error(s, 'bad-request', 'malformed or unknown message');
     this.handle(s, msg);
   }
 
   handle(s: Session, msg: ClientToRelay) {
-    const wrongRole = () => error(s, 'bad-request', `"${msg.t}" not allowed for role ${s.role}`);
+    const wrongRole = () =>
+      this.error(s, 'bad-request', `"${msg.t}" not allowed for role ${s.role}`);
     switch (msg.t) {
+      case 'ping':
+        // Any socket, any state: answered to this socket alone (decision #5).
+        return send(s, { t: 'pong', n: msg.n });
       case 'create':
         return s.role === 'none' ? this.create(s, msg.game, msg.maxPlayers) : wrongRole();
       case 'reclaim':
@@ -161,6 +197,7 @@ export class Rooms {
       locked: false,
       hostToken: generateToken(),
       host: s,
+      hostConn: s.conn,
       hostTimer: null,
       players: new Map(),
       nextPlayerNum: 1,
@@ -169,13 +206,15 @@ export class Rooms {
     this.byHostToken.set(room.hostToken, room);
     s.role = 'host';
     s.room = room;
-    send(s, { t: 'created', code, hostToken: room.hostToken });
+    send(s, { t: 'created', code, hostToken: room.hostToken, heartbeat: true });
+    this.log('create', s);
   }
 
   private reclaim(s: Session, hostToken: string) {
     const room = this.byHostToken.get(hostToken);
-    if (!room) return error(s, 'no-room');
+    if (!room) return this.error(s, 'no-room');
     const wasAway = room.host === null;
+    const takeover = room.host !== null;
     if (room.host) {
       // Takeover: the old host socket hasn't been detected dead yet.
       const old = room.host;
@@ -185,6 +224,7 @@ export class Rooms {
     if (room.hostTimer) clearTimeout(room.hostTimer);
     room.hostTimer = null;
     room.host = s;
+    room.hostConn = s.conn;
     s.role = 'host';
     s.room = room;
     const roster: RosterEntry[] = [...room.players.values()].map((p) => ({
@@ -192,21 +232,24 @@ export class Rooms {
       playerKey: p.playerKey,
       connected: p.session !== null,
     }));
-    send(s, { t: 'reclaimed', code: room.code, roster });
+    send(s, { t: 'reclaimed', code: room.code, roster, heartbeat: true });
+    this.log('reclaim', s, { takeover });
     if (wasAway) this.toPhones(room, { t: 'host', status: 'back' });
   }
 
   private join(s: Session, msg: Extract<ClientToRelay, { t: 'join' }>) {
     const room = this.rooms.get(roomKey(msg.game, msg.code));
-    if (!room) return error(s, 'no-room');
+    if (!room) return this.error(s, 'no-room');
 
     const existing = msg.token
       ? [...room.players.values()].find((p) => p.token === msg.token)
       : undefined;
     let player: Player;
     let event: PeerEvent;
+    let takeover = false;
     if (existing) {
       if (existing.session) {
+        takeover = true;
         // Takeover: the old phone socket hasn't been detected dead yet.
         const old = existing.session;
         old.player = null;
@@ -219,23 +262,27 @@ export class Rooms {
       player = existing;
       event = 'rejoined';
     } else {
-      if (room.locked) return error(s, 'room-locked');
-      if (room.players.size >= room.maxPlayers) return error(s, 'room-full');
+      if (room.locked) return this.error(s, 'room-locked');
+      if (room.players.size >= room.maxPlayers) return this.error(s, 'room-full');
       player = {
         playerId: `p${room.nextPlayerNum++}`,
         playerKey: msg.playerKey,
         token: generateToken(),
         session: null,
+        conn: s.conn,
         timer: null,
       };
       room.players.set(player.playerId, player);
       event = 'joined';
     }
     player.session = s;
+    player.conn = s.conn;
     s.role = 'phone';
     s.room = room;
     s.player = player;
-    send(s, { t: 'joined', playerId: player.playerId, token: player.token });
+    send(s, { t: 'joined', playerId: player.playerId, token: player.token, heartbeat: true });
+    if (event === 'rejoined') this.log('rejoin', s, { takeover });
+    else this.log('join', s);
     if (room.host) {
       send(room.host, { t: 'peer', event, playerId: player.playerId, playerKey: player.playerKey });
     } else {
@@ -265,6 +312,7 @@ export class Rooms {
     if (!room || !player) return;
     this.removePlayer(room, player);
     const ps = player.session;
+    this.log('kick', s, { playerId });
     if (ps) {
       ps.player = null;
       ps.room = null;
@@ -294,7 +342,16 @@ export class Rooms {
         playerId: player.playerId,
         playerKey: player.playerKey,
       });
-      player.timer = setTimeout(() => this.removePlayer(room, player), this.cfg.playerReconnectMs);
+      player.timer = setTimeout(() => {
+        this.log('player-expired', null, {
+          conn: player.conn,
+          role: 'phone',
+          game: room.game,
+          code: room.code,
+          playerId: player.playerId,
+        });
+        this.removePlayer(room, player);
+      }, this.cfg.playerReconnectMs);
     }
   }
 
@@ -305,6 +362,12 @@ export class Rooms {
   }
 
   private closeRoom(room: Room) {
+    this.log('room-closed', null, {
+      conn: room.hostConn,
+      role: 'host',
+      game: room.game,
+      code: room.code,
+    });
     this.deleteRoom(room);
     for (const p of room.players.values()) {
       const ps = p.session;
