@@ -5,7 +5,7 @@ import { createControllerClient } from '@pcg/net-client';
 import '../styles/brand.css';
 import { GAME_ID } from '../shared/messages';
 import { mountVersionTag } from '../shared/version';
-import { createApp } from './app';
+import { createApp, searchWithCode } from './app';
 import './controller.css';
 import { startDev } from './devMode';
 
@@ -22,7 +22,7 @@ function boot(): void {
 
   const code = params.get('code')?.trim().toUpperCase() || null;
   const goTo = (c: string) => {
-    location.search = `?code=${encodeURIComponent(c)}`;
+    location.search = searchWithCode(location.search, c);
   };
 
   if (!code) {

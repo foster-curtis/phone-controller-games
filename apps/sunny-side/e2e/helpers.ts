@@ -1,7 +1,7 @@
 // Shared e2e helpers: a host page plus phones, each in its own browser context (own localStorage,
 // so its own player key). Google Fonts requests are aborted so runs are offline and deterministic.
 // Specs import `test` from here, not from '@playwright/test', so the built-in `page` gets
-// `noFullscreen` too.
+// `noFullscreen` too (full screen stays manual, but a tapped button must not fullscreen the runner).
 import { readE2EConfig, recordImpact, type ImpactRecorder } from '@pcg/game-kit/e2e';
 import {
   test as base,
@@ -18,9 +18,9 @@ import type { ScreenKind } from '../src/shared/messages';
 export const PHONE_VIEWPORT = { width: 844, height: 390 };
 
 /**
- * Turns the controller's fullscreen-on-tap (PLATFORM §3) into a no-op. Headless Chromium on Windows
- * really fullscreens the window on the first click, and `page.setViewportSize()` then fails
- * ("restore it to normal state first"). Applied to every phone context.
+ * Turns `requestFullscreen` into a no-op. Full screen is manual now (PLATFORM §3), but headless
+ * Chromium on Windows really fullscreens the window when a spec taps a full-screen button, and
+ * `page.setViewportSize()` then fails ("restore it to normal state first"). Applied to every phone context.
  */
 export async function noFullscreen(context: BrowserContext): Promise<void> {
   await context.addInitScript(() => {
@@ -88,7 +88,7 @@ export interface Phone {
   name: string;
 }
 
-/** A phone's browser context: fonts blocked, no fullscreen, `seed` written to localStorage. */
+/** A phone context: fonts blocked, requestFullscreen stubbed, `seed` written to localStorage. */
 export async function newPhoneContext(
   browser: Browser,
   {
@@ -111,8 +111,14 @@ export async function newPhoneContext(
  * Opens `/play?code=CODE` in a fresh context, enters `name` on the name step, taps Next, then taps
  * Ready (non-leaders only; the leader has Start instead).
  */
-export async function joinPhone(browser: Browser, code: string, name: string): Promise<Phone> {
-  const context = await newPhoneContext(browser);
+export async function joinPhone(
+  browser: Browser,
+  code: string,
+  name: string,
+  /** A context the spec prepared (init scripts, hostile fixtures); default a plain phone context. */
+  prepared?: BrowserContext,
+): Promise<Phone> {
+  const context = prepared ?? (await newPhoneContext(browser));
   const page = await context.newPage();
   await page.goto(`/play?code=${code}`);
   await expect(screen(page, 'lobby')).toBeVisible();

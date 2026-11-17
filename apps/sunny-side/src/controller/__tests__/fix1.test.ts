@@ -7,6 +7,7 @@ const css = readFileSync(
   join(dirname(fileURLToPath(import.meta.url)), '../controller.css'),
   'utf8',
 );
+import { searchWithCode } from '../app';
 import { sampleStandings } from '../samples';
 import { mount, pointer, sampleScreen } from './helpers';
 import type { Screen } from '../../shared/messages';
@@ -72,57 +73,77 @@ describe('long-list screens with 8 players', () => {
   });
 });
 
-describe('fullscreen', () => {
+describe('full screen is manual (controller-compat)', () => {
   const tap = (el: Element) => el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-
-  it('requests fullscreen (hidden navigation UI) on the join tap', () => {
+  const spy = () => {
     const fn = vi.fn(() => Promise.resolve());
     (document.documentElement as unknown as Record<string, unknown>).requestFullscreen = fn;
+    return fn;
+  };
+
+  it('a tap anywhere, including the join tap, never requests full screen', () => {
+    const fn = spy();
     const h = mount({ nameStep: true });
     h.show(sampleScreen('lobby'));
+    tap(h.root);
     tap(h.root.querySelector('button[type=submit]') as HTMLElement);
-    expect(fn).toHaveBeenCalledWith({ navigationUI: 'hide' });
-  });
-
-  it('re-requests on the next tap once the user left fullscreen, not while fullscreen', () => {
-    const fn = vi.fn(() => Promise.resolve());
-    (document.documentElement as unknown as Record<string, unknown>).requestFullscreen = fn;
-    const h = mount();
-    Object.defineProperty(document, 'fullscreenElement', {
-      configurable: true,
-      value: document.documentElement,
-    });
+    h.show(sampleScreen('playing', 'cobalt'));
     tap(h.root);
     expect(fn).not.toHaveBeenCalled();
-    Object.defineProperty(document, 'fullscreenElement', { configurable: true, value: null });
-    tap(h.root);
-    expect(fn).toHaveBeenCalledTimes(1);
   });
 
-  it('falls back to the webkit-prefixed variant', () => {
-    const fn = vi.fn();
-    (document.documentElement as unknown as Record<string, unknown>).webkitRequestFullscreen = fn;
+  it('the lobby has an inline full-screen button; the corner button is in the shell', () => {
     const h = mount();
-    tap(h.root);
-    expect(fn).toHaveBeenCalled();
+    h.show(sampleScreen('lobby'));
+    const lobby = h.root.querySelector('[data-screen=lobby]') as HTMLElement;
+    const inline = lobby.querySelector('.pcg-fullscreen-btn') as HTMLElement;
+    expect(inline).toBeTruthy();
+    expect(inline.textContent).toBe('Full screen');
+    const corner = h.root.querySelector('.pcg-fullscreen-corner') as HTMLElement;
+    expect(corner).toBeTruthy();
+    expect(corner.style.left).not.toBe('');
+    expect(corner.style.right).toBe('');
+    expect(corner.style.top).not.toBe('');
   });
 
-  it('a missing API does not throw', () => {
+  it('the join screen has an inline full-screen button', () => {
     const h = mount();
-    expect(() => tap(h.root)).not.toThrow();
+    expect(h.root.querySelector('[data-screen=joining] .pcg-fullscreen-btn')).toBeTruthy();
   });
 
-  it('a rejection is swallowed', async () => {
-    const fn = vi.fn(() => Promise.reject(new Error('denied')));
-    (document.documentElement as unknown as Record<string, unknown>).requestFullscreen = fn;
+  it('the inline button asks for full screen only when tapped', async () => {
+    const fn = spy();
+    Object.defineProperty(document, 'fullscreenEnabled', { configurable: true, value: true });
+    try {
+      const h = mount();
+      h.show(sampleScreen('lobby'));
+      expect(fn).not.toHaveBeenCalled();
+      const btn = h.root.querySelector('[data-screen=lobby] .pcg-fullscreen-btn') as HTMLElement;
+      btn.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 }));
+      await Promise.resolve();
+      expect(fn).toHaveBeenCalledTimes(1);
+    } finally {
+      delete (document as unknown as Record<string, unknown>).fullscreenEnabled;
+    }
+  });
+
+  it('without the API the button opens the install sheet instead and nothing throws', () => {
     const h = mount();
-    const unhandled = vi.fn();
-    process.on('unhandledRejection', unhandled);
-    tap(h.root);
-    await vi.advanceTimersByTimeAsync(10);
-    process.off('unhandledRejection', unhandled);
-    expect(fn).toHaveBeenCalled();
-    expect(unhandled).not.toHaveBeenCalled();
+    h.show(sampleScreen('lobby'));
+    const btn = h.root.querySelector('[data-screen=lobby] .pcg-fullscreen-btn') as HTMLElement;
+    expect(() =>
+      btn.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 })),
+    ).not.toThrow();
+    expect(document.querySelector('.pcg-sheet')).toBeTruthy();
+    document.querySelector('.pcg-sheet')?.remove();
+  });
+});
+
+describe('join code navigation keeps other params', () => {
+  it('searchWithCode sets the code and keeps debug', () => {
+    expect(searchWithCode('?debug=1', 'ABCD')).toBe('?debug=1&code=ABCD');
+    expect(searchWithCode('?code=OLD&debug=1', 'NEW')).toBe('?code=NEW&debug=1');
+    expect(searchWithCode('', 'AB CD')).toBe('?code=AB+CD');
   });
 });
 

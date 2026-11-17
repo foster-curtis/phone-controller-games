@@ -12,6 +12,8 @@ import * as Phaser from 'phaser';
 import { theme } from '../shared/theme';
 import { mountVersionTag } from '../shared/version';
 import '../styles/brand.css';
+import '../styles/host.css';
+import { mountHostChrome } from './chrome';
 import { debugEnabled, type PcgDebugApi } from './debug';
 import { createGameRuntime } from './game';
 import { RULES_CARD_COUNT } from './howToPlay/cards';
@@ -75,6 +77,17 @@ const game = new Phaser.Game({
   ],
 });
 
+// DOM chrome over the canvas: full-screen button (menus only) and the TV's own "Reconnecting…" pill.
+const chrome = mountHostChrome();
+let chromeVersion = -1;
+const syncChrome = () => {
+  if (runtime.version === chromeVersion) return;
+  chromeVersion = runtime.version;
+  const v = runtime.view();
+  chrome.update(v.phase, v.paused, runtime.status);
+};
+syncChrome();
+
 const lanHost = (import.meta.env.VITE_LAN_HOST as string | undefined) || null;
 const ctx: HostContext = {
   runtime,
@@ -116,6 +129,7 @@ let lastTime: number | null = null;
 game.events.on(Phaser.Core.Events.STEP, (time: number) => {
   if (lastTime !== null) runtime.frame(time - lastTime);
   lastTime = time;
+  syncChrome();
 });
 
 watchVisibility((visible) => {
