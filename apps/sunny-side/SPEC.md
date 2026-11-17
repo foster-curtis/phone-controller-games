@@ -179,7 +179,7 @@ A rules overview on the TV, built on the shared kit (PLATFORM decision #12): `@p
   6. **Come back as a ghost.** Knocked off? In 4 seconds you're back as steam. Tap PULSE to puff eggs toward the edge. Ghosts can't score, but revenge is free.
 - **Illustrations:** each card is a looping, timeline-scripted scene (about 3–5 s, a short pause, then again) drawn with the real renderers (`render/egg`, `ghost`, `slamRing`, `arena`, theme tokens), with no physics and no `src/host/sim` imports. The phone outline, thumb, joystick and SLAM button on cards 2 and 3 are drawn in the controller's brand style. Under reduced motion each card shows one still frame. Scripts are pure functions of loop time (`howToPlay/types.ts`), so the loop and the still are testable without Phaser.
 - **Placement:** one illustration scene on the existing host canvas, whose camera viewport follows the shell slot's on-screen rect (re-measured on resize); the shell's DOM sits over the canvas. One WebGL context and the already-loaded fonts and textures, so the cards look exactly like the game; a second Phaser instance in the slot was the fallback.
-- **Debug:** `?debug=1&howto=<1–6>[&players=<n>]` opens the overview on that card without a room.
+- **Debug:** `?debug=1&howto=<1–6>[&players=<n>][&t=<ms>]` opens the overview on that card without a room, over an opaque backdrop; `t` freezes the illustration at that loop time (screenshots in `e2e/howToPlayScreens.spec.ts`).
 
 ## 7. Protocols
 
