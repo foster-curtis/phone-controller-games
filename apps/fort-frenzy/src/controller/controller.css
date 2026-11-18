@@ -2003,3 +2003,140 @@ button {
 body:not(:has(.screen.join, .screen.name, .screen.lobby)) .version-tag {
   display: none;
 }
+
+/* ---- platform kit hooks (controller-compat, PLATFORM §3): full screen, sheet, hint, toast, diagnostics.
+   The kits set layout only; the look is brand tokens. ---- */
+
+/* The corner icon, bottom-left clear of the controls; the join and lobby screens carry an inline one. */
+.pcg-fullscreen-corner {
+  border: 2px solid var(--stone-edge);
+  background: var(--surface-strong);
+  color: var(--foreground);
+  clip-path: var(--clip-chamfer-sm);
+  opacity: 0.85;
+}
+
+.pcg-fullscreen-corner:active {
+  filter: brightness(1.15);
+}
+
+body:has(.screen.join, .screen.lobby) .pcg-fullscreen-corner {
+  display: none !important;
+}
+
+.fs-inline {
+  align-self: center;
+  font-size: 15px;
+}
+
+.hero .fs-inline {
+  align-self: stretch;
+}
+
+/* Shop open: the footer spans the width, so leave the corner icon its space. */
+.build.shop-open .build-footer {
+  padding-left: 40px;
+}
+
+.pcg-sheet {
+  background: var(--scrim);
+}
+
+.pcg-sheet-card {
+  padding: var(--space-6);
+  background: var(--surface-strong);
+  clip-path: var(--clip-chamfer);
+  text-align: center;
+}
+
+.pcg-sheet-card h2 {
+  margin: 0 0 var(--space-2);
+  font: 700 24px/1.1 var(--font-display);
+  letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+
+.pcg-sheet-card p {
+  margin: 0 0 var(--space-4);
+  color: var(--muted);
+  font: 400 16px/22px var(--font-sans);
+}
+
+.pcg-sheet-card button,
+.pcg-hint-dismiss,
+.pcg-diag-pill,
+.pcg-diag-copy-btn,
+.pcg-diag-close {
+  padding: 0 var(--space-4);
+  border: 0;
+  background: var(--accent);
+  color: var(--accent-on);
+  clip-path: var(--clip-chamfer-sm);
+  font: 700 16px/1 var(--font-display);
+  letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+}
+
+.pcg-hint,
+.pcg-toast {
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-strong);
+  color: var(--foreground);
+  border-left: var(--stroke-tag) solid var(--accent);
+  clip-path: var(--clip-tag);
+  font: 600 15px/20px var(--font-sans);
+}
+
+.pcg-hint-title {
+  font: 700 15px/20px var(--font-display);
+  letter-spacing: var(--tracking-display);
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+
+.pcg-hint-body {
+  margin-bottom: var(--space-2);
+  color: var(--muted);
+  font: 400 14px/18px var(--font-sans);
+}
+
+.pcg-hint-dismiss {
+  min-height: 36px;
+}
+
+.pcg-diag-pill {
+  min-height: 32px;
+  opacity: 0.9;
+}
+
+.pcg-diag-panel {
+  padding: var(--space-4);
+  background: var(--surface-strong);
+  color: var(--foreground);
+  border: 2px solid var(--stone-edge);
+  font: 400 13px/18px var(--font-mono);
+}
+
+.pcg-diag-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.pcg-diag-copy-btn,
+.pcg-diag-close {
+  min-height: 36px;
+}
+
+.pcg-diag-status {
+  color: var(--muted);
+}
+
+.pcg-diag-copy {
+  background: var(--surface);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  font: inherit;
+}

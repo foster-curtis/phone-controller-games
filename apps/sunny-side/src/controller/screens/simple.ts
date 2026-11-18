@@ -1,5 +1,5 @@
 // Small screens: joining (phone-local), game paused, left.
-import { el } from '@pcg/controller-kit';
+import { createFullscreenButton, el } from '@pcg/controller-kit';
 import { title } from '../../../game.meta';
 import type { Screen } from '../../shared/messages';
 import { heading, markImg, stickerButton, type ScreenCtx, type ScreenView } from './common';
@@ -29,7 +29,9 @@ export function createJoining(onCode: (code: string) => void): JoiningView {
     const v = input.value.trim().toUpperCase();
     if (v) onCode(v);
   });
-  root.append(markImg(), heading(title), code, status, form);
+  // Manual full screen (never automatic); the shell's corner button is hidden on this screen.
+  const fullscreen = createFullscreenButton({ variant: 'inline', landscape: true });
+  root.append(markImg(), heading(title), code, status, form, fullscreen.element);
   return {
     el: root,
     set({ code: c, error }) {

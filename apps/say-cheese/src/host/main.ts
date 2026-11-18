@@ -14,6 +14,7 @@ import { mountVersionTag } from '../shared/version';
 import '../styles/brand.css';
 import '../styles/base.css';
 import '../styles/tv.css';
+import { mountHostChrome } from './chrome';
 import { installHostKeys } from './controls';
 import { applyTimeScaleParam, createHostDebug } from './debug';
 import { createHostGame } from './game';
@@ -34,7 +35,11 @@ function boot(): void {
     game: GAME_ID,
     maxPlayers: MAX_PHONES,
   });
+  const chrome = mountHostChrome();
+  chrome.setStatus(client.status);
+  client.onStatus((s) => chrome.setStatus(s));
   const game = createHostGame({
+    onView: (v) => chrome.setPhase(v.phase),
     client,
     root: tv,
     origin: location.origin,

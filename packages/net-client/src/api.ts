@@ -25,6 +25,73 @@ export type DocumentLike = Pick<
 /** Receives the `online` event (normally `window`). */
 export type EventTargetLike = Pick<Window, 'addEventListener' | 'removeEventListener'>;
 
+// ---- connection health (added at F0 of controller-compat; relay SPEC §3.1) ----
+
+/**
+ * Dead-socket detection. App pings run only when the relay's handshake reply said
+ * `heartbeat: true`; the connect timeout always applies. Every value in ms.
+ */
+export interface HeartbeatOptions {
+  /** Ping interval while open. Default 5 000. 0 turns app pings (and the watchdog) off. */
+  intervalMs?: number;
+  /**
+   * A ping unanswered for this long, with no other frame received since it was sent, means the
+   * socket is dead: close it and reconnect. Measured from the ping, never from the last frame, so a
+   * throttled background tab can't trip it. Default 12 000.
+   */
+  timeoutMs?: number;
+  /**
+   * After the page comes back (visible, `pageshow`, `online`, `resume`, `focus`) on an open socket,
+   * a probe ping is sent; no frame within this long → reconnect at once. Default 3 000.
+   */
+  probeTimeoutMs?: number;
+  /** A socket that hasn't finished its handshake this long after `new WebSocket` is retried. Default 8 000. */
+  connectTimeoutMs?: number;
+}
+
+export const HEARTBEAT_DEFAULTS: Readonly<Required<HeartbeatOptions>> = {
+  intervalMs: 5_000,
+  timeoutMs: 12_000,
+  probeTimeoutMs: 3_000,
+  connectTimeoutMs: 8_000,
+};
+
+/**
+ * Why the last socket ended: `socket` (the browser fired `close`), `heartbeat-timeout`,
+ * `probe-timeout`, `connect-timeout` (the client gave up on it), or `local` (`close()` / a fatal
+ * relay error / kick).
+ */
+export type CloseCause =
+  'socket' | 'heartbeat-timeout' | 'probe-timeout' | 'connect-timeout' | 'local';
+
+export interface LastClose {
+  cause: CloseCause;
+  /** WebSocket close code (1006 for an abnormal drop; 0 when the client dropped it itself). */
+  code: number;
+  reason: string;
+  wasClean: boolean;
+  /** `Date.now()` when it happened. */
+  at: number;
+}
+
+/** A snapshot for diagnostics (the phone's `?debug=1` overlay) and tests. */
+export interface ConnectionStats {
+  status: ConnectionStatus;
+  /** Handshakes completed after the first one (each successful reconnect). */
+  reconnects: number;
+  /** Sockets opened that never completed a handshake, plus sockets that failed to construct. */
+  failedAttempts: number;
+  lastClose: LastClose | null;
+  /** Last app ping round trip; null before the first pong or against a relay without heartbeat. */
+  rttMs: number | null;
+  /** The relay advertised `heartbeat: true` on the current (or last) handshake. */
+  heartbeat: boolean;
+  /** `Date.now()` of the last frame received, or null. */
+  lastMessageAt: number | null;
+  /** `Date.now()` when the current socket completed its handshake, or null while not open. */
+  openSince: number | null;
+}
+
 /** Injectable environment; every field defaults to the browser global. */
 export interface ClientEnv {
   WebSocket?: WebSocketCtor;
@@ -34,8 +101,15 @@ export interface ClientEnv {
   localStorage?: StorageLike;
   /** Default `document` when present; absent = no visibility handling. */
   document?: DocumentLike;
-  /** Default `window` when present; its `online` event triggers an immediate reconnect attempt. */
+  /**
+   * Default `window` when present; its `online`, `pageshow` and `focus` events trigger an immediate
+   * reconnect attempt (or a probe ping on an open socket).
+   */
   window?: EventTargetLike;
+  /** Heartbeat and timeout tuning (added at F0 of controller-compat). Defaults: HEARTBEAT_DEFAULTS. */
+  heartbeat?: HeartbeatOptions;
+  /** Clock for stats and timeouts (tests). Default `Date.now`. */
+  now?: () => number;
 }
 
 export class RelayError extends Error {
@@ -90,6 +164,8 @@ export interface HostClient {
   onRoom(cb: (room: HostRoom) => void): Unsubscribe;
   onStatus(cb: (status: ConnectionStatus) => void): Unsubscribe;
   onError(cb: (error: RelayError) => void): Unsubscribe;
+  /** Connection health snapshot (added at F0 of controller-compat). */
+  getStats(): ConnectionStats;
 }
 
 export function createHostClient(opts: HostClientOptions): HostClient {
@@ -123,6 +199,8 @@ export interface ControllerClient {
   onHostStatus(cb: (status: 'present' | 'away') => void): Unsubscribe;
   onKicked(cb: () => void): Unsubscribe;
   onError(cb: (error: RelayError) => void): Unsubscribe;
+  /** Connection health snapshot (added at F0 of controller-compat). */
+  getStats(): ConnectionStats;
 }
 
 export function createControllerClient(opts: ControllerClientOptions): ControllerClient {

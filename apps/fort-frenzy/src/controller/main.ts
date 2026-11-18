@@ -40,7 +40,10 @@ async function boot(): Promise<void> {
 
   const code = new URLSearchParams(location.search).get('code')?.trim().toUpperCase() || null;
   const onCode = (c: string) => {
-    location.search = `?code=${encodeURIComponent(c)}`;
+    // Keep every other param (`debug=1`) across the jump.
+    const next = new URLSearchParams(location.search);
+    next.set('code', c);
+    location.search = `?${next.toString()}`;
   };
   if (!code) {
     createApp({ root, client: createNullClient(), code: null, onCode });

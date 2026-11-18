@@ -372,3 +372,104 @@ li.away {
 body:not(:has([data-screen='joining'], [data-screen='lobby'])) .version-tag {
   display: none;
 }
+
+/* Controller-kit compat hooks (full-screen button and sheet, keep-awake hint, toasts, diagnostics).
+   The kit sets layout only; the look is ours, from brand tokens. */
+.pcg-fullscreen-corner {
+  border: 2px solid var(--border-control);
+  border-radius: var(--radius-round);
+  background: var(--scrim);
+  color: var(--foreground);
+  cursor: pointer;
+}
+.pcg-fullscreen-corner:focus-visible,
+.pcg-fullscreen-btn:focus-visible {
+  outline: var(--stroke-select) solid var(--select);
+  outline-offset: 2px;
+}
+.pcg-fullscreen-btn:not(.pcg-fullscreen-corner) {
+  align-self: center;
+}
+.pcg-sheet {
+  background: var(--scrim);
+}
+.pcg-sheet-card {
+  background: var(--surface-strong);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--foreground);
+  font: 400 16px/1.4 var(--font-sans);
+}
+.pcg-sheet-card h2 {
+  margin: 0 0 var(--space-2);
+  font: 400 28px/1.1 var(--font-display);
+}
+.pcg-sheet-card p {
+  margin: 0 0 var(--space-4);
+  color: var(--muted);
+}
+.pcg-sheet-card button,
+.pcg-hint-dismiss,
+.pcg-diag-panel button {
+  padding: var(--space-2) var(--space-4);
+  border: 2px solid var(--border-control);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--foreground);
+  font: 600 16px/1.2 var(--font-sans);
+}
+.pcg-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+  color: var(--foreground);
+  font: 400 14px/1.3 var(--font-sans);
+}
+.pcg-hint-title {
+  font-weight: 600;
+}
+.pcg-hint-body {
+  color: var(--muted);
+}
+.pcg-toast {
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-strong);
+  color: var(--foreground);
+  font: 600 14px/1.3 var(--font-sans);
+}
+.pcg-diag-pill {
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+.pcg-diag-panel {
+  background: var(--surface-strong);
+  color: var(--foreground);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  font: 12px/1.4 var(--font-mono);
+}
+.pcg-diag-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.pcg-diag-copy {
+  background: var(--surface);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  font: 12px/1.4 var(--font-mono);
+}

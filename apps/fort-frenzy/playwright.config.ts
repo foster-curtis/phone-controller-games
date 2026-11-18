@@ -21,7 +21,25 @@ export default defineConfig({
     baseURL: `http://localhost:${WEB_PORT}`,
     trace: 'retain-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    // Cross-browser compat (controller-compat F4): only compat*.spec.ts runs on these two, so the
+    // suite doesn't triple. Those specs open phones with phoneContextOptions(browserName).
+    {
+      name: 'firefox',
+      testMatch: /compat.*\.spec\.ts/,
+      use: {
+        ...devices['Desktop Firefox'],
+      },
+    },
+    {
+      name: 'webkit',
+      testMatch: /compat.*\.spec\.ts/,
+      use: {
+        ...devices['Desktop Safari'],
+      },
+    },
+  ],
   webServer: [
     {
       command: 'pnpm --filter @pcg/relay start',

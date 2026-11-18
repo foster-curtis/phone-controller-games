@@ -3,7 +3,7 @@
 > Spec for the shared, game-agnostic relay (`apps/relay`) and the client half of its protocol (`packages/net-client`).
 > Every game depends on this contract: changes are **additive only**. Repo-wide rules: [`PLATFORM.md`](../../PLATFORM.md).
 > Moved out of Sunny Side's `SPEC.md` §7.1 (plus the relay entries in its `BUILD_PLAN.md` §8) on 2026-10-26.
-> Last updated: 2026-10-26
+> Last updated: 2026-11-17
 
 ## 1. Role (settled)
 
@@ -27,6 +27,7 @@
 | `pingIntervalMs` | `PING_INTERVAL_MS` | 5 000 |
 | `maxMissedPings` | `MAX_MISSED_PINGS` | 2 |
 | `maxPayloadBytes` | — | 16 KB |
+| `log` | `RELAY_LOG=1` (JSON lines on stdout) | off |
 
 ## 3. Protocol
 
@@ -59,7 +60,9 @@ Host `send` to an unknown or disconnected `to` is dropped silently.
 - A token rejoin or host `reclaim` while the old socket is still open takes over the slot (old socket closed 1000, no `left` / `away`).
 - Relay emits `peer` events (`joined` / `left` / `rejoined`); **the game decides** what they mean (disconnect rules, late-rejoin matching, …).
 
-**Liveness:** relay-driven heartbeat using WebSocket ping/pong control frames (browsers answer automatically, so the envelope has no ping message). Ping every ~5 s; a socket with 2 unanswered pings at the next tick is terminated and goes through the normal close path (`peer left` / `host away`). Catches sleeping iOS phones that never close the socket.
+**Liveness:** relay-driven heartbeat using WebSocket ping/pong control frames (browsers answer automatically). Ping every ~5 s; a socket with 2 unanswered pings at the next tick is terminated and goes through the normal close path (`peer left` / `host away`). Any frame from the client also counts as alive. Catches sleeping iOS phones that never close the socket.
+
+**App heartbeat (decision #5):** the relay side can't tell a phone that its socket is dead (the phone often gets no `close`), so clients also ping: `{ t: "ping", n }` from any socket in any state gets `{ t: "pong", n }` back on that socket. Handshake replies carry `heartbeat: true` from relays that do this; clients ping only after seeing it, so old and new clients and relays mix freely (no protocol version change).
 
 **Envelope:**
 
@@ -71,11 +74,13 @@ Host `send` to an unknown or disconnected `to` is dropped silently.
 { t: "send", to?: playerId, data }             // either side (phones: `to` ignored)
 { t: "lock" } | { t: "unlock" }                // host
 { t: "kick", playerId }                        // host
+{ t: "ping", n }                               // any socket, any state
 
 // relay → client
-{ t: "created", code, hostToken }
-{ t: "reclaimed", code, roster }
-{ t: "joined", playerId, token }
+{ t: "created", code, hostToken, heartbeat? }
+{ t: "reclaimed", code, roster, heartbeat? }
+{ t: "joined", playerId, token, heartbeat? }
+{ t: "pong", n }                               // to the pinging socket
 { t: "peer", event: "joined" | "left" | "rejoined", playerId, playerKey }   // to host
 { t: "msg", from, data }
 { t: "host", status: "away" | "back" }                                      // to phones
@@ -85,7 +90,8 @@ Host `send` to an unknown or disconnected `to` is dropped silently.
 
 ### 3.1 Clients (`net-client`)
 
-- **Reconnect:** after an unexpected close, status `reconnecting` with exponential backoff (250 ms doubling to a 4 s cap, jitter 75–100% of the ceiling); `visibilitychange`→visible or the window's `online` event retries at once (the window is injectable via `ClientEnv.window`). A socket that never opens keeps retrying with backoff.
+- **Reconnect:** after an unexpected close, status `reconnecting` with exponential backoff (250 ms doubling to a 4 s cap, jitter 75–100% of the ceiling); `visibilitychange`→visible, `pageshow`, `resume`, `focus` or the window's `online` event retries at once (the window is injectable via `ClientEnv.window`). A socket that never opens keeps retrying with backoff; one that hasn't finished its handshake within 8 s is dropped and retried.
+- **Dead sockets (decision #5):** against a relay that advertised `heartbeat`, an open client pings every 5 s; a ping unanswered for 12 s with nothing else received since it was sent closes the socket and reconnects. On return to the page (the events above) an open socket gets a probe ping and is replaced if nothing arrives within 3 s. Tunable through `ClientEnv.heartbeat` (`HEARTBEAT_DEFAULTS`). `getStats()` reports status, reconnects, the last close (code, reason, cause), RTT and heartbeat state.
 - **Stopping for good:** `kicked` / `no-room` / `room-closed` (and `room-full` / `room-locked`) → status `closed`, reason in `closeReason`. Any error before the handshake completes rejects `start()` / `connect()` and closes. Undecodable frames are ignored. Errors surface as `RelayError` (`.code`).
 - **Host reclaim:** answered by `no-room` / `room-closed` → clear the stored host token and `create` a new room (`onRoom` fires with `reclaimed: false`). `close()` keeps the host token so a reload can still reclaim.
 - **Storage keys:** `pcg:hostToken:<game>`, `pcg:token:<game>:<code>`, `pcg:playerKey:<game>:<code>`. Storage failures are swallowed (the player key falls back to an in-memory key for the page).
@@ -98,3 +104,4 @@ Host `send` to an unknown or disconnected `to` is dropped silently.
 | 2 | 2026-10-22 | Host status | Relay → phones `{ t: "host", status: "away" \| "back" }`; error codes `room-closed`, `bad-request`; `GET /healthz` | Phones need to show the host-away overlay and learn when the room dies. (Was Sunny Side #27.) |
 | 3 | 2026-10-26 | Own spec | Relay spec moved out of Sunny Side's `SPEC.md` into `apps/relay/SPEC.md` | Every game depends on it; the second game shouldn't have to read the first game's spec for it. |
 | 4 | 2026-10-26 | Host reclaim window | 120 s for every game (was 60 s); one relay default, no per-room option | Covers a laptop waking and rejoining Wi-Fi or a TV coming back from standby with margin. Longer buys little: the host token is in `sessionStorage`, so a closed tab or a browser crash can't reclaim at any length (moving it to `localStorage` is a separate decision), and past ~2 min players have given up on the "host away" overlay. Fort Frenzy's spec asked for ~2 min. |
+| 5 | 2026-11-17 | App-level heartbeat | `ping` / `pong` envelope messages, advertised by `heartbeat: true` on handshake replies; client watchdog (5 s ping, 12 s dead), probe on return to the page, 8 s connect timeout; `RELAY_LOG` connection log in dev | A DuckDuckGo phone whose screen slept was dropped by the relay but never noticed, and sat "connected" until reloaded. WS ping frames are answered below JavaScript, so only an app-level reply proves the page's socket works. Advertising it keeps old and new clients and relays compatible with no version bump. |

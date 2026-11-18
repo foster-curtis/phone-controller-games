@@ -1,6 +1,6 @@
 {
   "name": "@pcg/controller-kit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "sideEffects": false,
@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@pcg/game-kit": "workspace:*",
     "@pcg/net-client": "workspace:*"
   },
   "devDependencies": {

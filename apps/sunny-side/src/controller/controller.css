@@ -1154,3 +1154,154 @@ input {
 body:not(:has([data-screen='joining'], [data-screen='lobby'])) .version-tag {
   display: none;
 }
+
+/* ---- full screen, hints, toasts, diagnostics (controller-compat; kit class hooks, brand tokens only) ---- */
+
+/* Manual full-screen button, inline variant (join and lobby screens). */
+.pcg-fullscreen-btn {
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+  font: 600 16px/20px var(--font-sans);
+  color: var(--foreground);
+  background: var(--surface-strong);
+  border: var(--stroke-sticker) solid var(--sticker-outline);
+  border-radius: var(--radius-sticker);
+  box-shadow: var(--shadow-sticker-sm);
+  touch-action: manipulation;
+}
+
+.pcg-fullscreen-btn:active {
+  box-shadow: var(--shadow-pressed);
+  transform: translate(2px, 2px);
+}
+
+/* Corner variant: a round icon button that sits in the banner's top-left, over the room the banner
+   reserves. Hidden on join and lobby, where the inline button is. */
+.pcg-fullscreen-corner {
+  top: max(2px, env(safe-area-inset-top)) !important;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: var(--radius-round);
+}
+
+body:has([data-screen='joining'], [data-screen='lobby']) .pcg-fullscreen-corner {
+  display: none !important;
+}
+
+body:not(:has([data-screen='joining'], [data-screen='lobby']))
+  .top-banner:has(~ .pcg-fullscreen-corner:not([hidden])) {
+  padding-left: calc(max(var(--space-2), env(safe-area-inset-left)) + 44px + var(--space-2));
+}
+
+.pcg-sheet {
+  background: var(--scrim);
+}
+
+.pcg-sheet-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  color: var(--foreground);
+  background: var(--surface);
+  border: var(--stroke-sticker) solid var(--sticker-outline);
+  border-radius: var(--radius-sticker);
+  box-shadow: var(--shadow-sticker);
+  text-align: center;
+}
+
+.pcg-sheet-card h2 {
+  margin: 0;
+  font: 400 28px/1 var(--font-display);
+}
+
+.pcg-sheet-card p {
+  margin: 0;
+  font: 400 18px/26px var(--font-sans);
+}
+
+.pcg-sheet-card button,
+.pcg-hint-dismiss,
+.pcg-diag-copy-btn,
+.pcg-diag-close {
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+  font: 600 16px/20px var(--font-sans);
+  color: var(--accent-on);
+  background: var(--accent);
+  border: var(--stroke-sticker) solid var(--sticker-outline);
+  border-radius: var(--radius-sticker);
+  box-shadow: var(--shadow-sticker-sm);
+  touch-action: manipulation;
+}
+
+.pcg-hint,
+.pcg-toast {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  color: var(--foreground);
+  background: var(--surface-strong);
+  border: var(--stroke-sticker) solid var(--sticker-outline);
+  border-radius: var(--radius-sticker);
+  box-shadow: var(--shadow-sticker-sm);
+}
+
+.pcg-toast {
+  font: 600 16px/20px var(--font-sans);
+}
+
+.pcg-hint-title {
+  font: 600 16px/20px var(--font-sans);
+}
+
+.pcg-hint-body {
+  font: 400 14px/20px var(--font-sans);
+  color: var(--muted);
+}
+
+.pcg-hint-dismiss {
+  align-self: flex-end;
+  min-height: 36px;
+}
+
+.pcg-diag-pill {
+  font-family: var(--font-mono);
+  color: var(--foreground);
+  background: var(--surface-strong);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius);
+  touch-action: manipulation;
+}
+
+.pcg-diag-panel {
+  font-family: var(--font-mono);
+  color: var(--foreground);
+  background: var(--background);
+}
+
+.pcg-diag-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.pcg-diag-row {
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.pcg-diag-copy {
+  box-sizing: border-box;
+  color: var(--foreground);
+  background: var(--surface);
+  border: 1px solid var(--border-control);
+}

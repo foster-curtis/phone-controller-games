@@ -34,7 +34,7 @@ function boot(sfx: Sfx = noopSfx) {
     now: () => clock,
     storage: memStorage(),
     photoUrl: () => 'data:image/gif;base64,R0lGODlhAQABAAAAACw=',
-    platform: { fullscreen: false, wakeLock: false, viewport: false },
+    platform: { wakeLock: false, viewport: false },
   });
 }
 const show = (screen: Screen) => client.emit({ t: 'screen', screen });

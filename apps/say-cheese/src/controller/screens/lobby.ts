@@ -2,7 +2,7 @@
 // phone is in the room (`data-screen=joining`) it shows the "who's playing on this phone" form
 // (seats.ts); after Join it shows the lobby (`data-screen=lobby`): this phone's name(s) once at the
 // top with a pencil that goes back to the form, Enable camera, Ready, leader Start / How to play.
-import { el } from '@pcg/controller-kit';
+import { createFullscreenButton, el } from '@pcg/controller-kit';
 import type { Screen } from '../../shared/messages';
 import type { Ctx } from '../ctx';
 import { createSeatsForm } from './seats';
@@ -22,12 +22,20 @@ export function lobbyView(first: Screen, ctx: Ctx): View {
   let editing = false;
   let latest: Screen = first;
   let enabling = false;
+  // Manual full screen (PLATFORM §3, controller-compat): one inline button serves the join form and
+  // the lobby (only one face is in the DOM at a time). It never fires on its own; where the
+  // Fullscreen API is missing (iPhone) its tap opens the Add-to-Home-Screen sheet.
+  const fullscreen = createFullscreenButton({
+    variant: 'inline',
+    className: 'pcg-fullscreen-btn btn btn--quiet',
+  });
+  fullscreen.element.dataset.action = 'fullscreen';
 
   function setMode(next: 'form' | 'lobby') {
     mode = next;
     root.dataset.screen = next === 'lobby' ? 'lobby' : 'joining';
     // Only one face is in the DOM at a time; the form keeps its inputs while it's out.
-    root.replaceChildren(next === 'lobby' ? body : form.el);
+    root.replaceChildren(next === 'lobby' ? body : form.el, fullscreen.element);
     if (next === 'lobby') paintLobby(latest);
   }
 
@@ -113,6 +121,7 @@ export function lobbyView(first: Screen, ctx: Ctx): View {
         ),
       !s.isLeader &&
         para(s.leaderName ? `${s.leaderName} starts the game` : 'Waiting for a leader', 'caption'),
+      fullscreen.element,
     ];
     body.replaceChildren(...nodes.filter((n): n is Node => !!n));
   }
@@ -131,7 +140,7 @@ export function lobbyView(first: Screen, ctx: Ctx): View {
   };
   form.open(first.seats);
   setMode(first.seats.length > 0 ? 'lobby' : 'form');
-  return { el: root, update, destroy() {} };
+  return { el: root, update, destroy: () => fullscreen.destroy() };
 }
 
 export const joiningView = lobbyView;

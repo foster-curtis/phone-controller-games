@@ -22,7 +22,7 @@ beforeEach(() => {
     client,
     camera: createFakeCamera(),
     photoUrl: () => null,
-    platform: { fullscreen: false, wakeLock: false, viewport: false },
+    platform: { wakeLock: false, viewport: false },
   });
 });
 afterEach(() => {

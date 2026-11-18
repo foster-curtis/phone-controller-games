@@ -80,6 +80,8 @@ export function installHostKeys(
   const onKey = (e: Event) => {
     const ev = e as KeyboardEvent;
     if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    // Enter on the focused full-screen button activates it (the `F` key is bound by game-kit).
+    if ((ev.target as HTMLElement | null)?.closest?.('.pcg-fullscreen-btn')) return;
     const view = getView();
     const control = view ? controlForKey(view, ev.key) : null;
     if (!control) return;

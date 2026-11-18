@@ -2,7 +2,12 @@
 // (home, lobby, HUD, summary) over it, both fitted to the window by one shared transform; the host
 // runtime (relay, party, sim); visibility pause and Wake Lock; and, in dev or with `?debug=1`, the
 // debug panel and `window.__pcg`. `?ui=<screen>`, `?gallery=1` and `?stress=1` stay dev pages.
-import { createHostWakeLock, debugEnabled, watchVisibility } from '@pcg/game-kit';
+import {
+  createHostFullscreenButton,
+  createHostWakeLock,
+  debugEnabled,
+  watchVisibility,
+} from '@pcg/game-kit';
 import '../styles/brand.css';
 import { mountVersionTag } from '../shared/version';
 
@@ -55,6 +60,17 @@ async function startTv() {
     onRemovePlayer: (id) => runtime.session.removeFromTv(id),
   });
   overlay.root.style.zIndex = '1';
+  // Full screen is the player's choice, only from a click or key on this page (PLATFORM §3). The `F`
+  // key comes with the button; home navigation uses W/A/S/D and the lobby 1-9, so nothing collides.
+  const fullscreen = createHostFullscreenButton({ parent: tv });
+  const MENU_SCREENS = new Set(['home', 'lobby', 'summary', 'restoring']);
+  // The TV's own relay socket (not a phone's): a small pill while it reconnects.
+  const conn = document.createElement('div');
+  conn.className = 'tv-conn';
+  conn.setAttribute('role', 'status');
+  conn.textContent = 'Reconnecting…';
+  conn.hidden = true;
+  tv.append(conn);
   let lastScreen = '';
   let lastAt = 0;
   /** The overlay re-renders at 10 Hz, and at once when the screen changes. */
@@ -68,6 +84,8 @@ async function startTv() {
     lastScreen = view.screen;
     lastAt = t;
     overlay.update(view);
+    fullscreen.setVisible(MENU_SCREENS.has(view.screen) || !!view.paused);
+    conn.hidden = runtime.status !== 'reconnecting';
   }
 
   // `?fps=N` caps the TV's render rate (dev or debug only: e2e under software GL).

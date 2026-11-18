@@ -1,6 +1,6 @@
 // The small screens: join (phone-local: room code entry), status (waiting, full, restoring, removed,
 // connecting), name (SPEC §2.6 join mockup: code, name, one button) and claim (resume into a new room).
-import { el } from '@pcg/controller-kit';
+import { createFullscreenButton, el } from '@pcg/controller-kit';
 import { maxPlayers, title as gameTitle } from '../../../game.meta';
 import { NAME_MAX } from '../../shared/messages';
 import { CLASS_INFO } from '../copy';
@@ -67,10 +67,21 @@ export function createJoin(opts: {
       el('p', { class: 'hint body', text: 'The code is on the TV.' }),
     );
   };
-  root.append(hero(), form);
+  const fullscreen = createFullscreenButton({ variant: 'inline', landscape: true });
+  fullscreen.element.classList.add('btn', 'fs-inline');
+  const top = hero();
+  top.append(fullscreen.element);
+  root.append(top, form);
   set({ code: opts.code, error: opts.error });
   const stopKb = fitAboveKeyboard(root);
-  return { el: root, set, destroy: stopKb };
+  return {
+    el: root,
+    set,
+    destroy() {
+      stopKb();
+      fullscreen.destroy();
+    },
+  };
 }
 
 const STATUS_COPY: Record<string, { title: string; body: string }> = {

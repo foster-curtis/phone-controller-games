@@ -1,7 +1,7 @@
 // Controller app: owns the current screen view, the phone-local overlays, and the client wiring. The
-// kit's app shell turns the phone platform on (fullscreen on tap, Wake Lock, landscape lock, rotate
-// overlay) and drives the reconnecting / host-away overlays; the screen router reuses a view within a
-// screen group.
+// kit's app shell turns the phone platform on (Wake Lock, rotate overlay, a manual full-screen corner
+// button: never automatic full screen, PLATFORM §3) and drives the reconnecting / host-away overlays;
+// the screen router reuses a view within a screen group.
 import {
   createAppShell,
   createScreenRouter,
@@ -18,11 +18,19 @@ import { GROUP_OF, SCREEN_KINDS, createView, type ViewGroup } from './screens';
 import type { ScreenCtx } from './screens/common';
 import { createJoining, createRemoved } from './screens/simple';
 import { GAME_ID } from '../shared/messages';
+import { GAME_VERSION } from '../shared/version';
 
 export type OverlayName = 'selfPaused' | 'reconnecting' | 'hostAway' | 'rotate';
 export const OVERLAY_NAMES: OverlayName[] = ['selfPaused', 'reconnecting', 'hostAway', 'rotate'];
 
 export type ClientLike = ShellClient;
+
+/** `search` with `code` set and every other param kept (`?debug=1` must survive joining). */
+export function searchWithCode(search: string, code: string): string {
+  const params = new URLSearchParams(search);
+  params.set('code', code);
+  return `?${params.toString()}`;
+}
 
 export interface AppOptions {
   root: HTMLElement;
@@ -108,7 +116,11 @@ export function createApp(opts: AppOptions): App {
     text: OVERLAY_TEXT,
     overlayClasses: { title: 'h2 sticker-heading', body: 'body' },
     overlayExtra: (name) => (name === 'selfPaused' ? resumeActions() : null),
-    platform: { rotate: opts.watchOrientation !== false },
+    // Top-left: the banner reserves room for it (controller.css); the stick, pads, pause button
+    // (top-right) and version tag (bottom-right) own the other corners.
+    platform: { rotate: opts.watchOrientation !== false, fullscreenCorner: 'top-left' },
+    game: GAME_ID,
+    version: GAME_VERSION,
   });
   const setOverlay = (name: OverlayName, on: boolean) => shell.setOverlay(name, on);
 
@@ -144,7 +156,7 @@ export function createApp(opts: AppOptions): App {
       /* private mode */
     }
     if (opts.reload) opts.reload(code);
-    else location.assign(`/play?code=${encodeURIComponent(code)}`);
+    else location.assign(`/play${searchWithCode(location.search, code)}`);
   };
 
   const showRemoved = () => {
