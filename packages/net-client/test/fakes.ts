@@ -43,9 +43,25 @@ export class FakeSocket {
   }
 
   /** The connection dropped (network loss, relay restart, ...). */
-  drop(): void {
+  drop(init: { code?: number; reason?: string; wasClean?: boolean } = {}): void {
     this.readyState = 3;
-    this.onclose?.({ code: 1006 });
+    this.onclose?.({ code: 1006, reason: '', wasClean: false, ...init });
+  }
+
+  /** A half-open socket: stays OPEN, ignores close(), never fires `close`. */
+  goHalfOpen(): void {
+    this.close = () => {
+      this.closedByClient = true;
+    };
+  }
+
+  /** Pings the client sent, in order. */
+  get pings(): number[] {
+    return this.messages.flatMap((m) => (m.t === 'ping' ? [m.n] : []));
+  }
+
+  pong(n: number): void {
+    this.receive({ t: 'pong', n });
   }
 
   get messages(): ClientToRelay[] {
@@ -81,13 +97,44 @@ export class MemoryStorage implements StorageLike {
   }
 }
 
+/** An EventTarget that counts its live listeners (add minus remove, deduplicated like the DOM). */
+class CountingTarget extends EventTarget {
+  private readonly byType = new Map<string, Set<EventListenerOrEventListenerObject>>();
+
+  override addEventListener(type: string, cb: EventListenerOrEventListenerObject | null): void {
+    if (cb) {
+      const set = this.byType.get(type) ?? new Set();
+      set.add(cb);
+      this.byType.set(type, set);
+    }
+    super.addEventListener(type, cb);
+  }
+
+  override removeEventListener(type: string, cb: EventListenerOrEventListenerObject | null): void {
+    if (cb) this.byType.get(type)?.delete(cb);
+    super.removeEventListener(type, cb);
+  }
+
+  get count(): number {
+    let n = 0;
+    for (const set of this.byType.values()) n += set.size;
+    return n;
+  }
+}
+
 export interface FakeDocument {
   doc: DocumentLike;
   setVisibility(state: DocumentVisibilityState): void;
+  /** Dispatches a plain event (e.g. `resume`). */
+  fire(type: string): void;
+  /** Live listener count, to prove `stop()` removes them all. */
+  listeners(): number;
 }
 
 export function fakeDocument(initial: DocumentVisibilityState = 'visible'): FakeDocument {
-  const target = new EventTarget() as EventTarget & { visibilityState: DocumentVisibilityState };
+  const target = new CountingTarget() as CountingTarget & {
+    visibilityState: DocumentVisibilityState;
+  };
   target.visibilityState = initial;
   return {
     doc: target as unknown as DocumentLike,
@@ -95,15 +142,24 @@ export function fakeDocument(initial: DocumentVisibilityState = 'visible'): Fake
       target.visibilityState = state;
       target.dispatchEvent(new Event('visibilitychange'));
     },
+    fire: (type) => void target.dispatchEvent(new Event(type)),
+    listeners: () => target.count,
   };
 }
 
-export function fakeWindow(): { win: EventTargetLike; goOnline(): void } {
-  const target = new EventTarget();
+export function fakeWindow(): {
+  win: EventTargetLike;
+  goOnline(): void;
+  fire(type: string): void;
+  listeners(): number;
+} {
+  const target = new CountingTarget();
   return {
     win: target as unknown as EventTargetLike,
     goOnline() {
       target.dispatchEvent(new Event('online'));
     },
+    fire: (type) => void target.dispatchEvent(new Event(type)),
+    listeners: () => target.count,
   };
 }

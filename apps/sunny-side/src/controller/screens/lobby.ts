@@ -1,7 +1,7 @@
 // Lobby (SPEC §6.3, §6.7): a quick name step first, then color + Ready; the leader also sees the
 // difficulty picker and Start (enabled once every other player is ready). A pencil button opens a
 // rename popup.
-import { el } from '@pcg/controller-kit';
+import { createFullscreenButton, el } from '@pcg/controller-kit';
 import { fitAboveKeyboard } from '../keyboard';
 import {
   DIFFICULTIES,
@@ -134,7 +134,8 @@ export function createLobby(ctx: ScreenCtx, first: LobbyScreen): ScreenView<Lobb
   const actions = el('div', { class: 'actions' });
   const side = el('div', { class: 'lobby-side' });
   const main = el('div', { class: 'lobby-main' });
-  side.append(markImg(), heading('Lobby'), standings);
+  const fullscreen = createFullscreenButton({ variant: 'inline', landscape: true });
+  side.append(markImg(), heading('Lobby'), standings, fullscreen.element);
   main.append(nameRow, swatches, actions);
 
   const ready = () => current.ready === true;
@@ -260,6 +261,7 @@ export function createLobby(ctx: ScreenCtx, first: LobbyScreen): ScreenView<Lobb
       if (!root.classList.contains('name-step')) renderMain();
     },
     destroy() {
+      fullscreen.destroy();
       stopNameStepFit();
       closeRename();
     },

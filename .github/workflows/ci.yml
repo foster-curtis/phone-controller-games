@@ -113,13 +113,14 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-      - name: Install Chromium
+          # The browser list is in the key: a cache saved with Chromium alone must not satisfy all three.
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium-firefox-webkit
+      - name: Install Chromium, Firefox and WebKit
         if: steps.browsers.outputs.cache-hit != 'true'
-        run: pnpm --filter "@pcg/$APP" exec playwright install --with-deps chromium
-      - name: Install Chromium's system deps
+        run: pnpm --filter "@pcg/$APP" exec playwright install --with-deps chromium firefox webkit
+      - name: Install system deps for all three browsers
         if: steps.browsers.outputs.cache-hit == 'true'
-        run: pnpm --filter "@pcg/$APP" exec playwright install-deps chromium
+        run: pnpm --filter "@pcg/$APP" exec playwright install-deps chromium firefox webkit
       # The whole suite: CI has no impact map (`.pcg-cache/` is never cached: it carries last-run
       # failures, and a stale map could select too few specs).
       - name: E2E

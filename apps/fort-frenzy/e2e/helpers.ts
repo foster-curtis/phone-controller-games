@@ -20,7 +20,7 @@ export function url(path: string): string {
   return new URL(path, test.info().project.use.baseURL).toString();
 }
 
-/** The controller's fullscreen-on-tap would really fullscreen headless Chromium on Windows. */
+/** Stops a stray full-screen request from really fullscreening headless Chromium on Windows. */
 export async function noFullscreen(context: BrowserContext): Promise<void> {
   await context.addInitScript(() => {
     Element.prototype.requestFullscreen = () => Promise.resolve();
@@ -228,3 +228,16 @@ export function stepped<T>(host: Host, read: () => Promise<T>, steps = 2): () =>
     return read();
   };
 }
+
+// Cross-browser compat fixtures (controller-compat F4), re-exported for the compat*.spec.ts specs.
+export {
+  collectPageErrors,
+  dropSockets,
+  halfOpenSockets,
+  installSocketControl,
+  phoneContextOptions,
+  removeApis,
+  setOffline,
+  setVisibility,
+  simulateBfcacheRestore,
+} from '@pcg/game-kit/e2e';

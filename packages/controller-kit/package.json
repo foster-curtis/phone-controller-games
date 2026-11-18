@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@pcg/game-kit": "workspace:*",
     "@pcg/net-client": "workspace:*"
   },
   "devDependencies": {

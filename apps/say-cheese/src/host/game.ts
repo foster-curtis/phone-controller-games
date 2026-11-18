@@ -47,6 +47,8 @@ export interface HostGameOptions {
   /** Default `URL.createObjectURL` / `URL.revokeObjectURL`. */
   createUrl?: (blob: Blob) => string;
   revokeUrl?: (url: string) => void;
+  /** Called after the first paint and every repaint, with the view now on screen (TV chrome). */
+  onView?: (view: TvView) => void;
   setInterval?: (cb: () => void, ms: number) => unknown;
   clearInterval?: (handle: unknown) => void;
 }
@@ -190,6 +192,7 @@ export function createHostGame(opts: HostGameOptions): HostGame {
     if (key === painted) return;
     painted = key;
     renderTv(root, view, controls);
+    opts.onView?.(view);
   }
 
   function dispatch(event: MatchEvent): void {
@@ -269,6 +272,7 @@ export function createHostGame(opts: HostGameOptions): HostGame {
 
   run(match.flush());
   renderTv(root, view, controls);
+  opts.onView?.(view);
   painted = viewKey(view);
 
   return {

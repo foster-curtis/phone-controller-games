@@ -32,7 +32,7 @@ Repo-wide hosting and layout: `PLATFORM.md` §4. Say Cheese specifics:
 
 - **Game domain:** `say-cheese.fostercurtis.dev` (Vercel). Game ID (relay namespace): `say-cheese`.
 - **App layout:** `apps/say-cheese/`: `index.html` host (TV), `play.html` controller (phone), `src/host/`, `src/controller/`, `src/shared/`.
-- **Shared kits:** uses `@pcg/net-client`. Uses `@pcg/controller-kit` / `@pcg/game-kit` if Fort Frenzy has extracted them by build time; otherwise the implementer copies the few pieces it needs from Sunny Side (app shell, Wake Lock, fullscreen on tap, storage) into extraction-ready folders. The implementer decides based on the state of the `fort-frenzy` branch.
+- **Shared kits:** uses `@pcg/net-client`. Uses `@pcg/controller-kit` / `@pcg/game-kit` if Fort Frenzy has extracted them by build time; otherwise the implementer copies the few pieces it needs from Sunny Side (app shell, Wake Lock, manual full-screen button, storage) into extraction-ready folders. The implementer decides based on the state of the `fort-frenzy` branch.
 - **Photo transfer** (§7.4) lives in `src/shared/blob-transfer/` with no game imports, ready to move into `net-client` when a second game (gallery caption game, photo scavenger hunt) needs it.
 
 ## 5. Engine

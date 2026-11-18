@@ -12,6 +12,7 @@ import {
 } from '@pcg/controller-kit';
 import type { StorageLike } from '@pcg/net-client';
 import { title } from '../../game.meta';
+import { GAME_VERSION } from '../shared/version';
 import { PROTOCOL_VERSION, isHostMsg, type Intent, type TeamView } from '../shared/messages';
 import { Toast } from './components';
 import { createPhoneSender, type PhoneSender } from './input';
@@ -127,7 +128,11 @@ export function createApp(opts: AppOptions): App {
     overlays: OVERLAY_NAMES,
     text: OVERLAY_TEXT,
     overlayClasses: { title: 'h2', body: 'body' },
-    platform: { rotate: opts.watchOrientation !== false },
+    game: title,
+    version: GAME_VERSION,
+    // Bottom-left: top-left holds the player tag, top-right the pause button and room code, the top
+    // centre the status strip, and the right edge the action buttons (SPEC §10).
+    platform: { rotate: opts.watchOrientation !== false, fullscreenCorner: 'bottom-left' },
   });
   const toast = Toast(shell.overlayHost);
 

@@ -27,6 +27,8 @@ export function createHostClientImpl(opts: HostClientOptions): HostClient {
     WebSocket: opts.WebSocket ?? globalThis.WebSocket,
     document: opts.document ?? (typeof document === 'undefined' ? undefined : document),
     window: opts.window ?? (typeof window === 'undefined' ? undefined : window),
+    heartbeat: opts.heartbeat,
+    now: opts.now,
     onOpen: handshake,
     onMessage,
   });
@@ -42,10 +44,10 @@ export function createHostClientImpl(opts: HostClientOptions): HostClient {
       case 'created':
         hostToken = msg.hostToken;
         safeSet(session, tokenKey, msg.hostToken);
-        enterRoom({ code: msg.code, reclaimed: false, roster: [] });
+        enterRoom({ code: msg.code, reclaimed: false, roster: [] }, msg.heartbeat === true);
         break;
       case 'reclaimed':
-        enterRoom({ code: msg.code, reclaimed: true, roster: msg.roster });
+        enterRoom({ code: msg.code, reclaimed: true, roster: msg.roster }, msg.heartbeat === true);
         break;
       case 'peer':
         peers.emit({ event: msg.event, playerId: msg.playerId, playerKey: msg.playerKey });
@@ -61,9 +63,9 @@ export function createHostClientImpl(opts: HostClientOptions): HostClient {
     }
   }
 
-  function enterRoom(room: HostRoom): void {
+  function enterRoom(room: HostRoom, heartbeat: boolean): void {
     code = room.code;
-    conn.ready();
+    conn.ready(heartbeat);
     rooms.emit(room);
     pending?.resolve(room);
     pending = null;
@@ -129,5 +131,6 @@ export function createHostClientImpl(opts: HostClientOptions): HostClient {
     onRoom: (cb) => rooms.on(cb),
     onStatus: (cb) => conn.statusEvents.on(cb),
     onError: (cb) => errors.on(cb),
+    getStats: () => conn.stats(),
   };
 }

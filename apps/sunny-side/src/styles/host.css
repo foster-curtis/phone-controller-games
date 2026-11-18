@@ -1,0 +1,56 @@
+/* Host (TV) DOM chrome around the Phaser canvas: the full-screen button, its toast and the relay
+   status pill. Colors, fonts and spacing come only from brand.css custom properties. They sit in the
+   canvas's TV-safe margin (top-right, bottom-center), clear of the lobby and results layouts. */
+
+.host-fullscreen-btn {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: 20;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+  font: 400 18px/1 var(--font-display);
+  color: var(--foreground);
+  background: var(--surface-strong);
+  border: var(--stroke-sticker) solid var(--sticker-outline);
+  border-radius: var(--radius-sticker);
+  box-shadow: var(--shadow-sticker-sm);
+  cursor: pointer;
+}
+
+.host-fullscreen-btn[hidden] {
+  display: none;
+}
+
+.host-fullscreen-btn:focus-visible {
+  outline: var(--stroke-select) solid var(--select);
+  outline-offset: 2px;
+}
+
+.pcg-toast {
+  padding: var(--space-2) var(--space-4);
+  font: 600 16px/1.3 var(--font-sans);
+  color: var(--foreground);
+  background: var(--surface-strong);
+  border: var(--stroke-sticker) solid var(--sticker-outline);
+  border-radius: var(--radius-sticker);
+}
+
+.host-status {
+  position: fixed;
+  bottom: var(--space-2);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  padding: var(--space-1) var(--space-4);
+  font: 600 16px/1.3 var(--font-sans);
+  color: var(--foreground);
+  background: var(--surface-strong);
+  border: var(--stroke-sticker) solid var(--sticker-outline);
+  border-radius: var(--radius-round);
+  pointer-events: none;
+}
+
+.host-status[hidden] {
+  display: none;
+}

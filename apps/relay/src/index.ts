@@ -20,6 +20,46 @@ export interface RelayOptions {
   maxMissedPings?: number;
   /** Max inbound message size in bytes. Default 16 KB. */
   maxPayloadBytes?: number;
+  /**
+   * Connection log sink (added at F0 of controller-compat). Default none. `main.ts` turns it on with
+   * `RELAY_LOG=1` (one JSON line per event on stdout); the LAN dev script always does.
+   */
+  log?: (event: RelayLogEvent) => void;
+}
+
+/**
+ * One connection-lifecycle event. Holds no message payloads and no IP addresses; the user agent
+ * appears only on `connect`.
+ */
+export interface RelayLogEvent {
+  /** `Date.now()`. */
+  at: number;
+  kind:
+    | 'connect' // socket opened (ua)
+    | 'create' // host created a room
+    | 'reclaim' // host reclaimed a room
+    | 'join' // new phone slot
+    | 'rejoin' // phone took its slot back with its token (takeover: the old socket was still open)
+    | 'close' // socket closed (closeCode, reason, cause)
+    | 'kick'
+    | 'player-expired' // reconnect window ran out; the slot is gone
+    | 'room-closed' // host reclaim window ran out
+    | 'error'; // an `error` reply (errorCode)
+  /** Per-process socket number, so one socket's events can be followed. */
+  conn: number;
+  role?: 'host' | 'phone' | 'none';
+  game?: string;
+  code?: string;
+  playerId?: string;
+  ua?: string;
+  takeover?: boolean;
+  closeCode?: number;
+  reason?: string;
+  /** For `close`: `client` (the peer closed), `heartbeat` (terminated for missed pings), `server`. */
+  cause?: 'client' | 'heartbeat' | 'server';
+  /** For `close`: how long the socket was open, in ms. */
+  durationMs?: number;
+  errorCode?: string;
 }
 
 export interface Relay {
@@ -42,10 +82,22 @@ export const RELAY_DEFAULTS = {
 export async function createRelay(opts: RelayOptions = {}): Promise<Relay> {
   const pingIntervalMs = opts.pingIntervalMs ?? RELAY_DEFAULTS.pingIntervalMs;
   const maxMissedPings = opts.maxMissedPings ?? RELAY_DEFAULTS.maxMissedPings;
+  // A throwing sink must never break the relay.
+  const sink = opts.log;
+  const log: RelayOptions['log'] = sink
+    ? (e) => {
+        try {
+          sink(e);
+        } catch {
+          // ignore
+        }
+      }
+    : undefined;
   const rooms = new Rooms({
     playerReconnectMs: opts.playerReconnectMs ?? RELAY_DEFAULTS.playerReconnectMs,
     hostReclaimMs: opts.hostReclaimMs ?? RELAY_DEFAULTS.hostReclaimMs,
     maxPlayersCap: RELAY_DEFAULTS.maxPlayersCap,
+    log,
   });
 
   const server = createHttpServer();
@@ -53,17 +105,49 @@ export async function createRelay(opts: RelayOptions = {}): Promise<Relay> {
     server,
     maxPayload: opts.maxPayloadBytes ?? RELAY_DEFAULTS.maxPayloadBytes,
   });
-  const heartbeat = startHeartbeat(wss, pingIntervalMs, maxMissedPings);
+  const killedByHeartbeat = new WeakSet<object>();
+  const heartbeat = startHeartbeat(wss, pingIntervalMs, maxMissedPings, (ws) =>
+    killedByHeartbeat.add(ws),
+  );
 
-  wss.on('connection', (ws) => {
-    const session = rooms.newSession({
-      sendRaw: (json) => {
-        if (ws.readyState === ws.OPEN) ws.send(json);
+  let nextConn = 1;
+  wss.on('connection', (ws, req) => {
+    const conn = nextConn++;
+    const openedAt = Date.now();
+    let closedByServer = false;
+    const session = rooms.newSession(
+      {
+        sendRaw: (json) => {
+          if (ws.readyState === ws.OPEN) ws.send(json);
+        },
+        close: (code, reason) => {
+          closedByServer = true;
+          ws.close(code, reason);
+        },
       },
-      close: (code, reason) => ws.close(code, reason),
-    });
+      conn,
+    );
+    if (log) {
+      const ua = req.headers['user-agent'];
+      log({ at: openedAt, kind: 'connect', conn, ...(ua ? { ua: ua.slice(0, 300) } : {}) });
+    }
     ws.on('message', (data) => rooms.handleRaw(session, rawToString(data)));
-    ws.on('close', () => rooms.handleClose(session));
+    ws.on('close', (code, reason) => {
+      if (log) {
+        const now = Date.now();
+        log({
+          at: now,
+          kind: 'close',
+          conn,
+          ...rooms.describe(session),
+          closeCode: code,
+          reason: reason.toString('utf8'),
+          cause: killedByHeartbeat.has(ws) ? 'heartbeat' : closedByServer ? 'server' : 'client',
+          durationMs: now - openedAt,
+        });
+      }
+      rooms.handleClose(session);
+    });
     // ws closes the socket itself on protocol errors (e.g. 1009 over maxPayload).
     ws.on('error', () => {});
   });
