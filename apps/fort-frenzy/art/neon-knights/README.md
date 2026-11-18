@@ -40,6 +40,7 @@ Each `rigs/<id>.json` follows SPEC §15.2 `RigDef`, with three additions:
     - `banner` is on while the flag is carried, off while it's planted or in flight.
     - `sword` (the drawn sword: `sword`, `sword-glow`, and `swordtip`, `swordtip-glow` in the back view) is off. Since the redesign the sword doesn't attack: the default look is the shield on the hand and the sword sheathed at the hip (`scabbard`, always on). The group stays so a later mode can bring the drawn sword back.
   - **artificer:** the backpack gauge is the **build meter** (REDESIGN §F5). One group per core state, `core1-full` … `core3-half`. Show at most one state per cell. Split the meter (0–1) into sixths, `k = floor(meter × 6)`: cell N shows full when k ≥ 2N and half when k = 2N − 1. All three cells full means the beacon is ready. The cells and slots are always on (§2.4).
+  - **warden:** `slam` (front and back views: `hammer-down`, `hammer-down-glow`) is the hammer slammed flat on the ground, with its top face, front face and coil. At the slam's impact, switch `slam` on and hide `hammer` and `hammer-glow` until the hammer lifts again. The side view needs no swap: its hammer turns in the picture plane.
   - **colossus:** `mk2`, `mk3`, `final`. Each add-on is listed under the tier where it first appears, so switch the groups on cumulatively.
   - **mortar:** `ii`, `iii`, `band1`, `band2`, `band3` (see Towers).
 
@@ -59,14 +60,14 @@ Each `rigs/<id>.json` follows SPEC §15.2 `RigDef`, with three additions:
 | `ranger` | `badge`, `bolt`, `carry`, `nametag` |
 | `skitter` | `core`, `top` |
 | `stalker` | `eyes`, `top` |
-| `warden` | `badge`, `carry`, `hammer`, `nametag` |
+| `warden` | `badge`, `carry`, `hammer`, `hammer-ground`, `nametag` |
 | `wasp` | `muzzle`, `top` |
 
 **Knights:**
 - `nametag` and `badge` ride on the helm (`badge` is the super-ready badge spot).
 - `carry` is where a cell is held or received. It's on the torso, except on the Artificer, where it's the pack.
 - **Per class:**
-  - **Warden:** `hammer` is the gravity coil, the slam origin. At the slam's impact it's where the hammer meets the ground: place `slam-cracks` there (see Effects).
+  - **Warden:** `hammer` is the gravity coil, the slam origin. `hammer-ground` is where the slammed head meets the ground: on `hammer` in the side view, on `hammer-down` in front and back. Place `slam-cracks` there at impact (see Effects).
   - **Ranger:** `bolt` is the shot origin, in both poses.
   - **Commander:**
     - `shield` is the shield boss, where the bash lands (impact sparks).
@@ -191,7 +192,7 @@ Anchors and orientation:
 | `brute-target` + `brute-target-arrow` | ground + effects | The Brute's lock-on flash. The ring and brackets go under the build (r 24, scale to the footprint). The arrow's anchor is its tip: place it a few units above the build's top. |
 | `shockwave` | ground | The Ranger's super (it replaces the code-drawn pulse ring). r 60: scale it out from the Ranger to the hit radius and fade it. |
 | `landing-dust` | ground | The Warden's jump-slam landing, at his feet (r 30). Also a small puff for the Colossus paw at about 0.55. |
-| `slam-cracks` | ground | Fissures splitting out from a hammer hit (r 36). Anchor (0, 0) is the impact point: place it at the Warden's `hammer` attach point at `SLAM_IMPACT_MS` and fade it out over about 1 s. |
+| `slam-cracks` | ground | Fissures splitting out from a hammer hit (r 36). Anchor (0, 0) is the impact point: place it at the Warden's `hammer-ground` attach point at `SLAM_IMPACT_MS` and fade it out over about 1 s. |
 | `slam-cracks-wide` | ground | The same for the jump slam's landing (r 60). |
 | `charge-dust` | ground | The Colossus Charge trail. Anchor (0, 0) is its feet; the puffs trail toward −x (behind a right-facing Colossus; mirror it with the rig). |
 | `portal-flare` | effects | Rising violet sparks over a flaring portal. Place it at the portal frame's `center` attach point. |
@@ -258,7 +259,8 @@ These come from code clips on the existing rigs. `review/redesign/motion.svg` sh
 - **Warden jump slam:** crouch, airborne and land in all three views.
   - Crouch scales `frontleg`/`backleg` (side) or `legs` (front, back) to about 0.74 in y and drops the torso.
   - Airborne lifts the torso about 34 units, with the hammer raised. The shadow stays on the ground.
-  - Land reuses the main slam's impact pose, with `landing-dust` at the feet and `slam-cracks-wide` at the `hammer` point.
+  - Land reuses the main slam's impact pose, with `landing-dust` at the feet and `slam-cracks-wide` at the `hammer-ground` point.
+  - **Front and back impact** (main slam and jump landing): swap to the `slam` group, not a negative y-scale of `hammer`, which flattens it.
 - **Colossus Charge tell:**
   - `yoke` rotates down about 12° and drops about 10 units, so the spires point forward.
   - `head` drops in front of it.
