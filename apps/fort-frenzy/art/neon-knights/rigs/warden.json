@@ -235,8 +235,8 @@
         "hammer-ground": {
           "part": "hammer",
           "at": [
-            106,
-            44
+            125,
+            50.3
           ]
         }
       }
@@ -470,8 +470,8 @@
         "hammer-ground": {
           "part": "hammer-down",
           "at": [
-            100,
-            116
+            116,
+            120
           ]
         }
       }
@@ -691,8 +691,8 @@
         "hammer-ground": {
           "part": "hammer-down",
           "at": [
-            32,
-            108
+            16,
+            112
           ]
         }
       }

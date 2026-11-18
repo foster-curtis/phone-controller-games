@@ -40,7 +40,7 @@ Each `rigs/<id>.json` follows SPEC §15.2 `RigDef`, with three additions:
     - `banner` is on while the flag is carried, off while it's planted or in flight.
     - `sword` (the drawn sword: `sword`, `sword-glow`, and `swordtip`, `swordtip-glow` in the back view) is off. Since the redesign the sword doesn't attack: the default look is the shield on the hand and the sword sheathed at the hip (`scabbard`, always on). The group stays so a later mode can bring the drawn sword back.
   - **artificer:** the backpack gauge is the **build meter** (REDESIGN §F5). One group per core state, `core1-full` … `core3-half`. Show at most one state per cell. Split the meter (0–1) into sixths, `k = floor(meter × 6)`: cell N shows full when k ≥ 2N and half when k = 2N − 1. All three cells full means the beacon is ready. The cells and slots are always on (§2.4).
-  - **warden:** `slam` (front and back views: `hammer-down`, `hammer-down-glow`) is the hammer slammed flat on the ground, with its top face, front face and coil. At the slam's impact, switch `slam` on and hide `hammer` and `hammer-glow` until the hammer lifts again. The side view needs no swap: its hammer turns in the picture plane.
+  - **warden:** `slam` (front and back views: `hammer-down`, `hammer-down-glow`) is the same hammer standing on its short end, the striking face on the ground: the upright head turned 90°, plus its upper end face. At the slam's impact, switch `slam` on and hide `hammer` and `hammer-glow` until the hammer lifts again. The side view needs no swap: its hammer turns in the picture plane. Turn it so the head is vertical: with the slam clip's torso (rot 8) and gauntlet keys, `hammer` rot 64 (not 100) puts the striking face on the foot line.
   - **colossus:** `mk2`, `mk3`, `final`. Each add-on is listed under the tier where it first appears, so switch the groups on cumulatively.
   - **mortar:** `ii`, `iii`, `band1`, `band2`, `band3` (see Towers).
 
@@ -67,7 +67,7 @@ Each `rigs/<id>.json` follows SPEC §15.2 `RigDef`, with three additions:
 - `nametag` and `badge` ride on the helm (`badge` is the super-ready badge spot).
 - `carry` is where a cell is held or received. It's on the torso, except on the Artificer, where it's the pack.
 - **Per class:**
-  - **Warden:** `hammer` is the gravity coil, the slam origin. `hammer-ground` is where the slammed head meets the ground: on `hammer` in the side view, on `hammer-down` in front and back. Place `slam-cracks` there at impact (see Effects).
+  - **Warden:** `hammer` is the gravity coil, the slam origin. `hammer-ground` is the center of the striking face where it meets the ground: on `hammer` in the side view, on `hammer-down` in front and back. Place `slam-cracks` there at impact (see Effects).
   - **Ranger:** `bolt` is the shot origin, in both poses.
   - **Commander:**
     - `shield` is the shield boss, where the bash lands (impact sparks).
@@ -260,7 +260,7 @@ These come from code clips on the existing rigs. `review/redesign/motion.svg` sh
   - Crouch scales `frontleg`/`backleg` (side) or `legs` (front, back) to about 0.74 in y and drops the torso.
   - Airborne lifts the torso about 34 units, with the hammer raised. The shadow stays on the ground.
   - Land reuses the main slam's impact pose, with `landing-dust` at the feet and `slam-cracks-wide` at the `hammer-ground` point.
-  - **Front and back impact** (main slam and jump landing): swap to the `slam` group, not a negative y-scale of `hammer`, which flattens it.
+  - **Every view hits on the head's short end:** front and back swap to the `slam` group (not a negative y-scale of `hammer`, which flattens it). Side: `hammer` rot 64 under the torso's 8°.
 - **Colossus Charge tell:**
   - `yoke` rotates down about 12° and drops about 10 units, so the spires point forward.
   - `head` drops in front of it.
