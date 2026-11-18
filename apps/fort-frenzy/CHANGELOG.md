@@ -1,5 +1,25 @@
 # @pcg/fort-frenzy
 
+## 1.2.0
+
+### Minor Changes
+
+- 4c40cde: Manual full-screen buttons on the phone and the TV (no automatic full screen), a controller web manifest, the diagnostics overlay and a TV reconnecting indicator
+
+### Patch Changes
+
+- Updated dependencies [aca5b70]
+- Updated dependencies [3ea2b59]
+- Updated dependencies [0c3fb63]
+- Updated dependencies [8e06bff]
+- Updated dependencies [fab8bc6]
+- Updated dependencies [ed800a8]
+- Updated dependencies [8e06bff]
+- Updated dependencies [9d65c97]
+  - @pcg/controller-kit@0.2.0
+  - @pcg/game-kit@0.2.0
+  - @pcg/net-client@0.2.0
+
 ## 1.1.0
 
 ### Minor Changes
