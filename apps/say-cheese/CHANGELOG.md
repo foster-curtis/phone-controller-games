@@ -1,5 +1,26 @@
 # @pcg/say-cheese
 
+## 1.2.0
+
+### Minor Changes
+
+- 536a8ea: Manual full-screen buttons on the phone and the TV (no more automatic full screen), a Reconnecting pill on the TV, and a home-screen web app manifest for the controller
+
+### Patch Changes
+
+- 12194a2: How to play now runs on the shared rules kit (no visible change)
+- Updated dependencies [aca5b70]
+- Updated dependencies [3ea2b59]
+- Updated dependencies [0c3fb63]
+- Updated dependencies [8e06bff]
+- Updated dependencies [fab8bc6]
+- Updated dependencies [ed800a8]
+- Updated dependencies [8e06bff]
+- Updated dependencies [9d65c97]
+  - @pcg/controller-kit@0.2.0
+  - @pcg/game-kit@0.2.0
+  - @pcg/net-client@0.2.0
+
 ## 1.1.0
 
 ### Minor Changes
