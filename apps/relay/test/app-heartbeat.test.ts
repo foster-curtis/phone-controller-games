@@ -1,5 +1,5 @@
 // App-level ping/pong, the heartbeat flag, and the connection log (relay SPEC §3, §3.1, decision #5).
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { RelayLogEvent } from '../src/index';
 import { connect, createRoom, joinRoom, sleep, startRelay } from './helpers';
 
@@ -124,9 +124,12 @@ describe('connection log', () => {
       playerId: a.playerId,
     });
     await a.phone.closed;
-    expect(
-      events.find((e) => e.kind === 'close' && e.reason === 'rejoined elsewhere'),
-    ).toMatchObject({ cause: 'server' });
+    // The relay logs the close in its own close handler, which can run after the client sees it.
+    await vi.waitFor(() =>
+      expect(
+        events.find((e) => e.kind === 'close' && e.reason === 'rejoined elsewhere'),
+      ).toMatchObject({ cause: 'server' }),
+    );
   });
 
   it('logs a rejoin without takeover after the old socket closed', async () => {
@@ -136,7 +139,10 @@ describe('connection log', () => {
     const a = await joinRoom(relay, code, 'k1');
     a.phone.close();
     await a.phone.closed;
-    await sleep(50);
+    // Rejoin only once the relay has processed the close, or it would be a takeover.
+    await vi.waitFor(() =>
+      expect(events.some((e) => e.kind === 'close' && e.role === 'phone')).toBe(true),
+    );
     await joinRoom(relay, code, 'k1', a.token);
     expect(events.find((e) => e.kind === 'rejoin')).toMatchObject({ takeover: false });
   });
@@ -159,10 +165,11 @@ describe('connection log', () => {
     sleeper.send({ t: 'join', game: 'test-game', code, playerKey: 'z' });
     await sleeper.next('joined');
     await sleeper.closed;
-    await sleep(50);
-    expect(events.find((e) => e.kind === 'close' && e.cause === 'heartbeat')).toMatchObject({
-      role: 'phone',
-    });
+    await vi.waitFor(() =>
+      expect(events.find((e) => e.kind === 'close' && e.cause === 'heartbeat')).toMatchObject({
+        role: 'phone',
+      }),
+    );
   });
 
   it('a throwing log sink does not break the relay', async () => {
