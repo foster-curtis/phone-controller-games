@@ -29,6 +29,14 @@ import {
 
 test.afterEach(closeContexts);
 
+// On CI (headless Linux, no GPU) the TV's Phaser renderer doesn't start in Firefox or WebKit, so
+// these run there on Chromium only. Locally all three engines run. The phone kit's behavior in
+// Firefox and WebKit is covered on CI by Sunny Side's and Say Cheese's compat specs.
+test.skip(
+  ({ browserName }) => !!process.env.CI && browserName !== 'chromium',
+  'Fort Frenzy TV needs a GPU for Firefox/WebKit; CI runs this spec on Chromium only',
+);
+
 // The browsers log failed loads and sockets on their own while the network is cut: not page errors.
 const BENIGN = /Failed to load resource|WebSocket connection|net::ERR|NS_ERROR|Load failed/i;
 const realErrors = (errors: string[]) => errors.filter((e) => !BENIGN.test(e));
