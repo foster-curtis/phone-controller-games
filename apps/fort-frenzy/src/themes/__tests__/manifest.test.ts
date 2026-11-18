@@ -9,7 +9,7 @@ import { ICON_SYMBOL_PREFIX, VIEW_IDS, type ThemeAssets } from '../types';
 
 const appRoot = join(import.meta.dirname, '..', '..', '..');
 
-/** SPEC §2.6 icon ids, copied from the spec. */
+/** SPEC §2.6 icon ids, copied from the spec, plus the redesign's (until REDESIGN.md folds into SPEC). */
 const SPEC_ICON_IDS = [
   // classes
   'class-warden',
@@ -75,6 +75,17 @@ const SPEC_ICON_IDS = [
   'net-charges',
   // status
   'reconnecting',
+  // redesign additions (REDESIGN §C1, §F1; icons README): class roles, builds, new marks
+  'role-tank',
+  'role-marksman',
+  'role-support',
+  'role-control',
+  'act-shield',
+  'act-mine',
+  'act-beacon',
+  'base-hp',
+  'card-build',
+  'card-tinkerer',
 ];
 
 function walk(dir: string): string[] {
