@@ -9,9 +9,9 @@ Vector source art for Fort Frenzy's neon knights theme. The atlas script (SPEC �
 | `rigs/<id>.json` | One rig per animated thing: `warden`, `ranger`, `commander`, `artificer`, `footman`, `drone`, `skitter`, `brute`, `bombard`, `wasp`, `mite`, `stalker`, `colossus`, `mortar`. |
 | `characters/<id>/<view>/<part>.svg` | Knight and footman rig parts. The Ranger adds a pose folder: `characters/ranger/<view>/<pose>/<part>.svg`. |
 | `enemies/<id>/side/<part>.svg` | Enemy and Colossus rig parts (one view, `side`). |
-| `structures/...` | Structure frames (listed in `sprites.json`) and the mortar rig parts (`structures/mortar/side/<part>.svg`). |
-| `effects/` | Projectiles, flashes, sparks, the heal glint, shock crawl, wall strike, deploy beacon and scrap piles (listed in `sprites.json`). |
-| `map/` | Ground tiles, playfield edges and corners, lane entries (open and sealed) and flat decor (listed in `sprites.json`). |
+| `structures/...` | Structure and build frames (listed in `sprites.json`) and the mortar rig parts (`structures/mortar/side/<part>.svg`). |
+| `effects/` | Projectiles, flashes, sparks, the heal glint, shock crawl, wall strike, deploy beacon, scrap piles and the redesign's build, slam, portal and Charge effects (listed in `sprites.json`). |
+| `map/` | Ground tiles, playfield edges and corners, portals, the old lane entries (open and sealed) and flat decor (listed in `sprites.json`). |
 | `icons/` | UI icon glyphs and badge tiles (see `icons/README.md`). |
 | `review/` | Assembled references, tier and aim sheets, UI reference screens and drawn UI pieces. Not read by the atlas script. |
 | `sprites.json` | Every frame that isn't a rig part: viewBox, anchor, layer, tint and attach points. |
@@ -36,8 +36,10 @@ Each `rigs/<id>.json` follows SPEC §15.2 `RigDef`, with three additions:
   - **Knights:** glow comes as per-part pieces named `<host>-glow`, parented to the host and drawn right after it, so glow follows a swinging limb and never shows through what covers it. Code can brighten or pulse them.
   - **Others:** enemies, footmen, the Colossus and the mortar keep their glow inside each part (`class="glow"` groups).
 - **`optional`:** maps a group to the parts it shows. Parts in any group stay hidden until code switches the group on.
-  - **commander:** `banner` is on while the flag is carried, off while it's planted.
-  - **artificer:** one group per gauge core state, `core1-full` … `core3-half`. Show at most one state per cell. Cell N shows full when crates ≥ 2N, half when crates = 2N − 1. The cells and slots are always on (§2.4).
+  - **commander:**
+    - `banner` is on while the flag is carried, off while it's planted or in flight.
+    - `sword` (the drawn sword: `sword`, `sword-glow`, and `swordtip`, `swordtip-glow` in the back view) is off. Since the redesign the sword doesn't attack: the default look is the shield on the hand and the sword sheathed at the hip (`scabbard`, always on). The group stays so a later mode can bring the drawn sword back.
+  - **artificer:** the backpack gauge is the **build meter** (REDESIGN §F5). One group per core state, `core1-full` … `core3-half`. Show at most one state per cell. Split the meter (0–1) into sixths, `k = floor(meter × 6)`: cell N shows full when k ≥ 2N and half when k = 2N − 1. All three cells full means the beacon is ready. The cells and slots are always on (§2.4).
   - **colossus:** `mk2`, `mk3`, `final`. Each add-on is listed under the tier where it first appears, so switch the groups on cumulatively.
   - **mortar:** `ii`, `iii`, `band1`, `band2`, `band3` (see Towers).
 
@@ -49,7 +51,7 @@ Each `rigs/<id>.json` follows SPEC §15.2 `RigDef`, with three additions:
 | `bombard` | `muzzle`, `top` |
 | `brute` | `fist`, `top` |
 | `colossus` | `core`, `eye`, `fist-far`, `fist-near`, `spire-1`, `spire-2`, `spire-3`, `spire-4`, `spire-5`, `top` |
-| `commander` | `badge`, `banner`, `carry`, `nametag`, `sword-tip` |
+| `commander` | `badge`, `banner`, `carry`, `nametag`, `shield`, `sword-tip` |
 | `drone` | `blade`, `top` |
 | `footman` | `blade` |
 | `mite` | `top` |
@@ -64,9 +66,12 @@ Each `rigs/<id>.json` follows SPEC §15.2 `RigDef`, with three additions:
 - `nametag` and `badge` ride on the helm (`badge` is the super-ready badge spot).
 - `carry` is where a cell is held or received. It's on the torso, except on the Artificer, where it's the pack.
 - **Per class:**
-  - **Warden:** `hammer` is the gravity coil, the slam origin.
+  - **Warden:** `hammer` is the gravity coil, the slam origin. At the slam's impact it's where the hammer meets the ground: place `slam-cracks` there (see Effects).
   - **Ranger:** `bolt` is the shot origin, in both poses.
-  - **Commander:** `sword-tip` and `banner`.
+  - **Commander:**
+    - `shield` is the shield boss, where the bash lands (impact sparks).
+    - `banner` is the carried flag's top.
+    - `sword-tip` rides on the `sword` group's blade, so it's only meaningful while that group is on.
   - **Artificer:** `lens` is the projector and `pack` is the throw origin.
 - **Enemies:** `top` is the highest point of the always-on parts. The Stalker's `eyes` is where the target thread starts.
 - **Colossus:** spires are numbered left to right. `spire-1`, `-2` and `-4` arrive at Mk II; `spire-3` and `-5` at Mk III.
@@ -74,9 +79,14 @@ Each `rigs/<id>.json` follows SPEC §15.2 `RigDef`, with three additions:
 
 ## Layers
 
-- **Ground layer:** anything flat on the ground has its own frame here, drawn under everything that stands. That covers the base plate (`plate/tile`), wall rails, shock nets, build-ghost footprints, the Citadel plate and repair zone, the Armory pad and the rally-flag ring.
+- **Ground layer:** anything flat on the ground has its own frame here, drawn under everything that stands. That covers:
+  - the base plate (`plate/tile`), wall rails, shock nets, build-ghost footprints, the Citadel plate and repair zone, the Armory pad and the rally-flag ring;
+  - portals;
+  - every effect ring and ground mark: `shield-base`, `beacon-pulse`, `mine-blast-ring`, `brute-target`, `shockwave`, `landing-dust`, `charge-dust`, `slam-cracks` and `slam-cracks-wide`.
+
+  Rings sit under the build or knight they belong to, so they read as lying on the ground.
 - **World layer:** upright things, y-sorted by anchor.
-- **Effects layer:** flashes, sparks, glints, the shock crawl and the wall strike (SPEC §15.2 layer 4).
+- **Effects layer:** flashes, sparks, glints, the shock crawl, the wall strike, the shield shimmer dome, the mine-blast burst, the Brute target arrow and the portal flare sparks (SPEC §15.2 layer 4).
 - A frame is never on more than one layer. `sprites.json` gives each frame's `layer`.
 
 ## Towers
@@ -170,6 +180,22 @@ Anchors and orientation:
 - **`deploy-beacon`:** the Ranger's build animation. Anchor (0, 0) is its ground point.
 - **Thrown cells** use `structures/power-cell`.
 
+**Redesign effects** (REDESIGN §F5). Anchor (0, 0) is the ground point unless noted. Rings are 0.6 ellipses; scale them uniformly to the radius in sprite units. `review/redesign/*.svg` shows each one in place.
+
+| Frame | Layer | Use |
+|---|---|---|
+| `shield-base` | ground | Under an active shield generator: the dashed footprint the dome stands on (r 26). |
+| `shield-shimmer-1` … `-3` | effects | The field dome over an active generator. Cycle at about 6 fps. Its foot follows the front of `shield-base`. |
+| `beacon-pulse` | ground | The healing beacon's pulse ring (r 40), centered on the beacon. Scale it out to the heal radius and fade it. Add `heal-glint`s over the healed knights. |
+| `mine-blast-ring` + `mine-blast` | ground + effects | A mine going off. The ring has r 34 (scale it to the blast radius); the burst sits on the mine. Both amber. |
+| `brute-target` + `brute-target-arrow` | ground + effects | The Brute's lock-on flash. The ring and brackets go under the build (r 24, scale to the footprint). The arrow's anchor is its tip: place it a few units above the build's top. |
+| `shockwave` | ground | The Ranger's super (it replaces the code-drawn pulse ring). r 60: scale it out from the Ranger to the hit radius and fade it. |
+| `landing-dust` | ground | The Warden's jump-slam landing, at his feet (r 30). Also a small puff for the Colossus paw at about 0.55. |
+| `slam-cracks` | ground | Fissures splitting out from a hammer hit (r 36). Anchor (0, 0) is the impact point: place it at the Warden's `hammer` attach point at `SLAM_IMPACT_MS` and fade it out over about 1 s. |
+| `slam-cracks-wide` | ground | The same for the jump slam's landing (r 60). |
+| `charge-dust` | ground | The Colossus Charge trail. Anchor (0, 0) is its feet; the puffs trail toward −x (behind a right-facing Colossus; mirror it with the rig). |
+| `portal-flare` | effects | Rising violet sparks over a flaring portal. Place it at the portal frame's `center` attach point. |
+
 
 ## Status effects and indicators
 
@@ -199,8 +225,45 @@ All of these are on the effects layer unless noted. `review/status-effects.svg`,
     - **Bottom:** anchored at the midpoint of the bottom edge between cols 17 and 18.
     - **Left and right:** anchored at the midpoint between rows 11 and 12, on their tile column's center.
     - **States:** open shows the breach with violet chevrons pointing in; sealed shows an amber hard-light gate (sealed lanes still need a spec rule).
+  - **Portals** (the redesign replaces lanes with 6 portals, REDESIGN §A2): `portal/<bottom|left|right>-<idle|flare>`.
+    - **Anchor:** the same as the lane entries, the edge midpoint between the portal's two edge tiles. Every portal on the bottom edge uses `bottom-*`; every portal on a side edge uses that side's frames.
+    - **States:** `idle` is a slow violet swirl in a violet-iron collar. `flare` (vortex lit, light column) shows for about 1 s before the portal spawns a group, with `portal-flare` at the frame's `center` attach point.
+    - **Edges:** skip edge frames on portal tiles, as on lane tiles.
   - **`decor/grate`, `plate`, `lines`, `crack`:** flat, non-blocking, never red or violet. Use them sparsely.
 - **Review:** `review/map-sample.svg` shows a corner of the playfield.
+
+## Builds (redesign)
+
+One build per knight (REDESIGN §C5, §F5). All frames are world layer, anchor (0, 0) = ground center; shadows, HP bars and the effect-radius ellipse are code-drawn. `review/redesign/builds.svg` shows every state.
+
+- **Shield generator** (Warden, thrown): `shield-gen/<flight|landed|active|damaged|destroyed>`.
+- **Healing beacon** (Artificer, thrown): `beacon/<flight|landed|active|damaged|destroyed>`.
+- **States:**
+  - `flight` is drawn upright: code spins and arcs it, with the shadow on the ground.
+  - `landed` shows on touchdown, until it switches on.
+  - `active` is the working state; `damaged` replaces it below half HP (§7.2). Code can flicker its glow.
+  - `destroyed` is the wreck with its glow out. Show it briefly, then the usual `scrap-ours` pile.
+- **Active extras:**
+  - generator: `shield-base` under it and `shield-shimmer-*` over it;
+  - beacon: `beacon-pulse` under it and `heal-glint`s.
+- **Mine** (Ranger, placed at feet, up to 3): `mine/armed`, `mine/trigger`.
+  - **Arming:** `armed` shows at full opacity for about 1 s after it's placed, then drops to 40% opacity once it's live ("translucent to players"). It's drawn to read at 40%.
+  - **Trigger:** `trigger` is the short delay before it goes off, at full opacity. Then `mine-blast-ring` and `mine-blast` (Effects).
+- **Rally flag in flight** (Commander's build): `rally-flag/flight-pole`, `flight-cloth` (tinted) and `flight-trim`, in that order. Anchor (0, 0) is the spin center: rotate all three together while it arcs, then switch to the planted frames below.
+
+## Redesign poses (no new parts)
+
+These come from code clips on the existing rigs. `review/redesign/motion.svg` shows sample keys.
+
+- **Warden jump slam:** crouch, airborne and land in all three views.
+  - Crouch scales `frontleg`/`backleg` (side) or `legs` (front, back) to about 0.74 in y and drops the torso.
+  - Airborne lifts the torso about 34 units, with the hammer raised. The shadow stays on the ground.
+  - Land reuses the main slam's impact pose, with `landing-dust` at the feet and `slam-cracks-wide` at the `hammer` point.
+- **Colossus Charge tell:**
+  - `yoke` rotates down about 12° and drops about 10 units, so the spires point forward.
+  - `head` drops in front of it.
+  - `leg-near` paws back (rotate about 16° and lift).
+  - The run adds `charge-dust` at the feet. The red lane marker is code.
 
 ## Other structures
 
@@ -211,6 +274,7 @@ All of these are on the effects layer unless noted. `review/status-effects.svg`,
   - `rally-flag/pole`;
   - `rally-flag/cloth` (tinted, nothing else in it);
   - `rally-flag/cloth-trim`.
+  - In flight: `rally-flag/flight-*` (see Builds).
 - **Power cell:** `power-cell` (shadow is code-drawn).
 - **Build ghosts:** footprints `build-ghost/valid` and `build-ghost/blocked` (ground). The see-through structure over the footprint is drawn by code.
 - **Tile sizes:** the shared plate, walls, nets and map pieces are drawn on the full 80 × 48 tile. The mortar ring, Fortify dome, Armory and power cell come from the earlier art at the same scale, centered on their anchors.
