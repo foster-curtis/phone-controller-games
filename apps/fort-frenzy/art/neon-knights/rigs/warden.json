@@ -231,6 +231,13 @@
             106,
             44
           ]
+        },
+        "hammer-ground": {
+          "part": "hammer",
+          "at": [
+            125,
+            50.3
+          ]
         }
       }
     },
@@ -388,6 +395,31 @@
             67.5,
             81.0
           ]
+        },
+        "hammer-down": {
+          "frame": "warden/front/hammer-down",
+          "pivot": [
+            100,
+            84
+          ],
+          "parent": "gauntlets",
+          "at": [
+            100,
+            84
+          ]
+        },
+        "hammer-down-glow": {
+          "frame": "warden/front/hammer-down-glow",
+          "pivot": [
+            100,
+            84
+          ],
+          "parent": "hammer-down",
+          "at": [
+            100,
+            84
+          ],
+          "emissive": true
         }
       },
       "order": [
@@ -402,6 +434,8 @@
         "helm-glow",
         "hammer",
         "hammer-glow",
+        "hammer-down",
+        "hammer-down-glow",
         "gauntlets"
       ],
       "attach": {
@@ -431,6 +465,13 @@
           "at": [
             104,
             34
+          ]
+        },
+        "hammer-ground": {
+          "part": "hammer-down",
+          "at": [
+            116,
+            120
           ]
         }
       }
@@ -576,9 +617,36 @@
             64.5,
             81.0
           ]
+        },
+        "hammer-down": {
+          "frame": "warden/back/hammer-down",
+          "pivot": [
+            32,
+            84
+          ],
+          "parent": "gauntlets",
+          "at": [
+            32,
+            84
+          ]
+        },
+        "hammer-down-glow": {
+          "frame": "warden/back/hammer-down-glow",
+          "pivot": [
+            32,
+            84
+          ],
+          "parent": "hammer-down",
+          "at": [
+            32,
+            84
+          ],
+          "emissive": true
         }
       },
       "order": [
+        "hammer-down",
+        "hammer-down-glow",
         "legs",
         "legs-glow",
         "hammer",
@@ -619,8 +687,21 @@
             28,
             34
           ]
+        },
+        "hammer-ground": {
+          "part": "hammer-down",
+          "at": [
+            16,
+            112
+          ]
         }
       }
     }
+  },
+  "optional": {
+    "slam": [
+      "hammer-down",
+      "hammer-down-glow"
+    ]
   }
 }

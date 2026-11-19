@@ -222,6 +222,56 @@
             91.0,
             83.0
           ]
+        },
+        "scabbard": {
+          "frame": "commander/side/scabbard",
+          "pivot": [
+            67,
+            80
+          ],
+          "parent": "torso",
+          "at": [
+            67,
+            80
+          ]
+        },
+        "scabbard-glow": {
+          "frame": "commander/side/scabbard-glow",
+          "pivot": [
+            67,
+            80
+          ],
+          "parent": "scabbard",
+          "at": [
+            67,
+            80
+          ],
+          "emissive": true
+        },
+        "shield": {
+          "frame": "commander/side/shield",
+          "pivot": [
+            91,
+            83
+          ],
+          "parent": "gauntlet",
+          "at": [
+            91,
+            83
+          ]
+        },
+        "shield-glow": {
+          "frame": "commander/side/shield-glow",
+          "pivot": [
+            91,
+            83
+          ],
+          "parent": "shield",
+          "at": [
+            91,
+            83
+          ],
+          "emissive": true
         }
       },
       "order": [
@@ -232,6 +282,8 @@
         "backleg",
         "torso",
         "torso-glow",
+        "scabbard",
+        "scabbard-glow",
         "frontleg",
         "frontleg-glow",
         "helm",
@@ -241,7 +293,9 @@
         "frontpaul",
         "sword",
         "sword-glow",
-        "gauntlet"
+        "gauntlet",
+        "shield",
+        "shield-glow"
       ],
       "attach": {
         "nametag": {
@@ -277,6 +331,13 @@
           "at": [
             44,
             12
+          ]
+        },
+        "shield": {
+          "part": "shield",
+          "at": [
+            98,
+            80
           ]
         }
       }
@@ -472,6 +533,56 @@
             67.0,
             77.0
           ]
+        },
+        "scabbard": {
+          "frame": "commander/front/scabbard",
+          "pivot": [
+            67,
+            80
+          ],
+          "parent": "torso",
+          "at": [
+            67,
+            80
+          ]
+        },
+        "scabbard-glow": {
+          "frame": "commander/front/scabbard-glow",
+          "pivot": [
+            67,
+            80
+          ],
+          "parent": "scabbard",
+          "at": [
+            67,
+            80
+          ],
+          "emissive": true
+        },
+        "shield": {
+          "frame": "commander/front/shield",
+          "pivot": [
+            92.7,
+            77
+          ],
+          "parent": "gauntlets",
+          "at": [
+            92.7,
+            77
+          ]
+        },
+        "shield-glow": {
+          "frame": "commander/front/shield-glow",
+          "pivot": [
+            92.7,
+            77
+          ],
+          "parent": "shield",
+          "at": [
+            92.7,
+            77
+          ],
+          "emissive": true
         }
       },
       "order": [
@@ -481,6 +592,8 @@
         "cape",
         "legs",
         "legs-glow",
+        "scabbard",
+        "scabbard-glow",
         "torso",
         "torso-glow",
         "pauls",
@@ -489,7 +602,9 @@
         "helm-glow",
         "sword",
         "sword-glow",
-        "gauntlets"
+        "gauntlets",
+        "shield",
+        "shield-glow"
       ],
       "attach": {
         "nametag": {
@@ -525,6 +640,13 @@
           "at": [
             53,
             10
+          ]
+        },
+        "shield": {
+          "part": "shield",
+          "at": [
+            94,
+            82
           ]
         }
       }
@@ -707,6 +829,56 @@
             83.5
           ],
           "emissive": true
+        },
+        "scabbard": {
+          "frame": "commander/back/scabbard",
+          "pivot": [
+            67,
+            80
+          ],
+          "parent": "torso",
+          "at": [
+            67,
+            80
+          ]
+        },
+        "scabbard-glow": {
+          "frame": "commander/back/scabbard-glow",
+          "pivot": [
+            67,
+            80
+          ],
+          "parent": "scabbard",
+          "at": [
+            67,
+            80
+          ],
+          "emissive": true
+        },
+        "shield": {
+          "frame": "commander/back/shield",
+          "pivot": [
+            41.3,
+            77
+          ],
+          "parent": "gauntlets",
+          "at": [
+            41.3,
+            77
+          ]
+        },
+        "shield-glow": {
+          "frame": "commander/back/shield-glow",
+          "pivot": [
+            41.3,
+            77
+          ],
+          "parent": "shield",
+          "at": [
+            41.3,
+            77
+          ],
+          "emissive": true
         }
       },
       "order": [
@@ -715,12 +887,16 @@
         "legs",
         "legs-glow",
         "torso",
+        "scabbard",
+        "scabbard-glow",
         "pauls",
         "cape",
         "helm",
         "helm-glow",
         "plume",
         "gauntlets",
+        "shield",
+        "shield-glow",
         "banner",
         "banner-cloth",
         "banner-glow"
@@ -760,6 +936,13 @@
             76,
             8
           ]
+        },
+        "shield": {
+          "part": "shield",
+          "at": [
+            40,
+            82
+          ]
         }
       }
     }
@@ -769,6 +952,12 @@
       "banner",
       "banner-cloth",
       "banner-glow"
+    ],
+    "sword": [
+      "sword",
+      "sword-glow",
+      "swordtip",
+      "swordtip-glow"
     ]
   }
 }
