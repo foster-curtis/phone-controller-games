@@ -1,7 +1,7 @@
 # Fort Frenzy — Redesign (players-only wave defense)
 
-**Status:** design complete (groups A–G decided, 2026-11-17). Ready for the build plan. Nothing here is
-in `SPEC.md` yet.
+**Status:** Folded into SPEC.md at RD0 (b1a8a63); kept as the decision record. (Design complete:
+groups A–G decided, 2026-11-17.)
 
 Last updated: 2026-11-17
 
