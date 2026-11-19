@@ -798,10 +798,10 @@ Rules:
 
 ## 6. Progress checklist
 
-- [ ] Pre-flight passed (S1)
+- [x] Pre-flight passed (S1)
 - RD0 Spec rewrite
-  - [ ] Tag `fort-frenzy-td-final` on `main`; branch `redesign/fort-frenzy`
-  - [ ] SPEC §1–§14 rewritten; §15 contract sketches; decision log rows
+  - [x] Tag `fort-frenzy-td-final` on `main`; branch `redesign/fort-frenzy`
+  - [x] SPEC §1–§14 rewritten; §15 contract sketches; decision log rows
   - [ ] **User approved RC0**; merged
 - RD1 Art merge, rename, de-theme
   - [ ] `art/redesign` merged; rig-contract and manifest tests updated
@@ -972,6 +972,35 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
   names live in one table in `src/presentation/shared.ts`.
 - [plan] decision: `RunStats` drop crate and structure counts and add builds placed and healing done;
   the summary's award cards follow (RD2 shape, RD13 copy).
+
+**RD0 (spec rewrite; each is a SPEC §15.11 row)**
+
+- [RD0] decision: `KnightId` is the knight and `ClassId` stays its alias (the wire's `classId` and the
+  `class` intent); REDESIGN's "class" is `RoleId`, and `ClassDef` is keyed by it (#94): no rename churn.
+- [RD0] decision: sentry upgrades keep their `archer_*` code ids; `base_hp` is new and a tier raises
+  current HP by the same amount; every shop item is always visible (#95): G2 renames only knights.
+- [RD0] decision: `AckReason` drops `crates`; `cap` = shop item at its max tier (#96): nothing is carried.
+- [RD0] decision: `InputTuple` v2 = move, main, super and build aims, flags (4 = build aiming), main,
+  super and build fire counters (12 fields); the sim resolves a build press from state at its step
+  (full → place/throw, else Commander flag out → recall) (#97): the build uses the attack grammar.
+- [RD0] decision: regen isn't a heal (no hooks, charge or stats; not while down or dazed) (#98): it
+  would charge the Artificer's super from everyone's regen.
+- [RD0] decision: late joiners start with no class growth, like no cards (#99): simplest.
+- [RD0] decision: the leader can force-start with one player Ready (#100): "can start alone" (A).
+- [RD0] decision: builds don't snap to tiles; thrown landings clamp to the playfield outside the
+  Citadel; a new build removes the old one at release (#101): nothing a build does needs the grid.
+- [RD0] decision: effects add `guard` and `taunt`; `morale` carries damage, attack and move speed;
+  `haste`, `tower_defense`, `aura_mason`, `aura_bodyguard`, `aura_lead_from_the_front` go (#102).
+- [RD0] decision: squad cap starts at 4; soldiers keep HP between waves (no regen); the snapshot keeps
+  soldier HP and Veterans gains and the flag as a build (#103): C5's "about 4–5"; regen is for knights.
+- [RD0] decision: `TvView.laneWarnings` is removed; the World scene draws the portal flare (#104).
+- [RD0] decision: the 68 px build button keeps the (−118, +20) offset; it meets every rule at 844×390
+  (#105): F1's re-layout isn't needed at the reference viewport.
+- [RD0] decision: Reinforcements' quick tap with no flag out throws straight ahead (#106): F1 gap.
+- [RD0] decision: SPEC's RD0 grep has two intentional hits outside §15.11's old rows: the card id
+  `siege_breakers` (ids sketch, §15.4) and `breakerWallCost` in the `RulesDef` removed-fields note.
+- [RD0] note: `art/redesign` is already an ancestor of `main` (PR #34 merged it, and the art folders
+  match), so RD1's `git merge --no-ff art/redesign` is a no-op.
 
 ## 9. Final handoff
 
