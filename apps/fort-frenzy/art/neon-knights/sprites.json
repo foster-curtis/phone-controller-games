@@ -39,6 +39,102 @@
       "layer": "ground",
       "tint": false
     },
+    "beacon-pulse": {
+      "category": "effects",
+      "file": "effects/beacon-pulse.svg",
+      "viewBox": [
+        -42,
+        -26,
+        84,
+        52
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "beacon/active": {
+      "category": "structures",
+      "file": "structures/beacon/active.svg",
+      "viewBox": [
+        -17,
+        -60,
+        34,
+        67
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "beacon/damaged": {
+      "category": "structures",
+      "file": "structures/beacon/damaged.svg",
+      "viewBox": [
+        -17,
+        -60,
+        34,
+        67
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "beacon/destroyed": {
+      "category": "structures",
+      "file": "structures/beacon/destroyed.svg",
+      "viewBox": [
+        -52,
+        -27,
+        69,
+        32
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "beacon/flight": {
+      "category": "structures",
+      "file": "structures/beacon/flight.svg",
+      "viewBox": [
+        -10,
+        -60,
+        20,
+        56
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "beacon/landed": {
+      "category": "structures",
+      "file": "structures/beacon/landed.svg",
+      "viewBox": [
+        -17,
+        -60,
+        34,
+        67
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
     "bolt": {
       "category": "effects",
       "file": "effects/bolt.svg",
@@ -85,6 +181,38 @@
         0
       ],
       "layer": "world",
+      "tint": false
+    },
+    "brute-target": {
+      "category": "effects",
+      "file": "effects/brute-target.svg",
+      "viewBox": [
+        -33,
+        -21,
+        66,
+        42
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "brute-target-arrow": {
+      "category": "effects",
+      "file": "effects/brute-target-arrow.svg",
+      "viewBox": [
+        -8,
+        -24,
+        16,
+        26
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "effects",
       "tint": false
     },
     "build-ghost/blocked": {
@@ -175,6 +303,22 @@
         -10,
         16,
         20
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "charge-dust": {
+      "category": "effects",
+      "file": "effects/charge-dust.svg",
+      "viewBox": [
+        -67,
+        -23,
+        81,
+        31
       ],
       "anchor": [
         0,
@@ -727,6 +871,22 @@
       "layer": "effects",
       "tint": false
     },
+    "landing-dust": {
+      "category": "effects",
+      "file": "effects/landing-dust.svg",
+      "viewBox": [
+        -38,
+        -29,
+        75,
+        52
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
     "lane/bottom-open": {
       "category": "map",
       "file": "map/lane/bottom-open.svg",
@@ -821,6 +981,70 @@
         0
       ],
       "layer": "ground",
+      "tint": false
+    },
+    "mine-blast": {
+      "category": "effects",
+      "file": "effects/mine-blast.svg",
+      "viewBox": [
+        -28,
+        -22,
+        56,
+        37
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "effects",
+      "tint": false
+    },
+    "mine-blast-ring": {
+      "category": "effects",
+      "file": "effects/mine-blast-ring.svg",
+      "viewBox": [
+        -37,
+        -23,
+        74,
+        46
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "mine/armed": {
+      "category": "structures",
+      "file": "structures/mine/armed.svg",
+      "viewBox": [
+        -15,
+        -17,
+        30,
+        27
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "mine/trigger": {
+      "category": "structures",
+      "file": "structures/mine/trigger.svg",
+      "viewBox": [
+        -21,
+        -17,
+        42,
+        28
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
       "tint": false
     },
     "mortar-shell": {
@@ -918,6 +1142,154 @@
       ],
       "layer": "ground",
       "tint": false
+    },
+    "portal-flare": {
+      "category": "effects",
+      "file": "effects/portal-flare.svg",
+      "viewBox": [
+        -17,
+        -49,
+        36,
+        45
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "effects",
+      "tint": false
+    },
+    "portal/bottom-flare": {
+      "category": "map",
+      "file": "map/portal/bottom-flare.svg",
+      "viewBox": [
+        -66,
+        -37,
+        132,
+        78
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false,
+      "attach": {
+        "center": [
+          0,
+          10
+        ]
+      }
+    },
+    "portal/bottom-idle": {
+      "category": "map",
+      "file": "map/portal/bottom-idle.svg",
+      "viewBox": [
+        -66,
+        -25,
+        132,
+        66
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false,
+      "attach": {
+        "center": [
+          0,
+          10
+        ]
+      }
+    },
+    "portal/left-flare": {
+      "category": "map",
+      "file": "map/portal/left-flare.svg",
+      "viewBox": [
+        -58,
+        -48,
+        89,
+        96
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false,
+      "attach": {
+        "center": [
+          -14,
+          0
+        ]
+      }
+    },
+    "portal/left-idle": {
+      "category": "map",
+      "file": "map/portal/left-idle.svg",
+      "viewBox": [
+        -58,
+        -48,
+        89,
+        96
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false,
+      "attach": {
+        "center": [
+          -14,
+          0
+        ]
+      }
+    },
+    "portal/right-flare": {
+      "category": "map",
+      "file": "map/portal/right-flare.svg",
+      "viewBox": [
+        -31,
+        -48,
+        89,
+        96
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false,
+      "attach": {
+        "center": [
+          14,
+          0
+        ]
+      }
+    },
+    "portal/right-idle": {
+      "category": "map",
+      "file": "map/portal/right-idle.svg",
+      "viewBox": [
+        -31,
+        -48,
+        89,
+        96
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false,
+      "attach": {
+        "center": [
+          14,
+          0
+        ]
+      }
     },
     "power-cell": {
       "category": "structures",
@@ -1655,6 +2027,54 @@
       "layer": "world",
       "tint": false
     },
+    "rally-flag/flight-cloth": {
+      "category": "structures",
+      "file": "structures/rally-flag/flight-cloth.svg",
+      "viewBox": [
+        -8,
+        -24,
+        16,
+        34
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": true
+    },
+    "rally-flag/flight-pole": {
+      "category": "structures",
+      "file": "structures/rally-flag/flight-pole.svg",
+      "viewBox": [
+        -4,
+        -31,
+        8,
+        61
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "rally-flag/flight-trim": {
+      "category": "structures",
+      "file": "structures/rally-flag/flight-trim.svg",
+      "viewBox": [
+        -3,
+        -24,
+        9,
+        11
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
     "rally-flag/pole": {
       "category": "structures",
       "file": "structures/rally-flag/pole.svg",
@@ -2327,6 +2747,150 @@
         ]
       }
     },
+    "shield-base": {
+      "category": "effects",
+      "file": "effects/shield-base.svg",
+      "viewBox": [
+        -28,
+        -18,
+        56,
+        36
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "shield-gen/active": {
+      "category": "structures",
+      "file": "structures/shield-gen/active.svg",
+      "viewBox": [
+        -24,
+        -50,
+        48,
+        53
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "shield-gen/damaged": {
+      "category": "structures",
+      "file": "structures/shield-gen/damaged.svg",
+      "viewBox": [
+        -24,
+        -50,
+        48,
+        53
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "shield-gen/destroyed": {
+      "category": "structures",
+      "file": "structures/shield-gen/destroyed.svg",
+      "viewBox": [
+        -20,
+        -24,
+        46,
+        29
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "shield-gen/flight": {
+      "category": "structures",
+      "file": "structures/shield-gen/flight.svg",
+      "viewBox": [
+        -20,
+        -39,
+        40,
+        39
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "shield-gen/landed": {
+      "category": "structures",
+      "file": "structures/shield-gen/landed.svg",
+      "viewBox": [
+        -20,
+        -39,
+        40,
+        42
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "world",
+      "tint": false
+    },
+    "shield-shimmer-1": {
+      "category": "effects",
+      "file": "effects/shield-shimmer-1.svg",
+      "viewBox": [
+        -29,
+        -52,
+        58,
+        70
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "effects",
+      "tint": false
+    },
+    "shield-shimmer-2": {
+      "category": "effects",
+      "file": "effects/shield-shimmer-2.svg",
+      "viewBox": [
+        -29,
+        -52,
+        58,
+        70
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "effects",
+      "tint": false
+    },
+    "shield-shimmer-3": {
+      "category": "effects",
+      "file": "effects/shield-shimmer-3.svg",
+      "viewBox": [
+        -29,
+        -52,
+        58,
+        70
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "effects",
+      "tint": false
+    },
     "shock-crawl": {
       "category": "effects",
       "file": "effects/shock-crawl.svg",
@@ -2591,6 +3155,54 @@
         -29,
         90,
         58
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "shockwave": {
+      "category": "effects",
+      "file": "effects/shockwave.svg",
+      "viewBox": [
+        -68,
+        -42,
+        136,
+        84
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "slam-cracks": {
+      "category": "effects",
+      "file": "effects/slam-cracks.svg",
+      "viewBox": [
+        -29,
+        -18,
+        56,
+        35
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "tint": false
+    },
+    "slam-cracks-wide": {
+      "category": "effects",
+      "file": "effects/slam-cracks-wide.svg",
+      "viewBox": [
+        -40,
+        -32,
+        94,
+        59
       ],
       "anchor": [
         0,

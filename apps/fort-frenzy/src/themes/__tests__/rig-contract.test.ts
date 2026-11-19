@@ -43,7 +43,7 @@ const ATTACH: Record<string, string[]> = {
     'spire-5',
     'top',
   ],
-  commander: ['badge', 'banner', 'carry', 'nametag', 'sword-tip'],
+  commander: ['badge', 'banner', 'carry', 'nametag', 'shield', 'sword-tip'],
   drone: ['blade', 'top'],
   footman: ['blade'],
   mite: ['top'],
@@ -51,7 +51,7 @@ const ATTACH: Record<string, string[]> = {
   ranger: ['badge', 'bolt', 'carry', 'nametag'],
   skitter: ['core', 'top'],
   stalker: ['eyes', 'top'],
-  warden: ['badge', 'carry', 'hammer', 'nametag'],
+  warden: ['badge', 'carry', 'hammer', 'hammer-ground', 'nametag'],
   wasp: ['muzzle', 'top'],
 };
 
@@ -85,7 +85,8 @@ describe('rig contract (neon knights)', () => {
   });
 
   it('declares the optional groups code switches', () => {
-    expect(Object.keys(rigs.commander!.optional ?? {})).toEqual(['banner']);
+    expect(Object.keys(rigs.commander!.optional ?? {}).sort()).toEqual(['banner', 'sword']);
+    expect(Object.keys(rigs.warden!.optional ?? {})).toEqual(['slam']);
     expect(Object.keys(rigs.artificer!.optional ?? {}).sort()).toEqual([
       'core1-full',
       'core1-half',
@@ -104,7 +105,6 @@ describe('rig contract (neon knights)', () => {
       'iii',
     ]);
     for (const r of [
-      'warden',
       'ranger',
       'footman',
       'drone',
