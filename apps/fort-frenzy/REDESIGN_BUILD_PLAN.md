@@ -814,7 +814,7 @@ Rules:
   - [x] Structures, building, Fortify, Mason, structure cards and shop items cut
   - [x] Action table, build arc, radial, Build tab cut; breaker and rebuilds cut
   - [x] Lanes → 6 live portals
-  - [ ] Tests, soak, bench, autopilot, e2e updated; merged; e2e green
+  - [x] Tests, soak, bench, autopilot, e2e updated; merged; e2e green
 - RD3 Sim slice
   - [ ] Classes vs knights; build system core + meter; Warden shield generator + jump slam
   - [ ] Regen; player-count table; hot side + cap + flares; 20 s build phase + random pick
