@@ -1001,6 +1001,18 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
   `siege_breakers` (ids sketch, §15.4) and `breakerWallCost` in the `RulesDef` removed-fields note.
 - [RD0] note: `art/redesign` is already an ancestor of `main` (PR #34 merged it, and the art folders
   match), so RD1's `git merge --no-ff art/redesign` is a no-op.
+- [RD0-fix-1] decision: the end-of-run option says **Change Knight** and the screen is "knight select"
+  in SPEC prose (#107, user RC0): players choose a knight, not a class; the `class` intent, `classId`
+  and the `'classes'` leader option keep their ids (#94). This plan's RD4 text still says "class
+  select" (same screen). REDESIGN never named the button, so it is unchanged there.
+- [RD0-fix-1] decision: the Bombard's priority is base > players > builds, nearest within each (#108,
+  user RC0); simplest reading of "retargets the moment a player enters range" is now "a higher-priority
+  target", and §3.3's "shells the base only when nothing else is in range" became "base first". SPEC
+  §9 and §15.5 and REDESIGN D1 updated; #61's old order stays as history.
+- [RD0-fix-1] decision: base respawn is 15 s for 5–6 players (#109, user RC0); difficulty multiplier
+  and Quick Recovery unchanged; SPEC §5, §9.4 and REDESIGN A3, A6 updated.
+- [RD0-fix-1] decision: §13 gains a v2 row for per-player stats banners on the end-of-run screen
+  (#110, user RC0); v1's summary and award cards are unchanged.
 
 ## 9. Final handoff
 

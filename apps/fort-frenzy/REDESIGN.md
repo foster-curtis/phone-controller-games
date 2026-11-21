@@ -113,7 +113,7 @@ Replaces the §2 "Core identity" bullets.
 | Players | 1 | 2 | 3 | 4 | 5 | 6 |
 |---|---|---|---|---|---|---|
 | Wave budget and boss HP | 0.6 | 1.0 | 1.25 | 1.5 | 1.75 | 2.0 |
-| Respawn time | 6 s | 10 s | 10 s | 10 s | 10 s | 10 s |
+| Respawn time | 6 s | 10 s | 10 s | 10 s | 15 s | 15 s |
 
   - From 2 players up, this matches the current curve. Solo is lower because one player can't split
     fronts and a death leaves only the sentries defending.
@@ -156,8 +156,8 @@ Replaces the §2 "Core identity" bullets.
   every 1 s** (in ticks, not a smooth trickle) until full or until the knight takes damage again.
 - **Regen runs in the build phase too.** HP still carries over between waves, but the 20 s build phase (about 13 s to refill from 1 HP) is always
   enough to refill, so no separate full-heal rule is needed.
-- **Respawn** at the base, per the scaling table (6 s solo, 10 s otherwise). Quick Recovery's floor
-  becomes 4 s in solo and stays 5 s otherwise.
+- **Respawn** at the base, per the scaling table (6 s solo, 10 s for 2–4 players, 15 s for 5–6;
+  RC0, 2026-11-20). Quick Recovery's floor becomes 4 s in solo and stays 5 s otherwise.
 - §14.3 ("passive regeneration, balance watch") is settled by this and removed.
 - Balance watch: 8%/s also applies in combat. If support healing feels pointless, lower the percentage
   or lengthen the delay.
@@ -367,7 +367,7 @@ Stats and art (§9.6) are unchanged unless noted.
 | **Grunt** (Drone) | Unchanged |
 | **Runner** (Skitter) | Unchanged: ignores knights and builds, bursts on the base. Caught in transit (mines, stuns, knockback) |
 | **Brute** | **Build hunter:** goes straight for the nearest targetable build (HP builds, C3), **at any distance.** When none exist (or once it destroys them all) it walks toward the base and attacks knights like a Grunt. In v1 the targetable builds are the shield generator and the healing beacon, so a team without the Warden or Artificer only sees the fallback. Builds become Brute bait, which is a real tactic |
-| **Siege** (Bombard) | Paths toward the base and **stops only when something is in range.** Target priority: **players > builds > base**, nearest within each; it retargets the moment a player enters range. The team's main ranged threat to knights. Keeps the red landing marker before each shell |
+| **Siege** (Bombard) | Paths toward the base and **stops only when something is in range.** Target priority: **base > players > builds** (RC0, 2026-11-20; was players > builds > base), nearest within each; it retargets the moment a higher-priority target enters range. The team's main ranged threat to knights. Keeps the red landing marker before each shell |
 | **Flyer** (Wasp) | **Range slightly increased.** Ignores ground builds (mines, nets, traps); melee can't hit it |
 | **Swarm** (Scrap mites) | Unchanged |
 | **Hunter** (Stalker) | **Senses hidden builds** (sees and avoids mines' trigger radii) and **stays out of range of damage-dealing builds**, reusing the field pricing that used to route it around tower range. **Speeds up once it targets a player.** Two phases so the speed-up means something: it stalks at normal speed until its quarry is within about 5 tiles, then locks on (the existing color flash at the quarry's feet) and sprints |

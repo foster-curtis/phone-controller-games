@@ -339,7 +339,7 @@ hits; feet circles still walk, collide and take enemy attacks.
   inside. The super's charge is a ring that fills clockwise and pulses amber when full; the build
   meter is a ring that fills clockwise and turns a **steady** amber when full (no pulse), so the two
   read differently. The stick is round.
-- **Phone screens:** join (code prefilled from the QR, name, one button); class select (swipeable
+- **Phone screens:** join (code prefilled from the QR, name, one button); knight select (swipeable
   cards: the knight's front view in the player's color, class with its `role-*` badge, main, super and
   build with tap/aim, passive card); lobby (big Ready, lineup with color, knight helm and ready state,
   and the `leader` mark beside the party leader; the party leader also sees difficulty and Start);
@@ -411,7 +411,7 @@ hits; feet circles still walk, collide and take enemy attacks.
 - **How enemies damage the base:**
   - Most enemies stop at the base and attack it continuously, so players can still run back and save it.
   - **Runners** deal one burst of damage on contact, then die.
-  - **Siege** enemies shell the base only when no player or targetable build is in range (§9).
+  - **Siege** enemies shell the base first whenever it is in range (§9).
 - Attacks that used to target towers (Siege shells, the Colossus's boulder throw) now target players.
 - **Feedback:**
   - The HP bar flashes on every hit, and the screen shakes slightly on big hits.
@@ -479,7 +479,7 @@ hits; feet circles still walk, collide and take enemy attacks.
     (PLATFORM decision #11); every phone's summary has **Give feedback**, which opens it in a new tab.
 - **End-of-run options** (chosen by the party leader's phone, §11.1):
   1. **Play again** (default): every player keeps their knight and goes straight to Ready.
-  2. **Change classes:** players return to class select.
+  2. **Change Knight:** players return to knight select (they choose a knight, not a class).
   3. **Return to home:** the TV goes back to the pre-lobby home page. The room closes, and players
      rejoin through a new room code.
   - (FF14) Play again marks every connected player Ready in the lobby, so the 3-second countdown
@@ -503,7 +503,7 @@ hits; feet circles still walk, collide and take enemy attacks.
 
 | Players | 1 | 2 | 3 | 4 | 5 | 6 |
 |---|---|---|---|---|---|---|
-| Respawn time | 6 s | 10 s | 10 s | 10 s | 10 s | 10 s |
+| Respawn time | 6 s | 10 s | 10 s | 10 s | 15 s | 15 s |
 
   multiplied by the difficulty's respawn multiplier (§2.2). Quick Recovery (§6.1) subtracts 2 s per
   stack but never takes the respawn below **4 s solo, 5 s otherwise**; that floor never raises a
@@ -916,7 +916,7 @@ Each enemy type is designed as a problem that specific classes solve.
 | Grunt (Drone) | Walks to the base and attacks it; attacks knights and HP builds that come within its aggro radius | Everyone |
 | Runner (Skitter) | Fast and fragile; ignores knights and builds and bursts on the base. Caught in transit (mines, stuns, knockback) | Ranger (bow, mines in its path), Warden (super stun), Commander (shield bash, squad at a flag on its route), Artificer (cone) |
 | Brute | **Build hunter:** goes straight for the nearest targetable build, **at any distance.** With none on the map (or once it has destroyed them all) it walks toward the base and attacks knights like a Grunt | Warden (HP, stun), Ranger (kiting at range), Commander (squad); any targetable build pulls it off course |
-| Siege (Bombard) | Paths toward the base and **stops only when something is in range.** Target priority: **players > builds > base**, nearest within each; it retargets the moment a player enters range. Keeps the red landing marker before each shell. The team's main ranged threat to knights | Ranger (outranges it), Commander (flag thrown beside it, squad dives in), Warden (HP to walk in) |
+| Siege (Bombard) | Paths toward the base and **stops only when something is in range.** Target priority: **base > players > builds**, nearest within each; it retargets the moment a higher-priority target enters range. Keeps the red landing marker before each shell. The team's main ranged threat to knights | Ranger (outranges it), Commander (flag thrown beside it, squad dives in), Warden (HP to walk in) |
 | Flyer (Wasp drone) | Flies straight; **range slightly increased** over the tower-defense value. Ignores ground builds (never sets off mines); melee can't hit it | Ranger, Artificer, the sentries (spawns only for teams that can hit it) |
 | Swarm (Scrap mites) | Many weak units, in packs of 8 | Warden (arc), Artificer (spread), Ranger (mines) |
 | Hunter (Stalker) | Hunts players; **senses hidden builds** (sees and avoids mines' trigger radii) and **stays out of range of damage-dealing builds and the sentries**; **speeds up once it locks on** to its quarry | Warden (HP, stun), Commander (squad blocks it), Artificer (healing) |
@@ -969,7 +969,7 @@ balance sheet.
 | Swarm | 8 × 25 | 1.2 | 4/hit each | 3 per group | Spawns as a group of 8 |
 | Brute | 600 | 0.6 | 40/hit | 5 | Hunts builds |
 | Flyer | 80 | 1.2 | 12/hit | 2 | Range about 1.25× its tower-defense value |
-| Siege | 150 | 0.8 | 25/shell | 4 | Long range; players > builds > base |
+| Siege | 150 | 0.8 | 25/shell | 4 | Long range; base > players > builds |
 | Hunter | 200 | 1.3 (sprint faster) | 15/hit | 3 | Hunts players |
 
 - **Coins per kill** follow the budget cost times the coin rate (§6). A Swarm group pays when its last
@@ -1077,7 +1077,7 @@ walker mech with a glowing core in its chest (§2.1); its art is in §9.6.
 | Players | 1 | 2 | 3 | 4 | 5 | 6 |
 |---|---|---|---|---|---|---|
 | Wave budget and boss HP | 0.6 | 1.0 | 1.25 | 1.5 | 1.75 | 2.0 |
-| Respawn time | 6 s | 10 s | 10 s | 10 s | 10 s | 10 s |
+| Respawn time | 6 s | 10 s | 10 s | 10 s | 15 s | 15 s |
 
   From 2 players up this matches the tower-defense curve. Solo is lower because one player can't split
   fronts and a death leaves only the sentries defending. Scaling the number of enemies, not their HP,
@@ -1326,7 +1326,7 @@ The shop fills about the right 2/3 of the phone; the movement stick stays on the
 ### 10.5 Team pause (C4, §15.11 #54)
 - **Top bar:** during a run (wave countdowns, build and combat phases, and while down) every player's
   phone has a pause button in the top-right corner of the top bar, a code-drawn two-bar glyph on a
-  gunmetal chamfered tile (the icon set has no pause icon). It isn't shown in the lobby, class select,
+  gunmetal chamfered tile (the icon set has no pause icon). It isn't shown in the lobby, knight select,
   the waiting and claim screens, or the summary. On the shop screen the coin count moves left of it.
 - **Any player pauses the whole run** for every player and the TV. The run freezes: sim steps, the
   build timer, wave countdowns and respawn timers; the TV's render-only motion holds still too.
@@ -1352,7 +1352,7 @@ from Sunny Side Slam. Everything else in this section is Fort Frenzy game logic 
    color another player holds (connected or not) is refused, never swapped, and a player keeps their
    color through reconnects, leader handoff and the run. Once Ready, the Ready
    button and every other lobby action darken until the player taps Ready again to un-ready.
-3. **Class select on the phone:** swipeable knight cards, each showing name, class, what the main
+3. **Knight select on the phone:** swipeable knight cards, each showing name, class, what the main
    attack, the super and the build do (tap or aim), and the passive card (§8). One swipe moves exactly
    one card, however long. The TV shows the lineup live. Duplicate knights are allowed.
 4. **Start:**
@@ -1371,7 +1371,7 @@ from Sunny Side Slam. Everything else in this section is Fort Frenzy game logic 
   gamepad, with no hover-only interactions. Once a room exists, the party leader's phone drives the TV
   menus: changing difficulty in the lobby, and the end-of-run options (§4).
 
-### 11.2 Mid-run joins and class changes
+### 11.2 Mid-run joins and knight changes
 - **Late joins** are accepted only during the build phase. The new player spawns at the base with a
   **full build meter** (a Commander with 2 soldiers), a card offer, and no cards or class growth yet
   (§15.11 #99). A phone that joins during combat sees "Joining at the next build phase" until then.
@@ -1469,6 +1469,7 @@ Ideas deferred from v1. Build v1 so these can be added without rewrites.
 | Music | v1 ships sound effects only (§12) | The presentation layer carries an audio map (§15.4), so music is more entries plus a player |
 | Enemy back views | Back views for the common walkers (§2.4) | Rig views are looked up per rig from data, so a new view is data, not code (§15.2) |
 | Hunter v2 behavior | Walks in and waits where nothing that shoots can hit it; attacks a player within the Ranger's range; otherwise waits for a player below 50% HP (always targeted) or a Brute to shelter behind (Foster, C3) | The Hunter is its own `ai` module with a threat map (`ai/threat.ts`) |
+| End-of-run stats banners | The summary shows **all** of the run stats for each player in a per-player banner, like a fighting-game results screen (user, RC0). v1 keeps the §4 summary: waves survived, per-player stats and one award card per player | `RunStats` already holds every per-player stat (§15.6), so this is summary layout only |
 
 **Build idea pool** (from REDESIGN §C5, with Foster's mechanics notes; best-fit class):
 
@@ -2423,7 +2424,7 @@ interface PresentationShared {                   // phones and TV (src/presentat
     main: Record<KnightId, string>; super: Record<KnightId, string>;
     build: Record<BuildId, ActIconId>; shop: Record<ShopItemId, string>; card: Record<CardId, string>;
   };
-  portraits: Record<KnightId, { body: string; color: string }>; // front-view images (class select)
+  portraits: Record<KnightId, { body: string; color: string }>; // front-view images (knight select)
 }
 interface PresentationHost {                     // TV only (src/presentation/host.ts)
   atlases: AtlasRef[]; rigs: Record<string, RigDef>; clips: Record<string, Clip>;
@@ -2441,7 +2442,7 @@ interface PresentationHost {                     // TV only (src/presentation/ho
   built at build time), so `.glow` takes the CSS `drop-shadow` and badge tiles stay crisp. The TV's DOM
   HUD (§15.2) uses the same sprite. A missing icon falls back to a text label. The three icon lists are
   in §2.6.
-- **Knight portraits:** phones never load the TV atlases, but class select and the lineup show each
+- **Knight portraits:** phones never load the TV atlases, but knight select and the lineup show each
   knight's front view in the player's color (§2.6). The atlas script renders, per knight, the front-view
   rest pose as two images: the body, and the color part alone as a mask that CSS tints with the
   player's color. They're lazy-loaded images, outside the phone's JS budget (§15.7).
@@ -2479,9 +2480,9 @@ interface PresentationHost {                     // TV only (src/presentation/ho
 - **Behavior per `ai`:** `path` follows the ground field and attacks the base, plus knights and HP
   builds inside its aggro leash (nearest first; a `taunt` knight first); `runner` bursts on base
   contact and attacks nothing else; `siege` walks the ground field and stops once a player, an HP build
-  or the base is in its range, shelling the highest priority (players > builds > base, nearest within
-  each), retargeting the moment a player enters range; `hunter` stalks its quarry's field and locks on
-  within `hunt.lockRange`, then sprints at `hunt.sprint` × speed (retargeting on down, daze or a player
+  or the base is in its range, shelling the highest priority (base > players > builds, nearest within
+  each), retargeting the moment a higher-priority target enters range; `hunter` stalks its quarry's
+  field and locks on within `hunt.lockRange`, then sprints at `hunt.sprint` × speed (retargeting on down, daze or a player
   2 tiles closer, §9); `flyer` flies straight and aggro-leashes like `path`; `swarm` is a `path` walker
   with the in-sim mite jitter; `brute` walks its target build's `brute` field to the nearest
   targetable build at any distance and attacks it, and with none left behaves like `path`; `boss` is
@@ -2539,13 +2540,13 @@ export type InputTuple = [
 
 export type Intent =
   | { k: 'name'; name: string }                       // ≤ NAME_MAX code points; color auto-assigned
-  | { k: 'class'; classId: ClassId }                  // the knight (class select)
+  | { k: 'class'; classId: ClassId }                  // the knight (knight select)
   | { k: 'ready'; ready: boolean }
   | { k: 'color'; color: PlayerColorId }              // lobby only (`taken`)
   | { k: 'leader'; action: 'start' | 'resume' | 'newRun' }
   | { k: 'leader'; action: 'difficulty'; difficulty: DifficultyId }
   | { k: 'leader'; action: 'remove'; playerId: string }           // lobby only
-  | { k: 'leader'; action: 'end'; option: 'again' | 'classes' | 'home' }
+  | { k: 'leader'; action: 'end'; option: 'again' | 'classes' | 'home' } // 'classes' = Change Knight (§4)
   | { k: 'buy'; item: ShopItemId }
   | { k: 'request'; item: ShopItemId; on: boolean }
   | { k: 'card'; card: CardId }                       // Confirm on the card pop-up (§10.2)
@@ -2689,7 +2690,7 @@ overlay; §15.11 #104); `Announcement.item` is a v2 `ShopItemId`. No other field
 
 - **DOM and CSS, no canvas** (as in Sunny Side), built on `@pcg/controller-kit`. The screen comes from
   `me.screen`; reconnecting, host away and rotate are phone-local overlays. Screen groups that share a
-  view (so a held thumb survives a switch): `combat` and `dead`; `lobby` and class select; `build`
+  view (so a held thumb survives a switch): `combat` and `dead`; `lobby` and knight select; `build`
   (the card pop-up and the shop: the shop's movement stick shares the combat view's stick so a held
   thumb survives the pick).
 - **Components:** plain TS DOM components, no framework (as in Sunny Side and the kit): `Badge` (icon +
@@ -2875,7 +2876,7 @@ export interface RunSnapshot {
     squads)
   - protocol guards (tuple v2, intents, views), the combat layout rules and the gesture state machines
   - asset license coverage (§15.10)
-- **E2E (Playwright, as in Sunny Side):** smoke (lobby, class select, start, card pop-up and shop,
+- **E2E (Playwright, as in Sunny Side):** smoke (lobby, knight select, start, card pop-up and shop,
   combat with a build), solo start, phone reconnect, host reload and resume, expired room resumed by
   device ID, controller layout screenshots. E2E drives time with `__pcg.speed(0)` + `advance` and
   `?bloom=0&fps=15`, never sleeps.
@@ -3047,3 +3048,7 @@ states, then RD0's own.
 | 104 | 2026-11-18 | Portal flare on the TV | `TvView.laneWarnings` is removed; the flare is drawn by the World scene from the spawn plan and `portalFlare` events (§15.6) | The flare is portal art in the world, not a DOM edge band (RD0) |
 | 105 | 2026-11-18 | Build button layout | The 68 px build button keeps the (−118, +20) offset: at 844×390 it is 38 px from the main button, 29 px from the super and 71 px from the bottom, so every §10.1 rule holds; `layoutCombat`'s tests check the other viewports (§10.1) | F1 asked for a re-layout "to fit"; the reference offsets already fit (RD0) |
 | 106 | 2026-11-18 | Reinforcements quick tap | A quick tap throws the soldier toward the flag, or straight ahead (his facing) with no flag out (§8.2, §10.1) | F1 covered only the flag-out case (RD0) |
+| 107 | 2026-11-20 | Change Knight | The end-of-run option and its copy say **Change Knight**, and the screen is **knight select**: players choose a knight (who belongs to a class), not a class. Display copy only: the `class` intent, `classId` and the `'classes'` leader option keep their ids (#94) (§4, §10, §11, §15) | Players choose a knight, who belongs to a class (user, RC0, 2026-11-20) |
+| 108 | 2026-11-20 | Bombard priority | Siege (Bombard) target priority is **base > players > builds**, nearest within each; it retargets the moment a higher-priority target enters range (revises #61's order) (§3.3, §9, §9.1, §15.5) | RC0 checkpoint note (user, RC0, 2026-11-20) |
+| 109 | 2026-11-20 | Respawn at 5–6 players | Base respawn is **15 s** for 5 and 6 players (6 s solo, 10 s for 2–4); the difficulty multiplier and Quick Recovery's floor are unchanged (§5, §9.4) | RC0 checkpoint note (user, RC0, 2026-11-20) |
+| 110 | 2026-11-20 | Stats banners (v2) | v2 note: the end-of-run screen shows every stat for each player in per-player banners, like a fighting-game results screen; v1's summary and award cards are unchanged (§13) | v2 polish; v1 scope stays (user, RC0, 2026-11-20) |
