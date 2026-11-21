@@ -82,7 +82,6 @@ test('home: keyboard moves focus and cycles difficulty', async ({ page }) => {
   const focused = () => page.locator('#tv-ui .row.focus .lbl').innerText();
   expect((await focused()).toLowerCase()).toBe('create room');
   await page.keyboard.press('ArrowDown');
-  await page.keyboard.press('ArrowDown');
   expect((await focused()).toLowerCase()).toBe('difficulty');
   await page.keyboard.press('ArrowRight');
   await expect(page.locator('#tv-ui .row.focus .val')).toContainText('Hard');
