@@ -72,15 +72,7 @@ describe('visibility (§6.2: shown only when the team can use it)', () => {
       summary: null,
     }).shop;
     const armor = rows.find((r) => r.id === 'base_armor')!;
-    expect(armor.qmOnly).toBe(true);
     expect(armor.visible).toBe(true);
-    // The phone's filter (controller/screens/build.ts): visible && (!qmOnly || Artificer).
-    const shown = (cls: ClassId) =>
-      rows.filter((r) => r.visible && (!r.qmOnly || cls === 'artificer')).map((r) => r.id);
-    expect(shown('ranger')).not.toContain('base_armor');
-    expect(shown('ranger')).not.toContain('emergency_kit');
-    expect(shown('artificer')).toContain('base_armor');
-    expect(shown('artificer')).toContain('emergency_kit');
     expect(ack(h, { c: 'buy', slot: 0, item: 'base_armor' }).reason).toBe('invalid');
     expect(ack(h, { c: 'buy', slot: 1, item: 'base_armor' }).ok).toBe(true);
     expect(h.sim.world.base.stats.damageReduction).toBeCloseTo(0.1);

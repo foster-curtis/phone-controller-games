@@ -81,8 +81,6 @@ export function stepThrown(s: FullState): void {
     }
     if (up && q.crates < carryCap(s, q)) {
       q.crates++;
-      const from = s.player(c.from);
-      if (from) from.run.cratesGiven++;
     } else {
       dropPile(s, c.x, c.y, 1, null);
       s.emit({ e: 'crate', action: 'drop', slot: c.from, to: null, x: c.x, y: c.y });

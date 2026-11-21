@@ -72,7 +72,6 @@ export function canDeliver(s: FullState, p: PlayerEnt): boolean {
 export function deliver(s: FullState, p: PlayerEnt): void {
   const b = s.world.base;
   p.crates--;
-  p.run.cratesDelivered++;
   b.hp = Math.min(b.maxHp, b.hp + s.cat.base.repairPerCrate);
   s.emit({ e: 'crate', action: 'deliver', slot: p.slot, to: null, x: p.x, y: p.y });
 }
@@ -104,34 +103,6 @@ export function dropPile(s: FullState, x: number, y: number, n: number, lockedSl
     }
   }
   s.world.cratePiles.push({ id: s.world.nextId++, x, y, n, lockedSlot, lockedUntil: until });
-}
-
-/**
- * Give crate (§10.1): one crate to the nearest teammate in reach who has room, otherwise dropped at
- * your feet.
- */
-export function give(s: FullState, p: PlayerEnt): AckReason | null {
-  if (p.crates <= 0) return 'crates';
-  let to: PlayerEnt | null = null;
-  let bestD = Infinity;
-  for (const q of s.world.players) {
-    if (q === p || !s.targetable(q) || q.crates >= carryCap(s, q)) continue;
-    const d = dist(p.x, p.y, q.x, q.y);
-    if (d <= s.cat.rules.giveRadius && d < bestD) {
-      to = q;
-      bestD = d;
-    }
-  }
-  p.crates--;
-  if (to) {
-    to.crates++;
-    p.run.cratesGiven++;
-    s.emit({ e: 'crate', action: 'give', slot: p.slot, to: to.slot, x: p.x, y: p.y });
-  } else {
-    dropPile(s, p.x, p.y, 1, p.slot);
-    s.emit({ e: 'crate', action: 'drop', slot: p.slot, to: null, x: p.x, y: p.y });
-  }
-  return null;
 }
 
 /** Death or dazed: everything carried drops where the player stands, takeable by anyone. */

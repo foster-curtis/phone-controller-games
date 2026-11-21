@@ -32,14 +32,14 @@ function sameInput(a: PlayerInput, b: PlayerInput): boolean {
     a.mainAim.y === b.mainAim.y &&
     a.superAim.x === b.superAim.x &&
     a.superAim.y === b.superAim.y &&
+    a.buildAim.x === b.buildAim.x &&
+    a.buildAim.y === b.buildAim.y &&
     a.mainAiming === b.mainAiming &&
     a.superAiming === b.superAiming &&
-    a.radialOpen === b.radialOpen &&
-    a.radialSlot === b.radialSlot &&
+    a.buildAiming === b.buildAiming &&
     a.mainFires === b.mainFires &&
     a.superFires === b.superFires &&
-    a.actionTaps === b.actionTaps &&
-    a.radialCommits === b.radialCommits
+    a.buildFires === b.buildFires
   );
 }
 
@@ -51,14 +51,13 @@ function copy(i: PlayerInput): PlayerInput {
     move: { x: z(i.move.x), y: z(i.move.y) },
     mainAim: { x: z(i.mainAim.x), y: z(i.mainAim.y) },
     superAim: { x: z(i.superAim.x), y: z(i.superAim.y) },
+    buildAim: { x: z(i.buildAim.x), y: z(i.buildAim.y) },
     mainAiming: i.mainAiming,
     superAiming: i.superAiming,
-    radialOpen: i.radialOpen,
-    radialSlot: i.radialSlot,
+    buildAiming: i.buildAiming,
     mainFires: i.mainFires,
     superFires: i.superFires,
-    actionTaps: i.actionTaps,
-    radialCommits: i.radialCommits,
+    buildFires: i.buildFires,
   };
 }
 
@@ -143,7 +142,7 @@ export function replayRun(rec: RunRecording): ReplayResult {
 
 /**
  * Records a headless autopilot run of the content's waves (soak and replay fixture, §15.9): every slot
- * on autopilot, invincible, ready once each has bought its crates or after 10 s of build.
+ * on autopilot, invincible, ready after 2 s of build.
  */
 export function recordAutopilotRun(opts: {
   seed: number;
@@ -177,8 +176,7 @@ export function recordAutopilotRun(opts: {
     const w = sim.world;
     if (w.phase === 'build') {
       if (buildStart < 0) buildStart = w.tick;
-      const stocked = w.players.every((p) => p.crates >= 2 || w.team.coins < 2);
-      if ((stocked && w.tick - buildStart > 120) || w.tick - buildStart > 600) {
+      if (w.tick - buildStart > 120) {
         for (const p of w.players)
           if (!p.ready) sim.command({ c: 'ready', slot: p.slot, ready: true });
       }

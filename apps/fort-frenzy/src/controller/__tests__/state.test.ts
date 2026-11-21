@@ -10,8 +10,6 @@ import {
   resetRevs,
 } from '../state';
 import { sampleMe, sampleTeam } from '../samples';
-import { ME_ACTIONS } from '../../shared/messages';
-import { BUILD_PHASE_ACTIONS, actionIcon, giveIcon } from '../copy';
 
 describe('rev ordering (SPEC §15.6)', () => {
   it('applies newer snapshots and drops stale or equal ones, per kind', () => {
@@ -46,10 +44,10 @@ describe('intents and acks', () => {
     const out: unknown[] = [];
     const t = createIntentTracker((m) => out.push(m));
     t.send({ k: 'ready', ready: true });
-    t.send({ k: 'give' });
+    t.send({ k: 'pause', paused: true });
     expect(out).toEqual([
       { t: 'intent', seq: 1, intent: { k: 'ready', ready: true } },
-      { t: 'intent', seq: 2, intent: { k: 'give' } },
+      { t: 'intent', seq: 2, intent: { k: 'pause', paused: true } },
     ]);
   });
 
@@ -67,37 +65,8 @@ describe('intents and acks', () => {
     expect(t.ack({ seq: 99, ok: false, reason: 'coins' })).toBeNull();
     expect(t.ack({ seq, ok: false, reason: 'coins' })).toBe('Not enough coins');
     expect(t.ack({ seq, ok: false, reason: 'coins' })).toBeNull();
-    const ok = t.send({ k: 'give' });
+    const ok = t.send({ k: 'pause', paused: false });
     expect(t.ack({ seq: ok, ok: true })).toBeNull();
     expect(t.pending()).toBe(0);
-  });
-});
-
-describe('action icon mapping (SPEC §10.1)', () => {
-  it('maps every action to its act-* icon, kit to emergency-kit, none to dimmed', () => {
-    const expected: Record<string, string> = {
-      pickup: 'act-pickup',
-      deliver: 'act-deliver',
-      buy: 'act-buy',
-      place: 'act-place',
-      throw: 'act-throw',
-      flag: 'act-flag',
-      recall: 'act-recall',
-      kit: 'emergency-kit',
-    };
-    for (const a of ME_ACTIONS) {
-      if (a === 'none') expect(actionIcon(a).dimmed).toBe(true);
-      else expect(actionIcon(a)).toEqual({ id: expected[a], dimmed: false });
-    }
-  });
-
-  it('Give shows act-give or act-drop, dimmed when there is nothing to give', () => {
-    expect(giveIcon('give')).toEqual({ id: 'act-give', dimmed: false });
-    expect(giveIcon('drop')).toEqual({ id: 'act-drop', dimmed: false });
-    expect(giveIcon(null).dimmed).toBe(true);
-  });
-
-  it('outside combat only pick up, deliver, kit and buy apply (rows 1-4)', () => {
-    expect([...BUILD_PHASE_ACTIONS].sort()).toEqual(['buy', 'deliver', 'kit', 'pickup']);
   });
 });

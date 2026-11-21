@@ -95,9 +95,7 @@ export const AWARD: Record<keyof RunStats, { label: string; icon: string }> = {
   damageTaken: { label: 'Took the hits', icon: 'base-armor' },
   deaths: { label: 'Most falls', icon: 'reconnecting' },
   healingDone: { label: 'Best medic', icon: 'repair' },
-  cratesDelivered: { label: 'Cells delivered', icon: 'cell' },
-  cratesGiven: { label: 'Cells shared', icon: 'act-give' },
-  structuresBuilt: { label: 'Most built', icon: 'wall' },
+  buildsPlaced: { label: 'Most builds', icon: 'act-shield' },
 };
 
 export const COLOR_VAR = (c: PlayerColorId): string => `var(--player-${c})`;

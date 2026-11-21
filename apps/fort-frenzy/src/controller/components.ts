@@ -1,4 +1,4 @@
-// Plain TS DOM components (SPEC §15.7): Badge, RoundButton, ChargeRing, StatusStrip, KitTile,
+// Plain TS DOM components (SPEC §15.7): Badge, RoundButton, ChargeRing, StatusStrip,
 // UpgradeCard, ShopRow, HoldConfirm, Toast, LineupRow, ClassCard. No framework; each returns its
 // element plus a setter where it changes. Styled in controller.css from brand.css tokens only.
 import { createHoldToConfirm, el } from '@pcg/controller-kit';
@@ -8,11 +8,10 @@ import {
   type ClassId,
   type PlayerColorId,
   type ShopItemId,
-  type StructureId,
 } from '../shared/ids';
 import type { MeView, TeamRosterEntry, TeamShopRow, TeamView } from '../shared/messages';
 import { portraitUrl } from './assets';
-import { CARD_INFO, CLASS_INFO, ROMAN, SHOP_INFO, STRUCTURE_INFO, type ClassInfo } from './copy';
+import { CARD_INFO, CLASS_INFO, ROMAN, SHOP_INFO, type ClassInfo } from './copy';
 import { HIT_EXTRA } from './layout';
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -123,19 +122,16 @@ export function ChargeRing(): { el: HTMLElement; set(charge: number, full: boole
 const pct = (n: number, max: number) =>
   `${Math.round(Math.max(0, Math.min(1, max > 0 ? n / max : 0)) * 100)}%`;
 
-/** Top-center strip: HP, cells carried (up to the cap), base HP, emergency kits (SPEC §10.1). */
+/** Top-center strip: own HP and base HP (SPEC §10.1). */
 export function StatusStrip(): { el: HTMLElement; update(me: MeView, team: TeamView): void } {
   const hp = el('span', { class: 'bar-fill hp' });
   const base = el('span', { class: 'bar-fill base' });
-  const cells = el('span', { class: 'cells' });
-  const kit = el('span', { class: 'kit' });
   const group = (label: string, ...kids: Node[]) =>
     el('div', { class: 'strip-group' }, el('span', { class: 'strip-label', text: label }), ...kids);
   const node = el(
     'div',
     { class: 'status-strip' },
     group('HP', el('span', { class: 'bar' }, hp)),
-    group('CELLS', cells, kit),
     group('BASE', el('span', { class: 'bar' }, base)),
   );
   return {
@@ -143,34 +139,8 @@ export function StatusStrip(): { el: HTMLElement; update(me: MeView, team: TeamV
     update(me, team) {
       hp.style.width = pct(me.hp, me.maxHp);
       base.style.width = pct(team.baseHp, team.baseMaxHp);
-      const pips: Node[] = [];
-      for (let i = 0; i < Math.max(me.carryCap, me.crates); i++) {
-        pips.push(el('i', { class: i < me.crates ? 'pip on' : 'pip' }));
-      }
-      cells.replaceChildren(...pips);
-      kit.replaceChildren(...(me.kits > 0 ? [icon('emergency-kit', 'kit-glyph')] : []));
     },
   };
-}
-
-/** A structure in the build kit: badge, name, cell cost; dimmed when the player can't pay. */
-export function KitTile(
-  id: StructureId,
-  opts: { selected: boolean; affordable: boolean },
-  onPick: () => void,
-): HTMLElement {
-  const info = STRUCTURE_INFO[id];
-  const tile = el(
-    'button',
-    { type: 'button', class: 'kit-tile', 'data-structure': id },
-    Badge(info.icon, opts.selected ? 'selected' : 'rest'),
-    el('span', { class: 'kit-name', text: info.name }),
-    el('span', { class: 'kit-cost', text: `${info.cost} ${info.cost === 1 ? 'CELL' : 'CELLS'}` }),
-  );
-  tile.classList.toggle('selected', opts.selected);
-  tile.classList.toggle('dimmed', !opts.affordable);
-  tile.addEventListener('click', onPick);
-  return tile;
 }
 
 /** Upgrade card: chamfered frame (common gunmetal, rare double amber), category mark, name, text. */

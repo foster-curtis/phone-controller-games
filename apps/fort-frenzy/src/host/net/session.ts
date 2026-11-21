@@ -398,15 +398,6 @@ export function createSession(deps: SessionDeps): Session {
         }
         return ack(from, seq, 'invalid');
       }
-      case 'build':
-        if (slot === null) return ack(from, seq, 'phase');
-        return toSim(
-          from,
-          seq,
-          i.action === 'select'
-            ? { c: 'build', slot, action: 'select', structure: i.structure }
-            : { c: 'build', slot, action: i.action },
-        );
       case 'buy':
         if (slot === null) return ack(from, seq, 'phase');
         return toSim(from, seq, { c: 'buy', slot, item: i.item });
@@ -416,9 +407,6 @@ export function createSession(deps: SessionDeps): Session {
       case 'card':
         if (slot === null) return ack(from, seq, 'phase');
         return toSim(from, seq, { c: 'card', slot, card: i.card });
-      case 'give':
-        if (slot === null) return ack(from, seq, 'phase');
-        return toSim(from, seq, { c: 'give', slot });
       case 'claim': {
         // Resume into a new room (§15.8): an unmatched phone takes a free restored slot.
         const r = party.claim(from, i.slot);

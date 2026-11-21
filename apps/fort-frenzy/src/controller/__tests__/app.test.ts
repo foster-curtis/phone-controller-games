@@ -87,7 +87,7 @@ describe('screens follow me.screen', () => {
     emitSample(client, 'dead', 2);
     expect(root.querySelector('.combat')).toBe(view);
     expect(root.querySelector('.combat')!.classList.contains('is-dead')).toBe(true);
-    emitSample(client, 'build', 3);
+    emitSample(client, 'shop', 3);
     expect(root.querySelector('.combat')).toBeNull();
     expect(root.querySelector('.build')).not.toBeNull();
   });
@@ -99,29 +99,18 @@ describe('screens follow me.screen', () => {
     expect(app!.group()).toBe('combat');
   });
 
-  it('shows the Build kit tiles with costs, or "No buildings to build"', () => {
-    const { client } = mount();
-    emitSample(client, 'build', 1);
-    expect(root.querySelectorAll('.kit-tile')).toHaveLength(2);
-    expect(root.querySelector('.kit-cost')?.textContent).toBe('2 CELLS');
-    emitSample(client, 'build-none', 2);
-    expect(root.querySelector('.no-kit')!.hasAttribute('hidden')).toBe(false);
-    expect(root.querySelector('.kit-tiles')!.hasAttribute('hidden')).toBe(true);
-  });
-
-  it('shop tab: coins, card with rarity and mark, rows, QM-only hidden for others', () => {
+  it('build phase is the shop view: no tabs, coins, card with rarity and mark, every visible row', () => {
     const { client } = mount();
     emitSample(client, 'shop', 1).after?.(root);
     expect(root.querySelector('.coins')!.textContent).toBe('1,240');
     expect(root.querySelectorAll('.upgrade-card')).toHaveLength(3);
     expect(root.querySelectorAll('.upgrade-card.rare')).toHaveLength(2);
-    expect(root.querySelector('[data-item="base_armor"]')).toBeNull();
+    expect(root.querySelector('.tabs, .kit-tile, .give, [data-tab]')).toBeNull();
+    expect(root.querySelector('[data-item="base_armor"]')).not.toBeNull();
     expect(root.querySelector('[data-item="repair"]')).not.toBeNull();
     expect(root.querySelector('[data-item="spiked_walls"] .shop-req')!.textContent).toContain(
       'Maya',
     );
-    emitSample(client, 'build-none', 2);
-    expect(root.querySelector('[data-item="base_armor"]')).not.toBeNull();
   });
 
   it('claim lists free slots and sends a claim intent', () => {

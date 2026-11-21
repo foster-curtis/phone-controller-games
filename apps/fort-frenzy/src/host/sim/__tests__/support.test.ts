@@ -10,9 +10,6 @@ import { PLAYER_COLOR_IDS } from '../../../shared/ids';
 import { createSim, ScriptedInputSource, squadSize, type Sim } from '../index';
 import type { PlayerEnt, SimEvent, SoldierEnt } from '../types';
 
-const REPAIR = { x: 18, y: 2.5 };
-const DEPOT = { x: 22.5, y: 1.5 };
-
 function mixed(classes: ClassId[], content: Content = baseContent) {
   const pads = classes.map(() => new ScriptedInputSource());
   const sim: Sim = createSim(
@@ -74,120 +71,6 @@ function mixed(classes: ClassId[], content: Content = baseContent) {
 const hurt = (p: PlayerEnt, hp: number) => {
   p.hp = hp;
 };
-
-describe('Artificer supply perks (§6)', () => {
-  it('buys crates at a discount, carries 8 with no slowdown', () => {
-    const h = mixed(['artificer']);
-    h.toBuild();
-    h.sim.world.team.coins = 100;
-    h.put(0, DEPOT.x, DEPOT.y);
-    for (let i = 0; i < 10; i++) {
-      h.pads[0]!.tap('actionTaps');
-      h.run(1);
-    }
-    expect(h.p(0).crates).toBe(artificer.carryCap);
-    // Price 2 at a 50% discount: 1 coin each.
-    expect(h.sim.world.team.coins).toBe(100 - 8);
-
-    const speed = (n: number) => {
-      const g = mixed(['artificer']);
-      g.toBuild();
-      g.put(0, 4, 10);
-      g.p(0).crates = n;
-      g.pads[0]!.set({ move: { x: 1, y: 0 } });
-      g.run(60);
-      return g.p(0).x - 4;
-    };
-    expect(speed(8)).toBeCloseTo(speed(0), 6);
-  });
-
-  it('throws a crate to the nearest Ranger; it lands on the target', () => {
-    const h = mixed(['artificer', 'ranger', 'ranger']);
-    h.toCombat();
-    h.put(0, 10, 10);
-    h.put(1, 14, 10); // 4 tiles
-    h.put(2, 16, 12); // farther
-    h.p(0).crates = 2;
-    h.pads[0]!.tap('actionTaps');
-    h.run(1);
-    const c = h.sim.world.thrown![0]!;
-    expect(c).toBeDefined();
-    expect(c.to).toBe(1);
-    expect(h.p(0).crates).toBe(1);
-    // The target walks on during the flight; the crate follows and lands on them.
-    h.pads[1]!.set({ move: { x: 0, y: 1 } });
-    let landedAt: { x: number; y: number } | null = null;
-    h.until(() => {
-      const t = h.sim.world.thrown!.find((x) => x.id === c.id);
-      if (t) landedAt = { x: t.x, y: t.y };
-      return !t;
-    }, 120);
-    expect(h.p(1).crates).toBe(1);
-    // Its last landing point was the receiver (one step's walk behind at most).
-    expect(landedAt!.x).toBeCloseTo(h.p(1).x, 1);
-    expect(Math.abs(landedAt!.y - h.p(1).y)).toBeLessThan(0.1);
-    expect(h.sim.world.cratePiles).toHaveLength(0);
-  });
-
-  it('no Ranger or Warden in reach: the action button does nothing (Give stays on hold)', () => {
-    const h = mixed(['artificer', 'commander']);
-    h.toCombat();
-    h.put(0, 10, 10);
-    h.put(1, 11, 10);
-    h.p(0).crates = 2;
-    h.pads[0]!.tap('actionTaps');
-    h.run(1);
-    expect(h.sim.world.thrown).toHaveLength(0);
-    expect(h.p(0).crates).toBe(2);
-  });
-
-  it('a throw whose receiver went down drops where it lands', () => {
-    const h = mixed(['artificer', 'ranger']);
-    h.toCombat();
-    h.put(0, 10, 10);
-    h.put(1, 15, 10);
-    h.p(0).crates = 1;
-    h.pads[0]!.tap('actionTaps');
-    h.run(1);
-    h.p(1).hp = 0;
-    h.until(() => h.sim.world.thrown!.length === 0, 120);
-    expect(h.sim.world.cratePiles.reduce((n, p) => n + p.n, 0)).toBe(1);
-  });
-
-  it('the emergency kit repairs the base and is consumed, in either phase', () => {
-    for (const phase of ['build', 'combat'] as const) {
-      const h = mixed(['artificer']);
-      if (phase === 'build') h.toBuild();
-      else h.toCombat();
-      const b = h.sim.world.base;
-      b.hp = b.maxHp - 400;
-      h.p(0).kits = 1;
-      h.put(0, REPAIR.x, REPAIR.y);
-      h.pads[0]!.tap('actionTaps');
-      const used = h.collect('kitUsed', 1);
-      expect(used).toEqual([{ e: 'kitUsed', slot: 0 }]);
-      expect(h.p(0).kits).toBe(0);
-      expect(b.hp).toBe(b.maxHp - 400 + artificer.supply.kitRepair);
-      // No kit left: nothing more happens.
-      h.pads[0]!.tap('actionTaps');
-      expect(h.collect('kitUsed', 1)).toHaveLength(0);
-    }
-  });
-
-  it('a crate in hand is delivered first (row 2 before row 3)', () => {
-    const h = mixed(['artificer']);
-    h.toBuild();
-    const b = h.sim.world.base;
-    b.hp = b.maxHp - 400;
-    h.p(0).kits = 1;
-    h.p(0).crates = 1;
-    h.put(0, REPAIR.x, REPAIR.y);
-    h.pads[0]!.tap('actionTaps');
-    h.run(1);
-    expect(h.p(0).crates).toBe(0);
-    expect(h.p(0).kits).toBe(1);
-  });
-});
 
 describe('Field Medic (§8)', () => {
   it('is off in the build phase', () => {
@@ -288,7 +171,7 @@ describe('Commander (§8)', () => {
     expect(back.hp).toBe(b0);
   });
 
-  it('starts with 3 soldiers that follow him; the flag makes them hold it; recall brings them back', () => {
+  it('starts with 3 soldiers that follow him', () => {
     const h = mixed(['commander']);
     h.toBuild();
     expect(h.squad(0)).toHaveLength(3);
@@ -297,37 +180,6 @@ describe('Commander (§8)', () => {
     h.put(0, 10, 12);
     h.run(240);
     for (const u of h.squad(0)) expect(Math.hypot(u.x - 10, u.y - 12)).toBeLessThan(2.2);
-
-    // Plant: the flag stays where he stood; he walks away; they hold the flag.
-    h.pads[0]!.tap('actionTaps');
-    const plant = h.collect('flag', 1);
-    expect(plant).toEqual([{ e: 'flag', slot: 0, action: 'plant' }]);
-    expect(h.p(0).flag).toEqual({ x: 10, y: 12 });
-    expect(h.squad(0).every((u) => u.mode === 'rally')).toBe(true);
-    h.pads[0]!.set({ move: { x: 1, y: 0 } });
-    h.run(90);
-    h.pads[0]!.set({ move: { x: 0, y: 0 } });
-    h.run(120);
-    expect(h.p(0).x).toBeGreaterThan(15);
-    for (const u of h.squad(0)) expect(Math.hypot(u.x - 10, u.y - 12)).toBeLessThan(1.3);
-
-    // Recall: they follow him again.
-    h.pads[0]!.tap('actionTaps');
-    expect(h.collect('flag', 1)[0]!.action).toBe('recall');
-    expect(h.p(0).flag).toBeNull();
-    h.run(240);
-    for (const u of h.squad(0)) {
-      expect(u.mode).toBe('follow');
-      expect(Math.hypot(u.x - h.p(0).x, u.y - h.p(0).y)).toBeLessThan(2.2);
-    }
-  });
-
-  it('the flag is planted only in combat (build phase rows 1–4)', () => {
-    const h = mixed(['commander']);
-    h.toBuild();
-    h.pads[0]!.tap('actionTaps');
-    h.run(2);
-    expect(h.p(0).flag).toBeNull();
   });
 
   it('soldiers attack enemies near their post', () => {
@@ -428,24 +280,5 @@ describe('Commander (§8)', () => {
     for (const u of h.squad(0)) u.mode = 'rally';
     h.run(30);
     expect(near.effects.some((e) => e.def === 'aura_lead_from_the_front')).toBe(false);
-  });
-});
-
-describe('Give for classes with no structures (§10.1)', () => {
-  it('a Give commit (radial slot down) hands a crate over for the Artificer and Commander', () => {
-    const h = mixed(['artificer', 'commander', 'ranger']);
-    h.toCombat();
-    h.put(0, 10, 10);
-    h.put(1, 11, 10);
-    h.put(2, 20, 20);
-    h.p(0).crates = 3;
-    h.p(1).crates = 1;
-    h.pads[0]!.tap('radialCommits', { radialSlot: 3 });
-    h.pads[1]!.tap('radialCommits', { radialSlot: 3 });
-    const gives = h.collect('crate', 1);
-    expect(gives.map((g) => [g.action, g.slot, g.to])).toEqual([
-      ['give', 0, 1],
-      ['give', 1, 0],
-    ]);
   });
 });

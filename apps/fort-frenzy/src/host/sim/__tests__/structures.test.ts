@@ -4,7 +4,7 @@
 // occupied tiles; Fortify only on towers (§8); the mortar's arcing shell and blast (§7.2, §8).
 import { describe, expect, it } from 'vitest';
 import { content as baseContent, type Content } from '../../../content';
-import { bombTower, fortify, snare, wall } from '../../../content/balance';
+import { bombTower, snare, wall } from '../../../content/balance';
 import type { EnemyDef } from '../../../content/types';
 import { placementValid } from '../index';
 import { effects } from '../registry';
@@ -161,21 +161,6 @@ describe('placement on occupied tiles', () => {
     expect(placementValid(w, 'snare', [5, 5], 0)).toBe(false);
     expect(placementValid(w, 'wall', [5, 5], 0)).toBe(false);
   });
-
-  it('the Warden builds a net under an enemy with the build arc', () => {
-    const h = combat(1, ['warden']);
-    h.put(0, 8.5, 12.5);
-    h.p(0).crates = 2;
-    const g = h.sim.spawnEnemy('grunt', 8.4, 12.6);
-    g.hp = g.maxHp = 1e9;
-    h.pads[0]!.tap('radialCommits', { radialSlot: 0 }); // wall: blocked by the enemy
-    h.run(1);
-    expect(h.sim.world.structures).toHaveLength(0);
-    h.pads[0]!.tap('radialCommits', { radialSlot: 1 }); // snare
-    h.run(1);
-    expect(h.sim.world.structures.map((s) => [s.kind, s.tile])).toEqual([['snare', [8, 12]]]);
-    expect(h.p(0).crates).toBe(2 - snare.cost);
-  });
 });
 
 describe('shock nets', () => {
@@ -275,68 +260,6 @@ describe('shock nets', () => {
     expect(h.sim.world.structures).toHaveLength(0);
     expect(h.sim.world.grid.occupant[10 * COLS + 10]).toBe(0);
     expect(placementValid(h.sim.world, 'snare', [10, 10], 0)).toBe(true);
-  });
-});
-
-describe('Fortify', () => {
-  it('attaches only to a tower beside the Warden, once, for a defense bonus', () => {
-    const h = combat(1, ['warden']);
-    h.p(0).crates = 4;
-    const w = h.sim.place('wall', 10, 10, 0);
-    h.put(0, 11.4, 10.5);
-    h.pads[0]!.tap('radialCommits', { radialSlot: 2 });
-    h.run(1);
-    expect(w.fortified).toBe(false);
-    expect(h.p(0).crates).toBe(4);
-    const t = h.sim.place('arrow_tower', 10, 12, 0);
-    h.put(0, 11.4, 12.5);
-    h.pads[0]!.tap('radialCommits', { radialSlot: 2 });
-    h.run(1);
-    expect(t.fortified).toBe(true);
-    expect(t.stats.damageReduction).toBeCloseTo(fortify.defense, 6);
-    expect(h.p(0).crates).toBe(4 - fortify.cost);
-    expect(h.events('built')).toEqual([
-      expect.objectContaining({ id: t.id, structure: 'fortify', tile: [10, 12] }),
-    ]);
-    // A fortified tower can't be fortified again; walls and open ground never.
-    expect(placementValid(h.sim.world, 'fortify', [10, 12], 0)).toBe(false);
-    expect(placementValid(h.sim.world, 'fortify', [10, 10], 0)).toBe(false);
-    expect(placementValid(h.sim.world, 'fortify', [5, 5], 0)).toBe(false);
-  });
-
-  it('a fortified tower takes less damage', () => {
-    const h = combat(1, ['warden']);
-    // A sealed line: walls, with a fortified tower where the Grunt arrives.
-    for (let col = 0; col < COLS; col++) if (col !== 18) h.sim.place('wall', col, 15, 0);
-    const t = h.sim.place('arrow_tower', 18, 15, 0);
-    h.put(0, 18.5, 14.4);
-    h.p(0).crates = 2;
-    h.pads[0]!.tap('radialCommits', { radialSlot: 2 });
-    h.run(1);
-    expect(t.fortified).toBe(true);
-    h.put(0, 30, 3.5);
-    const g = h.sim.spawnEnemy('grunt', 18.5, 17.5);
-    g.hp = g.maxHp = 1e9;
-    const hits: number[] = [];
-    h.until(() => {
-      for (const d of h.events('damage')) if (d.target !== g.id) hits.push(d.amount);
-      return hits.length > 0;
-    }, 60 * 20);
-    expect(h.events('damage').find((d) => d.target !== g.id)?.target).toBe(t.id);
-    expect(hits[0]).toBeCloseTo(baseContent.enemies[0]!.attack.damage * (1 - fortify.defense), 6);
-  });
-
-  it('works on the mortar too, and the build phase ghost places it', () => {
-    const h = harness(1, 1, { content, classes: ['warden'] });
-    h.toBuild();
-    const m = h.sim.place('bomb_tower', 6, 6, 0);
-    h.put(0, 6.5, 7.4);
-    h.p(0).crates = 2;
-    h.sim.command({ c: 'build', slot: 0, action: 'select', structure: 'fortify' });
-    h.sim.command({ c: 'build', slot: 0, action: 'place', ref: 7 });
-    h.run(1);
-    expect(h.events('command')).toEqual([{ e: 'command', ref: 7, slot: 0, ok: true }]);
-    expect(m.fortified).toBe(true);
   });
 });
 

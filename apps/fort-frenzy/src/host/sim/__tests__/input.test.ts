@@ -18,16 +18,15 @@ describe('input freshness', () => {
       move: { x: 1, y: 0 },
       mainAim: { x: 0.5, y: 0.5 },
       mainAiming: true,
-      radialOpen: true,
-      radialSlot: 2,
+      buildAiming: true,
       mainFires: 4,
-      actionTaps: 2,
+      buildFires: 2,
     });
     src.push(live, 100);
     expect(src.sample(100 + STALE)).toEqual(live);
     const stale = src.sample(100 + STALE + 1);
-    expect(stale).toEqual({ ...neutralInput(), mainFires: 4, actionTaps: 2 });
-    src.push(input({ move: { x: 0, y: 1 }, mainFires: 4, actionTaps: 2 }), 200);
+    expect(stale).toEqual({ ...neutralInput(), mainFires: 4, buildFires: 2 });
+    src.push(input({ move: { x: 0, y: 1 }, mainFires: 4, buildFires: 2 }), 200);
     expect(src.sample(201).move).toEqual({ x: 0, y: 1 });
   });
 
@@ -56,7 +55,7 @@ describe('press counters', () => {
 
   it('the first sample only baselines the counters', () => {
     const pad = new ScriptedInputSource();
-    pad.set({ mainFires: 7, actionTaps: 3 });
+    pad.set({ mainFires: 7, buildFires: 3 });
     const sim = createSim(startOf(1), { sources: new Map([[0, pad]]) });
     let shots = 0;
     while (sim.world.phase !== 'build') sim.step();
@@ -97,5 +96,34 @@ describe('press counters', () => {
     expect(fires(h, 3)).toBe(0);
     pad.tap('mainFires');
     expect(fires(h)).toBe(1);
+  });
+});
+
+describe('build press without a full meter (§10.1, RD2)', () => {
+  it('a Commander with a flag out recalls it in combat when buildFires grows', () => {
+    const h = harness(1, 1, { classes: ['commander'] });
+    h.toCombat();
+    h.holdSpawns();
+    const p = h.p(0);
+    p.meter = 0;
+    p.flag = { x: 10, y: 12 };
+    h.pads[0]!.tap('buildFires');
+    const recalls = h.collect('recall', 1);
+    expect(recalls).toHaveLength(1);
+    expect(recalls[0]!.e).toBe('recall');
+    expect(p.flag).toBeNull();
+  });
+
+  it('a build press with meter < 1 does nothing for a non-Commander', () => {
+    const h = harness(1, 1, { classes: ['ranger'] });
+    h.toCombat();
+    h.holdSpawns();
+    const p = h.p(0);
+    p.meter = 0;
+    const before = { crates: p.crates, flag: p.flag, structures: h.sim.world.structures.length };
+    h.pads[0]!.tap('buildFires');
+    expect(h.collect('recall', 2)).toHaveLength(0);
+    expect(h.sim.world.structures).toHaveLength(before.structures);
+    expect([p.crates, p.flag]).toEqual([before.crates, before.flag]);
   });
 });

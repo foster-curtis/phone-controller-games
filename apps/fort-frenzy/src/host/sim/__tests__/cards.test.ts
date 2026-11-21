@@ -480,24 +480,6 @@ describe('artificer cards', () => {
     expect(effectOf(h.p(1), 'shield')!.strength).toBeLessThan(40);
   });
 
-  it('bulk_buyer: every 3rd crate bought is free', () => {
-    const spent = (picks: Pick[]) => {
-      const h = harness(1, 1, { classes: ['artificer'] });
-      h.toBuild();
-      for (const [slot, card] of picks) h.give(slot, card);
-      h.sim.world.team.coins = 100;
-      h.put(0, 22.5, 1.5);
-      for (let i = 0; i < 6; i++) {
-        h.pads[0]!.tap('actionTaps');
-        h.run(1);
-      }
-      expect(h.p(0).crates).toBe(6);
-      return 100 - h.sim.world.team.coins;
-    };
-    expect(spent([])).toBe(6);
-    expect(spent([[0, 'bulk_buyer']])).toBe(4);
-  });
-
   it('wide_aura: Field Medic reaches 30% further', () => {
     const healed = (picks: Pick[]) => {
       const h = game(['artificer', 'ranger'], picks);

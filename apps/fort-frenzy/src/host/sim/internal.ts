@@ -28,10 +28,9 @@ export interface SlotInput {
   input: PlayerInput;
   main: boolean;
   super: boolean;
-  action: boolean;
-  radial: boolean;
+  build: boolean;
   /** Counters seen last; `baseline` = the next sample only re-baselines (connect, start). */
-  prev: { mainFires: number; superFires: number; actionTaps: number; radialCommits: number };
+  prev: { mainFires: number; superFires: number; buildFires: number };
   baseline: boolean;
 }
 

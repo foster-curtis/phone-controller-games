@@ -69,26 +69,23 @@ function sampleInputs(s: FullState, sources: Map<number, InputSource>, obs?: Ste
     obs?.input?.(t, p.slot, raw);
     const st = s.inputs.get(p.slot)!;
     st.input = raw;
-    st.main = st.super = st.action = st.radial = false;
+    st.main = st.super = st.build = false;
     const prev = st.prev;
     if (!p.connected || st.baseline) {
       // Dazed, or the first sample after a (re)connect: baseline only, never fire (§15.3).
       prev.mainFires = raw.mainFires;
       prev.superFires = raw.superFires;
-      prev.actionTaps = raw.actionTaps;
-      prev.radialCommits = raw.radialCommits;
+      prev.buildFires = raw.buildFires;
       st.baseline = !p.connected;
       continue;
     }
     // A counter going backwards (phone reload) re-baselines without firing.
     st.main = raw.mainFires > prev.mainFires;
     st.super = raw.superFires > prev.superFires;
-    st.action = raw.actionTaps > prev.actionTaps;
-    st.radial = raw.radialCommits > prev.radialCommits;
+    st.build = raw.buildFires > prev.buildFires;
     prev.mainFires = raw.mainFires;
     prev.superFires = raw.superFires;
-    prev.actionTaps = raw.actionTaps;
-    prev.radialCommits = raw.radialCommits;
+    prev.buildFires = raw.buildFires;
   }
 }
 

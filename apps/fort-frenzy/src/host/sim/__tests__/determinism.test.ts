@@ -14,7 +14,7 @@ function wanderer(slot: number): ScriptedInputSource {
     if (t % 45 === 0) pad.tap('mainFires', { mainAim: { x: 0, y: 0 } });
     if (t % 70 === 0) pad.tap('mainFires', { mainAim: { x: a - 0.5, y: 0.9 } });
     if (t % 400 === 0) pad.tap('superFires');
-    if (t % 150 === 0) pad.tap('actionTaps');
+    if (t % 150 === 0) pad.tap('buildFires');
   });
 }
 

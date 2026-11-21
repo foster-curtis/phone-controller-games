@@ -59,7 +59,7 @@ describe('team pause on the phone (C4, FF14-fix-1)', () => {
     expect(layer().hidden).toBe(true);
     pauseBtn()!.click();
     expect(intents(client).at(-1)).toEqual({ k: 'pause', paused: true });
-    emitSample(client, 'build', 2);
+    emitSample(client, 'shop', 2);
     expect(pauseBtn()!.hidden).toBe(false);
     emitSample(client, 'dead', 3);
     expect(pauseBtn()!.hidden).toBe(false);

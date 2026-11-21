@@ -57,9 +57,7 @@ const stats = (over: Partial<RunStats>): RunStats => ({
   damageTaken: 0,
   deaths: 0,
   healingDone: 0,
-  cratesDelivered: 0,
-  cratesGiven: 0,
-  structuresBuilt: 0,
+  buildsPlaced: 0,
   ...over,
 });
 
@@ -140,14 +138,14 @@ const summary = (result: 'victory' | 'defeat'): TvView => {
           {
             ...who(2),
             classId: 'artificer',
-            stats: stats({ cratesDelivered: 38 }),
-            award: 'cratesDelivered',
+            stats: stats({ healingDone: 380 }),
+            award: 'healingDone',
           },
           {
             ...who(3),
             classId: 'commander',
-            stats: stats({ structuresBuilt: 17 }),
-            award: 'structuresBuilt',
+            stats: stats({ buildsPlaced: 17 }),
+            award: 'buildsPlaced',
           },
         ],
       },

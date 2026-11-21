@@ -1,11 +1,10 @@
 // Phone state sync (SPEC §15.6): the full `team` and per-phone `me` snapshots, built from the party
 // (lobby, presence) and the sim's world (the run). Pure: no relay, no clock.
 import type { Content } from '../../content';
-import type { CardId, ClassId, EnemyId, PlayerColorId, StructureId } from '../../shared/ids';
+import type { ActIconId, BuildId, CardId, ClassId, EnemyId, PlayerColorId } from '../../shared/ids';
 import {
   RUN_STAT_KEYS,
-  type ArcSlot,
-  type MeAction,
+  type MeBuild,
   type MeView,
   type RunStats,
   type RunSummary,
@@ -14,7 +13,7 @@ import {
   type TeamView,
 } from '../../shared/messages';
 import type { Member, Party } from '../party';
-import { buildTile, itemState, placementValid, throwTarget } from '../sim';
+import { itemState } from '../sim';
 import { STEP_MS, type PlayerEnt, type RunSettings, type World } from '../sim/types';
 
 export type FfParty = Party<PlayerColorId, ClassId>;
@@ -100,8 +99,7 @@ export function teamView(ctx: ViewCtx): TeamView {
     difficulty: ctx.settings.difficulty,
     leaderId: party.leaderId,
     roster,
-    // The team shop (§6.2, FF12): the sim's own visibility and price rules. Artificer-only rows
-    // go to every phone flagged `qmOnly`; phones show them only to Artificers (§10.3).
+    // The team shop (§6.2, FF12): the sim's own visibility and price rules.
     shop: content.shop.map((s) => {
       const st = w ? itemState(content, w, s) : null;
       const maxTier = s.repeatable ? 0 : s.tiers.length;
@@ -111,7 +109,6 @@ export function teamView(ctx: ViewCtx): TeamView {
         maxTier,
         price: st ? st.price : (s.tiers[0]?.price ?? null),
         visible: st?.visible ?? false,
-        qmOnly: s.qmOnly ?? false,
         holdToConfirm: st?.holdToConfirm ?? s.holdToConfirm ?? false,
       };
     }),
@@ -123,61 +120,35 @@ export function teamView(ctx: ViewCtx): TeamView {
   };
 }
 
-const tileKind = (w: World, x: number, y: number) => {
-  const c = Math.floor(x);
-  const r = Math.floor(y);
-  if (c < 0 || r < 0 || c >= w.grid.cols || r >= w.grid.rows) return null;
-  return w.grid.kinds[r * w.grid.cols + c] ?? null;
+/** Each knight's build and its button (§7.4, §10.1). RD3 reads them from content. */
+const BUILD_OF: Record<ClassId, { id: BuildId; input: MeBuild['input']; icon: ActIconId }> = {
+  warden: { id: 'shield_gen', input: 'aimed', icon: 'act-shield' },
+  ranger: { id: 'mine', input: 'tap', icon: 'act-mine' },
+  artificer: { id: 'beacon', input: 'aimed', icon: 'act-beacon' },
+  commander: { id: 'rally_flag', input: 'aimed', icon: 'act-flag' },
 };
 
-const dist = (ax: number, ay: number, bx: number, by: number) => Math.hypot(ax - bx, ay - by);
-
-/** The action button's icon (§10.1): the first matching row wins; the build phase has rows 1–4. */
-export function actionFor(content: Content, w: World, p: PlayerEnt): MeAction {
-  const def = content.characters.find((c) => c.id === p.classId);
-  const rules = content.rules;
-  if (!def || !rules || p.respawnAt !== null || !p.connected) return 'none';
-  if (w.phase !== 'build' && w.phase !== 'combat') return 'none';
-  const cap = def.carryCap;
-  if (p.crates < cap) {
-    const pile = w.cratePiles.some(
-      (c) =>
-        c.n > 0 &&
-        !(c.lockedSlot === p.slot && w.tick < c.lockedUntil) &&
-        dist(p.x, p.y, c.x, c.y) <= rules.pickupRadius,
-    );
-    if (pile) return 'pickup';
-  }
-  const kind = tileKind(w, p.x, p.y);
-  const hurt = w.base.hp > 0 && w.base.hp < w.base.maxHp;
-  if (p.crates > 0 && kind === 'repair' && hurt) return 'deliver';
-  if (p.classId === 'artificer' && p.kits > 0 && kind === 'repair' && hurt) return 'kit';
-  if (kind === 'armory' && p.crates < cap) return 'buy';
-  if (w.phase !== 'combat') return 'none';
-  if (def.build.length > 0 && p.crates > 0) return 'place';
-  const capOf = (q: PlayerEnt) => content.characters.find((c) => c.id === q.classId)?.carryCap ?? 0;
-  if (throwTarget(w, p, capOf)) return 'throw';
-  if (p.classId === 'commander') return p.flag ? 'recall' : 'flag';
-  return 'none';
+/**
+ * The build button (§10.1): the meter ring, and what a release does now. Full meter → place; else a
+ * Commander with his flag out → recall (a tap, `act-recall`); else dimmed. Builds only in combat.
+ */
+export function buildFor(w: World, p: PlayerEnt): MeBuild {
+  const b = BUILD_OF[p.classId];
+  const full = p.meter >= 1;
+  const able = w.phase === 'combat' && p.respawnAt === null && p.connected;
+  const recall = !full && p.classId === 'commander' && p.flag !== null;
+  return {
+    id: b.id,
+    input: recall ? 'tap' : b.input,
+    icon: recall ? 'act-recall' : b.icon,
+    meter: Math.min(1, Math.max(0, Math.round(p.meter * 100) / 100)),
+    full,
+    mode: !able ? 'none' : full ? 'place' : recall ? 'recall' : 'none',
+    active: w.builds.filter((x) => x.owner === p.slot).length,
+  };
 }
 
-/** What Give does now: hand to the nearest teammate in reach with room, else drop (§10.1). */
-export function giveFor(content: Content, w: World, p: PlayerEnt): 'give' | 'drop' | null {
-  if (p.crates <= 0 || p.respawnAt !== null) return null;
-  const reach = content.rules?.giveRadius ?? 0;
-  const capOf = (q: PlayerEnt) => content.characters.find((c) => c.id === q.classId)?.carryCap ?? 0;
-  const someone = w.players.some(
-    (q) =>
-      q !== p &&
-      q.connected &&
-      q.respawnAt === null &&
-      q.crates < capOf(q) &&
-      dist(p.x, p.y, q.x, q.y) <= reach,
-  );
-  return someone ? 'give' : 'drop';
-}
-
-const NO_CARDS: MeView['cards'] = { offer: null, picked: null, owned: [] };
+const NO_CARDS: MeView['cards'] = { offer: null, picked: null, owned: [], growth: null };
 
 export function blankMe(screen: MeView['screen']): MeView {
   return {
@@ -190,18 +161,12 @@ export function blankMe(screen: MeView['screen']): MeView {
     ready: false,
     hp: 0,
     maxHp: 0,
-    crates: 0,
-    carryCap: 0,
     superCharge: 0,
     superReady: false,
-    action: 'none',
-    kits: 0,
-    give: null,
-    arc: null,
-    buildKit: [],
+    superBlocked: false,
+    build: null,
     respawnMs: null,
     cards: NO_CARDS,
-    build: null,
     claim: null,
   };
 }
@@ -209,7 +174,7 @@ export function blankMe(screen: MeView['screen']): MeView {
 /** One phone's view; `m` null = not in the party (full, or before hello). */
 export function meView(ctx: ViewCtx, m: FfMember | null, full = false): MeView {
   if (!m) return blankMe(full ? 'full' : 'name');
-  const { party, content, world: w } = ctx;
+  const { party, world: w } = ctx;
   const base: MeView = {
     ...blankMe('name'),
     name: m.name,
@@ -238,9 +203,6 @@ export function meView(ctx: ViewCtx, m: FfMember | null, full = false): MeView {
   if (screen !== 'run') return { ...base, screen: screen ?? 'name' };
   const p = playerOf(w, m);
   if (!w || !p) return { ...base, screen: 'waiting' };
-  const def = content.characters.find((c) => c.id === p.classId);
-  const kit: StructureId[] = def ? [...def.build] : [];
-  const costOf = (id: StructureId) => content.structures.find((s) => s.id === id)?.cost ?? Infinity;
   const dead = p.respawnAt !== null;
   const meScreen: MeView['screen'] =
     w.phase === 'countdown'
@@ -252,7 +214,6 @@ export function meView(ctx: ViewCtx, m: FfMember | null, full = false): MeView {
           : dead
             ? 'dead'
             : 'combat';
-  const slots: ArcSlot[] = [kit[0] ?? null, kit[1] ?? null, kit[2] ?? null, 'give'];
   return {
     ...base,
     screen: meScreen,
@@ -260,22 +221,11 @@ export function meView(ctx: ViewCtx, m: FfMember | null, full = false): MeView {
     ready: w.phase === 'build' ? p.ready : m.ready,
     hp: Math.ceil(p.hp),
     maxHp: p.maxHp,
-    crates: p.crates,
-    carryCap: def?.carryCap ?? 0,
     superCharge: Math.min(1, Math.round(p.superCharge * 100) / 100),
     superReady: p.superCharge >= 1,
-    action: actionFor(content, w, p),
-    kits: p.kits,
-    give: giveFor(content, w, p),
-    // Classes with no structures get Give alone, so holding the action button gives directly and
-    // repeats every ~0.3 s (§10.1; the kit's radial never opens with a single slot).
-    arc: {
-      slots,
-      enabled: slots.map((s) =>
-        s === null ? false : s === 'give' ? p.crates > 0 : costOf(s) <= p.crates,
-      ),
-    },
-    buildKit: kit,
+    // The Commander at his squad cap (RD9).
+    superBlocked: false,
+    build: buildFor(w, p),
     respawnMs: dead ? Math.max(0, Math.round((p.respawnAt! - w.tick) * STEP_MS)) : null,
     // Private card offer and owned stacks (§6.1, FF12).
     cards: {
@@ -284,22 +234,9 @@ export function meView(ctx: ViewCtx, m: FfMember | null, full = false): MeView {
       owned: (Object.keys(p.cards) as CardId[])
         .filter((id) => (p.cards[id] ?? 0) > 0)
         .map((id) => ({ id, n: p.cards[id]! })),
+      // Class growth header (RD11).
+      growth: null,
     },
-    build:
-      w.phase === 'build'
-        ? {
-            selected: p.ghost,
-            valid:
-              p.ghost === null
-                ? null
-                : placementValid(
-                    w,
-                    p.ghost,
-                    buildTile(w, p.ghost, p, content.rules?.fortifyReach ?? 0),
-                    p.slot,
-                  ),
-          }
-        : null,
   };
 }
 

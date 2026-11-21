@@ -104,13 +104,12 @@ export function fortifyTower(s: FullState, st: StructureEnt): StructureEnt {
 export function buildAtFeet(s: FullState, p: PlayerEnt, kind: StructureId): AckReason | null {
   const def = s.cat.structure(kind);
   if (!s.cat.character(p.classId).build.includes(kind)) return 'invalid';
-  if (p.crates < def.cost) return 'crates';
+  if (p.crates < def.cost) return 'invalid';
   const tile = buildTile(s.world, kind, p, s.cat.rules.fortifyReach);
   if (!placementValid(s.world, kind, tile, p.slot)) return 'invalid';
   const st = kind === 'fortify' ? attachFortify(s, tile) : s.placeStructure(kind, ...tile, p.slot);
   p.crates -= def.cost;
   p.lastBuilt = kind;
-  p.run.structuresBuilt++;
   s.emit({ e: 'built', id: st.id, structure: kind, tile, slot: p.slot });
   return null;
 }

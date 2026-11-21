@@ -1,9 +1,8 @@
 // Step 1 (SPEC §15.3): commands in logged order. Each answers with a `command` event when it carries
 // a `ref` (the intent ack, BUILD_PLAN §8 FF1).
 import type { AckReason } from '../../shared/messages';
-import { buildAtFeet } from './building';
 import { offerFor, pickCard } from './cards';
-import { dropAll, give } from './crates';
+import { dropAll } from './crates';
 import { buy, request } from './shop';
 import { spawnGroup, startBuild } from './lifecycle';
 import { releaseAll } from './players';
@@ -37,22 +36,6 @@ function apply(s: FullState, cmd: SimCommand): AckReason | null {
       if (w.phase !== 'build') return 'phase';
       p.ready = cmd.ready;
       return null;
-    case 'build': {
-      if (w.phase !== 'build') return 'phase';
-      if (cmd.action === 'cancel') {
-        p.ghost = null;
-        return null;
-      }
-      if (cmd.action === 'select') {
-        if (!s.cat.character(p.classId).build.includes(cmd.structure)) return 'invalid';
-        p.ghost = cmd.structure;
-        return null;
-      }
-      if (p.ghost === null || p.respawnAt !== null || !p.connected) return 'invalid';
-      const why = buildAtFeet(s, p, p.ghost);
-      if (why === null) p.ghost = null;
-      return why;
-    }
     case 'buy':
       // The phone shop (§6.2, §10.3; FF12).
       return buy(s, p, cmd.item);
@@ -60,9 +43,6 @@ function apply(s: FullState, cmd: SimCommand): AckReason | null {
       return request(s, p, cmd.item, cmd.on);
     case 'card':
       return pickCard(s, p, cmd.card);
-    case 'give':
-      if (p.respawnAt !== null || !p.connected) return 'invalid';
-      return give(s, p);
   }
 }
 
@@ -97,6 +77,9 @@ function debug(s: FullState, cmd: Extract<SimCommand, { c: 'debug' }>): AckReaso
       return null;
     case 'coins':
       w.team.coins = Math.max(0, w.team.coins + cmd.amount);
+      return null;
+    case 'meter':
+      for (const p of w.players) p.meter = 1;
       return null;
     case 'spawn':
       // One group: a Swarm spawns its whole pack (§9.1). The Colossus has no content until FF11.

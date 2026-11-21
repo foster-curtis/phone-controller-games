@@ -50,7 +50,6 @@ const SHOP: TeamView['shop'] = [
     maxTier: 1,
     price: 180,
     visible: true,
-    qmOnly: false,
     holdToConfirm: false,
   },
   {
@@ -59,7 +58,6 @@ const SHOP: TeamView['shop'] = [
     maxTier: 3,
     price: 320,
     visible: true,
-    qmOnly: false,
     holdToConfirm: true,
   },
   {
@@ -68,7 +66,6 @@ const SHOP: TeamView['shop'] = [
     maxTier: 1,
     price: 420,
     visible: true,
-    qmOnly: false,
     holdToConfirm: true,
   },
   {
@@ -77,7 +74,6 @@ const SHOP: TeamView['shop'] = [
     maxTier: 3,
     price: 260,
     visible: true,
-    qmOnly: false,
     holdToConfirm: false,
   },
   {
@@ -86,7 +82,6 @@ const SHOP: TeamView['shop'] = [
     maxTier: 1,
     price: 40,
     visible: true,
-    qmOnly: false,
     holdToConfirm: false,
   },
   {
@@ -95,7 +90,6 @@ const SHOP: TeamView['shop'] = [
     maxTier: 3,
     price: null,
     visible: true,
-    qmOnly: false,
     holdToConfirm: false,
   },
   {
@@ -104,7 +98,6 @@ const SHOP: TeamView['shop'] = [
     maxTier: 1,
     price: 500,
     visible: true,
-    qmOnly: true,
     holdToConfirm: true,
   },
   {
@@ -113,7 +106,6 @@ const SHOP: TeamView['shop'] = [
     maxTier: 1,
     price: 150,
     visible: true,
-    qmOnly: true,
     holdToConfirm: false,
   },
 ];
@@ -156,35 +148,28 @@ export function sampleMe(over: Partial<MeView> = {}): MeView {
     ready: false,
     hp: 80,
     maxHp: 100,
-    crates: 1,
-    carryCap: 3,
     superCharge: 0.7,
     superReady: false,
-    action: 'pickup',
-    kits: 0,
-    give: 'give',
-    arc: null,
-    buildKit: [],
+    superBlocked: false,
     respawnMs: null,
-    cards: { offer: null, picked: null, owned: [] },
-    build: null,
+    cards: { offer: null, picked: null, owned: [], growth: null },
+    build: BUILD_RANGER_OFF,
     claim: null,
     ...over,
   };
 }
 
-const RANGER_ARC: MeView['arc'] = {
-  slots: ['arrow_tower', 'bomb_tower', null, 'give'],
-  enabled: [true, false, false, true],
-};
-const WARDEN_ARC: MeView['arc'] = {
-  slots: ['wall', 'snare', 'fortify', 'give'],
-  enabled: [true, true, true, true],
-};
-const GIVE_ONLY: MeView['arc'] = {
-  slots: [null, null, null, 'give'],
-  enabled: [false, false, false, true],
-};
+const buildBtn = (over: Partial<NonNullable<MeView['build']>>): MeView['build'] => ({
+  id: 'shield_gen',
+  input: 'aimed',
+  icon: 'act-shield',
+  meter: 0,
+  full: false,
+  mode: 'none',
+  active: 0,
+  ...over,
+});
+const BUILD_RANGER_OFF = buildBtn({});
 const OFFER: CardId[] = ['piercing_shot', 'haste', 'deadeye'];
 
 const SUMMARY: TeamView['summary'] = {
@@ -235,9 +220,7 @@ function stats(over: Partial<NonNullable<TeamView['summary']>['players'][number]
     damageTaken: 0,
     deaths: 0,
     healingDone: 0,
-    cratesDelivered: 0,
-    cratesGiven: 0,
-    structuresBuilt: 0,
+    buildsPlaced: 0,
     ...over,
   };
 }
@@ -292,38 +275,42 @@ export const SAMPLES: Record<string, () => Sample> = {
     team: sampleTeam({ phase: 'combat' }),
     me: sampleMe({ superCharge: 1, superReady: true }),
   }),
-  'combat-carrying': () => ({
+  'combat-build-ready': () => ({
     team: sampleTeam({ phase: 'combat' }),
-    me: sampleMe({ crates: 2, action: 'place', arc: RANGER_ARC }),
-  }),
-  'combat-deliver': () => ({
-    team: sampleTeam({ phase: 'combat' }),
-    me: sampleMe({ crates: 2, action: 'deliver', give: 'give' }),
-  }),
-  'combat-kit': () => ({
-    team: sampleTeam({ phase: 'combat' }),
-    me: sampleMe({ classId: 'artificer', action: 'kit', kits: 1, arc: GIVE_ONLY, crates: 1 }),
-  }),
-  'combat-none': () => ({
-    team: sampleTeam({ phase: 'combat' }),
-    me: sampleMe({ action: 'none', crates: 0, give: null }),
+    me: sampleMe({ build: buildBtn({ meter: 1, full: true, mode: 'place' }) }),
   }),
   'combat-warden': () => ({
     team: sampleTeam({ phase: 'combat' }),
-    me: sampleMe({ classId: 'warden', action: 'place', crates: 2, arc: WARDEN_ARC }),
+    me: sampleMe({
+      classId: 'warden',
+      build: buildBtn({ id: 'mine', icon: 'act-mine', meter: 0.5, mode: 'none' }),
+    }),
   }),
   'combat-artificer': () => ({
     team: sampleTeam({ phase: 'combat' }),
-    me: sampleMe({ classId: 'artificer', action: 'throw', crates: 2, arc: GIVE_ONLY }),
+    me: sampleMe({
+      classId: 'artificer',
+      build: buildBtn({ id: 'beacon', input: 'tap', icon: 'act-beacon', mode: 'place' }),
+    }),
   }),
   'combat-commander': () => ({
     team: sampleTeam({ phase: 'combat' }),
-    me: sampleMe({ classId: 'commander', action: 'recall', crates: 0 }),
+    me: sampleMe({
+      classId: 'commander',
+      build: buildBtn({
+        id: 'rally_flag',
+        input: 'tap',
+        icon: 'act-recall',
+        full: true,
+        mode: 'recall',
+        active: 1,
+      }),
+    }),
   }),
   // A finger down on the main button, dragged left: the joystick floats to the touch (aimed attacks).
   'combat-aiming': () => ({
     team: sampleTeam({ phase: 'combat' }),
-    me: sampleMe({ classId: 'artificer', action: 'throw', crates: 2, arc: GIVE_ONLY }),
+    me: sampleMe({ classId: 'artificer' }),
     after: (stage) => {
       const zone = stage.querySelector<HTMLElement>('.attack-zone');
       const main = stage.querySelector<HTMLElement>('.round-btn.main');
@@ -340,55 +327,20 @@ export const SAMPLES: Record<string, () => Sample> = {
       fire('pointermove', x - 44, y - 14);
     },
   }),
-  build: () => ({
-    team: sampleTeam({ phase: 'build' }),
-    me: sampleMe({
-      screen: 'build',
-      crates: 2,
-      buildKit: ['arrow_tower', 'bomb_tower'],
-      build: { selected: 'arrow_tower', valid: true },
-    }),
-  }),
-  'build-blocked': () => ({
-    team: sampleTeam({ phase: 'build' }),
-    me: sampleMe({
-      screen: 'build',
-      crates: 3,
-      classId: 'warden',
-      buildKit: ['wall', 'snare', 'fortify'],
-      build: { selected: 'wall', valid: false },
-    }),
-  }),
-  'build-none': () => ({
-    team: sampleTeam({ phase: 'build' }),
-    me: sampleMe({
-      screen: 'build',
-      classId: 'artificer',
-      crates: 1,
-      action: 'buy',
-      kits: 1,
-      buildKit: [],
-    }),
-  }),
   shop: () => ({
     team: sampleTeam({ phase: 'build' }),
     me: sampleMe({
       screen: 'build',
-      crates: 2,
-      buildKit: ['arrow_tower', 'bomb_tower'],
-      cards: { offer: OFFER, picked: null, owned: [{ id: 'haste', n: 2 }] },
+      cards: { offer: OFFER, picked: null, owned: [{ id: 'haste', n: 2 }], growth: null },
     }),
-    after: (stage) => stage.querySelector<HTMLElement>('[data-tab="shop"]')?.click(),
   }),
   'shop-picked': () => ({
     team: sampleTeam({ phase: 'build' }),
     me: sampleMe({
       screen: 'build',
       classId: 'artificer',
-      buildKit: [],
-      cards: { offer: null, picked: 'overflow', owned: [{ id: 'overflow', n: 1 }] },
+      cards: { offer: null, picked: 'overflow', owned: [{ id: 'overflow', n: 1 }], growth: null },
     }),
-    after: (stage) => stage.querySelector<HTMLElement>('[data-tab="shop"]')?.click(),
   }),
   dead: () => ({
     team: sampleTeam({ phase: 'combat' }),
@@ -404,7 +356,7 @@ export const SAMPLES: Record<string, () => Sample> = {
   }),
   'build-paused': () => ({
     team: sampleTeam({ phase: 'build', paused: { playerId: 'dev', name: q.name, color: q.color } }),
-    me: sampleMe({ screen: 'build', crates: 2, buildKit: ['arrow_tower', 'bomb_tower'] }),
+    me: sampleMe({ screen: 'build' }),
   }),
   'summary-victory': () => ({
     team: sampleTeam({ phase: 'summary', summary: SUMMARY }),

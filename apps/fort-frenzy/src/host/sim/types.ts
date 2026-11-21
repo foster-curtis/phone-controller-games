@@ -18,6 +18,7 @@ import type {
   Vec2,
 } from '../../content/types';
 import type {
+  BuildId,
   CardId,
   ClassId,
   DifficultyId,
@@ -120,11 +121,19 @@ export interface PlayerEnt extends Unit {
   superCharge: number;
   main: AttackState;
   super: AttackState;
+  /** Build meter 0..1 (§7.2); filled by RD3 (stays 0 until then). */
+  meter: number;
+  /** The build button: queued press, aim, held (§10.1). */
+  build: AttackState;
   /** Live aim while a button is held (TV aim line), null when not aiming. */
   mainAim: Vec2 | null;
   superAim: Vec2 | null;
-  radialOpen: boolean;
-  radialSlot: -1 | 0 | 1 | 2 | 3;
+  /** Live aim while a thrown build is held (TV preview). */
+  buildAim: Vec2 | null;
+  /** Regen (§5): none before `quietUntil` (4 s after the last damage taken); next tick at `nextRegen`. */
+  regen: { quietUntil: number; nextRegen: number };
+  /** Class growth bumps received (§6.1). */
+  growth: { regular: number; boss: number };
   /** Ticks the stick has been released (Steady Aim). */
   stillTicks: number;
   lastBuilt: StructureId | null;
@@ -149,6 +158,38 @@ export interface SoldierEnt extends Unit {
   mode: 'follow' | 'rally';
   target: EntityId | null;
   attack: AttackState;
+  /** Thrown by Reinforcements; joins on landing (RD9). */
+  flight: Flight | null;
+}
+
+/** A thrown build or soldier in the air (§7.3): it lands at `to` on `landsAt`. */
+export interface Flight {
+  from: Vec2;
+  to: Vec2;
+  launchedAt: number;
+  landsAt: number;
+}
+
+/** A placed build (§7). A Unit so it takes damage through `applyDamage` and carries card mods. */
+export interface BuildEnt extends Unit {
+  kind: BuildId;
+  /** The knight's slot. */
+  owner: number;
+  /** Placement order per owner (the oldest mine goes first). */
+  seq: number;
+  /** A destroyed build is removed (event `buildGone`). */
+  state: 'flight' | 'landed' | 'active';
+  flight: Flight | null;
+  /** HP builds (BuildDef.traits.targetable). */
+  targetable: boolean;
+  /** Mines; null for HP builds and the flag. */
+  charges: number | null;
+  /** Tick it starts working (landing + switch-on, mine arming). */
+  liveAt: number;
+  /** Mines: a ground enemy set it off; bursts at this tick. */
+  triggerAt: number | null;
+  /** Beacon: next heal pulse tick. */
+  nextPulse: number | null;
 }
 
 export interface EnemyEnt extends Unit {
@@ -323,6 +364,8 @@ export interface FlowFields {
   hunted: (FlowField | null)[];
   /** Set when a blocking structure is placed or destroyed; rebuilt the same step. */
   dirty: boolean;
+  /** Per targeted build, keyed by its tile index (§15.5; RD10). */
+  brute: Record<number, FlowField>;
 }
 
 /** Uniform grid for "who's near me" queries; rebuilt each step, not part of the state hash. */
@@ -383,6 +426,8 @@ export interface World {
   soldiers: SoldierEnt[];
   enemies: EnemyEnt[];
   structures: StructureEnt[];
+  /** Placed and thrown builds (§7; RD3 places them). */
+  builds: BuildEnt[];
   projectiles: ProjectileEnt[];
   cratePiles: CratePile[];
   /** Crates in flight (FF9; the sim always sets it). */
@@ -409,15 +454,14 @@ export interface PlayerInput {
   /** −1..1; aim 0,0 on a fire = auto-aim. */
   mainAim: Vec2;
   superAim: Vec2;
+  buildAim: Vec2;
   mainAiming: boolean;
   superAiming: boolean;
-  radialOpen: boolean;
-  /** Left, up, right, down (Give). */
-  radialSlot: -1 | 0 | 1 | 2 | 3;
+  buildAiming: boolean;
+  /** Press counters. */
   mainFires: number;
   superFires: number;
-  actionTaps: number;
-  radialCommits: number;
+  buildFires: number;
 }
 
 /** PhoneInputSource (§15.6 staleness), AutopilotInputSource, ReplayInputSource (§15.9). */
@@ -570,17 +614,16 @@ export type SimCommand = (
       classId: ClassId;
     }
   | { c: 'ready'; slot: number; ready: boolean }
-  | { c: 'build'; slot: number; action: 'select'; structure: StructureId }
-  | { c: 'build'; slot: number; action: 'place' | 'cancel' }
   | { c: 'buy'; slot: number; item: ShopItemId }
   | { c: 'request'; slot: number; item: ShopItemId; on: boolean }
   | { c: 'card'; slot: number; card: CardId }
-  | { c: 'give'; slot: number }
   /** Debug panel (§9.5), dev only. `slot` −1 = the TV. */
   | { c: 'debug'; slot: number; action: 'jumpWave'; wave: number }
   | { c: 'debug'; slot: number; action: 'spawn'; enemy: EnemyId; lane: LaneId }
   | { c: 'debug'; slot: number; action: 'invincible'; on: boolean }
   | { c: 'debug'; slot: number; action: 'coins'; amount: number }
+  /** Fill every knight's build meter. */
+  | { c: 'debug'; slot: number; action: 'meter' }
 ) & { ref?: number };
 
 export type SimCommandKind = SimCommand['c'];

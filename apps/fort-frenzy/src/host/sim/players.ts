@@ -1,23 +1,11 @@
 // Step 3 (SPEC §15.3): players — respawn, movement with carry slowdown, attacks and supers (fire on
-// release, a release during the cooldown fires when it ends), the action button (§10.1 rows 1–5), the
-// build arc and Give.
+// release, a release during the cooldown fires when it ends) and build presses (§10.1).
 import type { AttackDef, EffectApply, Vec2 } from '../../content/types';
 import { AIM_DEAD_ZONE } from '../../shared/messages';
 import { bodyAimY, circleHitsBody } from './body';
-import { buildAtFeet } from './building';
 import { landArc, windupSteps } from './classes/warden';
-import {
-  buyCrate,
-  canDeliver,
-  carryCap,
-  carrySpeed,
-  deliver,
-  give,
-  inZone,
-  pickUp,
-} from './crates';
-import { toggleFlag } from './classes/commander';
-import { canUseKit, throwCrate, throwTarget, useKit } from './classes/artificer';
+import { carrySpeed } from './crates';
+import { recallFlag } from './classes/commander';
 import { attackShapes } from './classes/shapes';
 import { cleanVec } from './geometry';
 import type { SlotInput } from './internal';
@@ -45,10 +33,8 @@ function releaseAttacks(p: PlayerEnt): void {
 
 /** Clears held gestures and queued shots (death, dazed, phase changes). */
 export function releaseAll(p: PlayerEnt): void {
-  p.mainAim = p.superAim = null;
-  p.main.held = p.super.held = null;
-  p.radialOpen = false;
-  p.radialSlot = -1;
+  p.mainAim = p.superAim = p.buildAim = null;
+  p.main.held = p.super.held = p.build.held = null;
   releaseAttacks(p);
   p.vx = p.vy = 0;
 }
@@ -89,14 +75,13 @@ export function stepPlayers(s: FullState): void {
     move(s, p, inp, acting);
     p.mainAim = heldAim(p.main, inp.input.mainAiming, inp.input.mainAim);
     p.superAim = heldAim(p.super, inp.input.superAiming, inp.input.superAim);
-    p.radialOpen = inp.input.radialOpen;
-    p.radialSlot = inp.input.radialOpen ? inp.input.radialSlot : -1;
+    // Builds are placed only in combat (§7.1): the preview shows only then.
+    p.buildAim = fighting ? heldAim(p.build, inp.input.buildAiming, inp.input.buildAim) : null;
 
-    if (fighting) attacks(s, p, inp);
-    else releaseAttacks(p);
-    if (!acting) continue;
-    if (inp.action) action(s, p);
-    if (inp.radial) radial(s, p, inp.input.radialSlot);
+    if (fighting) {
+      attacks(s, p, inp);
+      if (inp.build) buildPress(s, p);
+    } else releaseAttacks(p);
   }
 }
 
@@ -309,45 +294,11 @@ function circle(
   }
 }
 
-/** The action button (§10.1): the first matching row wins; build phase uses rows 1–4 (§10.2). */
-function action(s: FullState, p: PlayerEnt) {
-  const cap = carryCap(s, p);
-  if (p.crates < cap && pickUp(s, p)) return;
-  if (canDeliver(s, p)) {
-    deliver(s, p);
-    return;
-  }
-  // Row 3: the Artificer's emergency kit (FF9).
-  if (canUseKit(s, p)) {
-    useKit(s, p);
-    return;
-  }
-  if (inZone(s, p, 'armory') && p.crates < cap) {
-    buyCrate(s, p);
-    return;
-  }
-  const kit = s.cat.character(p.classId).build;
-  if (s.world.phase !== 'combat') return;
-  if (kit.length > 0 && p.crates > 0) {
-    buildAtFeet(s, p, p.lastBuilt ?? kit[0]!);
-    return;
-  }
-  // Row 6: an Artificer throws a crate; row 7: the Commander's rally flag (FF9).
-  const to = throwTarget(s.world, p, (q) => carryCap(s, q));
-  if (to) {
-    throwCrate(s, p, to);
-    return;
-  }
-  if (p.classId === 'commander') toggleFlag(s, p);
-}
-
-/** A build-arc commit: left/up/right build that structure (combat), down (3) gives a crate. */
-function radial(s: FullState, p: PlayerEnt, slot: number) {
-  if (slot === 3) {
-    give(s, p);
-    return;
-  }
-  if (s.world.phase !== 'combat' || slot < 0 || slot > 2) return;
-  const kind = s.cat.character(p.classId).build[slot];
-  if (kind) buildAtFeet(s, p, kind);
+/**
+ * A build press (§15.3, §15.11 #97), resolved from the state at this step: with the meter full the
+ * knight places or throws its build (RD3); else a Commander with a flag out recalls it; else nothing.
+ */
+function buildPress(s: FullState, p: PlayerEnt) {
+  if (p.meter >= 1) return; // RD3: place or throw the knight's build
+  if (p.classId === 'commander' && p.flag !== null) recallFlag(s, p);
 }

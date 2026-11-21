@@ -14,7 +14,6 @@ import type { Content } from '../../content';
 import type { ClassId, EffectId, LaneId } from '../../shared/ids';
 import { LANE_IDS } from '../../shared/ids';
 import { theme } from '../../shared/theme';
-import { presentationShared } from '../../presentation/shared';
 import type { ArtImage } from '../render/atlas';
 import { drawBowString } from '../render/bowString';
 import { pickFacing, enemyMirror, type Facing } from '../render/aim';
@@ -135,7 +134,6 @@ interface Knight {
   /** Overflow shield (§6.1, FF12): the icon beside the HP bar while a shield holds. */
   overflow: ArtImage;
   ghost: ArtImage;
-  arc: { tile: ArtImage; glyph: ArtImage }[];
 }
 
 interface Enemy {
@@ -297,14 +295,6 @@ export class WorldView {
     return a;
   }
 
-  private tile(active: boolean): ArtImage {
-    const a = this.w.lib.image(iconFrame(active ? 'badge-tile-active' : 'badge-tile'), [26, 26]);
-    this.w.lib.setUnitScale(a, 0.8);
-    a.img.setVisible(false);
-    this.w.layers.worldUi.add(a.img);
-    return a;
-  }
-
   private syncKnights(w: World) {
     for (const p of w.players) {
       if (this.knights.has(p.slot)) continue;
@@ -325,10 +315,6 @@ export class WorldView {
         })
         .setOrigin(0.5, 1);
       this.w.layers.worldUi.add(tag);
-      const arc = [0, 1, 2, 3].map(() => ({
-        tile: this.tile(false),
-        glyph: this.icon('act-give'),
-      }));
       const ghost = placeFrame(this.w, fk('build-ghost/valid'), 'groundOverlay', 0, 0);
       ghost.img.setVisible(false);
       this.knights.set(p.slot, {
@@ -350,7 +336,6 @@ export class WorldView {
         reconnect: this.icon('reconnecting'),
         overflow: this.icon('overflow-shield'),
         ghost,
-        arc,
       });
     }
   }
@@ -734,40 +719,6 @@ export class WorldView {
       const s = this.w.camera.worldToScreen(c + 0.5, r + 0.5);
       k.ghost.img.setPosition(s.sx, s.sy);
     }
-    this.drawArc(p, k, head);
-  }
-
-  /** The build arc above the head while the action button is held (§10.1): left, up, right, Give. */
-  private drawArc(p: PlayerEnt, k: Knight, head: { sx: number; sy: number }) {
-    const open = p.radialOpen && p.respawnAt === null;
-    const def = this.content.characters.find((c) => c.id === p.classId);
-    const kit = def?.build ?? [];
-    const cx = head.sx;
-    const cy = head.sy - 70;
-    const R = 46;
-    const offs = [
-      [-R, 0],
-      [0, -R],
-      [R, 0],
-      [0, R * 0.55],
-    ] as const;
-    k.arc.forEach((slot, i) => {
-      const id = i === 3 ? 'give' : kit[i];
-      const show = open && id !== undefined;
-      slot.tile.img.setVisible(show);
-      slot.glyph.img.setVisible(show);
-      if (!show) return;
-      const glyph = id === 'give' ? 'act-give' : presentationShared.iconFor.structure[id];
-      const cost =
-        id === 'give' ? 1 : (this.content.structures.find((s) => s.id === id)?.cost ?? 99);
-      const enabled = p.crates >= cost;
-      const on = p.radialSlot === i;
-      this.w.lib.setFrame(slot.tile, iconFrame(on ? 'badge-tile-active' : 'badge-tile'));
-      this.w.lib.setFrame(slot.glyph, iconFrame(glyph as IconKey));
-      const [dx, dy] = offs[i]!;
-      slot.tile.img.setPosition(cx + dx, cy + dy);
-      slot.glyph.img.setPosition(cx + dx, cy + dy).setAlpha(enabled ? 1 : 0.35);
-    });
   }
 
   /**

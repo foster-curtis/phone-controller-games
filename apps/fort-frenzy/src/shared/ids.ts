@@ -1,11 +1,44 @@
-// Internal ids (SPEC §2.1, §15.4). Game code and data refer only to these; theme packs map them to
+// Internal ids (SPEC §2.1, §15.4). Game code and data refer only to these; presentation maps them to
 // display names, rigs and icons. Shared by the phones and the TV.
-// Frozen at FF1 (BUILD_PLAN §3): additive changes only. Append new ids at the end of an array, never
+// Frozen after RD2 (REDESIGN_BUILD_PLAN §3): append-only. Append new ids at the end of an array, never
 // reorder or remove (lists are iterated in order, e.g. player colors in brand order).
 
-/** The four classes (SPEC §8). Display names come from the theme (neon knights: Ranger, Warden, …). */
-export const CLASS_IDS = ['ranger', 'warden', 'artificer', 'commander'] as const;
-export type ClassId = (typeof CLASS_IDS)[number];
+/** The knights (SPEC §8.2). `ClassId` is the knights' historic wire name and stays an alias (#94). */
+export const KNIGHT_IDS = ['ranger', 'warden', 'artificer', 'commander'] as const;
+export type KnightId = (typeof KNIGHT_IDS)[number];
+export const CLASS_IDS = KNIGHT_IDS;
+export type ClassId = KnightId;
+
+/** The classes (SPEC §8.1): a knight's playstyle. */
+export const ROLE_IDS = ['tank', 'marksman', 'support', 'control'] as const;
+export type RoleId = (typeof ROLE_IDS)[number];
+
+/** One build per knight (SPEC §7.4). */
+export const BUILD_IDS = ['shield_gen', 'mine', 'beacon', 'rally_flag'] as const;
+export type BuildId = (typeof BUILD_IDS)[number];
+
+/** The six portals (SPEC §3.1) and the three sides. */
+export const PORTAL_IDS = [
+  'bottom-w',
+  'bottom-e',
+  'left-n',
+  'left-s',
+  'right-n',
+  'right-s',
+] as const;
+export type PortalId = (typeof PORTAL_IDS)[number];
+export const SIDE_IDS = ['left', 'bottom', 'right'] as const;
+export type SideId = (typeof SIDE_IDS)[number];
+
+/** Build-button icons (SPEC §2.6, §10.1). */
+export const ACT_ICON_IDS = [
+  'act-shield',
+  'act-mine',
+  'act-beacon',
+  'act-flag',
+  'act-recall',
+] as const;
+export type ActIconId = (typeof ACT_ICON_IDS)[number];
 
 /** The Iron Tide (SPEC §9) plus the boss (§9.2). */
 export const ENEMY_IDS = [

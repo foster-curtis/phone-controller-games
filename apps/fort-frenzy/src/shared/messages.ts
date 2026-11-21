@@ -1,27 +1,31 @@
 // Phone ↔ host game messages, carried in the relay's `send.data` (SPEC §15.6). Shared by the phones
 // and the TV; imports nothing but ids.
-// Frozen at FF1 (BUILD_PLAN §3): additive changes only (new optional fields, new union members, new
-// guard cases). A breaking change bumps PROTOCOL_VERSION and is logged in SPEC §15.11.
+// Frozen after RD2 (REDESIGN_BUILD_PLAN §3): additive changes only (new optional fields, new union
+// members, new guard cases). A breaking change bumps PROTOCOL_VERSION and is logged in SPEC §15.11.
+// RD2 implemented the v2 shapes: InputTuple v2 (build aim and fires, no radial fields), Intent without
+// `build`/`give`, AckReason without `crates`, RunStats with `buildsPlaced`, MeView with `build: MeBuild`.
 import {
+  ACT_ICON_IDS,
+  BUILD_IDS,
   CARD_IDS,
   CLASS_IDS,
   DIFFICULTY_IDS,
   ENEMY_IDS,
   PLAYER_COLOR_IDS,
   SHOP_ITEM_IDS,
-  STRUCTURE_IDS,
   isOneOf,
+  type ActIconId,
+  type BuildId,
   type CardId,
   type ClassId,
   type DifficultyId,
   type EnemyId,
   type PlayerColorId,
   type ShopItemId,
-  type StructureId,
 } from './ids';
 
 export const GAME_ID = 'fort-frenzy';
-export const PROTOCOL_VERSION = 2; // 2: the redesign's wire (ClassId values ranger and artificer, no theme intent); stays 2 through RD14 (plan §8)
+export const PROTOCOL_VERSION = 2; // 2: the redesign's wire (RD1 ids, RD2 tuple v2 and views); stays 2 through RD14 (plan §8)
 
 /** Name limit for the `name` intent (SPEC §15.6), in code points. */
 export const NAME_MAX = 10;
@@ -31,10 +35,10 @@ export const NAME_MAX = 10;
 /** Input tuple length; `isInputTuple` checks it. */
 export const INPUT_TUPLE_LENGTH = 12;
 
-/** `InputTuple[6]` bits. */
+/** `InputTuple[8]` bits. */
 export const INPUT_FLAG_MAIN_AIMING = 1;
 export const INPUT_FLAG_SUPER_AIMING = 2;
-export const INPUT_FLAG_RADIAL_OPEN = 4;
+export const INPUT_FLAG_BUILD_AIMING = 4;
 
 /**
  * Aimed-button dead zone (the center grace zone) as a fraction of the aim clamp; the phone passes it
@@ -45,42 +49,39 @@ export const INPUT_FLAG_RADIAL_OPEN = 4;
 export const AIM_DEAD_ZONE = 0.25;
 
 /**
- * Phone → host input (SPEC §10.1, §11.4). Sticks and aims are ints −100..100, dead zone applied on
+ * Phone → host input v2 (SPEC §10.1, §11.4). Sticks and aims are ints −100..100, dead zone applied on
  * the phone. Counters only grow (a reload restarts them; the host re-baselines, §15.3).
  */
 export type InputTuple = [
   moveX: number,
   moveY: number,
-  /** Live aim while aiming (FF7), the release aim with a fire; 0,0 with a fire = tap = auto-aim. */
+  /** Live aim while aiming, the release aim with a fire; 0,0 with a fire = tap = auto-aim. */
   mainX: number,
   mainY: number,
   superX: number,
   superY: number,
-  /** INPUT_FLAG_*: 1 main aiming (TV aim line), 2 super aiming, 4 radial open. */
+  /** Thrown builds: live aim, the release aim; 0,0 = tap (the knight's feet). */
+  buildX: number,
+  buildY: number,
+  /** INPUT_FLAG_*: 1 main aiming, 2 super aiming, 4 build aiming. */
   flags: number,
   mainFires: number,
   superFires: number,
-  actionTaps: number,
-  radialCommits: number,
-  /** −1 none, 0 left, 1 up, 2 right, 3 down (Give). */
-  radialSlot: number,
+  buildFires: number,
 ];
 
 export type Intent =
   | { k: 'name'; name: string } // ≤ NAME_MAX code points; color is auto-assigned
-  | { k: 'class'; classId: ClassId }
+  | { k: 'class'; classId: ClassId } // the knight (knight select)
   | { k: 'ready'; ready: boolean }
-  | { k: 'color'; color: PlayerColorId } // lobby only; host validates, swaps, acks (`taken`)
+  | { k: 'color'; color: PlayerColorId } // lobby only; host validates, acks (`taken`)
   | { k: 'leader'; action: 'start' | 'resume' | 'newRun' }
   | { k: 'leader'; action: 'difficulty'; difficulty: DifficultyId }
   | { k: 'leader'; action: 'remove'; playerId: string } // lobby only
-  | { k: 'leader'; action: 'end'; option: 'again' | 'classes' | 'home' }
-  | { k: 'build'; action: 'select'; structure: StructureId } // ghost at feet (§10.2)
-  | { k: 'build'; action: 'place' | 'cancel' }
+  | { k: 'leader'; action: 'end'; option: 'again' | 'classes' | 'home' } // 'classes' = Change Knight
   | { k: 'buy'; item: ShopItemId }
   | { k: 'request'; item: ShopItemId; on: boolean }
-  | { k: 'card'; card: CardId }
-  | { k: 'give' } // §10.2 Give crate button
+  | { k: 'card'; card: CardId } // Confirm on the card pop-up (§10.2)
   | { k: 'claim'; slot: number } // resume into a new room
   | { k: 'pause'; paused: boolean }; // team pause from any run phone (C4, FF14-fix-1)
 
@@ -93,10 +94,10 @@ export type ControllerMsg =
 
 // ---- host → phone -------------------------------------------------------------------------------
 
-export type AckReason = 'coins' | 'crates' | 'cap' | 'phase' | 'invalid' | 'notLeader' | 'taken';
+/** `cap`: the shop item is at its max tier (#96). */
+export type AckReason = 'coins' | 'cap' | 'phase' | 'invalid' | 'notLeader' | 'taken';
 export const ACK_REASONS = [
   'coins',
-  'crates',
   'cap',
   'phase',
   'invalid',
@@ -106,15 +107,15 @@ export const ACK_REASONS = [
 
 /** Per-player run stats (summary screen, SPEC §4; kept in the resume snapshot, §15.8). */
 export interface RunStats {
+  /** Own, squad and builds. */
   damageDealt: number;
   bossDamage: number;
   kills: number;
   damageTaken: number;
   deaths: number;
+  /** Super, beacon and Field Medic healing (not regen). */
   healingDone: number;
-  cratesDelivered: number;
-  cratesGiven: number;
-  structuresBuilt: number;
+  buildsPlaced: number;
 }
 export const RUN_STAT_KEYS = [
   'damageDealt',
@@ -123,9 +124,7 @@ export const RUN_STAT_KEYS = [
   'damageTaken',
   'deaths',
   'healingDone',
-  'cratesDelivered',
-  'cratesGiven',
-  'structuresBuilt',
+  'buildsPlaced',
 ] as const satisfies readonly (keyof RunStats)[];
 
 /** End of run (SPEC §4): waves survived and one award card per player. */
@@ -170,11 +169,10 @@ export interface TeamShopRow {
   /** null = sold out (max tier). */
   price: number | null;
   visible: boolean;
-  qmOnly: boolean;
   holdToConfirm: boolean;
 }
 
-/** Who paused the run (C4 team pause, SPEC §11.3, FF14-fix-1). */
+/** Who paused the run (C4 team pause, SPEC §10.5, FF14-fix-1). */
 export interface TeamPause {
   playerId: string;
   name: string;
@@ -194,12 +192,14 @@ export interface TeamView {
   roster: TeamRosterEntry[];
   shop: TeamShopRow[];
   wishlist: { item: ShopItemId; by: string }[];
-  nextWave: { enemies: { id: EnemyId; count: number }[]; boss: boolean } | null; // §4
+  /** Never the hot side (§4). */
+  nextWave: { enemies: { id: EnemyId; count: number }[]; boss: boolean } | null;
   summary: RunSummary | null;
   /** A player paused the run (FF14-fix-1); absent or null = running. */
   paused?: TeamPause | null;
 }
 
+/** `build` shows the card pop-up until `cards.picked` is set, then the shop (§10.2). */
 export type MeScreen =
   | 'name'
   | 'lobby'
@@ -224,31 +224,39 @@ export const ME_SCREENS = [
   'claim',
 ] as const satisfies readonly MeScreen[];
 
-/** What the action button does now (SPEC §10.1); the phone shows the matching `act-*` icon. */
-export type MeAction =
-  | 'pickup'
-  | 'deliver'
-  | 'buy'
-  | 'place'
-  | 'throw'
-  | 'flag'
-  | 'recall'
-  | 'kit' // emergency kit, icon `emergency-kit` (§10.1 row 3)
-  | 'none';
-export const ME_ACTIONS = [
-  'pickup',
-  'deliver',
-  'buy',
+/** The build button (SPEC §10.1). */
+export interface MeBuild {
+  id: BuildId;
+  /** The gesture now: 'tap' for at-feet builds and the Commander's recall, 'aimed' for thrown builds. */
+  input: 'aimed' | 'tap';
+  /** act-shield | act-mine | act-beacon | act-flag | act-recall. */
+  icon: ActIconId;
+  /** 0..1 ring. */
+  meter: number;
+  /** Steady amber ring, button lit. */
+  full: boolean;
+  /** What a release does now; 'none' = dimmed. */
+  mode: 'place' | 'recall' | 'none';
+  /** The knight's builds on the map (mines 0..maxActive). */
+  active: number;
+}
+export const ME_BUILD_MODES = [
   'place',
-  'throw',
-  'flag',
   'recall',
-  'kit',
   'none',
-] as const satisfies readonly MeAction[];
+] as const satisfies readonly MeBuild['mode'][];
 
-/** Build-arc slot: a structure, Give, or empty. Order: left, up, right, down. */
-export type ArcSlot = StructureId | 'give' | null;
+/** Class growth for the pop-up header (§6.1): "Wave 4 cleared: +HP +DMG". */
+export interface MeGrowth {
+  wave: number;
+  boss: boolean;
+  stats: ('maxHp' | 'damage' | 'healing')[];
+}
+export const GROWTH_STATS = [
+  'maxHp',
+  'damage',
+  'healing',
+] as const satisfies readonly MeGrowth['stats'][number][];
 
 /** One phone's own state (SPEC §15.6). Full snapshot, per phone on change, ≤ 10 Hz. */
 export interface MeView {
@@ -261,23 +269,25 @@ export interface MeView {
   ready: boolean;
   hp: number;
   maxHp: number;
-  crates: number;
-  carryCap: number;
   /** 0..1 ring. */
   superCharge: number;
   /** Full state (§10.1). */
   superReady: boolean;
-  action: MeAction;
-  /** Emergency kits held (Artificer, 0 or 1). */
-  kits: number;
-  /** What Give does now (icon swap, §10.1). */
-  give: 'give' | 'drop' | null;
-  arc: { slots: ArcSlot[]; enabled: boolean[] } | null;
-  /** Empty = "No buildings to build" (§10.2). */
-  buildKit: StructureId[];
+  /** Commander at the squad cap: dimmed, charge held. */
+  superBlocked: boolean;
+  /** null outside a run. */
+  build: MeBuild | null;
   respawnMs: number | null;
-  cards: { offer: CardId[] | null; picked: CardId | null; owned: { id: CardId; n: number }[] };
-  build: { selected: StructureId | null; valid: boolean | null } | null;
+  /**
+   * The pop-up (§10.2): selection is phone-local; Confirm sends `card`. `offer` null = no pop-up
+   * (after a pick, or none dealt); `picked` set = show the shop.
+   */
+  cards: {
+    offer: CardId[] | null;
+    picked: CardId | null;
+    owned: { id: CardId; n: number }[];
+    growth: MeGrowth | null;
+  };
   claim: { slot: number; name: string; classId: ClassId }[] | null;
 }
 
@@ -313,16 +323,16 @@ const oneOf =
 
 const isClassId = oneOf(CLASS_IDS);
 const isEnemyId = oneOf(ENEMY_IDS);
-const isStructureId = oneOf(STRUCTURE_IDS);
 const isShopItemId = oneOf(SHOP_ITEM_IDS);
 const isCardId = oneOf(CARD_IDS);
 const isDifficultyId = oneOf(DIFFICULTY_IDS);
 const isColorId = oneOf(PLAYER_COLOR_IDS);
 
+/** Length 12; [0..7] ints in −100..100; [8] int in 0..7; [9..11] naturals. */
 export function isInputTuple(v: unknown): v is InputTuple {
   if (!Array.isArray(v) || v.length !== INPUT_TUPLE_LENGTH) return false;
-  for (let i = 0; i < 6; i++) if (!inRange(v[i], -100, 100)) return false;
-  return inRange(v[6], 0, 7) && v.slice(7, 11).every(isNat) && inRange(v[11], -1, 3);
+  for (let i = 0; i < 8; i++) if (!inRange(v[i], -100, 100)) return false;
+  return inRange(v[8], 0, 7) && v.slice(9, 12).every(isNat);
 }
 
 export function isIntent(v: unknown): v is Intent {
@@ -351,17 +361,12 @@ export function isIntent(v: unknown): v is Intent {
         default:
           return false;
       }
-    case 'build':
-      if (v.action === 'select') return isStructureId(v.structure);
-      return v.action === 'place' || v.action === 'cancel';
     case 'buy':
       return isShopItemId(v.item);
     case 'request':
       return isShopItemId(v.item) && isBool(v.on);
     case 'card':
       return isCardId(v.card);
-    case 'give':
-      return true;
     case 'claim':
       return isNat(v.slot);
     case 'pause':
@@ -426,7 +431,6 @@ const isShopRow = (r: unknown): r is TeamShopRow =>
   isNat(r.maxTier) &&
   orNull(isNum)(r.price) &&
   isBool(r.visible) &&
-  isBool(r.qmOnly) &&
   isBool(r.holdToConfirm);
 
 const isTeamPause = (p: unknown): p is TeamPause =>
@@ -462,11 +466,24 @@ export function isTeamView(v: unknown): v is TeamView {
   );
 }
 
-const isArcSlot = (s: unknown): s is ArcSlot => s === null || s === 'give' || isStructureId(s);
+const isMeBuild = (b: unknown): b is MeBuild =>
+  isObj(b) &&
+  isOneOf(BUILD_IDS, b.id) &&
+  (b.input === 'aimed' || b.input === 'tap') &&
+  isOneOf(ACT_ICON_IDS, b.icon) &&
+  isNum(b.meter) &&
+  b.meter >= 0 &&
+  b.meter <= 1 &&
+  isBool(b.full) &&
+  isOneOf(ME_BUILD_MODES, b.mode) &&
+  isNat(b.active);
+
+const isMeGrowth = (g: unknown): g is MeGrowth =>
+  isObj(g) && isNat(g.wave) && isBool(g.boss) && arrayOf(g.stats, oneOf(GROWTH_STATS));
 
 export function isMeView(v: unknown): v is MeView {
   if (!isObj(v)) return false;
-  const { arc, cards, build, claim } = v;
+  const { cards, build, claim } = v;
   return (
     isOneOf(ME_SCREENS, v.screen) &&
     orNull(isNat)(v.slot) &&
@@ -477,16 +494,10 @@ export function isMeView(v: unknown): v is MeView {
     isBool(v.ready) &&
     isNum(v.hp) &&
     isNum(v.maxHp) &&
-    isNat(v.crates) &&
-    isNat(v.carryCap) &&
     isNum(v.superCharge) &&
     isBool(v.superReady) &&
-    isOneOf(ME_ACTIONS, v.action) &&
-    isNat(v.kits) &&
-    (v.give === null || v.give === 'give' || v.give === 'drop') &&
-    (arc === null ||
-      (isObj(arc) && arrayOf(arc.slots, isArcSlot) && arrayOf(arc.enabled, isBool))) &&
-    arrayOf(v.buildKit, isStructureId) &&
+    isBool(v.superBlocked) &&
+    orNull(isMeBuild)(build) &&
     orNull(isNum)(v.respawnMs) &&
     isObj(cards) &&
     (cards.offer === null || arrayOf(cards.offer, isCardId)) &&
@@ -495,8 +506,7 @@ export function isMeView(v: unknown): v is MeView {
       cards.owned,
       (o): o is { id: CardId; n: number } => isObj(o) && isCardId(o.id) && isNat(o.n),
     ) &&
-    (build === null ||
-      (isObj(build) && orNull(isStructureId)(build.selected) && orNull(isBool)(build.valid))) &&
+    orNull(isMeGrowth)(cards.growth) &&
     (claim === null ||
       arrayOf(
         claim,

@@ -3,7 +3,16 @@
 // Frozen at FF1 (BUILD_PLAN §3). Append-only registry: add members at the end of the union, never
 // reorder, remove or change one.
 import type { AckReason } from '../../shared/messages';
-import type { CardId, ClassId, EnemyId, LaneId, ShopItemId, StructureId } from '../../shared/ids';
+import type {
+  BuildId,
+  CardId,
+  ClassId,
+  EnemyId,
+  LaneId,
+  PortalId,
+  ShopItemId,
+  StructureId,
+} from '../../shared/ids';
 import type { Tile } from '../../content/types';
 import type { DamageKind, EntityId, Phase } from './types';
 
@@ -69,6 +78,24 @@ export type SimEvent =
   | { e: 'presence'; slot: number; connected: boolean }
   | { e: 'runEnd'; result: 'victory' | 'defeat'; wave: number }
   /** FF12: a Fault Line stomp shocked every wall on the map (each wall flashes on the TV). */
-  | { e: 'faultLine'; slot: number };
+  | { e: 'faultLine'; slot: number }
+  // ---- redesign (RD2, SPEC §15.3): builds, portals, Hunter lock-on, Reinforcements, growth ----
+  | { e: 'buildPlaced'; slot: number; build: EntityId; kind: BuildId }
+  | { e: 'buildLanded'; build: EntityId }
+  | { e: 'buildHit'; build: EntityId }
+  | { e: 'buildGone'; build: EntityId; kind: BuildId; destroyed: boolean }
+  | { e: 'mineTrigger'; build: EntityId }
+  | { e: 'mineBurst'; build: EntityId }
+  /** The Commander recalled his rally flag (the build button with the meter not full). */
+  | { e: 'recall'; slot: number }
+  /** A portal flares `rules.flareMs` before it spawns a group (§9.4). */
+  | { e: 'portalFlare'; portal: PortalId }
+  | { e: 'bruteTarget'; enemy: EntityId; build: EntityId }
+  | { e: 'huntLock'; enemy: EntityId; slot: number }
+  /** Reinforcements threw `count` soldiers (2 = the Rally Cry "×2"). */
+  | { e: 'reinforce'; slot: number; count: number }
+  | { e: 'growth'; slot: number; boss: boolean }
+  /** The build-phase deadline picked a card for a player (§10.2). */
+  | { e: 'cardAuto'; slot: number; card: CardId };
 
 export type SimEventKind = SimEvent['e'];

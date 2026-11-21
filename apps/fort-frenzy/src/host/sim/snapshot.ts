@@ -7,6 +7,7 @@
 // functions. Plain TS like the rest of the sim: the host passes the wall clock and does the storage.
 import type { Content } from '../../content';
 import {
+  BUILD_IDS,
   CARD_IDS,
   CLASS_IDS,
   DIFFICULTY_IDS,
@@ -14,6 +15,7 @@ import {
   SHOP_ITEM_IDS,
   STRUCTURE_IDS,
   isOneOf,
+  type BuildId,
   type CardId,
   type ClassId,
   type DifficultyId,
@@ -29,7 +31,7 @@ import { fillSquads } from './squad';
 import { newAttack, zeroRunStats, type FullState } from './state';
 import type { RunStart, World } from './types';
 
-export const SNAPSHOT_VERSION = 2; // 2: ClassId values renamed, no theme (RD1); old saves are dropped
+export const SNAPSHOT_VERSION = 3; // 3: RD2's shape (builds, meters, run stats); old saves are dropped
 /** localStorage key (survives a browser crash, unlike sessionStorage). */
 export const SNAPSHOT_KEY = 'fort-frenzy:run';
 /** Older snapshots are discarded. */
@@ -46,6 +48,22 @@ export interface SnapshotStructure {
   owner?: number;
 }
 
+/** A build on the map (§7): HP builds keep their HP, mines their charges (RD14 restores them). */
+export interface SnapshotBuild {
+  kind: BuildId;
+  /** The knight's slot. */
+  owner: number;
+  /** Placement order (the oldest mine goes first). */
+  seq: number;
+  /** Tiles (builds don't snap, §7.1). */
+  x: number;
+  y: number;
+  /** HP builds; null for mines and the flag. */
+  hp: number | null;
+  /** Mines; null otherwise. */
+  charges: number | null;
+}
+
 export interface SnapshotSlot {
   slot: number;
   playerKey: string;
@@ -54,6 +72,9 @@ export interface SnapshotSlot {
   color: PlayerColorId;
   classId: ClassId;
   hp: number;
+  /** Build meter 0..1. */
+  meter: number;
+  growth: { regular: number; boss: number };
   crates: number;
   /** Emergency kits held (Artificer, 0 or 1). */
   kits: number;
@@ -78,6 +99,7 @@ export interface RunSnapshot {
   coins: number;
   /** Tier owned (archer upgrades: 0 or 1 each). */
   shop: Record<ShopItemId, number>;
+  builds: SnapshotBuild[];
   structures: SnapshotStructure[];
   cratePiles: { x: number; y: number; n: number }[];
   slots: SnapshotSlot[];
@@ -127,6 +149,8 @@ export function takeSnapshot(world: World, content: Content, meta: SnapshotMeta)
         color: p.color,
         classId: p.classId,
         hp: p.hp,
+        meter: p.meter,
+        growth: { ...p.growth },
         crates: p.crates,
         kits: p.kits,
         lastBuilt: p.lastBuilt,
@@ -158,6 +182,15 @@ export function takeSnapshot(world: World, content: Content, meta: SnapshotMeta)
     base: { hp: world.base.hp, repairs: world.base.repairs },
     coins: world.team.coins,
     shop: { ...world.team.shop },
+    builds: world.builds.map((b) => ({
+      kind: b.kind,
+      owner: b.owner,
+      seq: b.seq,
+      x: b.flight ? b.flight.to.x : b.x,
+      y: b.flight ? b.flight.to.y : b.y,
+      hp: b.targetable ? b.hp : null,
+      charges: b.charges,
+    })),
     structures,
     cratePiles: world.cratePiles.filter((c) => c.n > 0).map((c) => ({ x: c.x, y: c.y, n: c.n })),
     slots,
@@ -187,6 +220,10 @@ function isSlot(v: unknown): v is SnapshotSlot {
     isOneOf(PLAYER_COLOR_IDS, v.color) &&
     isOneOf(CLASS_IDS, v.classId) &&
     isNum(v.hp) &&
+    isNum(v.meter) &&
+    isObj(v.growth) &&
+    isNat(v.growth.regular) &&
+    isNat(v.growth.boss) &&
     isNat(v.crates) &&
     isNat(v.kits) &&
     (v.lastBuilt === null || isOneOf(STRUCTURE_IDS, v.lastBuilt)) &&
@@ -228,6 +265,18 @@ export function parseSnapshot(raw: string | null, now: number): RunSnapshot | nu
     isNum(v.coins) &&
     isObj(v.shop) &&
     Object.entries(v.shop).every(([k, n]) => isOneOf(SHOP_ITEM_IDS, k) && isNat(n)) &&
+    Array.isArray(v.builds) &&
+    v.builds.every(
+      (b) =>
+        isObj(b) &&
+        isOneOf(BUILD_IDS, b.kind) &&
+        isNat(b.owner) &&
+        isNat(b.seq) &&
+        isNum(b.x) &&
+        isNum(b.y) &&
+        (b.hp === null || isNum(b.hp)) &&
+        (b.charges === null || isNat(b.charges)),
+    ) &&
     Array.isArray(v.structures) &&
     v.structures.every(
       (s) =>
@@ -327,6 +376,8 @@ export function restoreSnapshot(s: FullState, snap: RunSnapshot): void {
     p.cards = { ...sl.cards };
     attachAllCards(s, p);
     p.hp = sl.hp > 0 ? Math.min(p.maxHp, sl.hp) : p.maxHp;
+    p.meter = Math.min(1, Math.max(0, sl.meter));
+    p.growth = { ...sl.growth };
     p.crates = sl.crates;
     p.kits = sl.kits;
     p.lastBuilt = sl.lastBuilt;

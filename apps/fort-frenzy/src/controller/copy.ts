@@ -1,8 +1,7 @@
 // Display copy and icon ids for the phone (neon knights, SPEC §2.1, §2.6, §6.1, §6.2, §8). Game code
 // refers to internal ids; this table is the phone's slice of the presentation pack (src/presentation/shared.ts
 // should absorb it). Icon ids are the sprite's `icon-<id>` names.
-import type { CardId, ClassId, DifficultyId, ShopItemId, StructureId } from '../shared/ids';
-import type { MeAction } from '../shared/messages';
+import type { CardId, ClassId, DifficultyId, ShopItemId } from '../shared/ids';
 
 export interface AttackInfo {
   name: string;
@@ -110,14 +109,6 @@ export const CLASS_INFO: Record<ClassId, ClassInfo> = {
   },
 };
 
-export const STRUCTURE_INFO: Record<StructureId, { name: string; icon: string; cost: number }> = {
-  arrow_tower: { name: 'Pulse turret', icon: 'turret', cost: 2 },
-  bomb_tower: { name: 'Mortar tower', icon: 'mortar', cost: 3 },
-  wall: { name: 'Wall', icon: 'wall', cost: 1 },
-  snare: { name: 'Shock net', icon: 'net', cost: 1 },
-  fortify: { name: 'Fortify', icon: 'fortify', cost: 2 },
-};
-
 export const SHOP_INFO: Record<ShopItemId, { name: string; icon: string }> = {
   crate: { name: 'Power cell', icon: 'cell' },
   repair: { name: 'Base repair', icon: 'repair' },
@@ -207,32 +198,7 @@ export const STAT_LABEL: Record<string, string> = {
   damageTaken: 'Damage taken',
   deaths: 'Falls',
   healingDone: 'Healing',
-  cratesDelivered: 'Cells delivered',
-  cratesGiven: 'Cells shared',
-  structuresBuilt: 'Built',
+  buildsPlaced: 'Built',
 };
 
 export const ROMAN = ['0', 'I', 'II', 'III', 'IV', 'V'] as const;
-
-/**
- * The action button's icon (SPEC §10.1): the `act-*` glyph per action, `emergency-kit` for the kit,
- * and a dimmed plain glyph when nothing applies.
- */
-export function actionIcon(action: MeAction): { id: string; dimmed: boolean } {
-  switch (action) {
-    case 'kit':
-      return { id: 'emergency-kit', dimmed: false };
-    case 'none':
-      return { id: 'act-pickup', dimmed: true };
-    default:
-      return { id: `act-${action}`, dimmed: false };
-  }
-}
-
-/** The Give icon: `act-give` hands over, `act-drop` drops (SPEC §10.1). */
-export function giveIcon(give: 'give' | 'drop' | null): { id: string; dimmed: boolean } {
-  return { id: give === 'drop' ? 'act-drop' : 'act-give', dimmed: give === null };
-}
-
-/** Outside combat only rows 1-4 apply to the action button (pick up, deliver, kit, buy; §10.2). */
-export const BUILD_PHASE_ACTIONS: readonly MeAction[] = ['pickup', 'deliver', 'kit', 'buy'];

@@ -1,30 +1,25 @@
-// Combat controller (SPEC §10.1, §10.4, §15.7): stick on the left half, main / super / action on the
+// Combat controller (SPEC §10.1, §10.4, §15.7): stick on the left half, main / super / build on the
 // right per `layoutCombat`, the charge ring, the status strip. `dead` shares this view (a held thumb
 // survives the switch) and shows the respawn countdown only.
 import {
-  RADIAL_DEFAULTS,
-  SLOT_DOWN,
   bindGesture,
   createJoystick,
   el,
-  radialGesture,
   readSafeInsets,
   tapGesture,
   type GestureBinding,
   type Joystick,
-  type RadialConfig,
 } from '@pcg/controller-kit';
 import type { ClassId } from '../../shared/ids';
 import type { MeView } from '../../shared/messages';
 import { mountAimZones, type AimZones } from '../aimZones';
 import { ChargeRing, RoundButton, StatusStrip } from '../components';
-import { CLASS_INFO, actionIcon, giveIcon } from '../copy';
+import { CLASS_INFO } from '../copy';
 import {
   aimGesture,
   encodeAimed,
   encodeAimedState,
-  encodeRadial,
-  encodeRadialState,
+  encodeBuildTap,
   encodeTapAttack,
   type AttackKey,
   type PhoneSender,
@@ -44,14 +39,6 @@ import {
   type Snapshot,
   type View,
 } from './common';
-
-/** Radial slots from the host's arc (left, up, right, down): null absent, false dimmed, true enabled. */
-export function arcSlots(arc: MeView['arc']): (boolean | null)[] {
-  return [0, 1, 2, 3].map((i) => {
-    const s = arc?.slots[i];
-    return s === undefined || s === null ? null : (arc?.enabled[i] ?? false);
-  });
-}
 
 /** The floating stick on the left half; `place` sets its resting spot (viewport px). */
 export function mountStick(
@@ -105,25 +92,22 @@ export function bindAttack(
   });
 }
 
-/**
- * Binds the action button: tap = its action; hold ~0.4 s or drag = the build arc (Ranger, Warden) or
- * Give directly (Artificer, Commander), per the latest `me.arc` (SPEC §10.1).
- */
-export function bindAction(
+/** The build button's enabled state: dimmed and inert while nothing can be placed or recalled. */
+export function buildEnabled(build: MeView['build']): boolean {
+  return build !== null && build.mode !== 'none';
+}
+
+/** Binds the build button: a tap (release) while enabled fires `buildFires`, aim 0,0 (SPEC §10.1). */
+export function bindBuild(
   btn: HTMLElement,
   sender: PhoneSender,
-  getArc: () => MeView['arc'],
-  onGiving: (giving: boolean) => void,
+  isEnabled: () => boolean,
 ): GestureBinding<unknown> {
-  const cfg = (): RadialConfig => ({ ...RADIAL_DEFAULTS, slots: arcSlots(getArc()) });
-  return bindGesture(btn, radialGesture(cfg), {
-    onState: (st) => {
-      const hasSlots = cfg().slots.some((s) => s !== null);
-      encodeRadialState(sender, st, hasSlots);
-      sender.touch('action', st.phase !== 'idle');
-      onGiving(st.slot === SLOT_DOWN && st.phase !== 'idle');
+  return bindGesture(btn, tapGesture(), {
+    onState: (st) => sender.touch('action', st.pressed),
+    onOutput: () => {
+      if (isEnabled()) encodeBuildTap(sender);
     },
-    onOutput: (out, st) => encodeRadial(sender, out, st),
   });
 }
 
@@ -133,12 +117,12 @@ export function createCombat(ctx: ScreenCtx): View {
   const stick = mountStick(root, ctx.sender);
   const main = RoundButton('main', 'main-ranger');
   const sup = RoundButton('super', 'super-ranger');
-  const action = RoundButton('action', 'act-pickup');
+  const action = RoundButton('action', 'act-shield');
   const ring = ChargeRing();
   for (const b of [main, sup]) b.el.append(el('span', { class: 'aim-ring' }));
   main.label('ATTACK');
   sup.label('SUPER');
-  action.label('ACTION');
+  action.label('BUILD');
   sup.el.append(ring.el);
   const dead = el(
     'div',
@@ -159,7 +143,7 @@ export function createCombat(ctx: ScreenCtx): View {
   const countdown = createCountdown(clock, formatClock, ctx.now);
 
   let layout: CombatLayout = layoutCombat({ width: innerWidth, height: innerHeight });
-  // Aimed attacks are floating joysticks over the right half (FF4-fix-2); taps and radials stay put.
+  // Aimed attacks are floating joysticks over the right half (FF4-fix-2); taps stay put.
   const zones: AimZones = mountAimZones(root, {
     sender: ctx.sender,
     getLayout: () => layout,
@@ -185,12 +169,6 @@ export function createCombat(ctx: ScreenCtx): View {
   window.addEventListener('resize', onResize);
   place();
 
-  const giving = (on: boolean) => {
-    if (!me) return;
-    const i = on ? giveIcon(me.give) : actionIcon(me.action);
-    action.setIcon(i.id, i.dimmed);
-  };
-
   const bind = (classId: ClassId) => {
     for (const b of bindings) b.destroy();
     const info = CLASS_INFO[classId];
@@ -206,7 +184,7 @@ export function createCombat(ctx: ScreenCtx): View {
       ...(['main', 'super'] as const)
         .filter((k) => info[k].mode === 'tap')
         .map((k) => bindAttack((k === 'main' ? main : sup).el, ctx.sender, k, 'tap')),
-      bindAction(action.el, ctx.sender, () => me?.arc ?? null, giving),
+      bindBuild(action.el, ctx.sender, () => buildEnabled(me?.build ?? null)),
     ];
     boundClass = classId;
   };
@@ -241,9 +219,7 @@ export function createCombat(ctx: ScreenCtx): View {
     }
     strip.update(m, team);
     ring.set(m.superCharge, m.superReady);
-    const a = actionIcon(m.action);
-    action.setIcon(a.id, a.dimmed);
-    action.el.classList.toggle('kit', m.action === 'kit');
+    action.setIcon(m.build?.icon ?? 'act-shield', !buildEnabled(m.build));
   };
 
   return {

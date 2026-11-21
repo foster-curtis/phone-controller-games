@@ -57,9 +57,7 @@ export function zeroRunStats(): RunStats {
     damageTaken: 0,
     deaths: 0,
     healingDone: 0,
-    cratesDelivered: 0,
-    cratesGiven: 0,
-    structuresBuilt: 0,
+    buildsPlaced: 0,
   };
 }
 
@@ -68,14 +66,13 @@ export function neutralInput(): PlayerInput {
     move: { x: 0, y: 0 },
     mainAim: { x: 0, y: 0 },
     superAim: { x: 0, y: 0 },
+    buildAim: { x: 0, y: 0 },
     mainAiming: false,
     superAiming: false,
-    radialOpen: false,
-    radialSlot: -1,
+    buildAiming: false,
     mainFires: 0,
     superFires: 0,
-    actionTaps: 0,
-    radialCommits: 0,
+    buildFires: 0,
   };
 }
 
@@ -196,13 +193,14 @@ export function createState(start: RunStart, cat: Catalog): FullState {
     soldiers: [],
     enemies: [],
     structures: [],
+    builds: [],
     projectiles: [],
     cratePiles: [],
     thrown: [],
     markers: [],
     spawns: [],
     grid: { cols, rows, kinds, occupant },
-    fields: { ground: emptyField(), breaker: emptyField(), hunted: [], dirty: true },
+    fields: { ground: emptyField(), breaker: emptyField(), hunted: [], dirty: true, brute: {} },
     spatial: createSpatialHash(cols, rows),
     base,
     team: {
@@ -329,12 +327,16 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       crates: 0,
       kits: 0,
       superCharge: 0,
+      // Meters exist and stay empty until RD3 fills them (§7.2 starts the run full then).
+      meter: 0,
       main: newAttack(),
       super: newAttack(),
+      build: newAttack(),
       mainAim: null,
       superAim: null,
-      radialOpen: false,
-      radialSlot: -1,
+      buildAim: null,
+      regen: { quietUntil: 0, nextRegen: 0 },
+      growth: { regular: 0, boss: 0 },
       stillTicks: 0,
       lastBuilt: null,
       ghost: null,
@@ -352,9 +354,8 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       input: neutralInput(),
       main: false,
       super: false,
-      action: false,
-      radial: false,
-      prev: { mainFires: 0, superFires: 0, actionTaps: 0, radialCommits: 0 },
+      build: false,
+      prev: { mainFires: 0, superFires: 0, buildFires: 0 },
       baseline: true,
     });
     return p;
@@ -591,6 +592,7 @@ export function createState(start: RunStart, cat: Catalog): FullState {
         mode: 'follow',
         target: null,
         attack: newAttack(),
+        flight: null,
       };
       world.soldiers.push(s);
       register(s, 'soldier', stats);

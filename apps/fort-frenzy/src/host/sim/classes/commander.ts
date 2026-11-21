@@ -1,18 +1,18 @@
-// Commander kit (SPEC §8, §10.1 row 7): the rally flag. In combat the action button plants it at his
-// feet, and his squad holds the flag's position; tapping again recalls it and the squad follows him.
-// The flag's position persists across phases (BUILD_PLAN §8). Morale is the `buff` shape
-// (classes/shapes.ts), Lead from the Front a passive module, the squad is squad/.
+// Commander kit (SPEC §8.2, §7.4): the rally flag is his build (RD9 throws it). With the meter not full
+// and a flag out, the build button recalls it and his squad follows him again; recall never uses the
+// meter (§15.11 #83). The flag's position persists across phases. Morale is the `buff` shape
+// (classes/shapes.ts) until RD9, Lead from the Front a passive module, the squad is squad/.
 import type { FullState } from '../state';
 import type { PlayerEnt } from '../types';
 
-/** Row 7: plant the flag, or recall it if planted. */
-export function toggleFlag(s: FullState, p: PlayerEnt): void {
-  const plant = p.flag === null;
-  p.flag = plant ? { x: p.x, y: p.y } : null;
+/** The build button's recall (§7.4): no-op without a planted flag. */
+export function recallFlag(s: FullState, p: PlayerEnt): void {
+  if (p.flag === null) return;
+  p.flag = null;
   for (const u of s.world.soldiers) {
     if (u.owner !== p.slot) continue;
-    u.mode = plant ? 'rally' : 'follow';
+    u.mode = 'follow';
     u.target = null;
   }
-  s.emit({ e: 'flag', slot: p.slot, action: plant ? 'plant' : 'recall' });
+  s.emit({ e: 'recall', slot: p.slot });
 }

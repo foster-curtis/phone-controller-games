@@ -2,7 +2,7 @@
 // lists fit the build arc, wave budgets cover their guaranteed spawns, the map is well formed, and the
 // balance sheet carries every number the sim reads.
 import { describe, expect, it } from 'vitest';
-import { CARD_INFO, STRUCTURE_INFO } from '../../controller/copy';
+import { CARD_INFO } from '../../controller/copy';
 import { FORTIFIABLE } from '../../host/sim/building';
 import { modules } from '../../host/sim/registry';
 import { aiKinds, bosses, structureBehaviors } from '../../host/sim/registry';
@@ -189,8 +189,6 @@ describe('content rules', () => {
     expect(by('wall').pathCost).toBeGreaterThan(c.rules!.breakerWallCost);
     expect(by('fortify').attachesTo).toEqual([...FORTIFIABLE]);
     expect(by('fortify').hp).toBeNull();
-    // The phone's build tab shows its own copy of the costs (controller/copy.ts).
-    for (const s of c.structures) expect(STRUCTURE_INFO[s.id].cost).toBe(s.cost);
   });
 
   it('every build list fits the build arc (at most 3)', () => {

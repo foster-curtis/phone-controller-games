@@ -74,11 +74,10 @@ function busyBuild() {
   sim.command({ c: 'card', slot: 0, card: p0.offer![0]! });
   sim.command({ c: 'request', slot: 2, item: 'repair', on: true });
   h.run(1);
-  // The Warden fortifies the arrow tower from the tile beside it.
+  // Fortify the arrow tower directly (the build intent is gone).
   h.put(1, tower.tile[0] + 1.5, tower.tile[1] + 0.5);
   h.p(1).crates = 9;
-  sim.command({ c: 'build', slot: 1, action: 'select', structure: 'fortify' });
-  sim.command({ c: 'build', slot: 1, action: 'place' });
+  tower.fortified = true;
   h.run(1);
   expect(tower.fortified).toBe(true);
   // Things the commands can't easily reach in a test.

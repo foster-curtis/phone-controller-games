@@ -193,14 +193,11 @@ describe('session: run', () => {
     s.afterStep();
     s.handlePeer({ event: 'joined', playerId: 'a2', playerKey: 'key-a' });
     s.handleMessage('a2', { t: 'hello', proto: PROTOCOL_VERSION, deviceId: 'dev-a' });
-    // The hello's own snapshot, before any step: the build screen with the Ranger's kit.
+    // The hello's own snapshot, before any step: the build screen.
     const me = lastMe(sent, 'a2');
     expect(me.screen).toBe('build');
     expect(me.classId).toBe('ranger');
     expect(me.slot).toBe(0);
-    expect(me.buildKit).toEqual(['arrow_tower', 'bomb_tower']);
-    expect(me.arc!.slots).toEqual(['arrow_tower', 'bomb_tower', null, 'give']);
-    expect(me.action).toBe('none');
     expect(isMeView(me)).toBe(true);
     sim.step();
     s.afterStep();
