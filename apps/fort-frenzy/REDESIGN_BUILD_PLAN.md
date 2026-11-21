@@ -807,7 +807,7 @@ Rules:
   - [x] `art/redesign` merged; rig-contract and manifest tests updated
   - [x] `engineer` → `ranger`, `quartermaster` → `artificer`
   - [x] Theme layer removed (`src/presentation/`, no ThemeId, no theme row); ESLint pattern; major changeset
-  - [ ] Merged; e2e green
+  - [x] Merged; e2e green
 - RD2 Cut + contracts + portals
   - [ ] Contract files to the redesign shapes (tuple v2, views, snapshot, content and sim types)
   - [ ] Crates and QM supply kit cut
