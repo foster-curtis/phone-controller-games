@@ -225,9 +225,7 @@ export function createBuild(ctx: ScreenCtx): View {
       cardsHost.replaceChildren(el('p', { class: 'body hint', text: 'No upgrade this phase.' }));
 
     const myId = ctx.myId();
-    const shown = team.shop.filter(
-      (r) => r.visible && (!r.qmOnly || me.classId === 'quartermaster'),
-    );
+    const shown = team.shop.filter((r) => r.visible && (!r.qmOnly || me.classId === 'artificer'));
     rows.set(
       shown.map((r) => {
         const req = requesters(team, r.id);

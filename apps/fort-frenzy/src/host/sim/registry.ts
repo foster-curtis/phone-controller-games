@@ -30,8 +30,8 @@ import {
   shieldEffect,
   vanguardAura,
 } from './cards/effects';
-import { fireArrows, piercingShot, skyhunter, volley, wildfire } from './cards/engineer';
-import { bulkBuyer, lightLoad, overflow, plague, triage, venomBolts } from './cards/quartermaster';
+import { fireArrows, piercingShot, skyhunter, volley, wildfire } from './cards/ranger';
+import { bulkBuyer, lightLoad, overflow, plague, triage, venomBolts } from './cards/artificer';
 import { aftershock, bodyguard, faultLine, giantSlayer, unshakable } from './cards/warden';
 import { chargedWalls } from './shop/chargedWalls';
 import { mason, stunEffect } from './classes/warden';

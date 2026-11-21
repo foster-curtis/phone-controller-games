@@ -63,7 +63,7 @@ test('phone drop → dazed → back in the same slot', async ({ browser }) => {
   expect(after.playerId).not.toBe(before.playerId);
   expect(after.slot).toBe(before.slot);
   expect(after.color).toBe('rose');
-  expect(after.classId).toBe('engineer');
+  expect(after.classId).toBe('ranger');
   expect((await players(host)).length).toBe(2);
   expect(host.errors).toEqual([]);
 });

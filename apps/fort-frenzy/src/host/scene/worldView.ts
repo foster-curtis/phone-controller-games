@@ -1114,11 +1114,11 @@ function looksOf(effects: readonly { def: EffectId }[]): StatusLook[] {
 }
 
 /**
- * Straight shots are bolts; the Quartermaster's are nanite bolts (FF9), enemies' their own (FF10);
+ * Straight shots are bolts; the Artificer's are nanite bolts (FF9), enemies' their own (FF10);
  * mortars lob shells (FF8).
  */
 function projectileKind(from: string): ProjectileKind {
-  if (from === 'quartermaster') return 'nanite-bolt';
+  if (from === 'artificer') return 'nanite-bolt';
   if (from === 'flyer') return 'wasp-shot';
   if (from === 'siege') return 'bombard-shell';
   if (from === 'bomb_tower') return 'mortar-shell';

@@ -20,7 +20,7 @@ describe('soak (short form)', () => {
   });
 
   it('2 players play waves 1–15 to the summary, and a rerun hashes the same', () => {
-    const opts = { seed: 1, classes: ['quartermaster', 'commander'] as const };
+    const opts = { seed: 1, classes: ['artificer', 'commander'] as const };
     const a = soakRun(opts);
     expect(a.phase).toBe('summary');
     expect(a.result).toBe('victory');

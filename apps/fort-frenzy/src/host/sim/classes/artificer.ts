@@ -1,5 +1,5 @@
-// Quartermaster supply perks (SPEC §3.4, §6, §10.1 rows 3 and 6): the emergency repair kit used in
-// the repair zone, and crate throws that auto-target the nearest Engineer or Warden. The discount,
+// Artificer supply perks (SPEC §3.4, §6, §10.1 rows 3 and 6): the emergency repair kit used in
+// the repair zone, and crate throws that auto-target the nearest Ranger or Warden. The discount,
 // the cap of 8 and no slowdown are content (`supply`, `carryCap`, `carrySlowdown`) read by crates.ts.
 // Field Medic is a passive module (modules/fieldMedic.ts).
 import { carryCap, dropPile, inZone } from '../crates';
@@ -7,11 +7,11 @@ import { dist } from '../geometry';
 import type { FullState } from '../state';
 import type { PlayerEnt, ThrownCrate, World } from '../types';
 
-/** Who a Quartermaster throws to (§10.1 row 6). */
-const RECEIVERS = new Set(['engineer', 'warden']);
+/** Who an Artificer throws to (§10.1 row 6). */
+const RECEIVERS = new Set(['ranger', 'warden']);
 
 /**
- * Row 6's target: the nearest Engineer or Warden who is up, connected, has room and is within the
+ * Row 6's target: the nearest Ranger or Warden who is up, connected, has room and is within the
  * throw range; ties go to the lower slot. Pure on the world (the phones' action icon uses it too).
  */
 export function throwTarget(
@@ -19,7 +19,7 @@ export function throwTarget(
   p: PlayerEnt,
   capOf: (q: PlayerEnt) => number,
 ): PlayerEnt | null {
-  if (p.classId !== 'quartermaster' || p.crates <= 0) return null;
+  if (p.classId !== 'artificer' || p.crates <= 0) return null;
   const range = p.stats.throwRange;
   let best: PlayerEnt | null = null;
   let bestD = Infinity;
@@ -91,15 +91,11 @@ export function stepThrown(s: FullState): void {
   list.length = write;
 }
 
-/** Row 3: a Quartermaster in the repair zone holding a kit, with the base hurt (a full base takes none). */
+/** Row 3: an Artificer in the repair zone holding a kit, with the base hurt (a full base takes none). */
 export function canUseKit(s: FullState, p: PlayerEnt): boolean {
   const b = s.world.base;
   return (
-    p.classId === 'quartermaster' &&
-    p.kits > 0 &&
-    inZone(s, p, 'repair') &&
-    b.hp > 0 &&
-    b.hp < b.maxHp
+    p.classId === 'artificer' && p.kits > 0 && inZone(s, p, 'repair') && b.hp > 0 && b.hp < b.maxHp
   );
 }
 

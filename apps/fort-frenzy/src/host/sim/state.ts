@@ -300,7 +300,7 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       radius: def.radius,
       attackSpeed: 1,
       carrySlowdown: 1,
-      // Supply perks (Quartermaster, FF9): stats, so cards can change them.
+      // Supply perks (Artificer, FF9): stats, so cards can change them.
       crateDiscount: def.supply?.crateDiscount ?? 0,
       throwRange: def.supply?.throwRange ?? 0,
       throwSpeed: def.supply?.throwSpeed ?? 0,

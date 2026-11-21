@@ -1,5 +1,5 @@
 // Player attack shapes beyond projectiles and circles (SPEC §8): the Commander's sword `arc`, the
-// Quartermaster's super `cone` (heals players, buffs towers, passes through walls and towers) and the
+// Artificer's super `cone` (heals players, buffs towers, passes through walls and towers) and the
 // Commander's morale `buff`. Players' `fire` dispatches here by `AttackDef.shape`.
 import type { AttackDef, CharacterDef, EffectApply } from '../../../content/types';
 import type { FullState } from '../state';
@@ -53,7 +53,7 @@ const arc: ShapeFire = (s, p, a, slot, damage, atk) => {
 };
 
 /**
- * Nanite cone (Quartermaster super): heals the players it reaches (not himself) and puts its
+ * Nanite cone (Artificer super): heals the players it reaches (not himself) and puts its
  * `effects` on the towers it reaches; damages enemies only if it has damage. Nothing blocks it.
  */
 const cone: ShapeFire = (s, p, a, slot, damage, atk) => {

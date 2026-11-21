@@ -20,7 +20,7 @@ import type { Modifier, PlayerEnt, StatMod, World } from '../types';
 const isRare = (c: CardDef) => c.tier !== 'common';
 
 /** Classes that bring ranged attackers: without one, Flyers are replaced (§9, lifecycle.ts). */
-const RANGED = new Set(['engineer', 'quartermaster']);
+const RANGED = new Set(['ranger', 'artificer']);
 
 /**
  * Can `enemy` still spawn for this team, from wave `from` on? Flyers are substituted when no ranged

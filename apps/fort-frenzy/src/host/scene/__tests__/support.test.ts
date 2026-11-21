@@ -114,7 +114,7 @@ describe('weapons, auras, circles', () => {
     expect(shotAnchor('ranger')).toBe('bolt');
     for (const v of Object.values(rigs.artificer!.views))
       expect((v as { attach?: Record<string, unknown> }).attach?.lens).toBeDefined();
-    const qm = content.characters.find((c) => c.id === 'quartermaster')!;
+    const qm = content.characters.find((c) => c.id === 'artificer')!;
     expect(qm.main.speed).toBe(PROJECTILE_SPEEDS['nanite-bolt']);
   });
 

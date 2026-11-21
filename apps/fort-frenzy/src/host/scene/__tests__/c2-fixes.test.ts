@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { engineer } from '../../../content/balance';
+import { ranger } from '../../../content/balance';
 import { theme } from '../../../shared/theme';
 import { neonKnightsHost } from '../../../themes/neon-knights/host';
 import { isPosed, type ViewId } from '../../../themes/types';
@@ -90,7 +90,7 @@ describe('C2 note 1: the Ranger draws, holds and releases', () => {
     expect(shotTiming('ranger', true).offsetMs).toBe(DRAW_END_MS);
     expect(shotTiming('warden', false)).toEqual({ offsetMs: 0, delayMs: 0 });
     // The clip is over before the next shot, so a repeat shot starts from full draw.
-    expect(ATTACK_MS).toBeLessThan(engineer.main.cooldownMs);
+    expect(ATTACK_MS).toBeLessThan(ranger.main.cooldownMs);
   });
 });
 

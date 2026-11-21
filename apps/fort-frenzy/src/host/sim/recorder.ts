@@ -152,7 +152,7 @@ export function recordAutopilotRun(opts: {
   invincible?: boolean;
   maxSteps?: number;
 }): RunRecording {
-  const classes = ['engineer'] as const;
+  const classes = ['ranger'] as const;
   const colors = ['cobalt', 'jade', 'sky', 'bone', 'rose', 'forest'] as const;
   const start: RunStart = {
     seed: opts.seed,

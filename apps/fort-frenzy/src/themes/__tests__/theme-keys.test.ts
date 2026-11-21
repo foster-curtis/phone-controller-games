@@ -64,8 +64,8 @@ describe('theme key whitelist (neon knights)', () => {
         id,
       ).toBeGreaterThan(0);
     expect(neonKnightsShared.names).toMatchObject({
-      engineer: 'Ranger',
-      quartermaster: 'Artificer',
+      ranger: 'Ranger',
+      artificer: 'Artificer',
       arrow_tower: 'Pulse turret',
       snare: 'Shock Net',
       grunt: 'Drone',
@@ -76,11 +76,11 @@ describe('theme key whitelist (neon knights)', () => {
     });
   });
 
-  it('maps internal ids to rigs (engineer → ranger, quartermaster → artificer, grunt → drone …)', () => {
+  it('maps internal ids to rigs (ranger → ranger, artificer → artificer, grunt → drone …)', () => {
     expect(neonKnightsHost.rigFor.class).toEqual({
-      engineer: 'ranger',
+      ranger: 'ranger',
       warden: 'warden',
-      quartermaster: 'artificer',
+      artificer: 'artificer',
       commander: 'commander',
     });
     expect(neonKnightsHost.rigFor.enemy).toMatchObject({

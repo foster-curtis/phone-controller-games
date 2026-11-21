@@ -11,24 +11,24 @@ import type {
 } from '../../shared/ids';
 
 export const CLASS_NAME: Record<ClassId, string> = {
-  engineer: 'Ranger',
+  ranger: 'Ranger',
   warden: 'Warden',
-  quartermaster: 'Artificer',
+  artificer: 'Artificer',
   commander: 'Commander',
 };
 
 /** Rig id for a class: the portrait files are named after it. */
 export const CLASS_RIG: Record<ClassId, string> = {
-  engineer: 'ranger',
+  ranger: 'ranger',
   warden: 'warden',
-  quartermaster: 'artificer',
+  artificer: 'artificer',
   commander: 'commander',
 };
 
 export const CLASS_ICON: Record<ClassId, string> = {
-  engineer: 'class-ranger',
+  ranger: 'class-ranger',
   warden: 'class-warden',
-  quartermaster: 'class-artificer',
+  artificer: 'class-artificer',
   commander: 'class-commander',
 };
 

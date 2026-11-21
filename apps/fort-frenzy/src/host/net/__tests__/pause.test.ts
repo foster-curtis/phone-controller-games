@@ -89,7 +89,7 @@ function setup() {
     fake.peer('joined', id);
     hello(id);
     intent(id, { k: 'name', name });
-    intent(id, { k: 'class', classId: 'engineer' });
+    intent(id, { k: 'class', classId: 'ranger' });
   };
   /** Wall time: `ms` in 50 ms ticks (the clock moves with it, so phone input stays fresh). */
   const run = (ms: number) => {

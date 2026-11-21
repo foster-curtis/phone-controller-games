@@ -170,10 +170,10 @@ describe('content ids', () => {
 });
 
 describe('content rules', () => {
-  it('no structure costs more than a non-Quartermaster can carry', () => {
+  it('no structure costs more than a non-Artificer can carry', () => {
     const maxCost = Math.max(...c.structures.map((s) => s.cost));
     for (const ch of c.characters) {
-      if (ch.id === 'quartermaster') continue;
+      if (ch.id === 'artificer') continue;
       expect(ch.carryCap).toBeGreaterThanOrEqual(maxCost);
     }
   });

@@ -69,7 +69,7 @@ export const vanguardAura: EffectDef = {
   modifier: (k) => ({ id: 'effect:aura_vanguard', stats: [{ stat: 'damageReduction', add: k }] }),
 };
 
-/** Light Load (Quartermaster): allies in the Field Medic aura feel `k` less of the carry slowdown. */
+/** Light Load (Artificer): allies in the Field Medic aura feel `k` less of the carry slowdown. */
 export const lightLoadAura: EffectDef = {
   id: 'aura_field_medic',
   stacking: 'refresh',

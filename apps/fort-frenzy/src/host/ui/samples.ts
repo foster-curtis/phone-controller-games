@@ -27,7 +27,7 @@ const roster: TeamRosterEntry[] = [
     playerId: 'p1',
     name: 'Foster',
     color: 'cobalt',
-    classId: 'engineer',
+    classId: 'ranger',
     ready: true,
     connected: true,
   },
@@ -36,7 +36,7 @@ const roster: TeamRosterEntry[] = [
     playerId: 'p3',
     name: 'Dev',
     color: 'rose',
-    classId: 'quartermaster',
+    classId: 'artificer',
     ready: false,
     connected: true,
   },
@@ -131,7 +131,7 @@ const summary = (result: 'victory' | 'defeat'): TvView => {
         wavesSurvived: w ? 15 : 8,
         durationMs: w ? 24 * 60_000 + 12_000 : 13 * 60_000 + 40_000,
         players: [
-          { ...who(0), classId: 'engineer', stats: stats({ kills: 212 }), award: 'kills' },
+          { ...who(0), classId: 'ranger', stats: stats({ kills: 212 }), award: 'kills' },
           {
             ...who(1),
             classId: 'warden',
@@ -140,7 +140,7 @@ const summary = (result: 'victory' | 'defeat'): TvView => {
           },
           {
             ...who(2),
-            classId: 'quartermaster',
+            classId: 'artificer',
             stats: stats({ cratesDelivered: 38 }),
             award: 'cratesDelivered',
           },

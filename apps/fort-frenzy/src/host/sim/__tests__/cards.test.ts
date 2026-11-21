@@ -3,9 +3,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   cards as cardDefs,
-  engineer,
+  ranger,
   flyer,
-  quartermaster,
+  artificer,
   rules,
   warden,
 } from '../../../content/balance';
@@ -17,7 +17,7 @@ import { harness, type Harness } from './harness';
 import type { PlayerEnt } from '../types';
 
 const steps = (ms: number) => Math.max(1, Math.round((ms * 60) / 1000));
-const COOLDOWN = steps(engineer.main.cooldownMs) + 2;
+const COOLDOWN = steps(ranger.main.cooldownMs) + 2;
 
 type Pick = [slot: number, card: CardId, n?: number];
 
@@ -47,7 +47,7 @@ function atk(
 const effectOf = (u: { effects: readonly { def: string }[] }, def: string) =>
   u.effects.find((e) => e.def === def) as { strength: number; remaining: number } | undefined;
 
-/** Fires the Engineer's main (not Steady: a barely moving stick) along +x from (10, 16). */
+/** Fires the Ranger's main (not Steady: a barely moving stick) along +x from (10, 16). */
 function shoot(h: Harness, slot = 0) {
   h.put(slot, 10, 16);
   h.p(slot).stillTicks = 0;
@@ -69,7 +69,7 @@ type Common = { stat: StatId; pct: boolean; by: Record<ClassId, number> };
 const per = (pct: boolean, stat: StatId, e: number, w: number, q: number, c: number): Common => ({
   stat,
   pct,
-  by: { engineer: e, warden: w, quartermaster: q, commander: c },
+  by: { ranger: e, warden: w, artificer: q, commander: c },
 });
 const COMMONS: Partial<Record<CardId, Common>> = {
   vitality: per(true, 'maxHp', 0.12, 0.1, 0.12, 0.1),
@@ -81,7 +81,7 @@ const COMMONS: Partial<Record<CardId, Common>> = {
   toughness: per(false, 'damageReduction', 0.06, 0.08, 0.06, 0.07),
   quick_recovery: per(false, 'respawnMs', -2000, -2000, -2000, -2000),
 };
-const CLASSES: ClassId[] = ['engineer', 'warden', 'quartermaster', 'commander'];
+const CLASSES: ClassId[] = ['ranger', 'warden', 'artificer', 'commander'];
 
 /** The stat as a card sees it: unit stats directly, attack-only ones through a 100-point base. */
 const readStat = (p: PlayerEnt, stat: StatId) =>
@@ -103,15 +103,15 @@ describe('shared commons (numbers per class)', () => {
   }
 
   it('vitality: the new max HP comes in full', () => {
-    const h = harness(1, 1, { classes: ['engineer'] });
+    const h = harness(1, 1, { classes: ['ranger'] });
     h.toBuild();
     h.give(0, 'vitality');
-    expect(h.p(0).maxHp).toBeCloseTo(engineer.hp * 1.12, 6);
+    expect(h.p(0).maxHp).toBeCloseTo(ranger.hp * 1.12, 6);
     expect(h.p(0).hp).toBeCloseTo(h.p(0).maxHp, 6);
   });
 
   it('stacks add: two Might picks give twice the bonus', () => {
-    const h = harness(1, 1, { classes: ['engineer'] });
+    const h = harness(1, 1, { classes: ['ranger'] });
     h.toBuild();
     h.give(0, 'might');
     expect(atk(h.p(0), 100, 'damage', 'main')).toBeCloseTo(110, 6);
@@ -121,31 +121,28 @@ describe('shared commons (numbers per class)', () => {
   });
 
   it('reach is capped at +40% range', () => {
-    const h = harness(1, 1, { classes: ['engineer'] });
+    const h = harness(1, 1, { classes: ['ranger'] });
     h.toBuild();
     h.give(0, 'reach', 10);
-    expect(atk(h.p(0), engineer.main.range, 'range', 'main')).toBeCloseTo(
-      engineer.main.range * 1.4,
-      6,
-    );
+    expect(atk(h.p(0), ranger.main.range, 'range', 'main')).toBeCloseTo(ranger.main.range * 1.4, 6);
   });
 
   it('swiftness is capped at +40% move speed', () => {
-    const h = harness(1, 1, { classes: ['engineer'] });
+    const h = harness(1, 1, { classes: ['ranger'] });
     h.toBuild();
     h.give(0, 'swiftness', 10);
-    expect(h.p(0).stats.moveSpeed).toBeCloseTo(engineer.moveSpeed * 1.4, 6);
+    expect(h.p(0).stats.moveSpeed).toBeCloseTo(ranger.moveSpeed * 1.4, 6);
   });
 
   it('toughness is capped at 0.4 damage reduction', () => {
-    const h = harness(1, 1, { classes: ['engineer'] });
+    const h = harness(1, 1, { classes: ['ranger'] });
     h.toBuild();
     h.give(0, 'toughness', 10);
     expect(h.p(0).stats.damageReduction).toBeCloseTo(0.4, 6);
   });
 
   it('quick_recovery never drops the respawn below 5 s', () => {
-    const h = harness(1, 1, { classes: ['engineer'] });
+    const h = harness(1, 1, { classes: ['ranger'] });
     h.toBuild();
     h.give(0, 'quick_recovery', 2);
     expect(h.p(0).stats.respawnMs).toBe(rules.respawnMs - 4000);
@@ -154,12 +151,12 @@ describe('shared commons (numbers per class)', () => {
   });
 });
 
-// ---- engineer -----------------------------------------------------------------------------------
+// ---- ranger -----------------------------------------------------------------------------------
 
-describe('engineer cards', () => {
+describe('ranger cards', () => {
   it('quick_draw: main bolts fly 25% faster', () => {
     const speed = (picks: Pick[]) => {
-      const h = game(['engineer'], picks);
+      const h = game(['ranger'], picks);
       shoot(h);
       const b = h.sim.world.projectiles[0]!;
       return Math.hypot(b.vx, b.vy);
@@ -169,11 +166,11 @@ describe('engineer cards', () => {
 
   it('blast_radius: the super circle is 20% wider', () => {
     const hit = (picks: Pick[]) => {
-      const h = game(['engineer'], picks);
+      const h = game(['ranger'], picks);
       h.put(0, 10, 16);
       // Edge at 1.1× the base radius: outside the base circle, inside the 1.2× one.
       const e = h.sim.spawnEnemy('grunt', 0, 16);
-      e.x = 10 + engineer.super.radius * 1.1 + e.r;
+      e.x = 10 + ranger.super.radius * 1.1 + e.r;
       h.p(0).superCharge = 1;
       h.pads[0]!.tap('superFires');
       h.run(1);
@@ -184,20 +181,20 @@ describe('engineer cards', () => {
   });
 
   it('fire_arrows: a main hit sets the enemy burning and it takes damage over time', () => {
-    const h = game(['engineer'], [[0, 'fire_arrows']]);
+    const h = game(['ranger'], [[0, 'fire_arrows']]);
     shoot(h);
     const e = h.sim.spawnEnemy('grunt', 14, 16);
     h.run(30);
     expect(effectOf(e, 'burn')).toBeDefined();
     const afterHit = e.hp;
-    expect(afterHit).toBe(e.maxHp - engineer.main.damage);
+    expect(afterHit).toBe(e.maxHp - ranger.main.damage);
     h.run(90);
     expect(e.hp).toBeLessThan(afterHit);
   });
 
   it('piercing_shot: one bolt hits two enemies in a line', () => {
     const second = (picks: Pick[]) => {
-      const h = game(['engineer'], picks);
+      const h = game(['ranger'], picks);
       h.put(0, 10, 16);
       const a = h.sim.spawnEnemy('grunt', 13, 16);
       const b = h.sim.spawnEnemy('grunt', 15, 16);
@@ -214,7 +211,7 @@ describe('engineer cards', () => {
   it('skyhunter: +50% damage to Flyers (and it favors Flyers in the offer)', () => {
     expect(cardDefs.find((c) => c.id === 'skyhunter')!.favoredEnemy).toBe('flyer');
     const dealt = (picks: Pick[]) => {
-      const h = game(['engineer'], picks);
+      const h = game(['ranger'], picks);
       shoot(h);
       // Its body flies over its shadow (C4): the shot along y = 16 meets the body.
       const f = h.sim.spawnEnemy('flyer', 14, 16 + groundBody(flyer.body).lo);
@@ -223,16 +220,17 @@ describe('engineer cards', () => {
       return f.maxHp - f.hp;
     };
     const base = dealt([]);
-    expect(base).toBe(engineer.main.damage);
+    expect(base).toBe(ranger.main.damage);
     expect(dealt([[0, 'skyhunter']])).toBeCloseTo(base * 1.5, 6);
   });
 
   it('deadeye: Steady Aim kicks in after 360 ms instead of 600 ms', () => {
-    expect(
-      atk(game(['engineer'], [[0, 'deadeye']]).p(0), 600, 'durationMs', 'passive'),
-    ).toBeCloseTo(360, 6);
+    expect(atk(game(['ranger'], [[0, 'deadeye']]).p(0), 600, 'durationMs', 'passive')).toBeCloseTo(
+      360,
+      6,
+    );
     const dealt = (picks: Pick[]) => {
-      const h = game(['engineer'], picks);
+      const h = game(['ranger'], picks);
       h.put(0, 10, 16);
       h.p(0).stillTicks = 0;
       h.run(steps(450));
@@ -242,12 +240,12 @@ describe('engineer cards', () => {
       h.run(30);
       return e.maxHp - e.hp;
     };
-    expect(dealt([])).toBe(engineer.main.damage);
-    expect(dealt([[0, 'deadeye']])).toBeCloseTo(engineer.main.damage * 1.25, 6);
+    expect(dealt([])).toBe(ranger.main.damage);
+    expect(dealt([[0, 'deadeye']])).toBeCloseTo(ranger.main.damage * 1.25, 6);
   });
 
   it('volley: every 4th main shot fires 3 bolts', () => {
-    const h = game(['engineer'], [[0, 'volley']]);
+    const h = game(['ranger'], [[0, 'volley']]);
     h.put(0, 10, 16);
     h.pads[0]!.set({ move: { x: 0.001, y: 0 } });
     h.run(1);
@@ -266,7 +264,7 @@ describe('engineer cards', () => {
 
   it('wildfire: a burning enemy that dies passes burn to a neighbor', () => {
     const neighborBurns = (picks: Pick[]) => {
-      const h = game(['engineer'], picks);
+      const h = game(['ranger'], picks);
       h.put(0, 10, 16);
       const a = h.sim.spawnEnemy('grunt', 14, 16);
       const b = h.sim.spawnEnemy('grunt', 14, 16.9);
@@ -359,7 +357,7 @@ describe('warden cards', () => {
   });
 
   it('bodyguard: a nearby ally gets the aura and takes less damage, a far one does not', () => {
-    const h = game(['warden', 'engineer', 'engineer'], [[0, 'bodyguard']]);
+    const h = game(['warden', 'ranger', 'ranger'], [[0, 'bodyguard']]);
     h.put(0, 10, 12);
     h.put(1, 12, 12);
     h.put(2, 20, 12);
@@ -415,14 +413,14 @@ describe('warden cards', () => {
   });
 });
 
-// ---- quartermaster ------------------------------------------------------------------------------
+// ---- artificer ------------------------------------------------------------------------------
 
-describe('quartermaster cards', () => {
+describe('artificer cards', () => {
   const MEDIC = steps(1000) + 1;
 
   it('light_load: a crate carrier in the aura loses less speed', () => {
     const run = (picks: Pick[]) => {
-      const h = game(['quartermaster', 'engineer'], picks);
+      const h = game(['artificer', 'ranger'], picks);
       h.put(0, 10, 16);
       h.put(1, 10, 16);
       h.p(1).crates = 4;
@@ -438,14 +436,14 @@ describe('quartermaster cards', () => {
   });
 
   it('strong_arm: throws go 30% further and faster', () => {
-    const p = game(['quartermaster'], [[0, 'strong_arm']]).p(0);
-    expect(p.stats.throwRange).toBeCloseTo(quartermaster.supply.throwRange * 1.3, 6);
-    expect(p.stats.throwSpeed).toBeCloseTo(quartermaster.supply.throwSpeed * 1.3, 6);
+    const p = game(['artificer'], [[0, 'strong_arm']]).p(0);
+    expect(p.stats.throwRange).toBeCloseTo(artificer.supply.throwRange * 1.3, 6);
+    expect(p.stats.throwSpeed).toBeCloseTo(artificer.supply.throwSpeed * 1.3, 6);
   });
 
   it('venom_bolts: a bolt hit poisons the enemy', () => {
     const run = (picks: Pick[]) => {
-      const h = game(['quartermaster'], picks);
+      const h = game(['artificer'], picks);
       h.put(0, 10, 16);
       const e = h.sim.spawnEnemy('grunt', 12.5, 16);
       e.hp = e.maxHp = 1e6;
@@ -463,7 +461,7 @@ describe('quartermaster cards', () => {
 
   it('overflow: healing a full-HP player gives a shield that absorbs damage', () => {
     const run = (picks: Pick[]) => {
-      const h = game(['quartermaster', 'engineer'], picks);
+      const h = game(['artificer', 'ranger'], picks);
       h.put(0, 10, 16);
       h.put(1, 11, 16);
       h.run(MEDIC);
@@ -472,7 +470,7 @@ describe('quartermaster cards', () => {
     expect(effectOf(run([]).p(1), 'shield')).toBeUndefined();
     const h = run([[0, 'overflow']]);
     const shield = effectOf(h.p(1), 'shield')!;
-    expect(shield.strength).toBeCloseTo(quartermaster.passive.params.heal, 6);
+    expect(shield.strength).toBeCloseTo(artificer.passive.params.heal, 6);
     // A hit eats the shield, not the HP.
     shield.strength = 40;
     h.sim.command({ c: 'debug', slot: 1, action: 'invincible', on: false });
@@ -484,7 +482,7 @@ describe('quartermaster cards', () => {
 
   it('bulk_buyer: every 3rd crate bought is free', () => {
     const spent = (picks: Pick[]) => {
-      const h = harness(1, 1, { classes: ['quartermaster'] });
+      const h = harness(1, 1, { classes: ['artificer'] });
       h.toBuild();
       for (const [slot, card] of picks) h.give(slot, card);
       h.sim.world.team.coins = 100;
@@ -502,7 +500,7 @@ describe('quartermaster cards', () => {
 
   it('wide_aura: Field Medic reaches 30% further', () => {
     const healed = (picks: Pick[]) => {
-      const h = game(['quartermaster', 'engineer'], picks);
+      const h = game(['artificer', 'ranger'], picks);
       h.put(0, 10, 16);
       h.put(1, 13.1, 16);
       h.p(1).hp = 50;
@@ -511,7 +509,7 @@ describe('quartermaster cards', () => {
     };
     expect(healed([])).toBe(0);
     expect(healed([[0, 'wide_aura']])).toBe(3);
-    expect(atk(game(['quartermaster'], [[0, 'wide_aura']]).p(0), 2.5, 'auraRadius')).toBeCloseTo(
+    expect(atk(game(['artificer'], [[0, 'wide_aura']]).p(0), 2.5, 'auraRadius')).toBeCloseTo(
       3.25,
       6,
     );
@@ -519,7 +517,7 @@ describe('quartermaster cards', () => {
 
   it('triage: heals on a player below 30% HP are doubled', () => {
     const healed = (picks: Pick[], hp: number) => {
-      const h = game(['quartermaster', 'engineer'], picks);
+      const h = game(['artificer', 'ranger'], picks);
       h.put(0, 10, 16);
       h.put(1, 11, 16);
       h.p(1).hp = hp;
@@ -533,7 +531,7 @@ describe('quartermaster cards', () => {
 
   it('plague: a poisoned enemy that dies passes poison to a neighbor', () => {
     const neighborPoisoned = (picks: Pick[]) => {
-      const h = game(['quartermaster'], picks);
+      const h = game(['artificer'], picks);
       h.put(0, 10, 16);
       const a = h.sim.spawnEnemy('grunt', 12.5, 16);
       // North of it, clear of the bolts' fan (its body reaches up the screen, away from them, C4).
@@ -646,7 +644,7 @@ describe('commander cards', () => {
 
   it('warcry: his super also gives morale to a nearby other player', () => {
     const run = (picks: Pick[]) => {
-      const h = game(['commander', 'engineer', 'engineer'], picks);
+      const h = game(['commander', 'ranger', 'ranger'], picks);
       h.put(0, 10, 12);
       h.put(1, 12, 12);
       h.put(2, 25, 12);

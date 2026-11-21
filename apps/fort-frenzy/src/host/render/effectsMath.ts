@@ -1,6 +1,6 @@
 // Effect placement and speeds (C1 notes 9, 10): pure, so they are tested headless and shared with
 // the content milestones. render/effects.ts draws them.
-import { arrowTower, flyer, quartermaster } from '../../content/balance';
+import { arrowTower, flyer, artificer } from '../../content/balance';
 import { hash01 } from './fall';
 
 /**
@@ -9,10 +9,10 @@ import { hash01 } from './fall';
  * their arcs instead.
  */
 export const PROJECTILE_SPEEDS = {
-  // The `bolt` look is shared: the Engineer's longbow (22 t/s) is slower than the towers' and sentries'
+  // The `bolt` look is shared: the Ranger's longbow (22 t/s) is slower than the towers' and sentries'
   // (26); the in-game shot is drawn at the speed the sim projectile carries, this is the gallery's pace.
   bolt: arrowTower.attack.speed,
-  'nanite-bolt': quartermaster.main.speed,
+  'nanite-bolt': artificer.main.speed,
   'wasp-shot': flyer.attack.speed,
 };
 

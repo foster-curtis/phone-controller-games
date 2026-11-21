@@ -272,7 +272,7 @@ export interface MeView {
   /** Full state (§10.1). */
   superReady: boolean;
   action: MeAction;
-  /** Emergency kits held (Quartermaster, 0 or 1). */
+  /** Emergency kits held (Artificer, 0 or 1). */
   kits: number;
   /** What Give does now (icon swap, §10.1). */
   give: 'give' | 'drop' | null;

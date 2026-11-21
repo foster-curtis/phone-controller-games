@@ -4,7 +4,7 @@
 // reorder or remove (lists are iterated in order, e.g. player colors in brand order).
 
 /** The four classes (SPEC §8). Display names come from the theme (neon knights: Ranger, Warden, …). */
-export const CLASS_IDS = ['engineer', 'warden', 'quartermaster', 'commander'] as const;
+export const CLASS_IDS = ['ranger', 'warden', 'artificer', 'commander'] as const;
 export type ClassId = (typeof CLASS_IDS)[number];
 
 /** The Iron Tide (SPEC §9) plus the boss (§9.2). */
@@ -24,7 +24,7 @@ export type EnemyId = (typeof ENEMY_IDS)[number];
 export const STRUCTURE_IDS = ['arrow_tower', 'bomb_tower', 'wall', 'snare', 'fortify'] as const;
 export type StructureId = (typeof STRUCTURE_IDS)[number];
 
-/** Team shop items (SPEC §6.2), Quartermaster-only items included. */
+/** Team shop items (SPEC §6.2), Artificer-only items included. */
 export const SHOP_ITEM_IDS = [
   'crate',
   'repair',
@@ -54,7 +54,7 @@ export const CARD_IDS = [
   'focus',
   'toughness',
   'quick_recovery',
-  // engineer
+  // ranger
   'quick_draw',
   'blast_radius',
   'fire_arrows',
@@ -72,7 +72,7 @@ export const CARD_IDS = [
   'bodyguard',
   'unshakable',
   'fault_line',
-  // quartermaster
+  // artificer
   'light_load',
   'strong_arm',
   'venom_bolts',

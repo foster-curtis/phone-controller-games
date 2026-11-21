@@ -3,7 +3,7 @@
 export { createSim, type Sim, type SimOptions, type StepObserver } from './sim';
 export { stateHash } from './hash';
 export { buildTile, placementValid, tileAt } from './building';
-export { throwTarget } from './classes/quartermaster';
+export { throwTarget } from './classes/artificer';
 export { inSector, type Sector } from './classes/sector';
 export { hitShape, type HitShape } from './classes/hitShape';
 export { groundBody, type GroundBody } from './body';

@@ -57,7 +57,7 @@ export interface SnapshotSlot {
   classId: ClassId;
   hp: number;
   crates: number;
-  /** Emergency kits held (Quartermaster, 0 or 1). */
+  /** Emergency kits held (Artificer, 0 or 1). */
   kits: number;
   lastBuilt: StructureId | null;
   cards: Partial<Record<CardId, number>>;

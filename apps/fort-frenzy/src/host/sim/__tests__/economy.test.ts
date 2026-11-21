@@ -1,6 +1,6 @@
 // Economy scenarios (SPEC §3.4, §5, §6, §10.1 action rows 1–4, give/drop).
 import { describe, expect, it } from 'vitest';
-import { base as baseDef, engineer, rules } from '../../../content/balance';
+import { base as baseDef, ranger, rules } from '../../../content/balance';
 import { harness } from './harness';
 
 const DEPOT = { x: 22.5, y: 1.5 };
@@ -19,9 +19,9 @@ describe('depot, carry cap, slowdown', () => {
       h.run(1);
       buys.push(...h.events('crate').filter((e) => e.action === 'buy'));
     }
-    expect(h.p(0).crates).toBe(engineer.carryCap);
-    expect(buys).toHaveLength(engineer.carryCap);
-    expect(h.sim.world.team.coins).toBe(100 - engineer.carryCap * PRICE);
+    expect(h.p(0).crates).toBe(ranger.carryCap);
+    expect(buys).toHaveLength(ranger.carryCap);
+    expect(h.sim.world.team.coins).toBe(100 - ranger.carryCap * PRICE);
   });
 
   it("doesn't buy without the coins", () => {
@@ -48,7 +48,7 @@ describe('depot, carry cap, slowdown', () => {
 
   it('carry slowdown grows faster than linearly with crates carried', () => {
     const dist: number[] = [];
-    for (let n = 0; n <= engineer.carryCap; n++) {
+    for (let n = 0; n <= ranger.carryCap; n++) {
       const h = harness(1);
       h.toBuild();
       h.put(0, 4, 10);
@@ -57,12 +57,12 @@ describe('depot, carry cap, slowdown', () => {
       h.run(60);
       dist.push(h.p(0).x - 4);
     }
-    expect(dist[0]).toBeCloseTo(engineer.moveSpeed, 1);
+    expect(dist[0]).toBeCloseTo(ranger.moveSpeed, 1);
     for (let n = 1; n < dist.length; n++) expect(dist[n]).toBeLessThan(dist[n - 1]!);
     const loss = dist.map((d, n) => (n === 0 ? 0 : dist[n - 1]! - d));
     for (let n = 2; n < loss.length; n++) expect(loss[n]).toBeGreaterThan(loss[n - 1]!);
     expect(dist[1]! / dist[0]!).toBeGreaterThan(0.94); // barely noticeable
-    expect(dist[engineer.carryCap]! / dist[0]!).toBeLessThan(0.75); // a real slowdown
+    expect(dist[ranger.carryCap]! / dist[0]!).toBeLessThan(0.75); // a real slowdown
   });
 });
 
@@ -74,11 +74,11 @@ describe('give and drop', () => {
     h.put(1, 10.8, 10); // nearest, but full
     h.put(2, 11.5, 10);
     h.p(0).crates = 2;
-    h.p(1).crates = engineer.carryCap;
+    h.p(1).crates = ranger.carryCap;
     h.sim.command({ c: 'give', slot: 0, ref: 5 });
     h.run(1);
     expect(h.p(0).crates).toBe(1);
-    expect(h.p(1).crates).toBe(engineer.carryCap);
+    expect(h.p(1).crates).toBe(ranger.carryCap);
     expect(h.p(2).crates).toBe(1);
     expect(h.events('crate')).toEqual([
       expect.objectContaining({ action: 'give', slot: 0, to: 2 }),
@@ -172,7 +172,7 @@ describe('give and drop', () => {
     });
     h.pads[0]!.tap('actionTaps');
     h.run(1);
-    expect(h.p(0).crates).toBe(engineer.carryCap);
+    expect(h.p(0).crates).toBe(ranger.carryCap);
     expect(h.sim.world.cratePiles[0]!.n).toBe(2);
   });
 });

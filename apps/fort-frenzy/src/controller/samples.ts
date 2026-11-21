@@ -29,7 +29,7 @@ const roster = (me: {
     playerId: 'p3',
     name: 'Dev',
     color: 'rose',
-    classId: 'quartermaster',
+    classId: 'artificer',
     ready: false,
     connected: true,
   },
@@ -124,7 +124,7 @@ export function sampleTeam(
     id: 'dev',
     name: 'Foster',
     color: 'cobalt' as PlayerColorId,
-    classId: 'engineer' as ClassId | null,
+    classId: 'ranger' as ClassId | null,
   },
 ): TeamView {
   return {
@@ -152,7 +152,7 @@ export function sampleMe(over: Partial<MeView> = {}): MeView {
     slot: 0,
     name: 'Foster',
     color: 'cobalt',
-    classId: 'engineer',
+    classId: 'ranger',
     isLeader: true,
     ready: false,
     hp: 80,
@@ -174,7 +174,7 @@ export function sampleMe(over: Partial<MeView> = {}): MeView {
   };
 }
 
-const ENGINEER_ARC: MeView['arc'] = {
+const RANGER_ARC: MeView['arc'] = {
   slots: ['arrow_tower', 'bomb_tower', null, 'give'],
   enabled: [true, false, false, true],
 };
@@ -197,7 +197,7 @@ const SUMMARY: TeamView['summary'] = {
       playerId: 'dev',
       name: 'Foster',
       color: 'cobalt',
-      classId: 'engineer',
+      classId: 'ranger',
       award: 'damageDealt',
       stats: stats({ damageDealt: 48210, kills: 212 }),
     },
@@ -213,7 +213,7 @@ const SUMMARY: TeamView['summary'] = {
       playerId: 'p3',
       name: 'Dev',
       color: 'rose',
-      classId: 'quartermaster',
+      classId: 'artificer',
       award: 'healingDone',
       stats: stats({ healingDone: 7420 }),
     },
@@ -255,7 +255,7 @@ export const SAMPLES: Record<string, () => Sample> = {
   lobby: () => ({ team: sampleTeam(), me: sampleMe({ screen: 'lobby' }) }),
   'lobby-ready': () => ({
     team: sampleTeam({
-      roster: roster({ ...q, classId: 'engineer' }).map((p) => ({ ...p, ready: true })),
+      roster: roster({ ...q, classId: 'ranger' }).map((p) => ({ ...p, ready: true })),
     }),
     me: sampleMe({ screen: 'lobby', ready: true }),
   }),
@@ -282,8 +282,8 @@ export const SAMPLES: Record<string, () => Sample> = {
     me: sampleMe({
       screen: 'claim',
       claim: [
-        { slot: 0, name: 'Foster', classId: 'engineer' },
-        { slot: 2, name: 'Dev', classId: 'quartermaster' },
+        { slot: 0, name: 'Foster', classId: 'ranger' },
+        { slot: 2, name: 'Dev', classId: 'artificer' },
         { slot: 3, name: 'Sam', classId: 'commander' },
       ],
     }),
@@ -295,7 +295,7 @@ export const SAMPLES: Record<string, () => Sample> = {
   }),
   'combat-carrying': () => ({
     team: sampleTeam({ phase: 'combat' }),
-    me: sampleMe({ crates: 2, action: 'place', arc: ENGINEER_ARC }),
+    me: sampleMe({ crates: 2, action: 'place', arc: RANGER_ARC }),
   }),
   'combat-deliver': () => ({
     team: sampleTeam({ phase: 'combat' }),
@@ -303,7 +303,7 @@ export const SAMPLES: Record<string, () => Sample> = {
   }),
   'combat-kit': () => ({
     team: sampleTeam({ phase: 'combat' }),
-    me: sampleMe({ classId: 'quartermaster', action: 'kit', kits: 1, arc: GIVE_ONLY, crates: 1 }),
+    me: sampleMe({ classId: 'artificer', action: 'kit', kits: 1, arc: GIVE_ONLY, crates: 1 }),
   }),
   'combat-none': () => ({
     team: sampleTeam({ phase: 'combat' }),
@@ -315,7 +315,7 @@ export const SAMPLES: Record<string, () => Sample> = {
   }),
   'combat-artificer': () => ({
     team: sampleTeam({ phase: 'combat' }),
-    me: sampleMe({ classId: 'quartermaster', action: 'throw', crates: 2, arc: GIVE_ONLY }),
+    me: sampleMe({ classId: 'artificer', action: 'throw', crates: 2, arc: GIVE_ONLY }),
   }),
   'combat-commander': () => ({
     team: sampleTeam({ phase: 'combat' }),
@@ -324,7 +324,7 @@ export const SAMPLES: Record<string, () => Sample> = {
   // A finger down on the main button, dragged left: the joystick floats to the touch (aimed attacks).
   'combat-aiming': () => ({
     team: sampleTeam({ phase: 'combat' }),
-    me: sampleMe({ classId: 'quartermaster', action: 'throw', crates: 2, arc: GIVE_ONLY }),
+    me: sampleMe({ classId: 'artificer', action: 'throw', crates: 2, arc: GIVE_ONLY }),
     after: (stage) => {
       const zone = stage.querySelector<HTMLElement>('.attack-zone');
       const main = stage.querySelector<HTMLElement>('.round-btn.main');
@@ -364,7 +364,7 @@ export const SAMPLES: Record<string, () => Sample> = {
     team: sampleTeam({ phase: 'build' }),
     me: sampleMe({
       screen: 'build',
-      classId: 'quartermaster',
+      classId: 'artificer',
       crates: 1,
       action: 'buy',
       kits: 1,
@@ -385,7 +385,7 @@ export const SAMPLES: Record<string, () => Sample> = {
     team: sampleTeam({ phase: 'build' }),
     me: sampleMe({
       screen: 'build',
-      classId: 'quartermaster',
+      classId: 'artificer',
       buildKit: [],
       cards: { offer: null, picked: 'overflow', owned: [{ id: 'overflow', n: 1 }] },
     }),

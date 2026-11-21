@@ -3,7 +3,7 @@
 import type * as Phaser from 'phaser';
 import { describe, expect, it } from 'vitest';
 import { content } from '../../../content';
-import { commander, engineer, rules, warden } from '../../../content/balance';
+import { commander, ranger, rules, warden } from '../../../content/balance';
 import { theme } from '../../../shared/theme';
 import { FixedCamera } from '../../render/camera';
 import { aimPreview, type HitShape } from '../../sim';
@@ -173,14 +173,14 @@ describe('aimed melee previews', () => {
 // radius (balance `rules.projectileRadius`, the fired projectile's `r`) across, drawn like the cones.
 describe('Ranger main preview (C4)', () => {
   it("is a transparent amber bar as wide as the bolt's hitbox and as long as its range", () => {
-    const h = harness(1, 1, { classes: ['engineer'] });
+    const h = harness(1, 1, { classes: ['ranger'] });
     h.toCombat();
     h.holdSpawns();
     h.pads[0]!.set({ mainAim: { x: 0.6, y: 0.8 }, mainAiming: true });
     h.run(1);
     const p = h.p(0);
     expect(p.mainAim).not.toBeNull();
-    const shape = aimPreview(p, engineer, 'main', content.rules);
+    const shape = aimPreview(p, ranger, 'main', content.rules);
     expect(shape.kind).toBe('line');
     const angle = Math.atan2(p.mainAim!.y, p.mainAim!.x);
     const ground = fakeGfx();
@@ -216,6 +216,6 @@ describe('Ranger main preview (C4)', () => {
   });
 
   it("the Ranger's super is a circle, not a line (left as is)", () => {
-    expect(engineer.super.shape).toBe('circle');
+    expect(ranger.super.shape).toBe('circle');
   });
 });

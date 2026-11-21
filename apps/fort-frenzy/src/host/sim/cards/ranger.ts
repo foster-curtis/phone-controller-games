@@ -1,6 +1,6 @@
-// Engineer card modules (SPEC §6.1): Fire Arrows, Piercing Shot, Skyhunter, Volley and the Wildfire
+// Ranger card modules (SPEC §6.1): Fire Arrows, Piercing Shot, Skyhunter, Volley and the Wildfire
 // combo. Quick Draw, Blast Radius and Deadeye are plain stat cards (content/balance.ts). Wildfire's
-// spread lives on the burn effect (cards/effects.ts); its module marks the card on the Engineer.
+// spread lives on the burn effect (cards/effects.ts); its module marks the card on the Ranger.
 import type { Modifier, ModuleDef } from '../types';
 import { num, stacksOf, vsEnemies } from './common';
 

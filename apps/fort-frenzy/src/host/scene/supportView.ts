@@ -211,7 +211,7 @@ export class SupportView {
 
   /** A support knight's own attack (WorldView has turned him to face it); false = not ours. */
   attack(e: Extract<SimEvent, { e: 'attack' }>, p: PlayerEnt, k: KnightRef): boolean {
-    if (p.classId !== 'quartermaster' && p.classId !== 'commander') return false;
+    if (p.classId !== 'artificer' && p.classId !== 'commander') return false;
     const def = this.def(p);
     const fx = this.w.fx;
     k.rig.play(e.slot === 'super' ? 'super' : 'attack', { restart: true, fadeMs: 40 });
@@ -229,7 +229,7 @@ export class SupportView {
         delay,
         ttl,
       });
-    if (p.classId === 'quartermaster') {
+    if (p.classId === 'artificer') {
       const lens = k.rig.attach('lens');
       if (lens)
         fx.burst(
@@ -285,7 +285,7 @@ export class SupportView {
     for (const p of w.players) {
       const k = this.knight(p.slot);
       if (!k) continue;
-      if (p.classId === 'quartermaster') this.drawArtificer(w, p, k);
+      if (p.classId === 'artificer') this.drawArtificer(w, p, k);
       else if (p.classId === 'commander') {
         leading.add(p.slot);
         this.drawLead(w, p.slot, k, f.dtMs);

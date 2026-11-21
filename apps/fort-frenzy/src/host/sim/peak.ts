@@ -17,11 +17,11 @@ export type PeakKind = 'boss' | 'synthetic';
 
 /** Every class, two Commanders (the footmen need squads). */
 const PEAK_CLASSES: ClassId[] = [
-  'engineer',
+  'ranger',
   'warden',
-  'quartermaster',
+  'artificer',
   'commander',
-  'engineer',
+  'ranger',
   'commander',
 ];
 /** Synthetic crowd mix: mostly walkers, with packs and every special AI (Grunts ×3, mites ×4). */

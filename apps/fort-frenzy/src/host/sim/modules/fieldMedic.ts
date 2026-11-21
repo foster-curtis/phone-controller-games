@@ -1,4 +1,4 @@
-// Quartermaster passive, Field Medic (SPEC §8): a small regeneration aura for nearby players (him
+// Artificer passive, Field Medic (SPEC §8): a small regeneration aura for nearby players (him
 // included), off during the build phase. Its healing charges his super at `chargeRate` per HP healed,
 // more slowly than damage does; the super's own healing never charges it (only this module charges
 // from heals). Ticks on whole-second step multiples, so it needs no state.
@@ -43,7 +43,7 @@ export const fieldMedic: ModuleDef = {
   },
 };
 
-/** The aura's radius for a Quartermaster (render's dotted circle; params as content gives them). */
+/** The aura's radius for an Artificer (render's dotted circle; params as content gives them). */
 export function fieldMedicRadius(params: Record<string, unknown> | undefined): number {
   return num(params, 'radius');
 }

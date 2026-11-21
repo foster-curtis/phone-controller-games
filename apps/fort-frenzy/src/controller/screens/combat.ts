@@ -106,8 +106,8 @@ export function bindAttack(
 }
 
 /**
- * Binds the action button: tap = its action; hold ~0.4 s or drag = the build arc (Engineer, Warden) or
- * Give directly (Quartermaster, Commander), per the latest `me.arc` (SPEC §10.1).
+ * Binds the action button: tap = its action; hold ~0.4 s or drag = the build arc (Ranger, Warden) or
+ * Give directly (Artificer, Commander), per the latest `me.arc` (SPEC §10.1).
  */
 export function bindAction(
   btn: HTMLElement,
@@ -222,7 +222,7 @@ export function createCombat(ctx: ScreenCtx): View {
       ctx.sender.neutral();
     }
     wasPaused = isPaused;
-    const cls = m.classId ?? 'engineer';
+    const cls = m.classId ?? 'ranger';
     if (boundClass !== cls) {
       bind(cls);
       const info = CLASS_INFO[cls];

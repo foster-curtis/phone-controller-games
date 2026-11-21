@@ -42,8 +42,8 @@ test('lobby → class select → start → build → combat to wave 2', async ({
   await expect
     .poll(async () => (await players(host)).map((p) => [p.name, p.classId]))
     .toEqual([
-      ['Ann', 'engineer'],
-      ['Bob', 'engineer'],
+      ['Ann', 'ranger'],
+      ['Bob', 'ranger'],
     ]);
   // The first to join leads: Start is on Ann's phone only.
   await expect(ann.page.locator('.leader-box')).toBeVisible();

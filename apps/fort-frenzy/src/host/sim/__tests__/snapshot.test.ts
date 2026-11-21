@@ -19,7 +19,7 @@ import {
 import type { ClassId } from '../../../shared/ids';
 import { harness } from './harness';
 
-const CLASSES: ClassId[] = ['engineer', 'warden', 'quartermaster', 'commander'];
+const CLASSES: ClassId[] = ['ranger', 'warden', 'artificer', 'commander'];
 
 const meta: SnapshotMeta = {
   savedAt: 1_000_000,

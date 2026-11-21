@@ -2,7 +2,7 @@
 // Citadel is in range, then stops and shells it; it never attacks players. A shot plants and charges
 // (the wind-up, its tell), then lobs a shell: a red danger marker shows where it lands, and the
 // landing hits everything inside (players, soldiers, structures, the Citadel; combat.ts). A wall
-// blocking its way gets shelled the same way. Engineers outrange it (§8).
+// blocking its way gets shelled the same way. Rangers outrange it (§8).
 import { rectDist, rectNearest, tileRect } from '../geometry';
 import { state, type SimState } from '../internal';
 import { BASE_ID, type EnemyEnt, type SimCtx, type StructureEnt } from '../types';

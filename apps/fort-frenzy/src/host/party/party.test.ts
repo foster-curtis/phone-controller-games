@@ -4,7 +4,7 @@ import { cleanName, createParty, type Party } from './index';
 
 const COLORS = ['cobalt', 'jade', 'sky', 'bone', 'rose', 'forest'] as const;
 type Color = (typeof COLORS)[number];
-type Cls = 'engineer' | 'warden';
+type Cls = 'ranger' | 'warden';
 
 const party = (): Party<Color, Cls> => createParty<Color, Cls>({ colors: COLORS, maxPlayers: 6 });
 
@@ -14,7 +14,7 @@ function filled(n: number, opts: { ready?: boolean } = {}) {
   for (let i = 1; i <= n; i++) {
     p.connect({ playerId: `p${i}`, key: `k${i}`, deviceId: `d${i}` });
     p.setName(`p${i}`, `Player ${i}`);
-    p.setClass(`p${i}`, 'engineer');
+    p.setClass(`p${i}`, 'ranger');
     if (opts.ready) p.setReady(`p${i}`, true);
   }
   return p;
@@ -161,7 +161,7 @@ describe('ready and start', () => {
           playerId: 'p1',
           name: 'Player 1',
           color: 'cobalt',
-          classId: 'engineer',
+          classId: 'ranger',
           connected: true,
         },
         {
@@ -169,7 +169,7 @@ describe('ready and start', () => {
           playerId: 'p2',
           name: 'Player 2',
           color: 'jade',
-          classId: 'engineer',
+          classId: 'ranger',
           connected: false,
         },
         {
@@ -177,7 +177,7 @@ describe('ready and start', () => {
           playerId: 'p3',
           name: 'Player 3',
           color: 'sky',
-          classId: 'engineer',
+          classId: 'ranger',
           connected: true,
         },
       ],
@@ -303,7 +303,7 @@ describe('late joins (§11.2)', () => {
     p.setStage('build');
     p.connect({ playerId: 'late' });
     p.setName('late', 'L');
-    p.setClass('late', 'engineer');
+    p.setClass('late', 'ranger');
     expect(p.joinLate('late')).toMatchObject({ ok: true, slot: { slot: 3 } });
   });
 
@@ -331,8 +331,8 @@ describe('late joins (§11.2)', () => {
     p.endRun();
     expect(p.stage).toBe('lobby');
     expect(p.members.map((m) => [m.slot, m.ready, m.classId, m.color])).toEqual([
-      [null, false, 'engineer', 'cobalt'],
-      [null, false, 'engineer', 'jade'],
+      [null, false, 'ranger', 'cobalt'],
+      [null, false, 'ranger', 'jade'],
     ]);
   });
 });
@@ -459,7 +459,7 @@ describe('resume (FF14, §11.5, §15.8)', () => {
       deviceId: `d${i}`,
       name: `P${i}`,
       color: COLORS[i]!,
-      classId: 'engineer' as const,
+      classId: 'ranger' as const,
     }));
 
   it('restores the slots away, matches phones by key or device ID, keeps the saved leader', () => {

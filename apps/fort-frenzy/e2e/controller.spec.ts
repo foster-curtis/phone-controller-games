@@ -91,7 +91,7 @@ for (const vp of VIEWPORTS) {
       const main = page.locator('.round-btn.main');
       const box = (await main.boundingBox())!;
       await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
-      // Engineer: main is aimed; a tap fires with aim 0,0 (mainFires is slot 7).
+      // Ranger: main is aimed; a tap fires with aim 0,0 (mainFires is slot 7).
       await expect
         .poll(async () => (await page.locator('.dev-readout').textContent()) ?? '')
         .toMatch(/^\[0, 0, 0, 0, 0, 0, 0, 1, /);

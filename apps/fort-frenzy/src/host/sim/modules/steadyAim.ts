@@ -1,4 +1,4 @@
-// Engineer passive, Steady Aim (SPEC §8, §10.1): standing still (movement stick released) for a short
+// Ranger passive, Steady Aim (SPEC §8, §10.1): standing still (movement stick released) for a short
 // time boosts the main attack's damage and range. `onTick` reads the player's `stillTicks`; the range
 // bonus is a scoped stat mod while active, the damage bonus rides on the shots fired while active
 // (tag `steady`, applied in `modifyOutgoing`, pipeline stage 2).

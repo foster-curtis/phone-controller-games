@@ -1,7 +1,7 @@
 // The team shop in the run (SPEC §3.4, §3.5, §6.2, §10.3): any player buys any item they can see
 // from the team's coins in the build phase; prices rise per tier; building upgrades apply to every
 // structure of that type (later ones too) as `shop:<item>` modifiers; items are shown only when the
-// team can use them (and Quartermaster-only ones only to Quartermasters); every purchase is announced
+// team can use them (and Artificer-only ones only to Artificers); every purchase is announced
 // (`purchase` event; crates are personal and aren't); the wishlist takes requests and clears an item
 // when it's bought, and everything at the wave start.
 // The row helpers are pure on (content, world), so phone views use the same rules as the sim.
@@ -79,9 +79,9 @@ export function itemState(content: Content, world: World, def: ShopItemDef): Sho
   };
 }
 
-/** Can a player of `classId` see this item (Quartermaster-only items, §6.2, §10.3)? */
+/** Can a player of `classId` see this item (Artificer-only items, §6.2, §10.3)? */
 export function shownTo(def: ShopItemDef, classId: ClassId | null): boolean {
-  return !def.qmOnly || classId === 'quartermaster';
+  return !def.qmOnly || classId === 'artificer';
 }
 
 // ---- shop modifiers on units --------------------------------------------------------------------

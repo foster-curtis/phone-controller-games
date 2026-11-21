@@ -123,7 +123,7 @@ export interface CharacterDef {
   radius: number;
   main: AttackDef;
   /**
-   * `effects` go to what the super helps: towers in a cone (Quartermaster), the squad and the
+   * `effects` go to what the super helps: towers in a cone (Artificer), the squad and the
    * attacker for `buff` (Commander); `heal` heals players in a cone; `selfEffects` (FF9) go on the
    * attacker only.
    */
@@ -152,7 +152,7 @@ export interface CharacterDef {
     formation?: { flagRing: number; followSpread: number };
   };
   /**
-   * Supply perks (§6, Quartermaster; FF9): crate price discount (fraction), crate throw reach
+   * Supply perks (§6, Artificer; FF9): crate price discount (fraction), crate throw reach
    * (tiles) and flight speed (tiles/s), and the HP an emergency repair kit restores (§3.4).
    * `throwMinFlightMs`: a throw is never shorter than this (a lob, even point-blank).
    */

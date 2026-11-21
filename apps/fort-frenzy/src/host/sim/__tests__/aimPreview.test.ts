@@ -5,7 +5,7 @@
 // body.test.ts covers how a drawn body reaches into the same shapes (C4).
 import { describe, expect, it } from 'vitest';
 import { content as baseContent, type Content } from '../../../content';
-import { commander, engineer, grunt, quartermaster, warden } from '../../../content/balance';
+import { commander, ranger, grunt, artificer, warden } from '../../../content/balance';
 import type { CharacterDef } from '../../../content/types';
 import type { CardId, ClassId } from '../../../shared/ids';
 import { windupSteps } from '../classes/warden';
@@ -21,7 +21,7 @@ const content: Content = {
   ),
 };
 const DEG = Math.PI / 180;
-const DEFS: Record<ClassId, CharacterDef> = { engineer, quartermaster, commander, warden };
+const DEFS: Record<ClassId, CharacterDef> = { ranger, artificer, commander, warden };
 const AIM = { x: 1, y: 0 };
 const PX = 10;
 const PY = 13;
@@ -107,20 +107,20 @@ const cone = (s: HitShape) => {
 describe('preview geometry is the content through modifiers', () => {
   it('matches each class kit with no mods', () => {
     const expected: Record<ClassId, Record<'main' | 'super', HitShape>> = {
-      engineer: {
-        main: { kind: 'line', range: engineer.main.range },
-        super: { kind: 'circle', radius: engineer.super.radius },
+      ranger: {
+        main: { kind: 'line', range: ranger.main.range },
+        super: { kind: 'circle', radius: ranger.super.radius },
       },
-      quartermaster: {
+      artificer: {
         main: {
           kind: 'cone',
-          range: quartermaster.main.range,
-          half: (quartermaster.main.spreadDeg / 2) * DEG,
+          range: artificer.main.range,
+          half: (artificer.main.spreadDeg / 2) * DEG,
         },
         super: {
           kind: 'cone',
-          range: quartermaster.super.range,
-          half: (quartermaster.super.arcDeg / 2) * DEG,
+          range: artificer.super.range,
+          half: (artificer.super.arcDeg / 2) * DEG,
         },
       },
       commander: {
@@ -170,13 +170,13 @@ describe('preview geometry is the content through modifiers', () => {
     const s = cone(shapeOf(h, 'super'));
     expect(s.range).toBeCloseTo(warden.super.range * 1.3, 9);
     expect(s.half).toBeCloseTo(((warden.super.arcDeg + 12) / 2) * DEG, 9);
-    const r = setup('engineer', false);
-    expect(shapeOf(r, 'main')).toEqual({ kind: 'line', range: engineer.main.range });
+    const r = setup('ranger', false);
+    expect(shapeOf(r, 'main')).toEqual({ kind: 'line', range: ranger.main.range });
     r.pads[0]!.set({ move: { x: 0, y: 0 } });
     r.run(40); // past Steady Aim's 600 ms
     const steady = shapeOf(r, 'main');
     expect(steady.kind === 'line' && steady.range).toBeCloseTo(
-      engineer.main.range * (1 + (engineer.passive.params.rangePct as number)),
+      ranger.main.range * (1 + (ranger.passive.params.rangePct as number)),
       9,
     );
   });
@@ -249,18 +249,18 @@ describe('the sim hits exactly the previewed area', () => {
   }
 
   for (const boosted of [false, true]) {
-    it(`engineer super${boosted ? ' (with a mod)' : ''}: the circle's edge`, () => {
+    it(`ranger super${boosted ? ' (with a mod)' : ''}: the circle's edge`, () => {
       const rad = (s: HitShape) => (s.kind === 'circle' ? s.radius : NaN) + R;
       const a = 30 * DEG;
-      expect(hits('engineer', 'super', boosted, (s) => polar(rad(s) - 0.02, a))).toBe(true);
-      expect(hits('engineer', 'super', boosted, (s) => polar(rad(s) + 0.02, a))).toBe(false);
+      expect(hits('ranger', 'super', boosted, (s) => polar(rad(s) - 0.02, a))).toBe(true);
+      expect(hits('ranger', 'super', boosted, (s) => polar(rad(s) + 0.02, a))).toBe(false);
     });
   }
 
   for (const boosted of [false, true]) {
     it(`artificer super${boosted ? ' (with a mod)' : ''}: towers inside the cone get the bonus`, () => {
       const probe = (at: (s: HitShape, r: number) => [number, number]) => {
-        const h = setup('quartermaster', boosted);
+        const h = setup('artificer', boosted);
         const st = h.sim.place('arrow_tower', 10, 14, 0);
         const [dx, dy] = at(shapeOf(h, 'super'), st.r);
         h.put(0, st.x - dx, st.y - dy);
@@ -277,10 +277,10 @@ describe('the sim hits exactly the previewed area', () => {
   }
 
   for (const [cls, boosted] of [
-    ['engineer', false],
-    ['engineer', true],
-    ['quartermaster', false],
-    ['quartermaster', true],
+    ['ranger', false],
+    ['ranger', true],
+    ['artificer', false],
+    ['artificer', true],
   ] as const) {
     it(`${cls} main${boosted ? ' (with a mod)' : ''}: bolts fly the preview's reach and fan`, () => {
       const h = setup(cls, boosted);

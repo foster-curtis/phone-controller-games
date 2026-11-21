@@ -65,7 +65,7 @@ const content: Content = {
   enemies: [...baseContent.enemies.filter((e) => !STAND_INS.has(e.id)), brute, swarm, flyer],
 };
 
-function combat(players = 1, classes?: ('engineer' | 'warden')[]) {
+function combat(players = 1, classes?: ('ranger' | 'warden')[]) {
   const h = harness(players, 1, { content, classes });
   h.toCombat();
   h.holdSpawns();

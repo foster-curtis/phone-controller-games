@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { content as baseContent, type Content } from '../../../content';
 import {
   brute as bruteDef,
-  engineer,
+  ranger,
   flyer as flyerDef,
   hunter as hunterDef,
   runner as runnerDef,
@@ -36,7 +36,7 @@ const content: Content = {
   // A non-ranged class for the Flyer check (FF8's Warden may not be on main yet).
   characters: baseContent.characters.some((c) => c.id === 'warden')
     ? baseContent.characters
-    : [...baseContent.characters, { ...engineer, id: 'warden' as const }],
+    : [...baseContent.characters, { ...ranger, id: 'warden' as const }],
 };
 
 interface Setup {
@@ -46,7 +46,7 @@ interface Setup {
   until(pred: () => boolean, max?: number): void;
 }
 
-function setup(classes: ClassId[] = ['engineer'], wave?: number): Setup {
+function setup(classes: ClassId[] = ['ranger'], wave?: number): Setup {
   const start = startOf(classes.length, 3);
   start.slots.forEach((s, i) => (s.classId = classes[i]!));
   const pads = classes.map(() => new ScriptedInputSource());
@@ -77,7 +77,7 @@ function setup(classes: ClassId[] = ['engineer'], wave?: number): Setup {
 }
 
 /** Combat with the wave's own spawns held off and the players parked in a far corner. */
-function quiet(classes: ClassId[] = ['engineer']): Setup {
+function quiet(classes: ClassId[] = ['ranger']): Setup {
   const s = setup(classes);
   for (const sp of s.sim.world.spawns) sp.atTick += 1e7;
   s.sim.world.base.archers.count = 0; // the sentries would shoot what we're watching
@@ -207,7 +207,7 @@ describe('Siege', () => {
 
 describe('Hunter', () => {
   it('hunts the nearest player along their field, and retargets on a clearly closer player, daze and death', () => {
-    const t = quiet(['engineer', 'engineer']);
+    const t = quiet(['ranger', 'ranger']);
     const w = t.sim.world;
     const [a, b] = w.players as [(typeof w.players)[0], (typeof w.players)[0]];
     a.x = 8.5;
@@ -355,7 +355,7 @@ describe('Flyer', () => {
     ).toBe(30);
   });
 
-  it('is replaced by ground units when no Engineer or Quartermaster is connected at wave start', () => {
+  it('is replaced by ground units when no Ranger or Artificer is connected at wave start', () => {
     const flyers = (classes: ClassId[], dropFirst = false) => {
       const start = startOf(classes.length, 5);
       start.slots.forEach((s, i) => (s.classId = classes[i]!));
@@ -371,11 +371,11 @@ describe('Flyer', () => {
         flag: sim.world.team.scaling.flyers,
       };
     };
-    expect(flyers(['engineer', 'warden'])).toEqual({ n: expect.any(Number), flag: true });
-    expect(flyers(['engineer', 'warden']).n).toBeGreaterThanOrEqual(2);
+    expect(flyers(['ranger', 'warden'])).toEqual({ n: expect.any(Number), flag: true });
+    expect(flyers(['ranger', 'warden']).n).toBeGreaterThanOrEqual(2);
     expect(flyers(['warden', 'warden'])).toEqual({ n: 0, flag: false });
-    // The Engineer's phone is away at the wave's start: counted as absent.
-    expect(flyers(['engineer', 'warden'], true)).toEqual({ n: 0, flag: false });
+    // The Ranger's phone is away at the wave's start: counted as absent.
+    expect(flyers(['ranger', 'warden'], true)).toEqual({ n: 0, flag: false });
   });
 });
 

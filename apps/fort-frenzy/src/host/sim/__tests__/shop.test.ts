@@ -1,4 +1,4 @@
-// Team shop scenarios (SPEC §3.4, §3.5, §6.2, §10.3): visibility by team classes, Quartermaster-only
+// Team shop scenarios (SPEC §3.4, §3.5, §6.2, §10.3): visibility by team classes, Artificer-only
 // items, tiers on every structure of a type (built ones too), snare charges on existing nets, rising
 // repair, squad stats after regular waves, the wishlist and purchase announcements; and difficulty
 // (§2.2) baked in at spawn.
@@ -39,8 +39,8 @@ function jump(h: Harness, wave: number) {
 }
 
 describe('visibility (§6.2: shown only when the team can use it)', () => {
-  it('no Engineer → no tower items; no Warden → no wall or net items; no Commander → no squad items', () => {
-    const h = shopAt(['warden', 'quartermaster']);
+  it('no Ranger → no tower items; no Warden → no wall or net items; no Commander → no squad items', () => {
+    const h = shopAt(['warden', 'artificer']);
     for (const id of ['arrow_rate', 'bomb_radius', 'tower_hp'] as const)
       expect(visible(h, id)).toBe(false);
     expect(visible(h, 'squad_stats')).toBe(false);
@@ -49,7 +49,7 @@ describe('visibility (§6.2: shown only when the team can use it)', () => {
     expect(ack(h, { c: 'buy', slot: 0, item: 'arrow_rate' }).reason).toBe('invalid');
     expect(ack(h, { c: 'request', slot: 0, item: 'tower_hp', on: true }).reason).toBe('invalid');
 
-    const e = shopAt(['engineer', 'commander']);
+    const e = shopAt(['ranger', 'commander']);
     for (const id of ['arrow_rate', 'bomb_radius', 'tower_hp'] as const)
       expect(visible(e, id)).toBe(true);
     for (const id of ['wall_hp', 'snare_charges', 'spiked_walls'] as const)
@@ -58,8 +58,8 @@ describe('visibility (§6.2: shown only when the team can use it)', () => {
       expect(visible(e, id)).toBe(true);
   });
 
-  it('Quartermaster-only items go only to Quartermaster phones and only Quartermasters buy them', () => {
-    const h = shopAt(['engineer', 'quartermaster']);
+  it('Artificer-only items go only to Artificer phones and only Artificers buy them', () => {
+    const h = shopAt(['ranger', 'artificer']);
     const party = createParty<PlayerColorId, ClassId>({
       colors: [...PLAYER_COLOR_IDS],
       maxPlayers: 6,
@@ -74,22 +74,22 @@ describe('visibility (§6.2: shown only when the team can use it)', () => {
     const armor = rows.find((r) => r.id === 'base_armor')!;
     expect(armor.qmOnly).toBe(true);
     expect(armor.visible).toBe(true);
-    // The phone's filter (controller/screens/build.ts): visible && (!qmOnly || Quartermaster).
+    // The phone's filter (controller/screens/build.ts): visible && (!qmOnly || Artificer).
     const shown = (cls: ClassId) =>
-      rows.filter((r) => r.visible && (!r.qmOnly || cls === 'quartermaster')).map((r) => r.id);
-    expect(shown('engineer')).not.toContain('base_armor');
-    expect(shown('engineer')).not.toContain('emergency_kit');
-    expect(shown('quartermaster')).toContain('base_armor');
-    expect(shown('quartermaster')).toContain('emergency_kit');
+      rows.filter((r) => r.visible && (!r.qmOnly || cls === 'artificer')).map((r) => r.id);
+    expect(shown('ranger')).not.toContain('base_armor');
+    expect(shown('ranger')).not.toContain('emergency_kit');
+    expect(shown('artificer')).toContain('base_armor');
+    expect(shown('artificer')).toContain('emergency_kit');
     expect(ack(h, { c: 'buy', slot: 0, item: 'base_armor' }).reason).toBe('invalid');
     expect(ack(h, { c: 'buy', slot: 1, item: 'base_armor' }).ok).toBe(true);
     expect(h.sim.world.base.stats.damageReduction).toBeCloseTo(0.1);
-    // Without a Quartermaster on the team they aren't shown at all.
-    expect(visible(shopAt(['engineer']), 'base_armor')).toBe(false);
+    // Without an Artificer on the team they aren't shown at all.
+    expect(visible(shopAt(['ranger']), 'base_armor')).toBe(false);
   });
 
   it('the emergency kit is held one at a time', () => {
-    const h = shopAt(['quartermaster']);
+    const h = shopAt(['artificer']);
     expect(ack(h, { c: 'buy', slot: 0, item: 'emergency_kit' }).ok).toBe(true);
     expect(h.p(0).kits).toBe(1);
     expect(ack(h, { c: 'buy', slot: 0, item: 'emergency_kit' }).reason).toBe('cap');
@@ -115,7 +115,7 @@ describe('visibility (§6.2: shown only when the team can use it)', () => {
 
 describe('purchases', () => {
   it('prices rise per tier, tiers sell out, and big ones need a hold to confirm', () => {
-    const h = shopAt(['engineer']);
+    const h = shopAt(['ranger']);
     const prices: (number | null)[] = [];
     for (let i = 0; i < 4; i++) {
       prices.push(itemState(content, h.sim.world, item('arrow_rate')).price);
@@ -128,7 +128,7 @@ describe('purchases', () => {
   });
 
   it('refuses without the coins, and outside the build phase', () => {
-    const h = shopAt(['engineer'], 3);
+    const h = shopAt(['ranger'], 3);
     expect(ack(h, { c: 'buy', slot: 0, item: 'arrow_rate' }).reason).toBe('coins');
     h.toCombat();
     h.sim.world.team.coins = 100;
@@ -136,7 +136,7 @@ describe('purchases', () => {
   });
 
   it('building upgrades apply to every structure of the type, built ones and later ones', () => {
-    const h = shopAt(['engineer']);
+    const h = shopAt(['ranger']);
     const old = h.sim.place('arrow_tower', 10, 12, 0);
     const mortar = h.sim.place('bomb_tower', 12, 12, 0);
     ack(h, { c: 'buy', slot: 0, item: 'arrow_rate' });
@@ -157,7 +157,7 @@ describe('purchases', () => {
 
   it('turret fire rate shortens the cooldown between shots', () => {
     const shots = (tier: number) => {
-      const h = shopAt(['engineer']);
+      const h = shopAt(['ranger']);
       for (let i = 0; i < tier; i++) ack(h, { c: 'buy', slot: 0, item: 'arrow_rate' });
       h.toCombat();
       h.holdSpawns();
@@ -209,7 +209,7 @@ describe('purchases', () => {
   });
 
   it('repair restores base HP at a price that rises each purchase', () => {
-    const h = shopAt(['engineer']);
+    const h = shopAt(['ranger']);
     const b = h.sim.world.base;
     b.hp = 200;
     const prices: number[] = [];
@@ -225,7 +225,7 @@ describe('purchases', () => {
   });
 
   it('sentry upgrades: damage, range and a third archer, each once', () => {
-    const h = shopAt(['engineer']);
+    const h = shopAt(['ranger']);
     ack(h, { c: 'buy', slot: 0, item: 'archer_third' });
     expect(h.sim.world.base.archers.count).toBe(3);
     expect(h.sim.world.base.archers.attack).toHaveLength(3);
@@ -241,7 +241,7 @@ describe('purchases', () => {
 
 describe('wishlist and announcements', () => {
   it('a request shows until someone buys the item or the wave starts; every purchase is announced', () => {
-    const h = shopAt(['engineer', 'engineer']);
+    const h = shopAt(['ranger', 'ranger']);
     const w = h.sim.world;
     ack(h, { c: 'request', slot: 0, item: 'arrow_rate', on: true });
     ack(h, { c: 'request', slot: 1, item: 'arrow_rate', on: true });
@@ -259,7 +259,7 @@ describe('wishlist and announcements', () => {
   });
 
   it("crates bought from the phone aren't announced (personal inventory)", () => {
-    const h = shopAt(['engineer']);
+    const h = shopAt(['ranger']);
     h.sim.command({ c: 'buy', slot: 0, item: 'crate' });
     h.run(1);
     expect(h.p(0).crates).toBe(1);
@@ -272,7 +272,7 @@ describe('difficulty (§2.2): multipliers baked in at spawn', () => {
     const budgets: number[] = [];
     const hps: number[] = [];
     for (const d of ['easy', 'normal', 'hard'] as const) {
-      const h = harness(2, 42, { classes: ['engineer', 'warden'], difficulty: d });
+      const h = harness(2, 42, { classes: ['ranger', 'warden'], difficulty: d });
       h.toBuild();
       h.sim.command({ c: 'debug', slot: -1, action: 'jumpWave', wave: 9 });
       h.run(1);

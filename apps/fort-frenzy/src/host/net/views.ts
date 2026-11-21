@@ -101,8 +101,8 @@ export function teamView(ctx: ViewCtx): TeamView {
     difficulty: ctx.settings.difficulty,
     leaderId: party.leaderId,
     roster,
-    // The team shop (§6.2, FF12): the sim's own visibility and price rules. Quartermaster-only rows
-    // go to every phone flagged `qmOnly`; phones show them only to Quartermasters (§10.3).
+    // The team shop (§6.2, FF12): the sim's own visibility and price rules. Artificer-only rows
+    // go to every phone flagged `qmOnly`; phones show them only to Artificers (§10.3).
     shop: content.shop.map((s) => {
       const st = w ? itemState(content, w, s) : null;
       const maxTier = s.repeatable ? 0 : s.tiers.length;
@@ -152,7 +152,7 @@ export function actionFor(content: Content, w: World, p: PlayerEnt): MeAction {
   const kind = tileKind(w, p.x, p.y);
   const hurt = w.base.hp > 0 && w.base.hp < w.base.maxHp;
   if (p.crates > 0 && kind === 'repair' && hurt) return 'deliver';
-  if (p.classId === 'quartermaster' && p.kits > 0 && kind === 'repair' && hurt) return 'kit';
+  if (p.classId === 'artificer' && p.kits > 0 && kind === 'repair' && hurt) return 'kit';
   if (kind === 'armory' && p.crates < cap) return 'buy';
   if (w.phase !== 'combat') return 'none';
   if (def.build.length > 0 && p.crates > 0) return 'place';

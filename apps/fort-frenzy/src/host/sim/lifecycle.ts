@@ -248,7 +248,7 @@ export function startCombat(s: FullState): void {
   const w = s.world;
   const cat = s.cat;
   const connected = w.players.filter((p) => p.connected);
-  const ranged = connected.some((p) => p.classId === 'engineer' || p.classId === 'quartermaster');
+  const ranged = connected.some((p) => p.classId === 'ranger' || p.classId === 'artificer');
   w.team.scaling = {
     players: connected.length,
     mult: playerScale(connected.length, cat.scaling),

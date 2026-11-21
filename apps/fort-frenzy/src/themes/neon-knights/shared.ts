@@ -12,9 +12,9 @@ export const ik = <K extends IconName>(k: K): K => k;
 
 /** Internal class id → the theme's rig id (also its icon suffix: `class-<rig>`). */
 export const CLASS_RIG = {
-  engineer: 'ranger',
+  ranger: 'ranger',
   warden: 'warden',
-  quartermaster: 'artificer',
+  artificer: 'artificer',
   commander: 'commander',
 } as const satisfies Record<ClassId, string>;
 
@@ -29,23 +29,23 @@ const portraitUrl = (rig: string, kind: 'body' | 'mask'): string =>
 const SYMBOL_ID = new RegExp(`<symbol id="${ICON_SYMBOL_PREFIX}([^"]+)"`, 'g');
 
 const classIcons = {
-  engineer: ik('class-ranger'),
+  ranger: ik('class-ranger'),
   warden: ik('class-warden'),
-  quartermaster: ik('class-artificer'),
+  artificer: ik('class-artificer'),
   commander: ik('class-commander'),
 } satisfies Record<ClassId, IconName>;
 
 const mainIcons = {
-  engineer: ik('main-ranger'),
+  ranger: ik('main-ranger'),
   warden: ik('main-warden'),
-  quartermaster: ik('main-artificer'),
+  artificer: ik('main-artificer'),
   commander: ik('main-commander'),
 } satisfies Record<ClassId, IconName>;
 
 const superIcons = {
-  engineer: ik('super-ranger'),
+  ranger: ik('super-ranger'),
   warden: ik('super-warden'),
-  quartermaster: ik('super-artificer'),
+  artificer: ik('super-artificer'),
   commander: ik('super-commander'),
 } satisfies Record<ClassId, IconName>;
 
@@ -185,9 +185,9 @@ export const neonKnightsShared: ThemeShared = {
   defaultDifficulty: 'normal',
   // SPEC §2.1 display names.
   names: {
-    engineer: 'Ranger',
+    ranger: 'Ranger',
     warden: 'Warden',
-    quartermaster: 'Artificer',
+    artificer: 'Artificer',
     commander: 'Commander',
     arrow_tower: 'Pulse turret',
     bomb_tower: 'Mortar tower',
@@ -220,9 +220,9 @@ export const neonKnightsShared: ThemeShared = {
     card: cardIcons,
   },
   portraits: {
-    engineer: { body: portraitUrl('ranger', 'body'), color: portraitUrl('ranger', 'mask') },
+    ranger: { body: portraitUrl('ranger', 'body'), color: portraitUrl('ranger', 'mask') },
     warden: { body: portraitUrl('warden', 'body'), color: portraitUrl('warden', 'mask') },
-    quartermaster: {
+    artificer: {
       body: portraitUrl('artificer', 'body'),
       color: portraitUrl('artificer', 'mask'),
     },

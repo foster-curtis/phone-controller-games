@@ -2,7 +2,7 @@
 // a slightly longer reach, and the Ranger's super a slightly larger radius. Pins the new numbers
 // against the old ones so a later retune is a deliberate edit here too.
 import { describe, expect, it } from 'vitest';
-import { engineer, warden } from '../balance';
+import { ranger, warden } from '../balance';
 
 const OLD = {
   wardenMain: { range: 1.5, arcDeg: 120 },
@@ -25,8 +25,8 @@ describe('C3 knight tuning', () => {
   });
 
   it('the Ranger super: ~15% more radius', () => {
-    expect(engineer.super.radius).toBe(3.5);
-    expect(engineer.super.radius / OLD.rangerSuperRadius).toBeGreaterThan(1.1);
-    expect(engineer.super.radius / OLD.rangerSuperRadius).toBeLessThan(1.2);
+    expect(ranger.super.radius).toBe(3.5);
+    expect(ranger.super.radius / OLD.rangerSuperRadius).toBeGreaterThan(1.1);
+    expect(ranger.super.radius / OLD.rangerSuperRadius).toBeLessThan(1.2);
   });
 });

@@ -7,10 +7,10 @@ import { PROJECTILE_SPEEDS } from '../render/effectsMath';
 
 describe('projectile speeds', () => {
   it('bolts fly at the render speed', () => {
-    const engineer = content.characters.find((c) => c.id === 'engineer')!;
+    const ranger = content.characters.find((c) => c.id === 'ranger')!;
     const tower = content.structures.find((s) => s.id === 'arrow_tower')!;
     // The longbow shares the bolt look but is slower since 0fbe288; the render draws the sim's speed.
-    expect(engineer.main.speed).toBeLessThanOrEqual(PROJECTILE_SPEEDS.bolt);
+    expect(ranger.main.speed).toBeLessThanOrEqual(PROJECTILE_SPEEDS.bolt);
     expect(tower.attack!.speed).toBe(PROJECTILE_SPEEDS.bolt);
     expect(content.base!.archers.attack.speed).toBe(PROJECTILE_SPEEDS.bolt);
   });

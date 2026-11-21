@@ -4,7 +4,7 @@
 import { content as defaultContent, type Content } from '../../content';
 import type { EnemyId, StructureId } from '../../shared/ids';
 import { createCatalog } from './catalog';
-import { stepThrown } from './classes/quartermaster';
+import { stepThrown } from './classes/artificer';
 import { stepSquads } from './squad';
 import { stepArchers, stepMarkers, stepProjectiles, stepStructures } from './combat';
 import { applyCommands } from './commands';

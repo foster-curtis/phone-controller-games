@@ -110,10 +110,10 @@ export const scaling = { base: 0.5, perPlayer: 0.25 } satisfies ScalingDef;
 
 // ==== Characters (knights) =======================================================================
 // Characters (SPEC §8, §10.1 input table, §6 carry). Starting values for playtesting (§14).
-// FF6: the Engineer; FF9: the Quartermaster and Commander; FF8: the Warden.
+// FF6: the Ranger; FF9: the Artificer and Commander; FF8: the Warden.
 
-export const engineer = {
-  id: 'engineer',
+export const ranger = {
+  id: 'ranger',
   hp: 100,
   moveSpeed: 4.5,
   radius: 0.32,
@@ -128,7 +128,7 @@ export const engineer = {
     hitsFlyers: true,
     blockedBy: ['wall', 'tower'],
   },
-  // A wide circle around the Engineer: light area damage and knockback (§8). Radius 3 → 3.5 (C3).
+  // A wide circle around the Ranger: light area damage and knockback (§8). Radius 3 → 3.5 (C3).
   super: {
     shape: 'circle',
     damage: 20,
@@ -149,9 +149,9 @@ export const engineer = {
   carrySlowdown: [0, 0.04, 0.1, 0.2, 0.32],
 } satisfies CharacterDef;
 
-// Quartermaster (support, §6, §8): neon knights' Artificer.
-export const quartermaster = {
-  id: 'quartermaster',
+// Artificer (support, §6, §8): neon knights' Artificer.
+export const artificer = {
+  id: 'artificer',
   hp: 90,
   moveSpeed: 4.6,
   radius: 0.32,
@@ -297,7 +297,7 @@ export const warden = {
   carrySlowdown: [0, 0.03, 0.08, 0.16, 0.26],
 } satisfies CharacterDef;
 
-export const characters: CharacterDef[] = [engineer, quartermaster, commander, warden];
+export const characters: CharacterDef[] = [ranger, artificer, commander, warden];
 
 // ==== Structures =================================================================================
 // Structures (SPEC §7, §8 build kits). 1×1 tiles; walls and towers share a high path cost (§15.5).
@@ -520,7 +520,7 @@ export const flyer = {
   aggro: { radius: 3, leash: 6 },
 } satisfies EnemyDef;
 
-/** Bombard: stops at range (under the Engineer's 9) and shells the base or towers. */
+/** Bombard: stops at range (under the Ranger's 9) and shells the base or towers. */
 export const siege = {
   id: 'siege',
   hp: 150,
@@ -806,16 +806,16 @@ export const waves: WaveDef[] = [
 const per = (
   stat: StatMod['stat'],
   key: 'addPct' | 'add',
-  engineer: number,
+  ranger: number,
   warden: number,
-  quartermaster: number,
+  artificer: number,
   commander: number,
 ): CardDef['perClass'] => {
   const mod = (v: number): StatMod[] => [key === 'add' ? { stat, add: v } : { stat, addPct: v }];
   return {
-    engineer: mod(engineer),
+    ranger: mod(ranger),
     warden: mod(warden),
-    quartermaster: mod(quartermaster),
+    artificer: mod(artificer),
     commander: mod(commander),
   };
 };
@@ -874,36 +874,36 @@ export const commonCards: CardDef[] = [
   },
 ];
 
-// ---- engineer -----------------------------------------------------------------------------------
+// ---- ranger -----------------------------------------------------------------------------------
 
-export const engineerCards: CardDef[] = [
+export const rangerCards: CardDef[] = [
   {
     id: 'quick_draw',
-    owner: 'engineer',
+    owner: 'ranger',
     tier: 'common',
     stats: [{ stat: 'projectileSpeed', addPct: 0.25, scope: 'main' }],
   },
   {
     id: 'blast_radius',
-    owner: 'engineer',
+    owner: 'ranger',
     tier: 'common',
     stats: [{ stat: 'radius', addPct: 0.2, scope: 'super' }],
   },
   {
     id: 'fire_arrows',
-    owner: 'engineer',
+    owner: 'ranger',
     tier: 'rare',
     module: { module: 'fire_arrows', params: { tick: 3, durationMs: 3000 } },
   },
   {
     id: 'piercing_shot',
-    owner: 'engineer',
+    owner: 'ranger',
     tier: 'rare',
     module: { module: 'piercing_shot', params: { pierce: 1 } },
   },
   {
     id: 'skyhunter',
-    owner: 'engineer',
+    owner: 'ranger',
     tier: 'rare',
     favoredEnemy: 'flyer',
     module: { module: 'skyhunter', params: { enemies: 'flyer', pct: 0.5 } },
@@ -911,19 +911,19 @@ export const engineerCards: CardDef[] = [
   // Steady Aim's activation time is its passive's duration (600 ms → 360 ms).
   {
     id: 'deadeye',
-    owner: 'engineer',
+    owner: 'ranger',
     tier: 'rare',
     stats: [{ stat: 'durationMs', addPct: -0.4, scope: 'passive' }],
   },
   {
     id: 'volley',
-    owner: 'engineer',
+    owner: 'ranger',
     tier: 'rare',
     module: { module: 'volley', params: { every: 4, minEvery: 2, arrows: 3, spreadDeg: 14 } },
   },
   {
     id: 'wildfire',
-    owner: 'engineer',
+    owner: 'ranger',
     tier: 'combo',
     requires: ['fire_arrows', 'piercing_shot'],
     module: { module: 'wildfire' },
@@ -995,19 +995,19 @@ export const wardenCards: CardDef[] = [
   },
 ];
 
-// ---- quartermaster ------------------------------------------------------------------------------
+// ---- artificer ------------------------------------------------------------------------------
 
-export const quartermasterCards: CardDef[] = [
+export const artificerCards: CardDef[] = [
   {
     id: 'light_load',
-    owner: 'quartermaster',
+    owner: 'artificer',
     tier: 'common',
     unique: true,
     module: { module: 'light_load', params: { factor: 0.5, auraMs: 200 } },
   },
   {
     id: 'strong_arm',
-    owner: 'quartermaster',
+    owner: 'artificer',
     tier: 'common',
     stats: [
       { stat: 'throwRange', addPct: 0.3 },
@@ -1016,39 +1016,39 @@ export const quartermasterCards: CardDef[] = [
   },
   {
     id: 'venom_bolts',
-    owner: 'quartermaster',
+    owner: 'artificer',
     tier: 'rare',
     module: { module: 'venom_bolts', params: { tick: 2, durationMs: 4000 } },
   },
   {
     id: 'overflow',
-    owner: 'quartermaster',
+    owner: 'artificer',
     tier: 'rare',
     unique: true,
     module: { module: 'overflow', params: { cap: 40, durationMs: 6000 } },
   },
   {
     id: 'bulk_buyer',
-    owner: 'quartermaster',
+    owner: 'artificer',
     tier: 'rare',
     module: { module: 'bulk_buyer', params: { every: 3, minEvery: 2 } },
   },
   {
     id: 'wide_aura',
-    owner: 'quartermaster',
+    owner: 'artificer',
     tier: 'rare',
     stats: [{ stat: 'auraRadius', addPct: 0.3 }],
   },
   {
     id: 'triage',
-    owner: 'quartermaster',
+    owner: 'artificer',
     tier: 'rare',
     unique: true,
     module: { module: 'triage', params: { below: 0.3, mult: 2 } },
   },
   {
     id: 'plague',
-    owner: 'quartermaster',
+    owner: 'artificer',
     tier: 'combo',
     requires: ['venom_bolts', 'wide_aura'],
     module: { module: 'plague' },
@@ -1113,23 +1113,23 @@ export const commanderCards: CardDef[] = [
 
 export const cards: CardDef[] = [
   ...commonCards,
-  ...engineerCards,
+  ...rangerCards,
   ...wardenCards,
-  ...quartermasterCards,
+  ...artificerCards,
   ...commanderCards,
 ];
 
 // ==== Team shop ==================================================================================
 // Team shop items (SPEC §3.4, §3.5, §6.2): crates at the depot price, rising repair, the 3 sentry
 // upgrades, squad stats after regular waves, structure tiers, Charged walls (the `spiked_walls` item)
-// and the Quartermaster-only base armor and emergency kit. Prices rise with each tier; building
+// and the Artificer-only base armor and emergency kit. Prices rise with each tier; building
 // upgrades apply to every structure of that type, including ones built later. Items are shown only
 // when the team can use them (`visibleIf`). Every number is a starting value (§14 #2).
 
 /** Items at or above this price ask for a press-and-hold to confirm (§6.2, ~0.6 s). */
 export const HOLD_CONFIRM_PRICE = 10;
 
-const ENGINEER = { teamHasAny: ['engineer' as const] };
+const RANGER = { teamHasAny: ['ranger' as const] };
 const WARDEN = { teamHasAny: ['warden' as const] };
 
 export const crate = {
@@ -1204,7 +1204,7 @@ export const arrowRate = {
     target: 'arrow_tower',
     stats: [{ stat: 'attackSpeed', addPct: 0.2 }],
   }),
-  visibleIf: ENGINEER,
+  visibleIf: RANGER,
 } satisfies ShopItemDef;
 
 export const bombRadius = {
@@ -1214,7 +1214,7 @@ export const bombRadius = {
     target: 'bomb_tower',
     stats: [{ stat: 'radius', addPct: 0.15 }],
   }),
-  visibleIf: ENGINEER,
+  visibleIf: RANGER,
 } satisfies ShopItemDef;
 
 export const towerHp = {
@@ -1224,7 +1224,7 @@ export const towerHp = {
     target: 'towers',
     stats: [{ stat: 'maxHp', addPct: 0.25 }],
   }),
-  visibleIf: ENGINEER,
+  visibleIf: RANGER,
 } satisfies ShopItemDef;
 
 export const wallHp = {
@@ -1260,7 +1260,7 @@ export const spikedWalls = {
   visibleIf: WARDEN,
 } satisfies ShopItemDef;
 
-/** Quartermaster-only (§6.2): the Citadel takes less damage (capped with every damage reduction). */
+/** Artificer-only (§6.2): the Citadel takes less damage (capped with every damage reduction). */
 export const baseArmor = {
   id: 'base_armor',
   tiers: tiers3([8, 12, 16], {
@@ -1268,15 +1268,15 @@ export const baseArmor = {
     target: 'base',
     stats: [{ stat: 'damageReduction', add: 0.1 }],
   }),
-  visibleIf: { teamHasAny: ['quartermaster'] },
+  visibleIf: { teamHasAny: ['artificer'] },
   qmOnly: true,
 } satisfies ShopItemDef;
 
-/** Quartermaster-only (§3.4): held one at a time, used with the action button in the repair zone. */
+/** Artificer-only (§3.4): held one at a time, used with the action button in the repair zone. */
 export const emergencyKit = {
   id: 'emergency_kit',
   tiers: [{ price: 6, effect: { kind: 'kit' } }],
-  visibleIf: { teamHasAny: ['quartermaster'] },
+  visibleIf: { teamHasAny: ['artificer'] },
   qmOnly: true,
   repeatable: true,
 } satisfies ShopItemDef;

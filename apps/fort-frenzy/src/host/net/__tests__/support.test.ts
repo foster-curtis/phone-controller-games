@@ -74,8 +74,8 @@ function ctxOf(world: ViewCtx['world'], classes: ClassId[]): { ctx: ViewCtx; m: 
 }
 
 describe('action icon (§10.1 rows 3, 6, 7)', () => {
-  it('kit in the repair zone, throw at an Engineer in reach, flag then recall', () => {
-    const r = combat(['quartermaster', 'engineer', 'commander']);
+  it('kit in the repair zone, throw at a Ranger in reach, flag then recall', () => {
+    const r = combat(['artificer', 'ranger', 'commander']);
     const w = r.sim.world;
     const qm = r.p(0);
     // Row 3: a kit, the base hurt, in the repair zone.
@@ -86,7 +86,7 @@ describe('action icon (§10.1 rows 3, 6, 7)', () => {
     expect(actionFor(content, w, qm)).toBe('kit');
     w.base.hp = w.base.maxHp;
     expect(actionFor(content, w, qm)).toBe('none');
-    // Row 6: crates and an Engineer in reach.
+    // Row 6: crates and a Ranger in reach.
     qm.x = 10;
     qm.y = 10;
     qm.crates = 2;
@@ -106,7 +106,7 @@ describe('action icon (§10.1 rows 3, 6, 7)', () => {
   });
 
   it('build phase: no throw or flag (rows 1–4 only)', () => {
-    const r = run(['quartermaster', 'engineer', 'commander']);
+    const r = run(['artificer', 'ranger', 'commander']);
     const qm = r.p(0);
     qm.x = 10;
     qm.y = 10;
@@ -118,17 +118,17 @@ describe('action icon (§10.1 rows 3, 6, 7)', () => {
   });
 });
 
-describe('Give on hold for the Quartermaster and Commander (§10.1)', () => {
-  for (const cls of ['quartermaster', 'commander'] as const) {
+describe('Give on hold for the Artificer and Commander (§10.1)', () => {
+  for (const cls of ['artificer', 'commander'] as const) {
     it(`${cls}: the arc is Give alone, and holding gives a crate every 300 ms`, () => {
-      const r = combat([cls, 'engineer']);
+      const r = combat([cls, 'ranger']);
       const giver = r.p(0);
       giver.x = 10;
       giver.y = 10;
       giver.crates = 4;
       r.p(1).x = 11;
       r.p(1).y = 10;
-      const { ctx, m } = ctxOf(r.sim.world, [cls, 'engineer']);
+      const { ctx, m } = ctxOf(r.sim.world, [cls, 'ranger']);
       const me = meView(ctx, m[0]!);
       expect(me.arc!.slots).toEqual([null, null, null, 'give']);
       expect(me.arc!.enabled).toEqual([false, false, false, true]);

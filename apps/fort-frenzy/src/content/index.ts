@@ -10,12 +10,12 @@ import {
   colossus,
   commander,
   difficulties,
-  engineer,
+  ranger,
   flyer,
   fortify,
   grunt,
   hunter,
-  quartermaster,
+  artificer,
   rules,
   runner,
   scaling,
@@ -58,7 +58,7 @@ export interface Content {
 }
 
 export const content: Content = {
-  characters: [engineer, quartermaster, commander, warden],
+  characters: [ranger, artificer, commander, warden],
   enemies: [grunt, runner, swarm, brute, flyer, siege, hunter, colossus],
   structures: [arrowTower, bombTower, wall, snare, fortify],
   cards: [...cards],

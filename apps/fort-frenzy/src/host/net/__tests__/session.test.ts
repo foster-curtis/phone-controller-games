@@ -38,7 +38,7 @@ function join(s: Session, id: string, name: string) {
   s.handlePeer({ event: 'joined', playerId: id, playerKey: `key-${id}` });
   s.handleMessage(id, { t: 'hello', proto: PROTOCOL_VERSION, deviceId: `dev-${id}` });
   s.handleMessage(id, { t: 'intent', seq: ++seq, intent: { k: 'name', name } });
-  s.handleMessage(id, { t: 'intent', seq: ++seq, intent: { k: 'class', classId: 'engineer' } });
+  s.handleMessage(id, { t: 'intent', seq: ++seq, intent: { k: 'class', classId: 'ranger' } });
 }
 
 const lastTeam = (sent: Sent[]): TeamView =>
@@ -193,10 +193,10 @@ describe('session: run', () => {
     s.afterStep();
     s.handlePeer({ event: 'joined', playerId: 'a2', playerKey: 'key-a' });
     s.handleMessage('a2', { t: 'hello', proto: PROTOCOL_VERSION, deviceId: 'dev-a' });
-    // The hello's own snapshot, before any step: the build screen with the Engineer's kit.
+    // The hello's own snapshot, before any step: the build screen with the Ranger's kit.
     const me = lastMe(sent, 'a2');
     expect(me.screen).toBe('build');
-    expect(me.classId).toBe('engineer');
+    expect(me.classId).toBe('ranger');
     expect(me.slot).toBe(0);
     expect(me.buildKit).toEqual(['arrow_tower', 'bomb_tower']);
     expect(me.arc!.slots).toEqual(['arrow_tower', 'bomb_tower', null, 'give']);

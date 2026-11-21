@@ -1,6 +1,6 @@
-// Quartermaster card modules (SPEC §6.1): Light Load, Venom Bolts, Overflow, Bulk Buyer, Triage and
+// Artificer card modules (SPEC §6.1): Light Load, Venom Bolts, Overflow, Bulk Buyer, Triage and
 // the Plague combo. Strong Arm and Wide Aura are plain stat cards (content/balance.ts). Plague's spread
-// lives on the poison effect (cards/effects.ts); its module marks the card on the Quartermaster.
+// lives on the poison effect (cards/effects.ts); its module marks the card on the Artificer.
 import { dist } from '../geometry';
 import { state } from '../internal';
 import type { Modifier, ModuleDef, PlayerEnt } from '../types';
@@ -96,7 +96,7 @@ export interface BulkBuyerMod extends Modifier {
 export const BULK_BUYER_ID = 'card:bulk_buyer';
 
 /**
- * A larger crate discount: every `every`th crate the Quartermaster buys is free (one sooner per extra
+ * A larger crate discount: every `every`th crate the Artificer buys is free (one sooner per extra
  * stack, at least every `minEvery`th). Coins are whole numbers and the 50% discount already sells at the 1-coin
  * floor, so the extra discount comes as free crates (BUILD_PLAN §8).
  */

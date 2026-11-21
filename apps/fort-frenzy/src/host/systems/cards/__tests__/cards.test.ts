@@ -9,7 +9,7 @@ interface Card extends CardLike {
 
 const card = (id: string, tier: Card['tier'], extra: Partial<Card> = {}): Card => ({
   id,
-  owner: 'engineer',
+  owner: 'ranger',
   tier,
   ...extra,
 });
@@ -42,7 +42,7 @@ const ctx = (
   owned: Record<string, number> = {},
   extra: Partial<EligibilityCtx> = {},
 ): EligibilityCtx => ({
-  owners: ['engineer', 'common'],
+  owners: ['ranger', 'common'],
   owned: (id) => owned[id] ?? 0,
   canSpawn: () => true,
   teamHas: () => true,

@@ -1,10 +1,10 @@
-// Combat scenarios: the Engineer's kit (SPEC §8, §10.1), the pulse turret, base archers (§3.5), the
+// Combat scenarios: the Ranger's kit (SPEC §8, §10.1), the pulse turret, base archers (§3.5), the
 // Grunt (§9, aggro leash), dazed (§11.3), death and respawn (§5), danger markers, invincible (§9.5).
 import { describe, expect, it } from 'vitest';
-import { arrowTower, base as baseDef, engineer, grunt } from '../../../content/balance';
+import { arrowTower, base as baseDef, ranger, grunt } from '../../../content/balance';
 import { harness } from './harness';
 
-const MAIN = engineer.main.damage;
+const MAIN = ranger.main.damage;
 
 function combat(players = 1) {
   const h = harness(players);
@@ -19,7 +19,7 @@ function unsteady(h: ReturnType<typeof harness>) {
   h.run(1);
 }
 
-describe('Engineer longbow', () => {
+describe('Ranger longbow', () => {
   it('fires on release in the aimed direction and hits what it points at', () => {
     const h = combat();
     h.put(0, 10, 16);
@@ -54,7 +54,7 @@ describe('Engineer longbow', () => {
     h.pads[0]!.tap('mainFires', { mainAim: { x: 1, y: 0 } });
     h.run(1);
     h.pads[0]!.tap('mainFires', { mainAim: { x: 1, y: 0 } });
-    const cd = Math.round((engineer.main.cooldownMs / 1000) * 60);
+    const cd = Math.round((ranger.main.cooldownMs / 1000) * 60);
     const shots = h.collect('attack', cd + 30);
     expect(shots).toHaveLength(1);
     expect(h.sim.world.tick).toBeGreaterThan(cd);
@@ -67,11 +67,11 @@ describe('Engineer longbow', () => {
     h.sim.spawnEnemy('grunt', 13, 16);
     h.pads[0]!.tap('mainFires');
     h.run(30);
-    expect(h.p(0).superCharge).toBeCloseTo(MAIN * engineer.superChargeRate, 6);
+    expect(h.p(0).superCharge).toBeCloseTo(MAIN * ranger.superChargeRate, 6);
   });
 });
 
-describe('Engineer super', () => {
+describe('Ranger super', () => {
   it('needs a full charge, then damages and knocks back everything in the circle', () => {
     const h = combat();
     h.put(0, 10, 16);
@@ -86,12 +86,12 @@ describe('Engineer super', () => {
     const ax = a.x;
     h.pads[0]!.tap('superFires');
     h.run(1);
-    expect(a.hp).toBe(a.maxHp - engineer.super.damage);
-    expect(b.hp).toBe(b.maxHp - engineer.super.damage);
+    expect(a.hp).toBe(a.maxHp - ranger.super.damage);
+    expect(b.hp).toBe(b.maxHp - ranger.super.damage);
     expect(out.hp).toBe(out.maxHp);
     expect(h.p(0).superCharge).toBe(0);
     h.run(30);
-    expect(a.x - ax).toBeGreaterThan(engineer.super.knockback! * 0.7);
+    expect(a.x - ax).toBeGreaterThan(ranger.super.knockback! * 0.7);
   });
 
   it('announces a full super once', () => {
@@ -119,7 +119,7 @@ describe('Steady Aim', () => {
   });
 
   it('standing still boosts range (auto-aim reaches further)', () => {
-    const range = engineer.main.range;
+    const range = ranger.main.range;
     for (const moving of [false, true]) {
       const h = combat();
       h.put(0, 10, 18);

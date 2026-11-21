@@ -1,9 +1,9 @@
-// Support classes (SPEC §6, §8, §10.1 rows 3, 6, 7; BUILD_PLAN FF9): the Quartermaster's supply perks,
+// Support classes (SPEC §6, §8, §10.1 rows 3, 6, 7; BUILD_PLAN FF9): the Artificer's supply perks,
 // throws, emergency kit, Field Medic and nanite cone; the Commander's slash, morale, Lead from the
 // Front, rally flag and squad.
 import { describe, expect, it } from 'vitest';
 import { content as baseContent, type Content } from '../../../content';
-import { commander, quartermaster } from '../../../content/balance';
+import { commander, artificer } from '../../../content/balance';
 import type { WaveDef } from '../../../content/types';
 import type { ClassId, PlayerColorId } from '../../../shared/ids';
 import { PLAYER_COLOR_IDS } from '../../../shared/ids';
@@ -75,9 +75,9 @@ const hurt = (p: PlayerEnt, hp: number) => {
   p.hp = hp;
 };
 
-describe('Quartermaster supply perks (§6)', () => {
+describe('Artificer supply perks (§6)', () => {
   it('buys crates at a discount, carries 8 with no slowdown', () => {
-    const h = mixed(['quartermaster']);
+    const h = mixed(['artificer']);
     h.toBuild();
     h.sim.world.team.coins = 100;
     h.put(0, DEPOT.x, DEPOT.y);
@@ -85,12 +85,12 @@ describe('Quartermaster supply perks (§6)', () => {
       h.pads[0]!.tap('actionTaps');
       h.run(1);
     }
-    expect(h.p(0).crates).toBe(quartermaster.carryCap);
+    expect(h.p(0).crates).toBe(artificer.carryCap);
     // Price 2 at a 50% discount: 1 coin each.
     expect(h.sim.world.team.coins).toBe(100 - 8);
 
     const speed = (n: number) => {
-      const g = mixed(['quartermaster']);
+      const g = mixed(['artificer']);
       g.toBuild();
       g.put(0, 4, 10);
       g.p(0).crates = n;
@@ -101,8 +101,8 @@ describe('Quartermaster supply perks (§6)', () => {
     expect(speed(8)).toBeCloseTo(speed(0), 6);
   });
 
-  it('throws a crate to the nearest Engineer; it lands on the target', () => {
-    const h = mixed(['quartermaster', 'engineer', 'engineer']);
+  it('throws a crate to the nearest Ranger; it lands on the target', () => {
+    const h = mixed(['artificer', 'ranger', 'ranger']);
     h.toCombat();
     h.put(0, 10, 10);
     h.put(1, 14, 10); // 4 tiles
@@ -129,8 +129,8 @@ describe('Quartermaster supply perks (§6)', () => {
     expect(h.sim.world.cratePiles).toHaveLength(0);
   });
 
-  it('no Engineer or Warden in reach: the action button does nothing (Give stays on hold)', () => {
-    const h = mixed(['quartermaster', 'commander']);
+  it('no Ranger or Warden in reach: the action button does nothing (Give stays on hold)', () => {
+    const h = mixed(['artificer', 'commander']);
     h.toCombat();
     h.put(0, 10, 10);
     h.put(1, 11, 10);
@@ -142,7 +142,7 @@ describe('Quartermaster supply perks (§6)', () => {
   });
 
   it('a throw whose receiver went down drops where it lands', () => {
-    const h = mixed(['quartermaster', 'engineer']);
+    const h = mixed(['artificer', 'ranger']);
     h.toCombat();
     h.put(0, 10, 10);
     h.put(1, 15, 10);
@@ -156,7 +156,7 @@ describe('Quartermaster supply perks (§6)', () => {
 
   it('the emergency kit repairs the base and is consumed, in either phase', () => {
     for (const phase of ['build', 'combat'] as const) {
-      const h = mixed(['quartermaster']);
+      const h = mixed(['artificer']);
       if (phase === 'build') h.toBuild();
       else h.toCombat();
       const b = h.sim.world.base;
@@ -167,7 +167,7 @@ describe('Quartermaster supply perks (§6)', () => {
       const used = h.collect('kitUsed', 1);
       expect(used).toEqual([{ e: 'kitUsed', slot: 0 }]);
       expect(h.p(0).kits).toBe(0);
-      expect(b.hp).toBe(b.maxHp - 400 + quartermaster.supply.kitRepair);
+      expect(b.hp).toBe(b.maxHp - 400 + artificer.supply.kitRepair);
       // No kit left: nothing more happens.
       h.pads[0]!.tap('actionTaps');
       expect(h.collect('kitUsed', 1)).toHaveLength(0);
@@ -175,7 +175,7 @@ describe('Quartermaster supply perks (§6)', () => {
   });
 
   it('a crate in hand is delivered first (row 2 before row 3)', () => {
-    const h = mixed(['quartermaster']);
+    const h = mixed(['artificer']);
     h.toBuild();
     const b = h.sim.world.base;
     b.hp = b.maxHp - 400;
@@ -191,7 +191,7 @@ describe('Quartermaster supply perks (§6)', () => {
 
 describe('Field Medic (§8)', () => {
   it('is off in the build phase', () => {
-    const h = mixed(['quartermaster', 'engineer']);
+    const h = mixed(['artificer', 'ranger']);
     h.toBuild();
     h.put(0, 10, 10);
     h.put(1, 11, 10);
@@ -201,7 +201,7 @@ describe('Field Medic (§8)', () => {
   });
 
   it('heals nearby players in combat and charges the super slowly', () => {
-    const h = mixed(['quartermaster', 'engineer']);
+    const h = mixed(['artificer', 'ranger']);
     h.toCombat();
     h.put(0, 10, 10);
     h.put(1, 11, 10);
@@ -209,13 +209,13 @@ describe('Field Medic (§8)', () => {
     const heals = h.collect('heal', 181);
     expect(h.p(1).hp).toBe(50 + 3 * 3);
     expect(heals.every((e) => e.source === h.p(0).id)).toBe(true);
-    const params = quartermaster.passive.params;
+    const params = artificer.passive.params;
     expect(h.p(0).superCharge).toBeCloseTo(9 * params.chargeRate, 9);
-    expect(params.chargeRate).toBeLessThan(quartermaster.superChargeRate);
+    expect(params.chargeRate).toBeLessThan(artificer.superChargeRate);
   });
 
   it('leaves players out of its radius alone', () => {
-    const h = mixed(['quartermaster', 'engineer']);
+    const h = mixed(['artificer', 'ranger']);
     h.toCombat();
     h.put(0, 10, 10);
     h.put(1, 16, 10);
@@ -225,30 +225,30 @@ describe('Field Medic (§8)', () => {
   });
 });
 
-describe('Quartermaster attacks (§8)', () => {
+describe('Artificer attacks (§8)', () => {
   it('main bolts fan out and are blocked by towers; the super cone passes through and heals', () => {
-    const h = mixed(['quartermaster', 'engineer']);
+    const h = mixed(['artificer', 'ranger']);
     h.toCombat();
     h.put(0, 10.5, 10.5);
     h.put(1, 15.5, 10.5);
-    // A tower right in front of the Quartermaster, between him and the Engineer.
+    // A tower right in front of the Artificer, between him and the Ranger.
     h.sim.place('arrow_tower', 12, 10, 1);
     const enemy = h.sim.spawnEnemy('grunt', 14.5, 10.5);
     h.pads[0]!.tap('mainFires', { mainAim: { x: 1, y: 0 } });
     h.run(1);
-    const bolts = h.sim.world.projectiles.filter((p) => p.from === 'quartermaster');
-    expect(bolts).toHaveLength(quartermaster.main.count);
+    const bolts = h.sim.world.projectiles.filter((p) => p.from === 'artificer');
+    expect(bolts).toHaveLength(artificer.main.count);
     expect(new Set(bolts.map((b) => Math.round(Math.atan2(b.vy, b.vx) * 100))).size).toBe(4);
-    // The tower shoots the enemy too; none of the Quartermaster's bolts reach it.
+    // The tower shoots the enemy too; none of the Artificer's bolts reach it.
     const hits = h.collect('damage', 40).filter((d) => d.target === enemy.id);
     expect(hits.some((d) => d.source === h.p(0).id)).toBe(false);
-    expect(h.sim.world.projectiles.filter((p) => p.from === 'quartermaster')).toHaveLength(0);
+    expect(h.sim.world.projectiles.filter((p) => p.from === 'artificer')).toHaveLength(0);
 
     hurt(h.p(1), 30);
     h.p(0).superCharge = 1;
     h.pads[0]!.tap('superFires', { superAim: { x: 1, y: 0 } });
     h.run(1);
-    expect(h.p(1).hp).toBe(30 + quartermaster.super.heal);
+    expect(h.p(1).hp).toBe(30 + artificer.super.heal);
     // The tower in the cone got the defense bonus.
     const tower = h.sim.world.structures[0]!;
     expect(tower.effects.map((e) => e.def)).toContain('tower_defense');
@@ -257,7 +257,7 @@ describe('Quartermaster attacks (§8)', () => {
   });
 
   it("the super's healing doesn't charge the super", () => {
-    const h = mixed(['quartermaster', 'engineer', 'engineer']);
+    const h = mixed(['artificer', 'ranger', 'ranger']);
     h.toCombat();
     h.put(0, 10, 10);
     h.put(1, 14, 10);
@@ -268,7 +268,7 @@ describe('Quartermaster attacks (§8)', () => {
     h.pads[0]!.tap('superFires', { superAim: { x: 1, y: 0 } });
     const heals = h.collect('heal', 2);
     expect(heals.length).toBeGreaterThanOrEqual(2);
-    expect(h.p(0).run.healingDone).toBeGreaterThanOrEqual(2 * quartermaster.super.heal);
+    expect(h.p(0).run.healingDone).toBeGreaterThanOrEqual(2 * artificer.super.heal);
     expect(h.p(0).superCharge).toBe(0);
   });
 });
@@ -432,8 +432,8 @@ describe('Commander (§8)', () => {
 });
 
 describe('Give for classes with no structures (§10.1)', () => {
-  it('a Give commit (radial slot down) hands a crate over for the Quartermaster and Commander', () => {
-    const h = mixed(['quartermaster', 'commander', 'engineer']);
+  it('a Give commit (radial slot down) hands a crate over for the Artificer and Commander', () => {
+    const h = mixed(['artificer', 'commander', 'ranger']);
     h.toCombat();
     h.put(0, 10, 10);
     h.put(1, 11, 10);

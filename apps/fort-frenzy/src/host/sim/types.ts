@@ -115,7 +115,7 @@ export interface PlayerEnt extends Unit {
   /** Dead until `respawnAt` (tick), null when alive (§5). */
   respawnAt: number | null;
   crates: number;
-  /** Emergency kits held (Quartermaster, 0 or 1). */
+  /** Emergency kits held (Artificer, 0 or 1). */
   kits: number;
   /** 0..1. */
   superCharge: number;
@@ -254,7 +254,7 @@ export interface CratePile {
 }
 
 /**
- * A crate a Quartermaster threw (§6, §10.1 row 6; FF9). It flies from the launch point to the
+ * A crate an Artificer threw (§6, §10.1 row 6; FF9). It flies from the launch point to the
  * receiver, following them, and lands at `landsAt`: caught if they're still up with room, otherwise
  * dropped where it lands.
  */

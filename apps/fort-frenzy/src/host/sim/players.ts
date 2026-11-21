@@ -17,7 +17,7 @@ import {
   pickUp,
 } from './crates';
 import { toggleFlag } from './classes/commander';
-import { canUseKit, throwCrate, throwTarget, useKit } from './classes/quartermaster';
+import { canUseKit, throwCrate, throwTarget, useKit } from './classes/artificer';
 import { attackShapes } from './classes/shapes';
 import { cleanVec } from './geometry';
 import type { SlotInput } from './internal';
@@ -267,7 +267,7 @@ function fire(
   }
 }
 
-/** A circle around the player: area damage and knockback (Engineer super, §8). */
+/** A circle around the player: area damage and knockback (Ranger super, §8). */
 function circle(
   s: FullState,
   p: PlayerEnt,
@@ -317,7 +317,7 @@ function action(s: FullState, p: PlayerEnt) {
     deliver(s, p);
     return;
   }
-  // Row 3: the Quartermaster's emergency kit (FF9).
+  // Row 3: the Artificer's emergency kit (FF9).
   if (canUseKit(s, p)) {
     useKit(s, p);
     return;
@@ -332,7 +332,7 @@ function action(s: FullState, p: PlayerEnt) {
     buildAtFeet(s, p, p.lastBuilt ?? kit[0]!);
     return;
   }
-  // Row 6: a Quartermaster throws a crate; row 7: the Commander's rally flag (FF9).
+  // Row 6: an Artificer throws a crate; row 7: the Commander's rally flag (FF9).
   const to = throwTarget(s.world, p, (q) => carryCap(s, q));
   if (to) {
     throwCrate(s, p, to);

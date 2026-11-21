@@ -47,7 +47,7 @@ function hello(s: Session, id: string, key: string, deviceId: string) {
 function join(s: Session, id: string, name: string) {
   hello(s, id, `key-${id}`, `dev-${id}`);
   intent(s, id, { k: 'name', name });
-  intent(s, id, { k: 'class', classId: 'engineer' });
+  intent(s, id, { k: 'class', classId: 'ranger' });
 }
 
 const lastMe = (sent: Sent[], to: string): MeView =>
@@ -133,7 +133,7 @@ describe('end of the run (§4)', () => {
     expect(ackOf(env.sent, n)?.ok).toBe(true);
     expect(env.s.sim).not.toBe(first);
     expect(env.s.sim?.world.phase).toBe('countdown');
-    expect(env.s.sim?.world.players.map((p) => p.classId)).toEqual(['engineer', 'engineer']);
+    expect(env.s.sim?.world.players.map((p) => p.classId)).toEqual(['ranger', 'ranger']);
   });
 
   it('change classes goes back to class select, nobody ready', () => {
@@ -144,8 +144,8 @@ describe('end of the run (§4)', () => {
     step(env);
     expect(lastMe(env.sent, 'a').screen).toBe('lobby');
     expect(env.s.party.members.map((m) => [m.ready, m.classId])).toEqual([
-      [false, 'engineer'],
-      [false, 'engineer'],
+      [false, 'ranger'],
+      [false, 'ranger'],
     ]);
   });
 
@@ -232,7 +232,7 @@ describe('resume snapshot on the host (§11.5, §15.8)', () => {
     expect(lastMe(env.sent, 'x')).toMatchObject({ screen: 'restoring', slot: 0, name: 'Ann' });
     const claim = lastMe(env.sent, 'y');
     expect(claim.screen).toBe('claim');
-    expect(claim.claim).toEqual([{ slot: 1, name: 'Bob', classId: 'engineer' }]);
+    expect(claim.claim).toEqual([{ slot: 1, name: 'Bob', classId: 'ranger' }]);
     const taken = intent(env.s, 'y', { k: 'claim', slot: 0 });
     expect(ackOf(env.sent, taken)?.ok).toBe(false);
     const c = intent(env.s, 'y', { k: 'claim', slot: 1 });

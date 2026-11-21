@@ -27,7 +27,7 @@ export interface ClassInfo {
 }
 
 export const CLASS_INFO: Record<ClassId, ClassInfo> = {
-  engineer: {
+  ranger: {
     name: 'Ranger',
     role: 'Marksman',
     rig: 'ranger',
@@ -72,7 +72,7 @@ export const CLASS_INFO: Record<ClassId, ClassInfo> = {
       { name: 'Fortify', text: 'Gives a tower a defense bonus.' },
     ],
   },
-  quartermaster: {
+  artificer: {
     name: 'Artificer',
     role: 'Support',
     rig: 'artificer',

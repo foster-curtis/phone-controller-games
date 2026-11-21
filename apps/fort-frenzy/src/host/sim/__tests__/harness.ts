@@ -33,7 +33,7 @@ export interface Harness {
   give(slot: number, card: CardId, n?: number): void;
 }
 
-export function startOf(players: number, seed = 1, classId: ClassId = 'engineer'): RunStart {
+export function startOf(players: number, seed = 1, classId: ClassId = 'ranger'): RunStart {
   return {
     seed,
     settings: { theme: 'neon-knights', difficulty: 'normal' },
@@ -48,7 +48,7 @@ export function startOf(players: number, seed = 1, classId: ClassId = 'engineer'
 }
 
 export interface HarnessOptions {
-  /** Class per slot (default: every slot the Engineer). */
+  /** Class per slot (default: every slot the Ranger). */
   classes?: ClassId[];
   /** Content override (custom enemies for a scenario). */
   content?: Content;
