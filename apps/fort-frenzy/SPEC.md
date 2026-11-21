@@ -2379,6 +2379,15 @@ export interface Content {
 }
 ```
 
+- **As implemented in RD2** (contract fixes, §15.11 #111): `Content` keeps the code's arrays looked
+  up by id through the sim's catalog (`knights`, `classes`, `builds`, `enemies`, `cards`, `shop`,
+  `waves`, `difficulties`, `scaling: PlayerCountRow[]`) and nullable singletons (`map`, `base`,
+  `rules`, `harness`), not records. Transitional fields, each removed by the milestone named:
+  `KnightDef.passive?: ModuleRef` (the always-on passive until the knight's kit milestone makes it the
+  passive card), `KnightDef.super.selfEffects`, `AttackDef.shape: 'buff'` and the effect ids
+  `aura_lead_from_the_front` and `haste` (the Commander's morale super and passive until RD9); the
+  squad stays at `squad.start` until Reinforcements (RD9). The Colossus's Citadel multiplier
+  (`EnemyDef.vsStructure.base`, gone) is its boss param `baseMult` (1.5).
 - **Generic system signatures** (extraction-ready, §15.1; Fort Frenzy passes its content in). The
   wave generator takes the redesign's inputs **additively**: Fort Frenzy passes its portal ids as
   `lanes`, each portal's side in `sides`, and the hot schedule, share and cap.
@@ -3052,3 +3061,4 @@ states, then RD0's own.
 | 108 | 2026-11-20 | Bombard priority | Siege (Bombard) target priority is **base > players > builds**, nearest within each; it retargets the moment a higher-priority target enters range (revises #61's order) (§3.3, §9, §9.1, §15.5) | RC0 checkpoint note (user, RC0, 2026-11-20) |
 | 109 | 2026-11-20 | Respawn at 5–6 players | Base respawn is **15 s** for 5 and 6 players (6 s solo, 10 s for 2–4); the difficulty multiplier and Quick Recovery's floor are unchanged (§5, §9.4) | RC0 checkpoint note (user, RC0, 2026-11-20) |
 | 110 | 2026-11-20 | Stats banners (v2) | v2 note: the end-of-run screen shows every stat for each player in per-player banners, like a fighting-game results screen; v1's summary and award cards are unchanged (§13) | v2 polish; v1 scope stays (user, RC0, 2026-11-20) |
+| 111 | 2026-11-21 | RD2 contract fixes | `SNAPSHOT_VERSION` 3 (RD1 used 2); `Content` keeps arrays and nullable singletons; transitional Commander and passive fields until their kit milestones; the Colossus's Citadel multiplier is a boss param (§15.4, §15.8) | The code's catalog already looks content up by id; the old Commander super and passives keep working until they're replaced (RD2) |

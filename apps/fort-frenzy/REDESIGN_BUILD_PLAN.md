@@ -809,11 +809,11 @@ Rules:
   - [x] Theme layer removed (`src/presentation/`, no ThemeId, no theme row); ESLint pattern; major changeset
   - [x] Merged; e2e green
 - RD2 Cut + contracts + portals
-  - [ ] Contract files to the redesign shapes (tuple v2, views, snapshot, content and sim types)
-  - [ ] Crates and QM supply kit cut
-  - [ ] Structures, building, Fortify, Mason, structure cards and shop items cut
-  - [ ] Action table, build arc, radial, Build tab cut; breaker and rebuilds cut
-  - [ ] Lanes → 6 live portals
+  - [x] Contract files to the redesign shapes (tuple v2, views, snapshot, content and sim types)
+  - [x] Crates and QM supply kit cut
+  - [x] Structures, building, Fortify, Mason, structure cards and shop items cut
+  - [x] Action table, build arc, radial, Build tab cut; breaker and rebuilds cut
+  - [x] Lanes → 6 live portals
   - [ ] Tests, soak, bench, autopilot, e2e updated; merged; e2e green
 - RD3 Sim slice
   - [ ] Classes vs knights; build system core + meter; Warden shield generator + jump slam
@@ -1024,6 +1024,19 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD2] decision: `MeView.build` comes from a knight → build table in `net/views.ts` (shield generator, mines, beacon, rally flag; `act-*` icons) until RD3 reads it from content; `meter` stays 0, so every button is dimmed except the Commander's recall (none can happen yet: nothing plants a flag until RD9).
 - [RD2] decision: the autopilot only moves and fights (no Armory, crates or structures); soak and the recorder ready every slot 2 s into each build phase.
 - [RD2] decision: the `aura_field_medic` effect keeps its id with no stats (Light Load's carry relief went with the crates); RD8 gives it a use.
+- [RD2] decision: commits: step 1 alone; steps 2–6 landed as one commit (the content-type rewrite, the structure cut and the portals touch the same files, and the sim didn't compile between them); step 7's tests, soak, bench and e2e specs came with them.
+- [RD2] contract: `Content` keeps arrays and nullable singletons (`knights`, `classes`, `builds`, `scaling: PlayerCountRow[]`, `harness`), not SPEC §15.4's records: the catalog already looks content up by id (SPEC §15.4 note, #111).
+- [RD2] contract: transitional fields until their milestones remove them: `KnightDef.passive?` (always-on Steady Aim, Field Medic, Lead from the Front until each kit milestone), `KnightDef.super.selfEffects`, `AttackDef.shape 'buff'`, `EFFECT_IDS` `aura_lead_from_the_front` and `haste` (appended after the v2 list) until RD9; the Warden has no passive until RD7/RD11 (Mason is cut).
+- [RD2] contract: `EnemyDef.vsStructure` is gone; the Colossus's ×1.5 on the Citadel is its boss param `baseMult`; `DangerMarker.payload.hitsBuilds` also gates the Citadel, as `hitsStructures` did.
+- [RD2] contract+: `Sim.addBuild(kind, x, y, slot)` (tooling, replaces `place`: the bench's 24 placeholder builds and resume tests), `StateExtras.addBuild` and `repriceHunters` (replaces `rebuildFields`: the ground field is built once in `createState`), `__pcg.addBuild` / `builds()` and `stats().builds` on the TV debug API.
+- [RD2] decision: knight HP = `rules.knightHp` 110 × class HP tier (Warden 176, Ranger 88, Artificer 99, Commander 110); the damage band waits for RD3 ("classes vs knights"). Respawn = player-count row × difficulty `respawn`, set at each wave start; Quick Recovery keeps its −5 s cap until RD3's floors. `buildCapMs` stays 45 s until RD3. Coins = budget × `coinRate` 1 × difficulty.
+- [RD2] decision: the squad stays at `squad.start` (2) all run until RD9's Reinforcements (the TD growth by boss waves is cut with `squad.size`).
+- [RD2] decision: waves deal groups round-robin over all six portals (`generateWave` with `lanes: PORTAL_IDS`; the v2 `sides`/`hot`/`hotShare`/`activeCap` inputs are typed and unused until RD3); the boss spawns at `rng.pick(PORTAL_IDS)` on the same `waves:<n>` stream right after the wave is generated; portals flare `rules.flareMs` (1 s) ahead (event `portalFlare`; RD5 draws it). Guaranteed spawns lost their lanes (`portal` optional, none set).
+- [RD2] decision: Siege shells only the Citadel, the Brute walks like a Grunt, the Hunter's field prices sentries only, and the Colossus walks the ground field with slam, boulder and calls, until RD10 adds builds and players as targets.
+- [RD2] decision: `MeView.build` reads the knight's build and input from content (`KnightDef.build`, `input.build`) and the icon from a table mirroring `iconFor.build`.
+- [RD2] decision: the build cues are `build_placed` (`buildPlaced`) and `build_destroyed` (`buildGone` destroyed); their mp3s were renamed from the structure ones (`audio/neon-knights`, not an input pack) with their LICENSES paths.
+- [RD2] decision: the mortar's render clips stay (`render/clips/mortar.ts`): its rig is kept-on-file art and the rig contract test wants an idle clip for every rig; nothing in the game draws it.
+- [RD2] decision: acceptance grep hits that stay: the card id `siege_breakers` (SPEC §15.4 ids, as RD0 noted) and the icon id `emergency-kit` in `presentation/__tests__/manifest.test.ts` (the on-disk icon list; the icon is kept on file until RD12). No gallery hits.
 
 ## 9. Final handoff
 
