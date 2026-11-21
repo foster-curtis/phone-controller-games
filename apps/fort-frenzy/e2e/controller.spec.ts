@@ -91,10 +91,10 @@ for (const vp of VIEWPORTS) {
       const main = page.locator('.round-btn.main');
       const box = (await main.boundingBox())!;
       await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
-      // Ranger: main is aimed; a tap fires with aim 0,0 (mainFires is slot 7).
+      // Ranger: main is aimed; a tap fires with aim 0,0 (mainFires is slot 9, tuple v2).
       await expect
         .poll(async () => (await page.locator('.dev-readout').textContent()) ?? '')
-        .toMatch(/^\[0, 0, 0, 0, 0, 0, 0, 1, /);
+        .toMatch(/^\[0, 0, 0, 0, 0, 0, 0, 0, 0, 1, /);
     });
   });
 }
@@ -139,10 +139,10 @@ for (const vp of VIEWPORTS) {
       expect(Math.abs(r.y + r.height / 2 - y)).toBeLessThan(2);
       await page.mouse.move(x - 50, y, { steps: 4 });
       await page.mouse.up();
-      // mainFires is slot 7; 50 of 70 px left is about -71 on x.
+      // mainFires is slot 9 (tuple v2); 50 of 70 px left is about -71 on x.
       await expect
         .poll(async () => (await page.locator('.dev-readout').textContent()) ?? '')
-        .toMatch(/^\[0, 0, -7\d, 0, 0, 0, 0, 1, /);
+        .toMatch(/^\[0, 0, -7\d, 0, 0, 0, 0, 0, 0, 1, /);
     });
 
     test('one swipe of any length moves class select exactly one card', async ({ page }) => {
