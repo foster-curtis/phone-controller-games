@@ -1,4 +1,4 @@
-// Theme pack types (SPEC §2.1, §15.4): presentation only, no gameplay fields. Also the rig contract
+// Presentation types (SPEC §2.1, §15.4): presentation only, no gameplay fields. Also the rig contract
 // (§15.2 plus the art README's shared `viewBox` and `{ part, at }` attach points) and the generated
 // asset manifest's shape (`generated/manifest.ts`, written by scripts/build-atlases.ts).
 // The sim can't import this folder (lint, §15.1).
@@ -6,16 +6,14 @@
 import type {
   CardId,
   ClassId,
-  DifficultyId,
   EnemyId,
   LaneId,
   SfxId,
   ShopItemId,
   StructureId,
-  ThemeId,
 } from '../shared/ids';
 
-// ---- rigs (art/<theme>/rigs/<id>.json) ----------------------------------------------------------
+// ---- rigs (art/<set>/rigs/<id>.json) ----------------------------------------------------------
 
 export type ViewId = 'side' | 'front' | 'back';
 export const VIEW_IDS = ['side', 'front', 'back'] as const satisfies readonly ViewId[];
@@ -60,7 +58,7 @@ export interface RigPoses {
 }
 
 export interface RigDef {
-  /** The theme's rig id: 'warden', 'colossus', 'mortar'. */
+  /** The rig id: 'warden', 'colossus', 'mortar'. */
   id: string;
   /** Shared by every part in every view: parts stack at rest with no offsets. */
   viewBox: ViewBox;
@@ -113,7 +111,7 @@ export type FrameLayer = 'ground' | 'world' | 'effects';
 
 export interface SpriteFrameDef {
   category: FrameCategory;
-  /** Path under art/<theme>/. */
+  /** Path under art/<set>/. */
   file: string;
   viewBox: ViewBox;
   anchor: Point;
@@ -128,12 +126,16 @@ export interface SpritesJson {
   frames: Record<string, SpriteFrameDef>;
 }
 
+/** The one art set (`art/neon-knights/`, plan §8): the folder the build script and loaders read. */
+export const ART_SET = 'neon-knights';
+export type ArtSetId = typeof ART_SET;
+
 // ---- generated asset manifest (generated/manifest.ts) -------------------------------------------
 
 /** Every frame the atlas script found, rig part or sprite, by frame name. */
 export interface FrameMeta {
   category: FrameCategory;
-  /** Path under art/<theme>/. */
+  /** Path under art/<set>/. */
   file: string;
   /** Rig parts: the rig's shared viewBox. */
   viewBox: ViewBox;
@@ -159,8 +161,8 @@ export interface PortraitFiles {
   mask: string;
 }
 
-export interface ThemeAssets {
-  theme: ThemeId;
+export interface ArtSetAssets {
+  set: ArtSetId;
   frames: Record<string, FrameMeta>;
   /** Every rig id (rigs/<id>.json). */
   rigs: readonly string[];
@@ -176,13 +178,13 @@ export interface ThemeAssets {
 
 export interface AssetManifest {
   version: 1;
-  themes: Partial<Record<ThemeId, ThemeAssets>>;
+  sets: Partial<Record<ArtSetId, ArtSetAssets>>;
 }
 
 /** Symbol id prefix in the icon sprite: `<use href="#icon-coins">`. */
 export const ICON_SYMBOL_PREFIX = 'icon-';
 
-// ---- theme packs (src/themes/<id>/) -------------------------------------------------------------
+// ---- presentation (src/presentation/) -------------------------------------------------------------
 
 /** The icon sprite as phones and the TV DOM use it. */
 export interface IconSprite {
@@ -200,13 +202,11 @@ export interface AtlasRef {
 }
 
 /** Phones and TV. */
-export interface ThemeShared {
-  id: ThemeId;
-  defaultDifficulty: DifficultyId;
+export interface PresentationShared {
   names: Record<ClassId | EnemyId | StructureId | ShopItemId | CardId | 'base' | 'faction', string>;
   /** Class card lines, card text. */
   flavor?: Partial<Record<string, string>>;
-  /** art/<theme>/icons/*.svg as one inline SVG sprite. */
+  /** art/<set>/icons/*.svg as one inline SVG sprite. */
   icons: IconSprite;
   /** Icon ids for internal ids (fixed ids like `act-*` or `coins` need no mapping). */
   iconFor: {
@@ -222,14 +222,13 @@ export interface ThemeShared {
 }
 
 /** TV only. */
-export interface ThemeHost {
+export interface PresentationHost {
   atlases: AtlasRef[];
   rigs: Record<string, RigDef>;
   /** By `<rig>/<clip>`. */
   clips: Record<string, Clip>;
   /** Rig ids for internal ids. */
   rigFor: {
-    class: Record<ClassId, string>;
     enemy: Record<EnemyId, string>;
     soldier: string;
     structure: Partial<Record<StructureId, string>>;

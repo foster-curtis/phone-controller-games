@@ -5,10 +5,10 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { atlasFiles, ICON_FRAME_PREFIX, UNLIT_SUFFIX } from '../../../generated/keys';
 import { manifest } from '../../../generated/manifest';
-import type { ThemeAssets } from '../types';
+import { ART_SET, type ArtSetAssets } from '../types';
 
 const generated = join(import.meta.dirname, '..', '..', '..', 'generated');
-const assets = manifest.themes['neon-knights'] as ThemeAssets;
+const assets = manifest.sets[ART_SET] as ArtSetAssets;
 
 interface AtlasJson {
   frames: Record<

@@ -10,7 +10,6 @@ import {
   PLAYER_COLOR_IDS,
   SHOP_ITEM_IDS,
   STRUCTURE_IDS,
-  THEME_IDS,
   isOneOf,
   type CardId,
   type ClassId,
@@ -19,11 +18,10 @@ import {
   type PlayerColorId,
   type ShopItemId,
   type StructureId,
-  type ThemeId,
 } from './ids';
 
 export const GAME_ID = 'fort-frenzy';
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2; // 2: the redesign's wire (ClassId values ranger and artificer, no theme intent); stays 2 through RD14 (plan §8)
 
 /** Name limit for the `name` intent (SPEC §15.6), in code points. */
 export const NAME_MAX = 10;
@@ -74,7 +72,6 @@ export type Intent =
   | { k: 'ready'; ready: boolean }
   | { k: 'color'; color: PlayerColorId } // lobby only; host validates, swaps, acks (`taken`)
   | { k: 'leader'; action: 'start' | 'resume' | 'newRun' }
-  | { k: 'leader'; action: 'theme'; theme: ThemeId }
   | { k: 'leader'; action: 'difficulty'; difficulty: DifficultyId }
   | { k: 'leader'; action: 'remove'; playerId: string } // lobby only
   | { k: 'leader'; action: 'end'; option: 'again' | 'classes' | 'home' }
@@ -192,7 +189,6 @@ export interface TeamView {
   coins: number;
   baseHp: number;
   baseMaxHp: number;
-  theme: ThemeId;
   difficulty: DifficultyId;
   leaderId: string | null;
   roster: TeamRosterEntry[];
@@ -320,7 +316,6 @@ const isEnemyId = oneOf(ENEMY_IDS);
 const isStructureId = oneOf(STRUCTURE_IDS);
 const isShopItemId = oneOf(SHOP_ITEM_IDS);
 const isCardId = oneOf(CARD_IDS);
-const isThemeId = oneOf(THEME_IDS);
 const isDifficultyId = oneOf(DIFFICULTY_IDS);
 const isColorId = oneOf(PLAYER_COLOR_IDS);
 
@@ -347,8 +342,6 @@ export function isIntent(v: unknown): v is Intent {
         case 'resume':
         case 'newRun':
           return true;
-        case 'theme':
-          return isThemeId(v.theme);
         case 'difficulty':
           return isDifficultyId(v.difficulty);
         case 'remove':
@@ -449,7 +442,6 @@ export function isTeamView(v: unknown): v is TeamView {
     isNum(v.coins) &&
     isNum(v.baseHp) &&
     isNum(v.baseMaxHp) &&
-    isThemeId(v.theme) &&
     isDifficultyId(v.difficulty) &&
     orNull(isStr)(v.leaderId) &&
     arrayOf(v.roster, isRosterEntry) &&

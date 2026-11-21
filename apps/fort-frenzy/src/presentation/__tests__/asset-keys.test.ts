@@ -5,16 +5,16 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { manifest } from '../../../generated/manifest';
-import { LANE_IDS } from '../../shared/ids';
+import { CLASS_IDS, LANE_IDS } from '../../shared/ids';
 import { ALL_MASKS } from '../../host/render/autotile';
 import * as keys from '../../host/render/keys';
 import { SENTRY_AIMS, SENTRY_LOADOUTS, TURRET_AIMS, type TowerTier } from '../../host/render/types';
-import { neonKnightsHost } from '../neon-knights/host';
-import { neonKnightsShared } from '../neon-knights/shared';
-import { isPosed, type ThemeAssets } from '../types';
+import { presentationHost } from '../host';
+import { presentationShared } from '../shared';
+import { ART_SET, isPosed, type ArtSetAssets } from '../types';
 
 const src = join(import.meta.dirname, '..', '..');
-const assets = manifest.themes['neon-knights'] as ThemeAssets;
+const assets = manifest.sets[ART_SET] as ArtSetAssets;
 const frames = new Set(Object.keys(assets.frames));
 const icons = new Set([...assets.icons, ...assets.tiles]);
 
@@ -32,13 +32,13 @@ const code = (f: string) =>
     .replace(/(^|[^:])\/\/.*$/gm, '$1');
 
 const files = [
-  ...sources(join(src, 'themes')),
+  ...sources(join(src, 'presentation')),
   ...sources(join(src, 'host', 'render')),
   ...sources(join(src, 'host', 'scene')),
 ];
 
 describe('asset keys', () => {
-  it('scans the theme pack and the renderer', () => {
+  it('scans the presentation pack and the renderer', () => {
     expect(files.length).toBeGreaterThan(20);
   });
 
@@ -96,16 +96,16 @@ describe('asset keys', () => {
   });
 
   it('theme maps name real frames, icons and rigs', () => {
-    const map = neonKnightsHost.map;
+    const map = presentationHost.map;
     for (const f of [...map.ground, ...Object.values(map.edges), ...(map.decor ?? [])])
       expect(frames.has(f), f).toBe(true);
     for (const l of Object.values(map.lanes))
       for (const f of [l.open, l.sealed]) expect(frames.has(f), f).toBe(true);
-    for (const group of Object.values(neonKnightsShared.iconFor))
+    for (const group of Object.values(presentationShared.iconFor))
       for (const id of Object.values(group)) expect(icons.has(id), id).toBe(true);
-    const rigFor = neonKnightsHost.rigFor;
+    const rigFor = presentationHost.rigFor;
     for (const r of [
-      ...Object.values(rigFor.class),
+      ...CLASS_IDS,
       ...Object.values(rigFor.enemy),
       rigFor.soldier,
       ...Object.values(rigFor.structure),
@@ -114,7 +114,7 @@ describe('asset keys', () => {
   });
 
   it('every rig part names a manifest frame', () => {
-    for (const rig of Object.values(neonKnightsHost.rigs)) {
+    for (const rig of Object.values(presentationHost.rigs)) {
       for (const v of Object.values(rig.views)) {
         for (const rv of isPosed(v!) ? Object.values(v.poses) : [v!]) {
           for (const p of Object.values(rv.parts)) expect(frames.has(p.frame), p.frame).toBe(true);

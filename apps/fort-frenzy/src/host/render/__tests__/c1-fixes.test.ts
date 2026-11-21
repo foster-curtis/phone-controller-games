@@ -4,8 +4,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { manifest } from '../../../../generated/manifest';
-import { neonKnightsHost } from '../../../themes/neon-knights/host';
-import { isPosed, type RigView, type ThemeAssets } from '../../../themes/types';
+import { presentationHost } from '../../../presentation/host';
+import { ART_SET, isPosed, type RigView, type ArtSetAssets } from '../../../presentation/types';
 import {
   citadelCollapseAt,
   CITADEL_COLLAPSE_MS,
@@ -25,7 +25,7 @@ import { turretMuzzleIndices } from '../structures';
 import { MAX_WOBBLE, mitePack, mitePose } from '../swarm';
 import { TURRET_AIMS } from '../types';
 
-const { rigs, clips } = neonKnightsHost;
+const { rigs, clips } = presentationHost;
 const KNIGHTS = ['warden', 'ranger', 'commander', 'artificer'];
 const ENEMIES = ['drone', 'skitter', 'brute', 'bombard', 'wasp', 'mite', 'stalker', 'colossus'];
 const art = join(import.meta.dirname, '..', '..', '..', '..', 'art', 'neon-knights');
@@ -277,7 +277,7 @@ describe('note 6: two-barrel turret heads flash from both barrels', () => {
     expect(turretMuzzleIndices(1)).toEqual([1]);
     expect(turretMuzzleIndices(2)).toEqual([1, 2]);
     expect(turretMuzzleIndices(3)).toEqual([1, 2]);
-    const frames = (manifest.themes['neon-knights'] as ThemeAssets).frames;
+    const frames = (manifest.sets[ART_SET] as ArtSetAssets).frames;
     for (const head of ['ii', 'iii'])
       for (const aim of TURRET_AIMS) {
         const a = frames[`pulse-turret/${head}/${aim}`]!.attach ?? {};

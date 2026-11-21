@@ -11,7 +11,7 @@
 // legs shortened. Code adds the head tracking, fist and spire flares and the core glow
 // (scene/colossusView.ts).
 import rig from '../../../../art/neon-knights/rigs/colossus.json';
-import type { Clip, Keyframe, RigDef } from '../../../themes/types';
+import type { Clip, Keyframe, RigDef } from '../../../presentation/types';
 import {
   each,
   enemyDeath,

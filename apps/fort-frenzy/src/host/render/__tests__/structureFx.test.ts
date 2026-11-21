@@ -2,7 +2,7 @@
 // sketches then fills from the plate up, the collapse sinks and fades, Fortify's ripple settles; the
 // Warden's per-view clips; the mortar's clamped muzzle flash angle.
 import { describe, expect, it } from 'vitest';
-import { neonKnightsHost } from '../../../themes/neon-knights/host';
+import { presentationHost } from '../../../presentation/host';
 import { SLAM_IMPACT_MS, STOMP_IMPACT_MS } from '../clips/warden';
 import {
   BUILD_FILL_MS,
@@ -60,7 +60,7 @@ describe('build, collapse, ripple', () => {
 });
 
 describe('Warden and mortar clips', () => {
-  const clips = neonKnightsHost.clips;
+  const clips = presentationHost.clips;
   it('solves the slam, stomp and build per view, longer than their impacts', () => {
     for (const name of ['attack', 'super', 'build'])
       for (const v of ['side', 'front', 'back']) {

@@ -18,7 +18,7 @@ function mixed(classes: ClassId[], content: Content = baseContent) {
   const sim: Sim = createSim(
     {
       seed: 7,
-      settings: { theme: 'neon-knights', difficulty: 'normal' },
+      settings: { difficulty: 'normal' },
       slots: classes.map((classId, i) => ({
         slot: i,
         name: `P${i + 1}`,

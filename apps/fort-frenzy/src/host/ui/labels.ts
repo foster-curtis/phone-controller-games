@@ -1,14 +1,7 @@
-// Display text and icon ids for the TV overlay (neon knights, SPEC §2.1, §2.6, §6.2). FF3's theme
-// pack will own these maps for the whole game; until it lands the overlay carries the one theme in v1.
+// Display text and icon ids for the TV overlay (SPEC §2.1, §2.6, §6.2). Presentation (src/presentation/) will
+// own these maps for the whole game; until then the overlay carries them.
 import type { RunStats } from '../../shared/messages';
-import type {
-  ClassId,
-  DifficultyId,
-  EnemyId,
-  PlayerColorId,
-  ShopItemId,
-  ThemeId,
-} from '../../shared/ids';
+import type { ClassId, DifficultyId, EnemyId, PlayerColorId, ShopItemId } from '../../shared/ids';
 
 export const CLASS_NAME: Record<ClassId, string> = {
   ranger: 'Ranger',
@@ -87,8 +80,6 @@ export const SHOP_ICON: Record<ShopItemId, string> = {
   base_armor: 'base-armor',
   emergency_kit: 'emergency-kit',
 };
-
-export const THEME_NAME: Record<ThemeId, string> = { 'neon-knights': 'Neon Knights' };
 
 export const DIFFICULTY_NAME: Record<DifficultyId, string> = {
   easy: 'Easy',

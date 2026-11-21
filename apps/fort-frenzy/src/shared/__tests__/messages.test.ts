@@ -23,7 +23,6 @@ const intents: Intent[] = [
   { k: 'leader', action: 'start' },
   { k: 'leader', action: 'resume' },
   { k: 'leader', action: 'newRun' },
-  { k: 'leader', action: 'theme', theme: 'neon-knights' },
   { k: 'leader', action: 'difficulty', difficulty: 'hard' },
   { k: 'leader', action: 'remove', playerId: 'p2' },
   { k: 'leader', action: 'end', option: 'classes' },
@@ -51,7 +50,7 @@ const team: TeamView = {
   coins: 120,
   baseHp: 800,
   baseMaxHp: 1000,
-  theme: 'neon-knights',
+
   difficulty: 'normal',
   leaderId: 'p1',
   roster: [
@@ -197,7 +196,7 @@ function mutate<T>(v: T, edit: (copy: any) => void): unknown {
 describe('protocol constants', () => {
   it('game id and version', () => {
     expect(GAME_ID).toBe('fort-frenzy');
-    expect(PROTOCOL_VERSION).toBe(1);
+    expect(PROTOCOL_VERSION).toBe(2);
   });
 });
 
@@ -221,8 +220,8 @@ describe('isControllerMsg', () => {
     ['string in tuple', mutate(tuple, (t) => (t[3] = '0'))],
     ['NaN in tuple', mutate(tuple, (t) => (t[2] = NaN))],
     ['unknown t', { t: 'nope' }],
-    ['hello without deviceId', { t: 'hello', proto: 1 }],
-    ['hello with empty deviceId', { t: 'hello', proto: 1, deviceId: '' }],
+    ['hello without deviceId', { t: 'hello', proto: 2 }],
+    ['hello with empty deviceId', { t: 'hello', proto: 2, deviceId: '' }],
     ['hello with float proto', { t: 'hello', proto: 1.5, deviceId: 'x' }],
     ['intent without seq', { t: 'intent', intent: { k: 'give' } }],
     ['intent with negative seq', { t: 'intent', seq: -1, intent: { k: 'give' } }],
@@ -231,7 +230,6 @@ describe('isControllerMsg', () => {
     ['unknown class', { t: 'intent', seq: 1, intent: { k: 'class', classId: 'wizard' } }],
     ['ready not bool', { t: 'intent', seq: 1, intent: { k: 'ready', ready: 1 } }],
     ['unknown leader action', { t: 'intent', seq: 1, intent: { k: 'leader', action: 'kick' } }],
-    ['bad theme', { t: 'intent', seq: 1, intent: { k: 'leader', action: 'theme', theme: 'x' } }],
     [
       'bad difficulty',
       { t: 'intent', seq: 1, intent: { k: 'leader', action: 'difficulty', difficulty: 'insane' } },

@@ -2,7 +2,7 @@
 // its clamped tube, the Citadel with sentries, damage stages and rubble, and the wall / shock-net
 // autotile fields with per-tile states and the Fortify dome (FF8; the build and destroy animations
 // are in buildFx.ts). Everything here is ours: gunmetal and amber.
-import type { Point } from '../../themes/types';
+import type { Point } from '../../presentation/types';
 import type { ArtImage } from './atlas';
 import { chargedFlicker, damageFlicker, NET_FLASH_MS, netAlpha, rippleScale } from './structureFx';
 import { mortarTubeAngle, snapSentryAim, snapTurretAim } from './aim';

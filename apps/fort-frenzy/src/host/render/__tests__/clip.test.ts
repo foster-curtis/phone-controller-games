@@ -1,6 +1,6 @@
 // Clip runtime and rig composition math (SPEC §15.2).
 import { describe, expect, it } from 'vitest';
-import type { Clip, RigView } from '../../../themes/types';
+import type { Clip, RigView } from '../../../presentation/types';
 import { applyOrder, blendSamples, clipTime, REST, sampleClip } from '../clip';
 import { clips as colossus, COLOSSUS_ORDERS } from '../clips/colossus';
 import { apply, composeView, decompose } from '../rigMath';

@@ -3,7 +3,7 @@
 // leave the lens (the shot origin is the `lens` attach point); super: he braces and every seam flares
 // with the wide cone; throw: the arm swings back and lobs a cell from the hand (FF9).
 import rig from '../../../../art/neon-knights/rigs/artificer.json';
-import type { Clip, Keyframe, RigDef } from '../../../themes/types';
+import type { Clip, Keyframe, RigDef } from '../../../presentation/types';
 import { each, knightClips, once, type KnightParts } from '../clipKit';
 
 const parts: KnightParts = {

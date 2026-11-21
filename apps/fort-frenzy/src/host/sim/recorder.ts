@@ -156,7 +156,7 @@ export function recordAutopilotRun(opts: {
   const colors = ['cobalt', 'jade', 'sky', 'bone', 'rose', 'forest'] as const;
   const start: RunStart = {
     seed: opts.seed,
-    settings: { theme: 'neon-knights', difficulty: 'normal' },
+    settings: { difficulty: 'normal' },
     slots: Array.from({ length: opts.players }, (_, i) => ({
       slot: i,
       name: `Bot${i + 1}`,

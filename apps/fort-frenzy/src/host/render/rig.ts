@@ -12,7 +12,7 @@ import {
   type RigPart,
   type RigView,
   type ViewId,
-} from '../../themes/types';
+} from '../../presentation/types';
 import type { ArtImage, ArtLibrary } from './atlas';
 import { applyOrder, blendSamples, clipTime, REST, sampleClip, type ClipSample } from './clip';
 import { attachPoint, composeView, decompose, partPoint, type Mat } from './rigMath';

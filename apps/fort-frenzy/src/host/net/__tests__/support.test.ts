@@ -14,7 +14,7 @@ function run(classes: ClassId[]) {
   const sim = createSim(
     {
       seed: 3,
-      settings: { theme: 'neon-knights', difficulty: 'normal' },
+      settings: { difficulty: 'normal' },
       slots: classes.map((classId, i) => ({
         slot: i,
         name: `P${i}`,
@@ -65,7 +65,7 @@ function ctxOf(world: ViewCtx['world'], classes: ClassId[]): { ctx: ViewCtx; m: 
     ctx: {
       party,
       content,
-      settings: { theme: 'neon-knights', difficulty: 'normal' },
+      settings: { difficulty: 'normal' },
       world,
       summary: null,
     },

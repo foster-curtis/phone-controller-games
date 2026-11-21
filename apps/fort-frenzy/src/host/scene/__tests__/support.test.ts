@@ -5,8 +5,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { content } from '../../../content';
-import { neonKnightsHost } from '../../../themes/neon-knights/host';
-import { isPosed } from '../../../themes/types';
+import { presentationHost } from '../../../presentation/host';
+import { isPosed } from '../../../presentation/types';
 import { sampleClip } from '../../render/clip';
 import { SLASH_CUT } from '../../render/clips/commander';
 import { THROW_RELEASE_MS } from '../../render/clips/artificer';
@@ -44,7 +44,7 @@ describe('no per-frame cost while unused (FF7-fix-1 rule; reconnect e2e)', () =>
   });
 });
 
-const { rigs, clips } = neonKnightsHost;
+const { rigs, clips } = presentationHost;
 
 describe('backpack gauge (§2.4, art README, bottom cell first per FF3-fix-1)', () => {
   it('for 0–8 crates: cell N from the bottom is full at ≥ 2N, half at 2N − 1, one state per cell', () => {

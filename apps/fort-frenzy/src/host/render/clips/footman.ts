@@ -2,7 +2,7 @@
 // view has no free hand (art note, BUILD_PLAN §8), so only the blade hand swings. The collapse is
 // solved per view (`death@<view>`) and fades; wiring drops `scrap-ours` 1–2 when it lands (FF9).
 import rig from '../../../../art/neon-knights/rigs/footman.json';
-import type { Clip, RigDef } from '../../../themes/types';
+import type { Clip, RigDef } from '../../../presentation/types';
 import { each, ENEMY_DEATH, idleBob, once, perViewClips, sin, walkerWalk, wave } from '../clipKit';
 import { collapseTracks, landedAt } from '../fall';
 

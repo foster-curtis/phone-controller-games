@@ -97,7 +97,6 @@ export function teamView(ctx: ViewCtx): TeamView {
     coins: w?.team.coins ?? 0,
     baseHp: w ? Math.ceil(w.base.hp) : 0,
     baseMaxHp: w ? w.base.maxHp : 0,
-    theme: ctx.settings.theme,
     difficulty: ctx.settings.difficulty,
     leaderId: party.leaderId,
     roster,

@@ -1,9 +1,9 @@
-// Home (SPEC §2.6 TV screens, §11.1, §15.8): the focused row is lit amber, ◂ ▸ change theme and
+// Home (SPEC §2.6 TV screens, §11.1, §15.8): the focused row is lit amber, ◂ ▸ change
 // difficulty, "Resume wave N" appears only when a snapshot exists, and the audio loading bar has a slot.
 import { maxPlayers, minPlayers, title } from '../../../../game.meta';
 import type { Section } from '../render';
 import { esc, panel } from '../html';
-import { DIFFICULTY_NAME, THEME_NAME, fmtSavedAgo, shortUrl } from '../labels';
+import { DIFFICULTY_NAME, fmtSavedAgo, shortUrl } from '../labels';
 import type { HomeRow, TvView } from '../types';
 
 const arrows = (inner: string) =>
@@ -14,8 +14,6 @@ function row(r: HomeRow, focused: boolean): string {
   switch (r.id) {
     case 'create':
       return panel(`<span class="lbl">Create room</span>`, cls);
-    case 'theme':
-      return panel(`<span class="lbl">Theme</span>${arrows(esc(THEME_NAME[r.theme]))}`, cls);
     case 'difficulty':
       return panel(
         `<span class="lbl">Difficulty</span>${arrows(esc(DIFFICULTY_NAME[r.difficulty]))}`,

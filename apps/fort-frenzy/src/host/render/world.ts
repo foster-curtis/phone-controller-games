@@ -2,7 +2,7 @@
 // rigs, structures, effects and ground marks. Layers 1–4 render through the main camera, which
 // carries the bloom; layers 5–6 (world UI, HUD) through a second camera with no filters.
 import type * as Phaser from 'phaser';
-import type { ThemeAssets, ThemeHost } from '../../themes/types';
+import type { ArtSetAssets, PresentationHost } from '../../presentation/types';
 import { ArtLibrary } from './atlas';
 import { addBloom, type Bloom } from './bloom';
 import { CANVAS_H, CANVAS_W, FixedCamera, UNIT_PX } from './camera';
@@ -26,8 +26,8 @@ export class RenderWorld implements RenderContext {
 
   constructor(
     readonly scene: Phaser.Scene,
-    readonly theme: ThemeHost,
-    assets: ThemeAssets,
+    readonly theme: PresentationHost,
+    assets: ArtSetAssets,
     scale: 1 | 2,
     opts: { bloom?: boolean } = {},
   ) {

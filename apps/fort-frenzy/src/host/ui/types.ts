@@ -3,14 +3,7 @@
 // overlay only renders it. World UI (nametags, aim lines, the build arc) is Phaser, not here.
 // Frozen at FF1 (BUILD_PLAN §3): additive changes only.
 import type { QrMatrix } from '@pcg/game-kit';
-import type {
-  DifficultyId,
-  EnemyId,
-  LaneId,
-  PlayerColorId,
-  ShopItemId,
-  ThemeId,
-} from '../../shared/ids';
+import type { DifficultyId, EnemyId, LaneId, PlayerColorId, ShopItemId } from '../../shared/ids';
 import type { TeamView } from '../../shared/messages';
 
 export type TvScreen =
@@ -27,7 +20,6 @@ export type TvScreen =
 
 /** Home screen rows, keyboard and gamepad driven; the focused row is lit amber (§2.6, §11.1). */
 export type HomeRow =
-  | { id: 'theme'; theme: ThemeId }
   | { id: 'difficulty'; difficulty: DifficultyId }
   /** Only when a snapshot exists (§11.5). */
   | { id: 'resume'; wave: number; savedAgoMs: number }

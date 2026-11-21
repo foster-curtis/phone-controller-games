@@ -3,7 +3,7 @@
 // flaring (wiring draws the trail along the exact hit arc); super: the sword raised for morale; plant:
 // he drives the rally flag into the ground (FF9).
 import rig from '../../../../art/neon-knights/rigs/commander.json';
-import type { Clip, Keyframe, RigDef } from '../../../themes/types';
+import type { Clip, Keyframe, RigDef } from '../../../presentation/types';
 import { each, knightClips, once, wave, sin, type KnightParts } from '../clipKit';
 
 const parts: KnightParts = {

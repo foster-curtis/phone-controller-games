@@ -16,7 +16,7 @@ function commanders(n: number) {
   const sim = createSim(
     {
       seed: 7,
-      settings: { theme: 'neon-knights', difficulty: 'normal' },
+      settings: { difficulty: 'normal' },
       slots: pads.map((_, i) => ({
         slot: i,
         name: `P${i + 1}`,

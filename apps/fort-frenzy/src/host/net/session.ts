@@ -129,7 +129,7 @@ export function createSession(deps: SessionDeps): Session {
     maxPlayers: MAX_PARTY,
     minPlayers,
   });
-  const settings: RunSettings = { theme: 'neon-knights', difficulty: 'normal' };
+  const settings: RunSettings = { difficulty: 'normal' };
   /** Relay player keys by playerId (from peer events; hello carries the device ID). */
   const keys = new Map<string, string>();
   /** Phones refused as `full`. */
@@ -191,7 +191,6 @@ export function createSession(deps: SessionDeps): Session {
   // A saved run: its slots wait for their phones (key, then device ID, or a claim) until Resume.
   if (saved) {
     Object.assign(settings, {
-      theme: saved.settings.theme,
       difficulty: saved.settings.difficulty,
     });
     party.restore(
@@ -383,11 +382,9 @@ export function createSession(deps: SessionDeps): Session {
             return ack(from, seq, resume());
           case 'newRun':
             return ack(from, seq, newRun());
-          case 'theme':
           case 'difficulty':
             if (sim || saved) return ack(from, seq, 'phase');
-            if (i.action === 'theme') settings.theme = i.theme;
-            else settings.difficulty = i.difficulty;
+            settings.difficulty = i.difficulty;
             return ack(from, seq, null);
           case 'remove': {
             const r = party.remove(from, i.playerId);

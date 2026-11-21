@@ -5,8 +5,8 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ranger } from '../../../content/balance';
 import { theme } from '../../../shared/theme';
-import { neonKnightsHost } from '../../../themes/neon-knights/host';
-import { isPosed, type ViewId } from '../../../themes/types';
+import { presentationHost } from '../../../presentation/host';
+import { isPosed, type ViewId } from '../../../presentation/types';
 import { FixedCamera, UNIT_PX } from '../../render/camera';
 import { sampleClip } from '../../render/clip';
 import {
@@ -21,7 +21,7 @@ import { splitView } from '../../render/split';
 import { anchorToWorld, CATCHUP_MS, shotPos, shotTiming } from '../shot';
 import { SUPER_PULSE_HZ, SUPER_PULSE_SCALE, superPulse } from '../superPulse';
 
-const { rigs, clips } = neonKnightsHost;
+const { rigs, clips } = presentationHost;
 const attack = clips['ranger/attack']!;
 const part = (t: number, name: string) => sampleClip(attack, t).parts.get(name)!;
 

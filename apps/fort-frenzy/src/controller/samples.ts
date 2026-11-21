@@ -134,7 +134,6 @@ export function sampleTeam(
     coins: 1240,
     baseHp: 340,
     baseMaxHp: 500,
-    theme: 'neon-knights',
     difficulty: 'normal',
     leaderId: 'dev',
     roster: roster(me),

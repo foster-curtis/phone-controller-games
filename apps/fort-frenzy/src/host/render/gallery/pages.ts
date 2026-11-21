@@ -4,7 +4,7 @@
 import { manifest } from '../../../../generated/manifest';
 import { LANE_IDS } from '../../../shared/ids';
 import { theme } from '../../../shared/theme';
-import type { ThemeAssets, ViewId } from '../../../themes/types';
+import { ART_SET, type ArtSetAssets, type ViewId } from '../../../presentation/types';
 import { ALL_MASKS } from '../autotile';
 import { placeFrame } from '../context';
 import {
@@ -789,7 +789,7 @@ function effectsPage(k: PageKit) {
 
 function iconsPage(k: PageKit) {
   const w = k.world;
-  const assets = manifest.themes['neon-knights'] as ThemeAssets;
+  const assets = manifest.sets[ART_SET] as ArtSetAssets;
   const icons = [...assets.icons];
   const unit = 0.8; // badge: the 52-unit tile at ~42 px
   const states = ['rest', 'active', 'dimmed'] as const;

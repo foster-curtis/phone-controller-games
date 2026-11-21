@@ -70,7 +70,6 @@ const team = (over: Partial<TeamView> = {}): TeamView => ({
   coins: 1240,
   baseHp: 640,
   baseMaxHp: 1000,
-  theme: 'neon-knights',
   difficulty: 'normal',
   leaderId: 'p1',
   roster,
@@ -169,7 +168,6 @@ export function sampleView(name: UiScreenName): TvView {
           loading: 0.7,
           rows: [
             { id: 'create' },
-            { id: 'theme', theme: 'neon-knights' },
             { id: 'difficulty', difficulty: 'normal' },
             { id: 'resume', wave: 7, savedAgoMs: 3 * 60_000 },
             { id: 'newRun' },

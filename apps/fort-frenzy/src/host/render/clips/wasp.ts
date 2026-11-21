@@ -4,7 +4,7 @@
 // Attack (FF10): it tips its stinger toward the target while the muzzle charges (code draws the
 // charge), fires on the content wind-up's end with a small kick back, and levels out.
 import rig from '../../../../art/neon-knights/rigs/wasp.json';
-import type { Clip, RigDef } from '../../../themes/types';
+import type { Clip, RigDef } from '../../../presentation/types';
 import { each, enemyDeath, enemyHit, loop, once, sin, wave } from '../clipKit';
 
 /**

@@ -1,7 +1,7 @@
 // Rig composition math (SPEC §15.2 "Composing a rig"): each part turns about its pivot, chained
 // through its parents. All in the rig's sprite units (the shared viewBox); pure, so it's tested
 // headless.
-import type { Point, RigView } from '../../themes/types';
+import type { Point, RigView } from '../../presentation/types';
 import { REST, type PartPose } from './clip';
 
 /** 2D affine [a, b, c, d, e, f]: x' = a·x + c·y + e, y' = b·x + d·y + f. */

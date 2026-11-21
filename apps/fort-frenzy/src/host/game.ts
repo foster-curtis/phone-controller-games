@@ -11,7 +11,7 @@ import {
   type QrMatrix,
 } from '@pcg/game-kit';
 import type { ConnectionStatus, HostClient } from '@pcg/net-client';
-import { DIFFICULTY_IDS, THEME_IDS, type LaneId } from '../shared/ids';
+import { DIFFICULTY_IDS, type LaneId } from '../shared/ids';
 import { GAME_ID, type TeamPause } from '../shared/messages';
 import {
   connectSession,
@@ -147,7 +147,7 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
 
   let room: { code: string; joinUrl: string; qr: QrMatrix | null } | null = null;
   const home: { rows: HomeRow[]; focus: number } = { rows: [], focus: 0 };
-  /** Home rows: Resume / New run while a saved run waits (§15.8), else create, theme, difficulty. */
+  /** Home rows: Resume / New run while a saved run waits (§15.8), else create, difficulty. */
   const homeRows = (): HomeRow[] => {
     const r = session.restoring;
     if (r) {
@@ -156,11 +156,7 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
         { id: 'newRun' },
       ];
     }
-    return [
-      { id: 'create' },
-      { id: 'theme', theme: session.settings.theme },
-      { id: 'difficulty', difficulty: session.settings.difficulty },
-    ];
+    return [{ id: 'create' }, { id: 'difficulty', difficulty: session.settings.difficulty }];
   };
   /** A saved run: reclaim the room at once so the phones stay joined (§11.5). */
   const offerResume = () => {
@@ -259,12 +255,9 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
     onHome(intent) {
       if (intent.type === 'focus') home.focus = intent.index;
       else if (intent.type === 'cycle') {
-        if (intent.row === 'theme')
-          session.setSettings({ theme: cycle(THEME_IDS, session.settings.theme, intent.dir) });
-        else
-          session.setSettings({
-            difficulty: cycle(DIFFICULTY_IDS, session.settings.difficulty, intent.dir),
-          });
+        session.setSettings({
+          difficulty: cycle(DIFFICULTY_IDS, session.settings.difficulty, intent.dir),
+        });
       } else if (intent.row === 'resume') {
         session.resume();
         home.focus = 0;

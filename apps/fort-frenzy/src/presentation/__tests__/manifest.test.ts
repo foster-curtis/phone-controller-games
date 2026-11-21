@@ -4,8 +4,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { manifest } from '../../../generated/manifest';
-import { THEME_IDS } from '../../shared/ids';
-import { ICON_SYMBOL_PREFIX, VIEW_IDS, type ThemeAssets } from '../types';
+import { ART_SET, ICON_SYMBOL_PREFIX, VIEW_IDS, type ArtSetAssets } from '../types';
 
 const appRoot = join(import.meta.dirname, '..', '..', '..');
 
@@ -94,9 +93,9 @@ function walk(dir: string): string[] {
     .map((e) => relative(dir, join(e.parentPath, e.name)).split('\\').join('/'));
 }
 
-describe.each(THEME_IDS)('manifest: %s', (themeId) => {
-  const theme = manifest.themes[themeId] as ThemeAssets;
-  const artDir = join(appRoot, 'art', themeId);
+describe.each([ART_SET] as const)('manifest: %s', (setId) => {
+  const theme = manifest.sets[setId] as ArtSetAssets;
+  const artDir = join(appRoot, 'art', setId);
   const files = walk(artDir);
 
   it('exists', () => {

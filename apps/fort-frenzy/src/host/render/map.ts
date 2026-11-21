@@ -4,7 +4,7 @@
 // tiles, edges and decor at draw time (C3 floor contrast, BUILD_PLAN §8 FF3-fix-2).
 import type * as Phaser from 'phaser';
 import type { LaneId } from '../../shared/ids';
-import type { ThemeHost } from '../../themes/types';
+import type { PresentationHost } from '../../presentation/types';
 import type { ArtImage } from './atlas';
 import { placeFrame, type RenderContext } from './context';
 import type { LaneState } from './types';
@@ -83,7 +83,7 @@ export class MapView {
 
   constructor(
     private readonly ctx: RenderContext,
-    private readonly map: ThemeHost['map'],
+    private readonly map: PresentationHost['map'],
     /** Draw only this tile window (the gallery's map sample); default the whole map. */
     readonly window: { c0: number; r0: number; c1: number; r1: number } = {
       c0: 0,
@@ -119,7 +119,7 @@ export class MapView {
       for (let c = c0; c <= c1; c++) {
         const e = edgeFor(c, r);
         if (e && !isLaneTile(c, r))
-          at(this.map.edges[e as keyof ThemeHost['map']['edges']], c, r, 2);
+          at(this.map.edges[e as keyof PresentationHost['map']['edges']], c, r, 2);
       }
     }
     for (const lane of Object.keys(LANES) as LaneId[]) {

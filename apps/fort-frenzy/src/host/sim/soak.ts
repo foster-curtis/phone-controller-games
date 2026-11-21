@@ -69,7 +69,7 @@ const SHOP = SHOP_ITEM_IDS.filter((id) => id !== 'crate');
 export function soakStart(seed: number, classes: readonly ClassId[]): RunStart {
   return {
     seed,
-    settings: { theme: 'neon-knights', difficulty: 'normal' },
+    settings: { difficulty: 'normal' },
     slots: classes.map((classId, slot) => ({
       slot,
       name: `Bot${slot + 1}`,

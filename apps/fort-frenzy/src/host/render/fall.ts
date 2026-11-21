@@ -3,7 +3,7 @@
 // another (glow pieces, color parts, add-ons sharing their parent's joint) stay on it. Pure TS: the
 // clip tracks are solved from the rig's views so each part's joint lands on the ground whatever its
 // parents do; render code adds the scrap (spawnPile).
-import type { Keyframe, Point, RigDef, RigView, ViewId } from '../../themes/types';
+import type { Keyframe, Point, RigDef, RigView, ViewId } from '../../presentation/types';
 import { REST } from './clip';
 import { apply, mul, partLocal, type Mat } from './rigMath';
 import { splitSets } from './split';

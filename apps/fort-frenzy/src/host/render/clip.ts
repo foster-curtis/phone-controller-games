@@ -2,7 +2,7 @@
 // tested headless; rig.ts applies the result to Phaser images.
 // Keyframe units: `rot` in degrees (clockwise on screen, the art's y-down space), `dx`/`dy` in
 // sprite units, `sx`/`sy`/`alpha`/`glow` as factors.
-import type { Clip, Keyframe } from '../../themes/types';
+import type { Clip, Keyframe } from '../../presentation/types';
 
 export interface PartPose {
   rot: number;

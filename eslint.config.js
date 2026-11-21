@@ -18,10 +18,10 @@ const noNet = {
   ...netClient,
   message: 'Plain TS: no networking imports; src/host/net wires it (SPEC §15.1).',
 };
-const themes = {
-  regex: '(^|/)themes(/|$)',
+const presentation = {
+  regex: '(^|/)presentation(/|$)',
   message:
-    'Theme packs are presentation only: the sim and the systems never see them (SPEC §15.1).',
+    'Presentation packs are TV and phone art only: the sim and the systems never see them (SPEC §15.1).',
 };
 const content = {
   regex: '(^|/)content(/|$)',
@@ -96,7 +96,7 @@ export default defineConfig(
   {
     files: ['apps/*/src/host/sim/**', 'apps/*/src/host/systems/**', 'apps/*/src/host/party/**'],
     rules: {
-      'no-restricted-imports': ['error', { patterns: [phaser, noNet, themes] }],
+      'no-restricted-imports': ['error', { patterns: [phaser, noNet, presentation] }],
       'no-restricted-globals': ['error', ...domGlobals],
     },
   },
@@ -133,7 +133,7 @@ export default defineConfig(
           patterns: [
             phaser,
             noNet,
-            themes,
+            presentation,
             content,
             simFolder,
             {
@@ -155,7 +155,7 @@ export default defineConfig(
           patterns: [
             phaser,
             noNet,
-            themes,
+            presentation,
             content,
             simFolder,
             {

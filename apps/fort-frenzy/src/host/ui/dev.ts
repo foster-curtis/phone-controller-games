@@ -1,6 +1,6 @@
 // `index.html?ui=<screen>` dev page (BUILD_PLAN FF5): the overlay over a stand-in for the canvas,
 // fed a sample TvView. Home is live (keyboard and gamepad), the lobby arms/removes on its number keys.
-import { DIFFICULTY_IDS, THEME_IDS } from '../../shared/ids';
+import { DIFFICULTY_IDS } from '../../shared/ids';
 import { createTvOverlay } from './overlay';
 import { fitToWindow } from './layout';
 import { UI_SCREENS, sampleView, type UiScreenName } from './samples';
@@ -29,8 +29,6 @@ export function mountUiDev(host: HTMLElement, name: UiScreenName): void {
       if (intent.type === 'focus') home.focus = intent.index;
       else if (intent.type === 'cycle') {
         home.rows = home.rows.map((r): HomeRow => {
-          if (r.id === 'theme' && intent.row === 'theme')
-            return { id: 'theme', theme: cycle(THEME_IDS, r.theme, intent.dir) };
           if (r.id === 'difficulty' && intent.row === 'difficulty')
             return {
               id: 'difficulty',

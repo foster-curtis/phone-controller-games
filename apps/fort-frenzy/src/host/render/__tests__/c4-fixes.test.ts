@@ -3,15 +3,15 @@
 // drawn art, the Wasp's at its new flight height, the Colossus's kept low.
 import { describe, expect, it } from 'vitest';
 import { content } from '../../../content';
-import { neonKnightsHost } from '../../../themes/neon-knights/host';
-import type { RigView } from '../../../themes/types';
+import { presentationHost } from '../../../presentation/host';
+import type { RigView } from '../../../presentation/types';
 import { WASP_ART_LIFT_TILES, WASP_FLIGHT_TILES, WASP_HOVER_TILES } from '../clips/wasp';
 import { RIG_INFO } from '../gallery/rigInfo';
 
 /** FF10's render hover over the art's lift (C3), tiles. */
 const OLD_HOVER = 1.6;
 const enemy = (id: string) => content.enemies.find((e) => e.id === id)!;
-const side = (rig: string) => neonKnightsHost.rigs[rig]!.views.side as RigView;
+const side = (rig: string) => presentationHost.rigs[rig]!.views.side as RigView;
 /** Height of a rig point above its feet, tiles (80 sprite units). */
 const heightOf = (rig: string, y: number) => (side(rig).foot[1] - y) / 80;
 
@@ -40,7 +40,7 @@ describe('C4 note 1: the Wasp flies at half its old height', () => {
 
 describe('C4 note 2: bodies cover the drawn body', () => {
   it('every enemy has a body reaching above its feet circle, below its rig’s top', () => {
-    const rigFor = neonKnightsHost.rigFor.enemy;
+    const rigFor = presentationHost.rigFor.enemy;
     for (const e of content.enemies) {
       const b = e.body;
       expect(b, e.id).toBeDefined();

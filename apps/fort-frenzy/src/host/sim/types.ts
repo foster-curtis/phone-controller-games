@@ -1,6 +1,6 @@
 // The run simulation's public types (SPEC §15.3): world, entities, phases, input sources, modifiers
 // and hooks, the damage pipeline, boss behaviors, commands and the run start.
-// Plain TS: no Phaser, no net-client, no themes, no DOM (lint, §15.1). Units: tiles, ticks (60 Hz
+// Plain TS: no Phaser, no net-client, no presentation, no DOM (lint, §15.1). Units: tiles, ticks (60 Hz
 // steps); config times in ms are converted to ticks at load.
 // Frozen at FF1 (BUILD_PLAN §3): additive changes only (new optional fields, new union members).
 // FF6 added `Unit.push` and `BaseState.stage`; FF9 added `ThrownCrate` and `World.thrown`; FF10 added
@@ -27,7 +27,6 @@ import type {
   PlayerColorId,
   ShopItemId,
   StructureId,
-  ThemeId,
 } from '../../shared/ids';
 import type { AckReason, RunStats } from '../../shared/messages';
 import type { SimEvent } from './events';
@@ -368,7 +367,6 @@ export interface PendingSpawn {
 }
 
 export interface RunSettings {
-  theme: ThemeId;
   difficulty: DifficultyId;
 }
 

@@ -804,9 +804,9 @@ Rules:
   - [x] SPEC §1–§14 rewritten; §15 contract sketches; decision log rows
   - [x] **User approved RC0**; merged
 - RD1 Art merge, rename, de-theme
-  - [ ] `art/redesign` merged; rig-contract and manifest tests updated
-  - [ ] `engineer` → `ranger`, `quartermaster` → `artificer`
-  - [ ] Theme layer removed (`src/presentation/`, no ThemeId, no theme row); ESLint pattern; major changeset
+  - [x] `art/redesign` merged; rig-contract and manifest tests updated
+  - [x] `engineer` → `ranger`, `quartermaster` → `artificer`
+  - [x] Theme layer removed (`src/presentation/`, no ThemeId, no theme row); ESLint pattern; major changeset
   - [ ] Merged; e2e green
 - RD2 Cut + contracts + portals
   - [ ] Contract files to the redesign shapes (tuple v2, views, snapshot, content and sim types)
@@ -1013,6 +1013,11 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
   and Quick Recovery unchanged; SPEC §5, §9.4 and REDESIGN A3, A6 updated.
 - [RD0-fix-1] decision: §13 gains a v2 row for per-player stats banners on the end-of-run screen
   (#110, user RC0); v1's summary and award cards are unchanged.
+- [RD1] decision: step (1) was a no-op: `art/redesign` is already an ancestor, and its commit already updated `rig-contract.test.ts` and `manifest.test.ts` (attach, groups, icon ids), so the tests needed nothing; recorded as an empty commit.
+- [RD1] decision: the manifest keys by art set as SPEC §15.4 says: `AssetManifest.sets`, `ArtSetAssets` (was `ThemeAssets`; field `set`), `ArtSetId`, and the constant `ART_SET = 'neon-knights'` in `src/presentation/types.ts` (read by `build-atlases.ts`, `host.ts` and the loaders). `generated/keys.ts` `atlasFiles[].theme` became `.set`.
+- [RD1] decision: `rigFor.class` and `CLASS_RIG` (presentation) are gone: a knight's rig id is its `ClassId`. `rigFor.enemy/soldier/structure` and `map.lanes` stay until RD2 (lanes, structures). `ui/labels.ts` keeps its own identity `CLASS_RIG` for portrait files.
+- [RD1] decision: `PROTOCOL_VERSION` 2 and `SNAPSHOT_VERSION` 2; the only home rows now are create and difficulty (Normal default); the leader `theme` intent and `TeamView.theme` are removed from the wire.
+- [RD1] decision: the phone's "Change Knight" copy stays "class" wording until RD4; renamed copy only (Engineer/Quartermaster to Ranger/Artificer, a/an fixed).
 
 ## 9. Final handoff
 

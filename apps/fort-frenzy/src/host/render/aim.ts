@@ -1,7 +1,7 @@
 // Facing and aim snapping (SPEC §2.4, §3.6, §7.2, §15.2). Angles are world-ground radians: x right,
 // y down-field (toward the camera), so 90° faces the camera. Pre-rendered heads model a 3D head
 // turning about the vertical axis, so they snap on the world angle, not the projected one.
-import type { ViewId } from '../../themes/types';
+import type { ViewId } from '../../presentation/types';
 import { SENTRY_AIMS, TURRET_AIMS, type SentryAim, type TurretAim } from './types';
 
 const DEG = Math.PI / 180;

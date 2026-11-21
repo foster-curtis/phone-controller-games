@@ -69,7 +69,6 @@ export const EMPTY_TEAM: TeamView = {
   coins: 0,
   baseHp: 0,
   baseMaxHp: 0,
-  theme: 'neon-knights',
   difficulty: 'normal',
   leaderId: null,
   roster: [],

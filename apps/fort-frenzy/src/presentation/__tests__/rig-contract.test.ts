@@ -2,10 +2,10 @@
 // optional groups, attach names, and the clips each rig ships with.
 import { describe, expect, it } from 'vitest';
 import { splitPartNames } from '../../host/render/split';
-import { neonKnightsHost } from '../neon-knights/host';
+import { presentationHost } from '../host';
 import { isPosed, type RigView, type ViewId } from '../types';
 
-const { rigs, clips } = neonKnightsHost;
+const { rigs, clips } = presentationHost;
 const KNIGHTS = ['warden', 'ranger', 'commander', 'artificer'];
 const SIDE_ONLY = [
   'drone',

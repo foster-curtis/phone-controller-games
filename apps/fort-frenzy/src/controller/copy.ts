@@ -1,6 +1,6 @@
 // Display copy and icon ids for the phone (neon knights, SPEC §2.1, §2.6, §6.1, §6.2, §8). Game code
-// refers to internal ids; this table is the phone's slice of the theme pack (the full pack arrives with
-// FF3's `themes/<id>/shared.ts`, which should absorb it). Icon ids are the sprite's `icon-<id>` names.
+// refers to internal ids; this table is the phone's slice of the presentation pack (src/presentation/shared.ts
+// should absorb it). Icon ids are the sprite's `icon-<id>` names.
 import type { CardId, ClassId, DifficultyId, ShopItemId, StructureId } from '../shared/ids';
 import type { MeAction } from '../shared/messages';
 

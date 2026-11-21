@@ -6,7 +6,7 @@
 // the sim's wind-ups (content `windupMs`; src/host/__tests__/speeds.test.ts keeps them equal), so the
 // hammer lands when the damage does. Mason's sparks are effects (scene/structuresView.ts).
 import rig from '../../../../art/neon-knights/rigs/warden.json';
-import type { Clip, Keyframe, RigDef, ViewId } from '../../../themes/types';
+import type { Clip, Keyframe, RigDef, ViewId } from '../../../presentation/types';
 import { each, knightClips, once, perViewClips, type KnightParts } from '../clipKit';
 import { half } from '../split';
 

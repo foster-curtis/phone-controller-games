@@ -2,29 +2,21 @@
 // every internal id, the icon map (internal ids → icon ids), the inline icon sprite and the class
 // portraits. Presentation only; the sim never sees it. Icon ids are typed against the generated
 // names, so a missing icon fails the typecheck.
-import type { IconName } from '../../../generated/keys';
-import iconMarkup from '../../../generated/neon-knights/icons.svg?raw';
-import type { CardId, ClassId, ShopItemId, StructureId } from '../../shared/ids';
-import { ICON_SYMBOL_PREFIX, type ThemeShared } from '../types';
+import type { IconName } from '../../generated/keys';
+import iconMarkup from '../../generated/neon-knights/icons.svg?raw';
+import type { CardId, ClassId, ShopItemId, StructureId } from '../shared/ids';
+import { ICON_SYMBOL_PREFIX, type PresentationShared } from './types';
 
 /** Typed icon id; the asset-keys test also checks each literal against the manifest. */
 export const ik = <K extends IconName>(k: K): K => k;
 
-/** Internal class id → the theme's rig id (also its icon suffix: `class-<rig>`). */
-export const CLASS_RIG = {
-  ranger: 'ranger',
-  warden: 'warden',
-  artificer: 'artificer',
-  commander: 'commander',
-} as const satisfies Record<ClassId, string>;
-
-const portraitUrls = import.meta.glob<string>('../../../generated/neon-knights/portraits/*.svg', {
+const portraitUrls = import.meta.glob<string>('../../generated/neon-knights/portraits/*.svg', {
   query: '?url',
   import: 'default',
   eager: true,
 });
 const portraitUrl = (rig: string, kind: 'body' | 'mask'): string =>
-  portraitUrls[`../../../generated/neon-knights/portraits/${rig}-${kind}.svg`] ?? '';
+  portraitUrls[`../../generated/neon-knights/portraits/${rig}-${kind}.svg`] ?? '';
 
 const SYMBOL_ID = new RegExp(`<symbol id="${ICON_SYMBOL_PREFIX}([^"]+)"`, 'g');
 
@@ -180,9 +172,7 @@ const shopNames = {
   emergency_kit: 'Emergency repair kit',
 } satisfies Record<ShopItemId, string>;
 
-export const neonKnightsShared: ThemeShared = {
-  id: 'neon-knights',
-  defaultDifficulty: 'normal',
+export const presentationShared: PresentationShared = {
   // SPEC §2.1 display names.
   names: {
     ranger: 'Ranger',

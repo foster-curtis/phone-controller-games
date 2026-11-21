@@ -34,12 +34,12 @@ async function startTv() {
   });
 
   // Sound effects (SPEC §12): preload behind the home loading bar, unlock on the first key.
-  const [{ createSfx, unlockOnFirstKey }, { playCues }, { neonKnightsHost }] = await Promise.all([
+  const [{ createSfx, unlockOnFirstKey }, { playCues }, { presentationHost }] = await Promise.all([
     import('./audio/index'),
     import('./audio/cues'),
-    import('../themes/neon-knights/host'),
+    import('../presentation/host'),
   ]);
-  const sfx = createSfx(neonKnightsHost.sfx);
+  const sfx = createSfx(presentationHost.sfx);
   unlockOnFirstKey(sfx);
   let atlasLoading: number | null = 0;
   let audioLoading = 0;

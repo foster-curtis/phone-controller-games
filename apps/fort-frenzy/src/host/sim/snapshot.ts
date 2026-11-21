@@ -13,7 +13,6 @@ import {
   PLAYER_COLOR_IDS,
   SHOP_ITEM_IDS,
   STRUCTURE_IDS,
-  THEME_IDS,
   isOneOf,
   type CardId,
   type ClassId,
@@ -21,7 +20,6 @@ import {
   type PlayerColorId,
   type ShopItemId,
   type StructureId,
-  type ThemeId,
 } from '../../shared/ids';
 import { RUN_STAT_KEYS, type RunStats } from '../../shared/messages';
 import { fortifyTower } from './building';
@@ -31,7 +29,7 @@ import { fillSquads } from './squad';
 import { newAttack, zeroRunStats, type FullState } from './state';
 import type { RunStart, World } from './types';
 
-export const SNAPSHOT_VERSION = 1;
+export const SNAPSHOT_VERSION = 2; // 2: ClassId values renamed, no theme (RD1); old saves are dropped
 /** localStorage key (survives a browser crash, unlike sessionStorage). */
 export const SNAPSHOT_KEY = 'fort-frenzy:run';
 /** Older snapshots are discarded. */
@@ -74,7 +72,7 @@ export interface RunSnapshot {
   savedAt: number;
   /** Commit hash: replays and snapshots are tied to the build. */
   build: string;
-  settings: { theme: ThemeId; difficulty: DifficultyId; seed: number };
+  settings: { difficulty: DifficultyId; seed: number };
   wave: number;
   base: { hp: number; repairs: number };
   coins: number;
@@ -153,7 +151,6 @@ export function takeSnapshot(world: World, content: Content, meta: SnapshotMeta)
     savedAt: meta.savedAt,
     build: meta.build,
     settings: {
-      theme: world.settings.theme,
       difficulty: world.settings.difficulty,
       seed: world.seed,
     },
@@ -221,7 +218,6 @@ export function parseSnapshot(raw: string | null, now: number): RunSnapshot | nu
   const ok =
     isStr(v.build) &&
     isObj(set) &&
-    isOneOf(THEME_IDS, set.theme) &&
     isOneOf(DIFFICULTY_IDS, set.difficulty) &&
     isNum(set.seed) &&
     Number.isInteger(v.wave) &&
@@ -257,7 +253,7 @@ export function parseSnapshot(raw: string | null, now: number): RunSnapshot | nu
 export function resumeStart(snap: RunSnapshot, connected: (slot: number) => boolean): RunStart {
   return {
     seed: snap.settings.seed,
-    settings: { theme: snap.settings.theme, difficulty: snap.settings.difficulty },
+    settings: { difficulty: snap.settings.difficulty },
     slots: snap.slots.map((s) => ({
       slot: s.slot,
       name: s.name,

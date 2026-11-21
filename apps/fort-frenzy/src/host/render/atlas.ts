@@ -5,7 +5,7 @@
 // none); production builds fail in the atlas script instead.
 import * as Phaser from 'phaser';
 import { ICON_FRAME_PREFIX, UNLIT_SUFFIX } from '../../../generated/keys';
-import type { AtlasRef, FrameMeta, Point, ThemeAssets, ViewBox } from '../../themes/types';
+import type { AtlasRef, FrameMeta, Point, ArtSetAssets, ViewBox } from '../../presentation/types';
 import { CANVAS_H } from './camera';
 
 /** `?atlas=1|2` forces a scale; otherwise device-pixel height of the fitted canvas > 1.5 × 1080. */
@@ -43,7 +43,7 @@ export class ArtLibrary {
 
   constructor(
     private readonly scene: Phaser.Scene,
-    theme: ThemeAssets,
+    theme: ArtSetAssets,
     atlases: readonly AtlasRef[],
     readonly scale: 1 | 2,
     dev = import.meta.env.DEV,

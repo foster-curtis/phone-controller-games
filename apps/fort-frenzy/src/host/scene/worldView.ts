@@ -14,7 +14,7 @@ import type { Content } from '../../content';
 import type { ClassId, EffectId, LaneId } from '../../shared/ids';
 import { LANE_IDS } from '../../shared/ids';
 import { theme } from '../../shared/theme';
-import { neonKnightsShared } from '../../themes/neon-knights/shared';
+import { presentationShared } from '../../presentation/shared';
 import type { ArtImage } from '../render/atlas';
 import { drawBowString } from '../render/bowString';
 import { pickFacing, enemyMirror, type Facing } from '../render/aim';
@@ -286,7 +286,7 @@ export class WorldView {
   }
 
   private rigFor(classId: ClassId) {
-    return this.w.theme.rigFor.class[classId];
+    return classId; // a knight's rig id is its class id
   }
 
   private icon(id: string, layer: 'worldUi' = 'worldUi', size = 0.8): ArtImage {
@@ -757,7 +757,7 @@ export class WorldView {
       slot.tile.img.setVisible(show);
       slot.glyph.img.setVisible(show);
       if (!show) return;
-      const glyph = id === 'give' ? 'act-give' : neonKnightsShared.iconFor.structure[id];
+      const glyph = id === 'give' ? 'act-give' : presentationShared.iconFor.structure[id];
       const cost =
         id === 'give' ? 1 : (this.content.structures.find((s) => s.id === id)?.cost ?? 99);
       const enabled = p.crates >= cost;

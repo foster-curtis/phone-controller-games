@@ -3,7 +3,7 @@
 // drive from sim snapshots. Phaser stays behind these types; the sim never imports them.
 // Frozen at FF3 (BUILD_PLAN §3): additive changes only.
 import type { FrameName, IconName } from '../../../generated/keys';
-import type { ViewId } from '../../themes/types';
+import type { ViewId } from '../../presentation/types';
 
 /** A frame name from the generated atlas keys (`pnpm assets`); code never names frames otherwise. */
 export type FrameKey = FrameName;

@@ -36,7 +36,7 @@ export interface Harness {
 export function startOf(players: number, seed = 1, classId: ClassId = 'ranger'): RunStart {
   return {
     seed,
-    settings: { theme: 'neon-knights', difficulty: 'normal' },
+    settings: { difficulty: 'normal' },
     slots: Array.from({ length: players }, (_, i) => ({
       slot: i,
       name: `P${i + 1}`,

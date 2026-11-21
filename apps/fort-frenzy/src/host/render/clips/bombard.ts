@@ -6,7 +6,7 @@
 // muzzle charges violet (code draws the charge, scene/enemyFx.ts), fires on the content wind-up's
 // end with a recoil, then settles.
 import rig from '../../../../art/neon-knights/rigs/bombard.json';
-import type { Clip, Keyframe, RigDef } from '../../../themes/types';
+import type { Clip, Keyframe, RigDef } from '../../../presentation/types';
 import { enemyDeath, enemyHit, idleBob, loop, once, stompBody, stompLeg } from '../clipKit';
 
 const MS = 1400;

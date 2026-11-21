@@ -7,8 +7,8 @@ import { content } from '../../../content';
 import { groundBody } from '../../sim/body';
 import { LANE_IDS, PLAYER_COLOR_IDS } from '../../../shared/ids';
 import { theme } from '../../../shared/theme';
-import { neonKnightsHost } from '../../../themes/neon-knights/host';
-import type { ThemeAssets } from '../../../themes/types';
+import { presentationHost } from '../../../presentation/host';
+import { ART_SET, type ArtSetAssets } from '../../../presentation/types';
 import { pickAtlasScale, preloadAtlases } from '../atlas';
 import { CANVAS_H, CANVAS_W } from '../camera';
 import { RenderWorld } from '../world';
@@ -32,11 +32,11 @@ declare global {
   }
 }
 
-const assets = manifest.themes['neon-knights'] as ThemeAssets;
+const assets = manifest.sets[ART_SET] as ArtSetAssets;
 /** Content's enemy body hitboxes by rig id (C4), drawn with the hitbox toggle. */
 const ENEMY_BODIES = new Map(
   content.enemies.flatMap((e) =>
-    e.body ? [[neonKnightsHost.rigFor.enemy[e.id], groundBody(e.body)] as const] : [],
+    e.body ? [[presentationHost.rigFor.enemy[e.id], groundBody(e.body)] as const] : [],
   ),
 );
 const scale = pickAtlasScale();
@@ -55,7 +55,7 @@ class GalleryScene extends Phaser.Scene {
   }
 
   preload() {
-    const fresh = neonKnightsHost.atlases.filter((a) => !this.textures.exists(a.key));
+    const fresh = presentationHost.atlases.filter((a) => !this.textures.exists(a.key));
     preloadAtlases(this, fresh, scale);
   }
 
@@ -65,7 +65,7 @@ class GalleryScene extends Phaser.Scene {
     this.ticks = [];
     this.hitboxes = [];
     this.t = 0;
-    this.world = new RenderWorld(this, neonKnightsHost, assets, scale, { bloom: true });
+    this.world = new RenderWorld(this, presentationHost, assets, scale, { bloom: true });
     if (stress) {
       const s = runStress(this.world);
       this.ticks.push(s.tick);

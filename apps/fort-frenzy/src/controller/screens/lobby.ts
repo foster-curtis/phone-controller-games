@@ -1,14 +1,8 @@
 // Lobby and class select (SPEC §11.1, §2.6): one view, so a thumb survives the switch. No class yet (or
 // "Change class") shows the swipeable class cards; otherwise the lobby: your knight, Ready, the lineup
-// with the leader mark, and for the party leader difficulty, theme, Start and remove.
+// with the leader mark, and for the party leader difficulty, Start and remove.
 import { createFullscreenButton, el } from '@pcg/controller-kit';
-import {
-  CLASS_IDS,
-  DIFFICULTY_IDS,
-  THEME_IDS,
-  type ClassId,
-  type PlayerColorId,
-} from '../../shared/ids';
+import { CLASS_IDS, DIFFICULTY_IDS, type ClassId, type PlayerColorId } from '../../shared/ids';
 import { ClassCard, ColorPicker, LineupRow, Portrait } from '../components';
 import { CLASS_INFO, DIFFICULTY_NAME } from '../copy';
 import { bindSwipe } from '../swipe';
@@ -190,21 +184,6 @@ export function createLobby(ctx: ScreenCtx): View {
           );
           return b;
         }),
-        // One theme in v1: the switch appears when a second ships.
-        ...(THEME_IDS.length > 1
-          ? THEME_IDS.map((t) => {
-              const b = el('button', {
-                type: 'button',
-                class: `seg${team.theme === t ? ' on' : ''}`,
-                'data-theme': t,
-                text: t,
-              });
-              b.addEventListener('click', () =>
-                ctx.intent({ k: 'leader', action: 'theme', theme: t }),
-              );
-              return b;
-            })
-          : []),
       );
       const readyCount = team.roster.filter((p) => p.ready).length;
       start.disabled = counting || me.ready || readyCount < MIN_READY_TO_START;

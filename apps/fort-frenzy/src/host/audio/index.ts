@@ -74,7 +74,7 @@ function browserAudio(): AudioLike | undefined {
   };
 }
 
-/** `files` is `ThemeHost.sfx`: cue id to file URL. */
+/** `files` is `PresentationHost.sfx`: cue id to file URL. */
 export function createSfx(files: Partial<Record<SfxId, string>> = {}, deps: SfxDeps = {}): Sfx {
   const audio = deps.audio ?? browserAudio();
   const now = deps.now ?? (() => performance.now());

@@ -7,7 +7,7 @@ export type NavKey = 'up' | 'down' | 'left' | 'right' | 'select';
 
 export type HomeIntent =
   | { type: 'focus'; index: number }
-  | { type: 'cycle'; row: 'theme' | 'difficulty'; dir: -1 | 1 }
+  | { type: 'cycle'; row: 'difficulty'; dir: -1 | 1 }
   | { type: 'activate'; row: 'resume' | 'newRun' | 'create' };
 
 const KEYS: Record<string, NavKey> = {
@@ -25,7 +25,7 @@ const KEYS: Record<string, NavKey> = {
 
 export const keyToNav = (key: string): NavKey | null => KEYS[key] ?? null;
 
-/** Focus wraps; ◂ ▸ only act on the theme and difficulty rows; select acts on the rest. */
+/** Focus wraps; ◂ ▸ only act on the difficulty row; select acts on the rest. */
 export function stepHome(rows: readonly HomeRow[], focus: number, nav: NavKey): HomeIntent | null {
   const n = rows.length;
   if (n === 0) return null;
@@ -35,11 +35,11 @@ export function stepHome(rows: readonly HomeRow[], focus: number, nav: NavKey): 
   }
   const row = rows[at]!;
   if (nav === 'left' || nav === 'right') {
-    if (row.id !== 'theme' && row.id !== 'difficulty') return null;
+    if (row.id !== 'difficulty') return null;
     return { type: 'cycle', row: row.id, dir: nav === 'left' ? -1 : 1 };
   }
   // select on a ◂ ▸ row cycles forward, so Enter or A works without the d-pad too
-  if (row.id === 'theme' || row.id === 'difficulty') return { type: 'cycle', row: row.id, dir: 1 };
+  if (row.id === 'difficulty') return { type: 'cycle', row: row.id, dir: 1 };
   return { type: 'activate', row: row.id };
 }
 

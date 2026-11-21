@@ -116,10 +116,6 @@ export type EffectId = (typeof EFFECT_IDS)[number];
 export const LANE_IDS = ['bottom', 'left', 'right'] as const;
 export type LaneId = (typeof LANE_IDS)[number];
 
-/** Theme packs (SPEC §2.1). v1 ships neon knights (tech-medieval); Pillow Fort is v2. */
-export const THEME_IDS = ['neon-knights'] as const;
-export type ThemeId = (typeof THEME_IDS)[number];
-
 /** SPEC §2.2. */
 export const DIFFICULTY_IDS = ['easy', 'normal', 'hard'] as const;
 export type DifficultyId = (typeof DIFFICULTY_IDS)[number];
@@ -128,7 +124,7 @@ export type DifficultyId = (typeof DIFFICULTY_IDS)[number];
 export const PLAYER_COLOR_IDS = ['cobalt', 'jade', 'sky', 'bone', 'rose', 'forest'] as const;
 export type PlayerColorId = (typeof PLAYER_COLOR_IDS)[number];
 
-/** Sound cues (SPEC §12; BUILD_PLAN FF13). Theme packs map each to a file (`ThemeHost.sfx`). */
+/** Sound cues (SPEC §12; BUILD_PLAN FF13). Theme packs map each to a file (`PresentationHost.sfx`). */
 export const SFX_IDS = [
   'base_alarm',
   'base_hit',

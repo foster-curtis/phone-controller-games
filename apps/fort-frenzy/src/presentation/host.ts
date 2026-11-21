@@ -1,38 +1,37 @@
-// Neon knights theme, TV only (SPEC §15.4 ThemeHost): the packed atlases (1× and 2×), the rigs, the
+// Neon knights theme, TV only (SPEC §15.4 PresentationHost): the packed atlases (1× and 2×), the rigs, the
 // clips from src/host/render/clips/<rig>.ts (found by glob, BUILD_PLAN §3), the rig map from
 // internal ids to the theme's rigs and the map frames.
-import { atlasFiles } from '../../../generated/keys';
-import { fk } from '../../host/render/keys';
-import type { ClassId, EnemyId } from '../../shared/ids';
-import type { AtlasRef, Clip, RigDef, ThemeHost } from '../types';
-import { CLASS_RIG } from './shared';
+import { atlasFiles } from '../../generated/keys';
+import { fk } from '../host/render/keys';
+import type { EnemyId } from '../shared/ids';
+import { ART_SET, type AtlasRef, type Clip, type PresentationHost, type RigDef } from './types';
 
-const atlasUrls = import.meta.glob<string>('../../../generated/atlases/*.{png,json}', {
+const atlasUrls = import.meta.glob<string>('../../generated/atlases/*.{png,json}', {
   query: '?url',
   import: 'default',
   eager: true,
 });
 
-const rigJson = import.meta.glob<RigDef>('../../../art/neon-knights/rigs/*.json', {
+const rigJson = import.meta.glob<RigDef>('../../art/neon-knights/rigs/*.json', {
   import: 'default',
   eager: true,
 });
 
-const clipModules = import.meta.glob<Record<string, Clip>>('../../host/render/clips/*.ts', {
+const clipModules = import.meta.glob<Record<string, Clip>>('../host/render/clips/*.ts', {
   import: 'clips',
   eager: true,
 });
 
-const sfxUrls = import.meta.glob<string>('../../../audio/neon-knights/*.mp3', {
+const sfxUrls = import.meta.glob<string>('../../audio/neon-knights/*.mp3', {
   query: '?url',
   import: 'default',
   eager: true,
 });
 
-const url = (path: string) => atlasUrls[`../../../generated/${path}`] ?? '';
+const url = (path: string) => atlasUrls[`../../generated/${path}`] ?? '';
 
 const atlases: AtlasRef[] = atlasFiles
-  .filter((a) => a.theme === 'neon-knights')
+  .filter((a) => a.set === ART_SET)
   .map((a) => ({ key: a.key, json: url(a.json), image: url(a.image), scale: a.scale }));
 
 const rigs: Record<string, RigDef> = {};
@@ -44,12 +43,11 @@ for (const [path, byName] of Object.entries(clipModules)) {
   for (const [name, clip] of Object.entries(byName)) clips[`${rig}/${name}`] = clip;
 }
 
-export const neonKnightsHost: ThemeHost = {
+export const presentationHost: PresentationHost = {
   atlases,
   rigs,
   clips,
   rigFor: {
-    class: CLASS_RIG satisfies Record<ClassId, string>,
     enemy: {
       grunt: 'drone',
       runner: 'skitter',
@@ -66,7 +64,7 @@ export const neonKnightsHost: ThemeHost = {
   },
   sfx: Object.fromEntries(
     Object.entries(sfxUrls).map(([p, u]) => [p.slice(p.lastIndexOf('/') + 1, -4), u]),
-  ) as ThemeHost['sfx'],
+  ) as PresentationHost['sfx'],
   map: {
     ground: [fk('ground/1'), fk('ground/2'), fk('ground/3'), fk('ground/4')],
     edges: {
