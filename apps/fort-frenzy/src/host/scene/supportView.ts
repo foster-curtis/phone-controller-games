@@ -1,6 +1,6 @@
 // The support classes on the TV (SPEC §2.4; BUILD_PLAN FF9), driven by WorldView: the Artificer's
 // backpack gauge, nanite cloud, nanite cone and Field Medic circle (faint amber dots, never filled),
-// thrown cells lobbing from the hand to the receiver's carry point with a ground shadow; the
+// the
 // Commander's banner on his back or the planted flag (tinted cloth, amber ring), slash trail along
 // the exact hit arc, morale pulse and aura (a soft amber glow under him and his squad that fades as
 // the buff runs out; C3: their amber parts and aura flash on and off while it runs), and Lead from
@@ -13,18 +13,15 @@ import { theme } from '../../shared/theme';
 import type { ArtImage } from '../render/atlas';
 import { pickFacing, type Facing } from '../render/aim';
 import { SLASH_CUT } from '../render/clips/commander';
-import { THROW_RELEASE_MS } from '../render/clips/artificer';
 import { placeFrame } from '../render/context';
-import { SHADOW_TEXTURE } from '../render/effects';
 import { clipLandedMs } from '../render/fall';
 import { GAUGE_GROUPS, gaugeGroups } from '../render/gauge';
 import { RIG_INFO, type RigInfo } from '../render/gallery/rigInfo';
 import { fk } from '../render/keys';
 import { Pool } from '../render/pool';
 import type { RigSprite } from '../render/rig';
-import type { ScreenPoint } from '../render/types';
 import type { RenderWorld } from '../render/world';
-import { fieldMedicRadius, inSector, type Sector } from '../sim';
+import { fieldMedicRadius } from '../sim';
 import {
   STEP_MS,
   type EntityId,
@@ -39,15 +36,11 @@ import {
   LEAD_MOTE,
   leadTargets,
   Scratch,
-  MIN_PEAK_PX,
   moraleAlpha,
   moteDrift,
   MoteStream,
-  PEAK_PX_PER_TILE,
   SUPER_FLASH,
   superFlashOn,
-  throwArc,
-  throwProgress,
   type LeadMote,
 } from './support';
 import type { FrameInput } from './worldView';
@@ -74,14 +67,6 @@ interface Flag {
   parts: ArtImage[];
 }
 
-interface Cell {
-  img: ArtImage;
-  shadow: Phaser.GameObjects.Image;
-  /** The hand at the release (screen), captured once. */
-  from: ScreenPoint | null;
-  fromFoot: ScreenPoint | null;
-}
-
 interface Swipe {
   kind: 'cone' | 'slash';
   x: number;
@@ -99,6 +84,8 @@ const MOTE_EVERY_MS = 380;
 const CONE_MS = 520;
 const SLASH_TRAIL_MS = 220;
 const FIELD_DOTS = 28;
+/** Gauge steps: three cores, two halves each. */
+const GAUGE_MAX = 6;
 
 const playing = (rig: RigSprite) =>
   rig.clip !== null && rig.clip !== 'idle' && rig.clip !== 'walk' && !rig.clipDone;
@@ -109,7 +96,6 @@ export class SupportView {
   private readonly lines: Scratch<Phaser.GameObjects.Graphics>;
   private readonly soldiers = new Map<EntityId, Soldier>();
   private readonly flags = new Map<number, Flag>();
-  private readonly cells = new Map<EntityId, Cell>();
   private readonly gauges = new Map<number, number>();
   private readonly banners = new Map<number, boolean>();
   private readonly motes = new Map<number, number>();
@@ -119,8 +105,6 @@ export class SupportView {
   private readonly leadMade: ArtImage[] = [];
   private leadPool: Pool<ArtImage> | null = null;
   private swipes: Swipe[] = [];
-  /** Nanite cones fired since the last frame (their towers glint). */
-  private glints: Sector[] = [];
   private t = 0;
   private readonly footInfo = RIG_INFO.footman!;
 
@@ -142,7 +126,7 @@ export class SupportView {
   }
 
   private def(p: PlayerEnt) {
-    return this.content.characters.find((c) => c.id === p.classId);
+    return this.content.knights.find((c) => c.id === p.classId);
   }
 
   private knightOf(w: World, id: EntityId): { p: PlayerEnt; k: KnightRef } | null {
@@ -153,7 +137,7 @@ export class SupportView {
 
   // ---- events -------------------------------------------------------------------------------------
 
-  /** Events WorldView doesn't draw (soldiers, heals, flags, throws, kits). */
+  /** Events WorldView doesn't draw (soldiers, heals, flags). */
   event(e: SimEvent, w: World) {
     const fx = this.w.fx;
     switch (e.e) {
@@ -187,21 +171,6 @@ export class SupportView {
       case 'flag': {
         const k = this.knight(e.slot);
         if (k && !k.down) k.rig.play('plant', { restart: true, fadeMs: 40 });
-        return;
-      }
-      case 'crate': {
-        if (e.action !== 'throw') return;
-        const k = this.knight(e.slot);
-        if (k && !k.down) k.rig.play('throw', { restart: true, fadeMs: 40 });
-        return;
-      }
-      case 'kitUsed': {
-        // The emergency kit: an amber wave over the Citadel, with glints (§3.6).
-        const b = w.base;
-        fx.ring('ours', b.x, b.y + 0.5, 2.6, 700);
-        fx.ring('ours', b.x, b.y + 0.5, 1.6, 500);
-        const s = this.w.camera.worldToScreen(b.x, b.y + 1);
-        fx.bodyBurst('heal-glint', s.sx, s.sy, 120);
         return;
       }
       default:
@@ -239,7 +208,7 @@ export class SupportView {
           Math.atan2(Math.sin(e.angle) * 0.6, Math.cos(e.angle)),
         );
       if (e.slot === 'super') {
-        // The wide cone, drawn over walls (it passes through them); buffed towers glint.
+        // The wide cone.
         sweep('cone', 0, CONE_MS);
         for (const g of [0.35, 0.6, 0.85]) {
           const s = this.w.camera.worldToScreen(
@@ -248,9 +217,6 @@ export class SupportView {
           );
           fx.bodyBurst('nanite-mote', s.sx, s.sy, 60);
         }
-        // The towers it reached glint at the next frame (the same geometry as the sim's cone).
-        const half = (((a.arcDeg ?? 90) / 2) * Math.PI) / 180;
-        this.glints.push({ x: e.x, y: e.y, angle: e.angle, half, range: a.range });
       }
       return true;
     }
@@ -271,15 +237,6 @@ export class SupportView {
     const w = f.world;
     this.ground.begin();
     this.lines.begin();
-    for (const sec of this.glints) {
-      for (const st of w.structures) {
-        if (st.kind !== 'arrow_tower' && st.kind !== 'bomb_tower') continue;
-        if (!inSector(sec, st.x, st.y, st.r)) continue;
-        const s = this.w.camera.worldToScreen(st.x, st.y);
-        this.w.fx.bodyBurst('heal-glint', s.sx, s.sy, 70);
-      }
-    }
-    this.glints = [];
     this.syncSoldiers(w, f);
     const leading = new Set<number>();
     for (const p of w.players) {
@@ -296,7 +253,6 @@ export class SupportView {
     for (const slot of this.lead.keys())
       if (!leading.has(slot)) this.drawLead(w, slot, null, f.dtMs);
     this.syncFlags(w);
-    this.drawCells(w, f);
     this.drawSwipes(f.dtMs);
   }
 
@@ -312,10 +268,11 @@ export class SupportView {
   }
 
   private drawArtificer(w: World, p: PlayerEnt, k: KnightRef) {
-    // Backpack gauge: half a cell per crate, bottom cell first (render/gauge.ts).
-    if (this.gauges.get(p.slot) !== p.crates) {
-      this.gauges.set(p.slot, p.crates);
-      const on = new Set(gaugeGroups(p.crates));
+    // Backpack gauge shows the build meter (0..1), bottom cell first (render/gauge.ts).
+    const cores = Math.round(Math.min(1, Math.max(0, p.meter)) * GAUGE_MAX);
+    if (this.gauges.get(p.slot) !== cores) {
+      this.gauges.set(p.slot, cores);
+      const on = new Set(gaugeGroups(cores));
       for (const g of GAUGE_GROUPS)
         if (k.rig.isGroupOn(g) !== on.has(g)) k.rig.setGroup(g, on.has(g));
     }
@@ -335,7 +292,7 @@ export class SupportView {
     // Field Medic (combat only): a faint dotted amber ground circle, never filled.
     if (w.phase === 'combat') {
       const def = this.def(p);
-      const r = fieldMedicRadius(def?.passive.params);
+      const r = fieldMedicRadius(def?.passive?.params);
       const { rx, ry } = this.w.camera.groundEllipse(r);
       const g = this.ground.draw();
       g.fillStyle(theme.color.amber.num, 0.35);
@@ -532,65 +489,6 @@ export class SupportView {
     }
   }
 
-  private drawCells(w: World, f: FrameInput) {
-    const live = new Set<EntityId>();
-    const cam = this.w.camera;
-    for (const c of w.thrown ?? []) {
-      live.add(c.id);
-      let cell = this.cells.get(c.id);
-      if (!cell) {
-        const img = placeFrame(this.w, fk('power-cell'), 'world', -999, -999);
-        const shadow = this.w.scene.make
-          .image({ key: SHADOW_TEXTURE } as Phaser.Types.GameObjects.Sprite.SpriteConfig, false)
-          .setVisible(false);
-        this.w.layers.groundOverlay.add(shadow);
-        cell = { img, shadow, from: null, fromFoot: null };
-        this.cells.set(c.id, cell);
-      }
-      const thrower = this.knight(c.from);
-      const receiver = this.knight(c.to);
-      const elapsed = (w.tick - c.launchedAt - 1 + f.alpha) * STEP_MS;
-      const flight = (c.landsAt - c.launchedAt) * STEP_MS;
-      const u = throwProgress(elapsed, flight, THROW_RELEASE_MS);
-      const hand = thrower?.rig.attach('lens') ?? cam.worldToScreen(c.x0, c.y0, 1);
-      const handFoot = thrower ? { sx: thrower.sx, sy: thrower.sy } : cam.worldToScreen(c.x0, c.y0);
-      if (u <= 0) {
-        // In the hand until the release.
-        cell.img.img.setPosition(hand.sx, hand.sy).setDepth(handFoot.sy + 1);
-        cell.shadow.setVisible(false);
-        continue;
-      }
-      cell.from ??= { ...hand };
-      cell.fromFoot ??= { ...handFoot };
-      const toFoot =
-        receiver && !receiver.down
-          ? { sx: receiver.sx, sy: receiver.sy }
-          : cam.worldToScreen(c.x, c.y);
-      const to = (receiver && !receiver.down ? receiver.rig.attach('carry') : null) ?? toFoot;
-      const tiles = Math.hypot(c.x - c.x0, c.y - c.y0);
-      const pt = throwArc(
-        cell.from,
-        cell.fromFoot,
-        to,
-        toFoot,
-        u,
-        Math.max(MIN_PEAK_PX, tiles * PEAK_PX_PER_TILE),
-      );
-      cell.img.img
-        .setPosition(pt.sx, pt.sy)
-        .setDepth(pt.shadowSy + 1)
-        .setRotation(u * 6);
-      const k = Math.max(0.25, 0.5 - pt.lift * 0.002);
-      cell.shadow.setPosition(pt.shadowSx, pt.shadowSy).setScale(k, k).setVisible(true);
-    }
-    for (const [id, cell] of this.cells) {
-      if (live.has(id)) continue;
-      cell.img.img.destroy();
-      cell.shadow.destroy();
-      this.cells.delete(id);
-    }
-  }
-
   /** The nanite cone (filled, fading) and the sword trail sweeping the hit arc. */
   private drawSwipes(dtMs: number) {
     const cam = this.w.camera;
@@ -638,14 +536,9 @@ export class SupportView {
   destroy() {
     for (const s of this.soldiers.values()) s.rig.destroy();
     for (const f of this.flags.values()) for (const a of f.parts) a.img.destroy();
-    for (const c of this.cells.values()) {
-      c.img.img.destroy();
-      c.shadow.destroy();
-    }
     for (const a of this.leadMade) a.img.destroy();
     this.soldiers.clear();
     this.flags.clear();
-    this.cells.clear();
     this.lead.clear();
     this.leadImgs.clear();
     this.leadMade.length = 0;

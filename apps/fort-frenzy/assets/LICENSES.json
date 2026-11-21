@@ -68,14 +68,14 @@
       "commercial": true
     },
     {
-      "path": "audio/neon-knights/structure_placed.mp3",
+      "path": "audio/neon-knights/build_placed.mp3",
       "source": "https://kenney.nl/assets/impact-sounds (impactPlank_medium_000.ogg, converted by scripts/pick-sfx.ts)",
       "author": "Kenney (www.kenney.nl)",
       "license": "CC0-1.0",
       "commercial": true
     },
     {
-      "path": "audio/neon-knights/structure_destroyed.mp3",
+      "path": "audio/neon-knights/build_destroyed.mp3",
       "source": "https://kenney.nl/assets/sci-fi-sounds (lowFrequency_explosion_000.ogg, converted by scripts/pick-sfx.ts)",
       "author": "Kenney (www.kenney.nl)",
       "license": "CC0-1.0",

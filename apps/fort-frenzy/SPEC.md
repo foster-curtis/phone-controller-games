@@ -2742,7 +2742,7 @@ overlay; §15.11 #104); `Announcement.item` is a v2 `ShopItemId`. No other field
 - **Storage:** `localStorage` key `fort-frenzy:run` (survives a browser crash, unlike Sunny Side's
   `sessionStorage`). Versioned JSON; a version mismatch or a snapshot older than 12 hours is discarded,
   never migrated.
-- **Version:** the redesign's snapshot is **`v: 2`**, and `v` bumps whenever its shape changes, so old
+- **Version:** the redesign's snapshot is **`v: 3`** (RD1 used 2 for the renamed ids; RD2's shape is 3), and `v` bumps whenever its shape changes, so old
   saves are discarded (§15.11 #70).
 - **When:** written at the start of each build phase and on every run-state change during it,
   debounced to 250 ms and flushed on `pagehide`. Cleared when the run ends (§4).
@@ -2753,7 +2753,7 @@ overlay; §15.11 #104); `Announcement.item` is a v2 `ShopItemId`. No other field
   and a refresh can't reroll it.
 
 ```ts
-export const SNAPSHOT_VERSION = 2;
+export const SNAPSHOT_VERSION = 3;
 
 export interface SnapshotBuild {
   kind: BuildId; owner: number;                      // the knight's slot
@@ -2925,7 +2925,7 @@ export interface RunSnapshot {
 | From | Frozen |
 |---|---|
 | RD0 | The v2 sketches in this §15 (the shapes RD2 implements) |
-| RD2 | `src/shared/messages.ts` (`PROTOCOL_VERSION` 2, `InputTuple` v2, `Intent`, `HostMsg`, `TeamView`, `MeView`, `RunStats`), `src/shared/ids.ts`, `src/content/types.ts`, `src/host/sim/types.ts` and `events.ts`, the `src/host/sim/snapshot.ts` types (`RunSnapshot` v2), `src/host/ui/types.ts`, `src/presentation/types.ts`, the `src/host/systems/*/index.ts` signatures, `src/host/party/index.ts` |
+| RD2 | `src/shared/messages.ts` (`PROTOCOL_VERSION` 2, `InputTuple` v2, `Intent`, `HostMsg`, `TeamView`, `MeView`, `RunStats`), `src/shared/ids.ts`, `src/content/types.ts`, `src/host/sim/types.ts` and `events.ts`, the `src/host/sim/snapshot.ts` types (`RunSnapshot` v3), `src/host/ui/types.ts`, `src/presentation/types.ts`, the `src/host/systems/*/index.ts` signatures, `src/host/party/index.ts` |
 | RD6 | `src/host/render/types.ts` (with RD5's build-view API), the build behavior registry `src/host/sim/builds/index.ts` and the scene build-view folder convention |
 | Always | The public APIs of `@pcg/controller-kit` and `@pcg/game-kit` |
 

@@ -58,8 +58,27 @@ function shoot(h: Harness, slot = 0) {
 }
 
 describe('card coverage', () => {
-  it('has a def for every card id, once', () => {
-    expect(cardDefs.map((c) => c.id).sort()).toEqual([...CARD_IDS].sort());
+  it('has a def for every card id, once, except the ones their milestones add (RD7–RD11)', () => {
+    const pending = [
+      'tinkerer',
+      'shrapnel_charge',
+      'steady_aim',
+      'minefield',
+      'wide_field',
+      'challenger',
+      'reinforced_generator',
+      'fault_line',
+      'strong_arm',
+      'booster_beacon',
+      'field_medic',
+      'heavy_bash',
+      'drillmaster',
+      'morale',
+      'reinforced_ranks',
+    ];
+    expect(cardDefs.map((c) => c.id).sort()).toEqual(
+      CARD_IDS.filter((id) => !pending.includes(id)).sort(),
+    );
   });
 });
 
@@ -106,7 +125,7 @@ describe('shared commons (numbers per class)', () => {
     const h = harness(1, 1, { classes: ['ranger'] });
     h.toBuild();
     h.give(0, 'vitality');
-    expect(h.p(0).maxHp).toBeCloseTo(ranger.hp * 1.12, 6);
+    expect(h.p(0).maxHp).toBeCloseTo(rules.knightHp * 0.8 * 1.12, 6);
     expect(h.p(0).hp).toBeCloseTo(h.p(0).maxHp, 6);
   });
 
@@ -141,13 +160,14 @@ describe('shared commons (numbers per class)', () => {
     expect(h.p(0).stats.damageReduction).toBeCloseTo(0.4, 6);
   });
 
-  it('quick_recovery never drops the respawn below 5 s', () => {
+  it('quick_recovery takes at most 5 s off the respawn', () => {
     const h = harness(1, 1, { classes: ['ranger'] });
     h.toBuild();
+    const base = h.p(0).stats.respawnMs;
     h.give(0, 'quick_recovery', 2);
-    expect(h.p(0).stats.respawnMs).toBe(rules.respawnMs - 4000);
+    expect(h.p(0).stats.respawnMs).toBe(base - 4000);
     h.give(0, 'quick_recovery', 6);
-    expect(h.p(0).stats.respawnMs).toBe(5000);
+    expect(h.p(0).stats.respawnMs).toBe(base - 5000);
   });
 });
 
@@ -341,35 +361,6 @@ describe('warden cards', () => {
     expect(dealt([[0, 'giant_slayer']])).toBeCloseTo(base * 1.5, 6);
   });
 
-  it('master_mason: walls repair 50% faster and the aura reaches 30% further', () => {
-    const repaired = (picks: Pick[]) => {
-      const h = game(['warden'], picks);
-      h.put(0, 10.5, 12.5);
-      const w = h.sim.place('wall', 11, 13, 0);
-      w.hp = 100;
-      h.run(60);
-      return w.hp - 100;
-    };
-    expect(repaired([])).toBeCloseTo(10, 0);
-    expect(repaired([[0, 'master_mason']])).toBeCloseTo(15, 0);
-    const p = game(['warden'], [[0, 'master_mason']]).p(0);
-    expect(atk(p, 2.5, 'auraRadius', 'passive')).toBeCloseTo(3.25, 6);
-  });
-
-  it('bodyguard: a nearby ally gets the aura and takes less damage, a far one does not', () => {
-    const h = game(['warden', 'ranger', 'ranger'], [[0, 'bodyguard']]);
-    h.put(0, 10, 12);
-    h.put(1, 12, 12);
-    h.put(2, 20, 12);
-    h.run(20);
-    expect(effectOf(h.p(1), 'aura_bodyguard')).toBeDefined();
-    expect(h.p(1).stats.damageReduction).toBeCloseTo(0.2, 6);
-    expect(effectOf(h.p(2), 'aura_bodyguard')).toBeUndefined();
-    expect(h.p(2).stats.damageReduction).toBe(0);
-    // Not on himself.
-    expect(effectOf(h.p(0), 'aura_bodyguard')).toBeUndefined();
-  });
-
   it('unshakable: refuses slow, accepts other effects, and cannot be pushed', () => {
     const h = game(['warden'], [[0, 'unshakable']]);
     const m = h.p(0).mods.find((x) => x.id === 'card:unshakable')!;
@@ -381,65 +372,12 @@ describe('warden cards', () => {
     h.run(1);
     expect(h.p(0).push ?? null).toBeNull();
   });
-
-  it('fault_line: the stomp shocks and slows an enemy at a far wall', () => {
-    const run = (picks: Pick[]) => {
-      const h = game(['warden'], picks);
-      h.put(0, 10, 12);
-      h.sim.place('wall', 20, 13, 0);
-      // Enemies walk off, so hold them: one touching the wall's top edge, one far from any wall.
-      const onWall = h.sim.spawnEnemy('grunt', 20.5, 12.6);
-      const away = h.sim.spawnEnemy('grunt', 25, 18);
-      h.p(0).superCharge = 1;
-      h.pads[0]!.tap('superFires', { superAim: { x: -1, y: 0 } });
-      const events = [];
-      for (let i = 0; i < steps(warden.super.windupMs) + 3; i++) {
-        onWall.x = 20.5;
-        onWall.y = 12.6;
-        away.x = 25;
-        away.y = 18;
-        events.push(...h.collect('faultLine', 1));
-      }
-      return { onWall, away, events };
-    };
-    const off = run([]);
-    expect(off.events).toHaveLength(0);
-    expect(off.onWall.hp).toBe(off.onWall.maxHp);
-    const on = run([[0, 'fault_line']]);
-    expect(on.events).toEqual([{ e: 'faultLine', slot: 0 }]);
-    expect(on.onWall.maxHp - on.onWall.hp).toBe(warden.super.damage);
-    expect(effectOf(on.onWall, 'slow')!.strength).toBeCloseTo(0.4, 6);
-    expect(on.away.hp).toBe(on.away.maxHp);
-  });
 });
 
 // ---- artificer ------------------------------------------------------------------------------
 
 describe('artificer cards', () => {
   const MEDIC = steps(1000) + 1;
-
-  it('light_load: a crate carrier in the aura loses less speed', () => {
-    const run = (picks: Pick[]) => {
-      const h = game(['artificer', 'ranger'], picks);
-      h.put(0, 10, 16);
-      h.put(1, 10, 16);
-      h.p(1).crates = 4;
-      h.pads[1]!.set({ move: { x: 1, y: 0 } });
-      h.run(30);
-      return { fx: effectOf(h.p(1), 'aura_field_medic'), dx: h.p(1).x - 10 };
-    };
-    const off = run([]);
-    const on = run([[0, 'light_load']]);
-    expect(off.fx).toBeUndefined();
-    expect(on.fx!.strength).toBeCloseTo(0.5, 6);
-    expect(on.dx).toBeGreaterThan(off.dx + 0.1);
-  });
-
-  it('strong_arm: throws go 30% further and faster', () => {
-    const p = game(['artificer'], [[0, 'strong_arm']]).p(0);
-    expect(p.stats.throwRange).toBeCloseTo(artificer.supply.throwRange * 1.3, 6);
-    expect(p.stats.throwSpeed).toBeCloseTo(artificer.supply.throwSpeed * 1.3, 6);
-  });
 
   it('venom_bolts: a bolt hit poisons the enemy', () => {
     const run = (picks: Pick[]) => {
@@ -555,12 +493,6 @@ describe('commander cards', () => {
     return hits[0]!.amount;
   }
 
-  it('bladework: the slash arc is 20% wider', () => {
-    const p = game(['commander'], [[0, 'bladework']]).p(0);
-    expect(atk(p, 110, 'arcDeg', 'main')).toBeCloseTo(132, 6);
-    expect(atk(p, 110, 'arcDeg', 'super')).toBeCloseTo(110, 6);
-  });
-
   it('forced_march: his soldiers get haste', () => {
     const run = (picks: Pick[]) => {
       const h = game(['commander'], picks);
@@ -569,7 +501,7 @@ describe('commander cards', () => {
     };
     for (const u of run([])) expect(effectOf(u, 'haste')).toBeUndefined();
     const on = run([[0, 'forced_march']]);
-    expect(on).toHaveLength(3);
+    expect(on).toHaveLength(2);
     for (const u of on) {
       expect(effectOf(u, 'haste')!.strength).toBeCloseTo(0.2, 6);
       expect(u.stats.moveSpeed).toBeGreaterThan(4.4 * 1.19);
@@ -597,11 +529,11 @@ describe('commander cards', () => {
     const h = game(['commander'], [[0, 'veterans']]);
     h.run(30);
     const squad = () => h.sim.world.soldiers.filter((u) => u.owner === 0);
-    expect(squad().map((u) => u.veterans)).toEqual([0, 0, 0]);
+    expect(squad().map((u) => u.veterans)).toEqual([0, 0]);
     h.sim.world.spawns.length = 0;
     h.until(() => h.sim.world.phase === 'build', 10);
     h.run(3);
-    expect(squad().map((u) => u.veterans)).toEqual([1, 1, 1]);
+    expect(squad().map((u) => u.veterans)).toEqual([1, 1]);
     for (const u of squad()) expect(u.maxHp).toBeCloseTo(60 * 1.1, 6);
   });
 

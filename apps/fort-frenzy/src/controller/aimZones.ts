@@ -80,7 +80,7 @@ export function mountAimZones(parent: HTMLElement, o: AimZoneOptions): AimZones 
     const y = e.clientY - rect.top;
     const layout = o.getLayout();
     const key = pickZone(layout, x, y);
-    // A tap or radial button is not ours: its own element takes touches on it, and a touch in the
+    // A tap button is not ours: its own element takes touches on it, and a touch in the
     // bounds of one of those does nothing here.
     if (key === null || key === 'action' || !aimed.includes(key)) return;
     e.preventDefault();

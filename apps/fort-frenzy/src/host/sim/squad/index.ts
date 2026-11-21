@@ -1,10 +1,10 @@
 // The Commander's squad (SPEC §8, step 4 of §15.3): automaton footmen that follow him in a loose
 // formation, or hold the rally flag's position while it's planted, and in combat attack enemies near
-// their post. Size 3, then one more after each boss wave (wave data's `boss`, waves 5 and 10 in v1).
-// The fallen respawn at the base at the start of each build phase. Steering is straight toward the
-// goal, with the usual structure collision (BUILD_PLAN §8 FF9: no flow field needed). Engage range,
-// leash, hurry and formation are content (`CharacterDef.squad`).
-import type { CharacterDef, WaveDef } from '../../../content/types';
+// their post. The squad keeps `squad.start` soldiers until Reinforcements (RD9) adds more. The fallen
+// respawn at the base at the start of each build phase. Steering is straight toward the goal, with
+// the usual collision (BUILD_PLAN §8 FF9: no flow field needed). Engage range, leash, hurry and
+// formation are content (`KnightDef.squad`).
+import type { KnightDef } from '../../../content/types';
 import { dist } from '../geometry';
 import type { FullState } from '../state';
 import type { EnemyEnt, PlayerEnt, SoldierEnt } from '../types';
@@ -12,20 +12,15 @@ import type { EnemyEnt, PlayerEnt, SoldierEnt } from '../types';
 /** Close enough to the formation slot to stand still (tiles). */
 const ARRIVED = 0.12;
 
-type SquadDef = NonNullable<CharacterDef['squad']>;
+type SquadDef = NonNullable<KnightDef['squad']>;
 
-/** Squad size before wave `wave`: one step per boss wave already cleared (waves before it). */
-export function squadSize(
-  waves: readonly WaveDef[],
-  sizes: readonly number[],
-  wave: number,
-): number {
-  const bosses = waves.filter((w) => w.boss !== undefined && w.n < wave).length;
-  return sizes[Math.min(bosses, sizes.length - 1)] ?? 0;
+/** The squad's full size (its starting size until RD9's Reinforcements grows it). */
+export function squadSize(def: { start: number } | undefined): number {
+  return def?.start ?? 0;
 }
 
 function squadOf(s: FullState, p: PlayerEnt): SquadDef | undefined {
-  return s.cat.character(p.classId).squad;
+  return s.cat.knight(p.classId).squad;
 }
 
 /** Build start: every Commander's missing soldiers (dead, or newly earned) appear at the base. */
@@ -34,7 +29,7 @@ export function fillSquads(s: FullState): void {
   for (const p of w.players) {
     const def = squadOf(s, p);
     if (!def) continue;
-    const size = squadSize(s.cat.waves, def.size, w.wave);
+    const size = squadSize(def);
     const have = new Set(w.soldiers.filter((u) => u.owner === p.slot).map((u) => u.index));
     const at = s.respawnPoint(p.slot);
     for (let i = 0; i < size; i++) {

@@ -124,7 +124,7 @@ describe('morale flash (C3 note 2)', () => {
     h.p(0).x = 10;
     h.p(0).y = 12;
     h.run(120);
-    const total = content.characters
+    const total = content.knights
       .find((c) => c.id === 'commander')!
       .super.effects!.find((x) => x.effect === 'morale')!.durationMs;
     h.p(0).superCharge = 1;

@@ -54,7 +54,7 @@ export interface SoakResult {
   /** State hash after every `hashEvery` steps. */
   hashes: number[];
   maxEnemies: number;
-  /** Cards picked and shop purchases (crates included) over the run. */
+  /** Cards picked and shop purchases over the run. */
   cardsPicked: number;
   purchases: number;
   /** Enemy kinds seen (the boss included). */
@@ -63,8 +63,8 @@ export interface SoakResult {
 
 /** No run lasts an hour of sim time (target 22–27 min, BUILD_PLAN FF14/FF15). */
 const RUN_CAP = 60 * 60 * 60;
-/** The team shop's upgrades (crates are the autopilot's own). */
-const SHOP = SHOP_ITEM_IDS.filter((id) => id !== 'crate');
+/** The team shop's items, tried in a rotation. */
+const SHOP = SHOP_ITEM_IDS;
 
 export function soakStart(seed: number, classes: readonly ClassId[]): RunStart {
   return {
@@ -81,8 +81,8 @@ export function soakStart(seed: number, classes: readonly ClassId[]): RunStart {
 }
 
 /**
- * One soak run: autopilot in every slot, invincible, ready once stocked (2 s in) or after 10 s of
- * build, as `recordAutopilotRun`. Throws if the sim throws; the caller checks the outcome.
+ * One soak run: autopilot in every slot, invincible, ready 2 s into each build phase, as
+ * `recordAutopilotRun`. Throws if the sim throws; the caller checks the outcome.
  */
 export function soakRun(opts: SoakOptions): SoakResult {
   const classes = [...opts.classes];
@@ -118,8 +118,7 @@ export function soakRun(opts: SoakOptions): SoakResult {
           sim.command({ c: 'buy', slot: p.slot, item });
         }
       }
-      const stocked = w.players.every((p) => p.crates >= 2 || w.team.coins < 2);
-      if ((stocked && w.tick - buildStart > 120) || w.tick - buildStart > 600) {
+      if (w.tick - buildStart > 120) {
         for (const p of w.players)
           if (!p.ready) sim.command({ c: 'ready', slot: p.slot, ready: true });
       }

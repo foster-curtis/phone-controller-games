@@ -3,16 +3,7 @@
 import { expect, type Page } from '@playwright/test';
 import { serveFonts, test } from './helpers';
 
-const PAGES = [
-  'rigs',
-  'turrets',
-  'citadel',
-  'autotiles',
-  'effects',
-  'icons',
-  'map',
-  'colossus',
-] as const;
+const PAGES = ['rigs', 'citadel', 'effects', 'icons', 'map', 'colossus'] as const;
 
 test.use({ viewport: { width: 1920, height: 1080 } });
 
@@ -50,7 +41,7 @@ for (const name of PAGES) {
 
 test('gallery rigs unlit, Colossus final, Mk III mortar', async ({ page }) => {
   const errors = watchErrors(page);
-  await open(page, 'page=rigs&panel=0&unlit=1&colossus=4&tier=3&gauge=7&color=rose');
+  await open(page, 'page=rigs&panel=0&unlit=1&colossus=4&gauge=7&color=rose');
   const probe = await page.evaluate(() => window.__pcgGallery!);
   expect(probe.fallbacks).toBe(0);
   await page.screenshot({ path: 'e2e/__screens__/gallery-rigs-unlit.png' });
@@ -100,18 +91,6 @@ for (const clip of ['slam', 'throw', 'call', 'stagger'] as const) {
     expect(errors).toEqual([]);
   });
 }
-
-// FF8: the autotiles page's structure states (net discharges, build sketch and fill, destroyed
-// collapse, charged and damaged walls, Mason sparks) run their loops with no fallback shapes.
-test('gallery autotiles states over a loop', async ({ page }) => {
-  const errors = watchErrors(page);
-  await open(page, 'page=autotiles&panel=0');
-  await page.waitForTimeout(2000);
-  const probe = await page.evaluate(() => window.__pcgGallery!);
-  expect(probe.fallbacks).toBe(0);
-  await page.screenshot({ path: 'e2e/__screens__/gallery-autotiles-states.png' });
-  expect(errors).toEqual([]);
-});
 
 test('gallery stress', async ({ page }) => {
   const errors = watchErrors(page);

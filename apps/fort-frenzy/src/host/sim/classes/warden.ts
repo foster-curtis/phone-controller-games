@@ -1,12 +1,10 @@
 // Warden (tank, SPEC §8): the ground slam and the stomp are `arc` attacks that wind up and land as a
-// sector in front of him (stomp: a longer arc that stuns); Mason repairs walls near him, combat only
-// (§5, §8, §15.3 step 7). Also the stun effect the stomp applies (§6.1: an enemy can't move or attack
-// while stunned; the AI skips it, sim.ts).
+// sector in front of him (stomp: a longer arc that stuns). Also the stun effect the stomp applies
+// (§6.1: an enemy can't move or attack while stunned; the AI skips it, sim.ts).
 import type { AttackDef } from '../../../content/types';
 import { msToSteps } from '../../systems/effects';
 import { sectorHitsBody } from '../body';
-import { num } from '../cards/common';
-import { state, type SimState } from '../internal';
+import type { SimState } from '../internal';
 import { sectorGeometry } from './hitShape';
 import {
   SIM_HZ,
@@ -14,8 +12,6 @@ import {
   type EffectApply,
   type EffectDef,
   type EnemyEnt,
-  type Modifier,
-  type ModuleDef,
   type PlayerEnt,
   type Unit,
 } from '../types';
@@ -97,40 +93,6 @@ export function stunned(u: Unit): boolean {
   for (const e of u.effects) if (e.def === 'stun') return true;
   return false;
 }
-
-/**
- * Mason (§8): walls within `radius` tiles of the Warden repair `hpPerSec` each, in combat only (off in
- * the build phase, §5) and only while he is up. Master Mason (FF12) raises the `repairRate` and
- * `auraRadius` stats. Repairs aren't heals: no events, no healing stats (render shows the sparks).
- */
-export const mason: ModuleDef = {
-  id: 'mason',
-  make(params) {
-    const radius = num(params, 'radius');
-    const perSec = num(params, 'hpPerSec');
-    const m: Modifier = {
-      id: 'passive:mason',
-      hooks: {
-        onTick(ctx, self) {
-          const s = state(ctx);
-          const w = s.world;
-          const p = self as PlayerEnt;
-          if (w.phase !== 'combat' || p.respawnAt !== null || !p.connected || p.hp <= 0) return;
-          const r = s.attackStat(p, radius, 'auraRadius', 'passive');
-          const perStep = s.attackStat(p, perSec, 'repairRate', 'passive') / SIM_HZ;
-          for (const st of w.structures) {
-            if (st.kind !== 'wall' || st.hp <= 0 || st.hp >= st.maxHp) continue;
-            const dx = st.x - p.x;
-            const dy = st.y - p.y;
-            if (dx * dx + dy * dy > r * r) continue;
-            st.hp = Math.min(st.maxHp, st.hp + perStep);
-          }
-        },
-      },
-    };
-    return m;
-  },
-};
 
 /** Whole steps of a wind-up. */
 export const windupSteps = (a: AttackDef) => (a.windupMs ? msToSteps(a.windupMs, SIM_HZ) : 0);

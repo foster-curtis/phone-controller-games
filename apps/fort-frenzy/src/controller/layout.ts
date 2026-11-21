@@ -67,7 +67,7 @@ export function gapBetween(a: Circle, b: Circle): number {
 // ---- touch zones (FF4-fix-2) ---------------------------------------------------------------------
 // Aimed attack buttons are semi-floating joysticks: a finger landing anywhere on the right half picks
 // the button whose drawn edge is nearest (the bounds between buttons), and the joystick centers on the
-// finger. Taps and radials keep their fixed circles; a touch that lands in their zone is theirs.
+// finger. Tap buttons keep their fixed circles; a touch that lands in their zone is theirs.
 
 export type ZoneKey = 'main' | 'super' | 'action';
 export const ZONE_KEYS: readonly ZoneKey[] = ['main', 'super', 'action'];

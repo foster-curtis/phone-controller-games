@@ -1,10 +1,10 @@
-// The Colossus boss module (SPEC §9.2, §15.3 BossBehavior; FF11). A slow walker on the breaker field
-// (walls slow it, never stop it) that keeps to its path and attacks what's in front of it:
+// The Colossus boss module (SPEC §9.2, §15.3 BossBehavior; FF11). A slow walker on the ground field
+// that keeps to its path and attacks what's in front of it:
 // - slam: a red circle in front of it, landing 1.5 s later (exactly `attack.windupMs`), on players,
-//   soldiers and structures; a player or soldier in reach, a blocking tower or the Citadel draws it;
-// - wall breaker (`breaker`): the same slam on a wall in its way, which takes 3× (`vsStructure`);
-// - boulder throw (Mk II+): at the largest group of players (2+), else a tower, else one player, with
-//   its landing marker up from the wind-up;
+//   soldiers and HP builds; a player or soldier in reach or the Citadel (× `baseMult`) draws it;
+// - boulder throw (Mk II+): at the largest group of players (2+), else one player, with its landing
+//   marker up from the wind-up;
+// - Charge (Mk II+): RD10;
 // - final phase (Mk III below half HP): faster moves and attacks, shockwave rings rolling out from
 //   every slam, and Runner calls from the spires.
 // It can't be stunned or knocked back. A hidden stagger meter fills a little with all damage and
@@ -15,8 +15,7 @@
 // geometry and the shared AI steps (registry rule, BUILD_PLAN §8 FF6).
 import type { EnemyDef } from '../../../content/types';
 import { fieldStep, toBase } from '../ai/field';
-import { walkTo } from '../ai/path';
-import { dist, rectDist, rectNearest, tileRect } from '../geometry';
+import { dist, rectDist, rectNearest } from '../geometry';
 import { state, type SimState } from '../internal';
 import {
   BASE_ID,
@@ -26,12 +25,13 @@ import {
   type EnemyEnt,
   type EntityId,
   type Modifier,
-  type StructureEnt,
   type Unit,
 } from '../types';
 
 /** `boss.params` of the Colossus's content (every key required; content.test checks). */
 export interface ColossusTuning {
+  /** The Citadel takes this × its slams. */
+  baseMult: number;
   hpMk2: number;
   hpMk3: number;
   slamOffset: number;
@@ -67,6 +67,7 @@ export interface ColossusTuning {
 }
 
 export const COLOSSUS_TUNING_KEYS = [
+  'baseMult',
   'hpMk2',
   'hpMk3',
   'slamOffset',
@@ -102,9 +103,7 @@ export const COLOSSUS_TUNING_KEYS = [
 ] as const satisfies readonly (keyof ColossusTuning)[];
 
 /** Attack kinds (`BossAct.kind`); render picks the clip by these. */
-export type ColossusAct = 'slam' | 'breaker' | 'boulder' | 'call';
-
-const TOWERS = new Set(['arrow_tower', 'bomb_tower']);
+export type ColossusAct = 'slam' | 'boulder' | 'charge' | 'call';
 
 export function tuning(def: EnemyDef): ColossusTuning {
   return (def.boss?.params ?? {}) as unknown as ColossusTuning;
@@ -166,7 +165,8 @@ function cancel(s: SimState, e: EnemyEnt) {
 
 /**
  * The Colossus's own hooks (on its `mods`): stuns refused but counted into the meter (not while
- * staggered or for `stunImmuneMs` after), bonus damage taken while staggered, and its multipliers against walls and the Citadel (pipeline stage 2).
+ * staggered or for `stunImmuneMs` after), bonus damage taken while staggered, and its multiplier
+ * against the Citadel (pipeline stage 2).
  */
 function colossusModifier(): Modifier {
   return {
@@ -199,14 +199,8 @@ function colossusModifier(): Modifier {
       },
       modifyOutgoing(ctx, self, d) {
         const s = state(ctx);
-        const vs = s.cat.enemy((self as EnemyEnt).kind).vsStructure;
-        if (!vs) return;
-        const kind = s.kinds.get(d.target);
-        if (kind === 'base') d.amount *= vs.base ?? 1;
-        else if (kind === 'structure') {
-          const st = s.units.get(d.target) as StructureEnt | undefined;
-          if (st) d.amount *= vs[st.kind] ?? 1;
-        }
+        if (s.kinds.get(d.target) !== 'base') return;
+        d.amount *= tuning(s.cat.enemy((self as EnemyEnt).kind)).baseMult;
       },
     },
   };
@@ -230,13 +224,13 @@ function begin(s: SimState, e: EnemyEnt, act: BossAct) {
 }
 
 /**
- * A slam toward (tx, ty): in front of its body for a unit, on the point itself for a structure or the
+ * A slam toward (tx, ty): in front of its body for a unit, on the point itself for the
  * Citadel (`atPoint`). The marker lands exactly `attack.windupMs` later (90 steps).
  */
 function slam(
   s: SimState,
   e: EnemyEnt,
-  kind: 'slam' | 'breaker',
+  kind: 'slam',
   target: EntityId,
   tx: number,
   ty: number,
@@ -265,7 +259,7 @@ function slam(
       r: def.attack.radius!,
       createdAt: t,
       landsAt: lands,
-      payload: { damage: e.stats.damage, kind: 'area', tags: ['boss', kind], hitsStructures: true },
+      payload: { damage: e.stats.damage, kind: 'area', tags: ['boss', kind], hitsBuilds: true },
     },
     true,
   );
@@ -293,7 +287,7 @@ function slamTarget(s: SimState, e: EnemyEnt, T: ColossusTuning): Unit | null {
 
 /**
  * Where a boulder goes: the centroid of the largest group of targetable players (2 or more within
- * `groupRadius` of one of them), else the nearest tower, else the nearest single player; all within
+ * `groupRadius` of one of them), else the nearest single player; all within
  * [min, max] range. Ties go to the nearer, then the lower slot or id.
  */
 export function boulderTarget(
@@ -324,17 +318,6 @@ export function boulderTarget(
     if (!group || n > group.n || (n === group.n && d < group.d)) group = { n, x, y, d, id: p.id };
   }
   if (group && group.n >= 2) return { x: group.x, y: group.y, target: group.id };
-  let tower: StructureEnt | null = null;
-  let towerD = Infinity;
-  for (const st of s.world.structures) {
-    if (!st.damageable || st.hp <= 0 || !TOWERS.has(st.kind) || !inRange(st.x, st.y)) continue;
-    const d = dist(e.x, e.y, st.x, st.y);
-    if (d < towerD) {
-      tower = st;
-      towerD = d;
-    }
-  }
-  if (tower) return { x: tower.x, y: tower.y, target: tower.id };
   if (group) return { x: group.x, y: group.y, target: group.id };
   return null;
 }
@@ -359,7 +342,7 @@ function boulder(s: SimState, e: EnemyEnt, to: { x: number; y: number; target: E
         damage: T.boulderDamage * s.cat.difficulty.enemyDamage,
         kind: 'shell',
         tags: ['boss', 'boulder'],
-        hitsStructures: true,
+        hitsBuilds: true,
       },
     },
     true,
@@ -394,7 +377,6 @@ function launch(s: SimState, e: EnemyEnt, act: BossAct) {
     tags: ['boss', 'boulder'],
     effects: [],
     hitsFlyers: false,
-    blockedBy: [],
     pierce: 0,
     hit: [],
     expiresAt: m.landsAt,
@@ -432,7 +414,7 @@ function rings(s: SimState, e: EnemyEnt, x: number, y: number) {
           damage: T.ringDamage * s.cat.difficulty.enemyDamage,
           kind: 'area',
           tags: ['boss', 'shockwave'],
-          hitsStructures: false,
+          hitsBuilds: false,
         },
       },
       false,
@@ -451,7 +433,7 @@ function callRunners(s: SimState, e: EnemyEnt) {
       'runner',
       e.x + bx * e.r * 0.6 - by * side,
       e.y + by * e.r * 0.6 + bx * side,
-      e.lane,
+      e.portal,
     );
   }
 }
@@ -462,7 +444,7 @@ function escorts(s: SimState, e: EnemyEnt, T: ColossusTuning) {
   for (let i = 0; i < T.escortGrunts; i++) {
     const side = i % 2 === 0 ? 1 : -1;
     const off = e.r + 0.5 + Math.floor(i / 2) * 0.7;
-    s.spawnEnemy('grunt', e.x + side * off, e.y + 0.3, e.lane);
+    s.spawnEnemy('grunt', e.x + side * off, e.y + 0.3, e.portal);
   }
   const size = s.cat.enemy('swarm').groupSize ?? 1;
   for (let g = 0; g < T.escortSwarms; g++) {
@@ -472,7 +454,7 @@ function escorts(s: SimState, e: EnemyEnt, T: ColossusTuning) {
     for (let i = 0; i < size; i++) {
       const a = rng.next() * Math.PI * 2;
       const d = 0.9 * Math.sqrt(rng.next());
-      const m = s.spawnEnemy('swarm', cx + Math.cos(a) * d, cy + Math.sin(a) * d, e.lane, group);
+      const m = s.spawnEnemy('swarm', cx + Math.cos(a) * d, cy + Math.sin(a) * d, e.portal, group);
       group ??= m.id;
     }
   }
@@ -480,41 +462,7 @@ function escorts(s: SimState, e: EnemyEnt, T: ColossusTuning) {
 
 // ---- walking -------------------------------------------------------------------------------------
 
-/**
- * A wall or tower its body is about to walk into along its velocity (its radius spans more than one
- * tile, so the field's next tile alone misses blockers beside its center line). Nearest, ties by id.
- */
-function blockerAhead(s: SimState, e: EnemyEnt): StructureEnt | null {
-  const v = Math.sqrt(e.vx * e.vx + e.vy * e.vy);
-  if (v < 1e-6) return null;
-  const dx = e.vx / v;
-  const dy = e.vy / v;
-  const cx = e.x + dx * 0.25;
-  const cy = e.y + dy * 0.25;
-  const { cols, rows, occupant } = s.world.grid;
-  let best: StructureEnt | null = null;
-  let bestD = Infinity;
-  for (let row = Math.floor(cy - e.r); row <= Math.floor(cy + e.r); row++) {
-    for (let col = Math.floor(cx - e.r); col <= Math.floor(cx + e.r); col++) {
-      if (col < 0 || row < 0 || col >= cols || row >= rows) continue;
-      const occ = occupant[row * cols + col]!;
-      if (occ === 0) continue;
-      const st = s.units.get(occ) as StructureEnt | undefined;
-      if (!st || !st.damageable || st.hp <= 0 || s.cat.structure(st.kind).pathCost <= 1) continue;
-      const rect = tileRect(col, row);
-      if (rectDist(cx, cy, rect) >= e.r) continue;
-      if ((col + 0.5 - e.x) * dx + (row + 0.5 - e.y) * dy <= 0) continue;
-      const d = rectDist(e.x, e.y, rect);
-      if (d < bestD || (d === bestD && best !== null && st.id < best.id)) {
-        best = st;
-        bestD = d;
-      }
-    }
-  }
-  return best;
-}
-
-/** Walk the breaker field to the Citadel; slam what blocks it (walls get the wall breaker). */
+/** Walk the ground field to the Citadel. */
 function advance(s: SimState, e: EnemyEnt, T: ColossusTuning) {
   const t = s.tick();
   const reach = T.slamOffset + T.baseReach;
@@ -527,19 +475,8 @@ function advance(s: SimState, e: EnemyEnt, T: ColossusTuning) {
     return;
   }
   const speed = e.stats.moveSpeed * (e.boss!.finalPhase ? T.finalSpeed : 1);
-  const step = fieldStep(s, e, s.world.fields.breaker, speed);
+  const step = fieldStep(s, e, s.world.fields.ground, speed);
   if (step.kind === 'goal') toBase(s, e, speed);
-  const block = step.kind === 'blocked' ? step.st : blockerAhead(s, e);
-  if (!block) return;
-  if (rectDist(e.x, e.y, tileRect(block.tile[0], block.tile[1])) - e.r > reach) {
-    walkTo(e, block.x, block.y, speed);
-    return;
-  }
-  stop(e);
-  face(e, block.x, block.y);
-  if (ready(e, 'slam', t)) {
-    slam(s, e, block.kind === 'wall' ? 'breaker' : 'slam', block.id, block.x, block.y, true);
-  }
 }
 
 // ---- the module ----------------------------------------------------------------------------------
@@ -550,7 +487,6 @@ function finish(s: SimState, e: EnemyEnt, act: BossAct, T: ColossusTuning) {
   const def = s.cat.enemy(e.kind);
   switch (act.kind as ColossusAct) {
     case 'slam':
-    case 'breaker':
       setReady(e, 'slam', t + cooldown(s, e, T, def.attack.cooldownMs));
       if (e.boss!.finalPhase) rings(s, e, act.x, act.y);
       return;

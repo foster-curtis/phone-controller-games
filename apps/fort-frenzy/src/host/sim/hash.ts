@@ -1,12 +1,12 @@
 // State hash (SPEC §15.3): FNV-1a over a canonical serialization of `World`, for determinism tests and
 // replays. Canonical = keys in insertion order (the sim always builds objects the same way), numbers
 // as their shortest round-trip text, functions skipped. Derived or transient parts are left out: the
-// spatial hash (rebuilt each step), the flow fields (rebuilt from the structures), the tile kinds
-// (constant) and the step's events.
+// spatial hash (rebuilt each step), the flow fields (derived from the map and players), the tile
+// grid (constant) and the step's events.
 import { fnv1a } from '@pcg/game-kit';
 import type { World } from './types';
 
-const SKIP_WORLD = new Set(['spatial', 'fields', 'events']);
+const SKIP_WORLD = new Set(['spatial', 'fields', 'events', 'grid']);
 const FNV_OFFSET = 0x811c9dc5;
 
 function feed(h: number, v: unknown): number {
@@ -53,10 +53,6 @@ export function stateHash(world: World): number {
   let h = FNV_OFFSET;
   for (const k of Object.keys(world) as (keyof World)[]) {
     if (SKIP_WORLD.has(k)) continue;
-    if (k === 'grid') {
-      h = feed(fnv1a('grid:', h), world.grid.occupant);
-      continue;
-    }
     h = feed(fnv1a(k + ':', h), world[k]);
   }
   return h >>> 0;

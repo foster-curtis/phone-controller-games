@@ -53,7 +53,7 @@ const SHOP: TeamView['shop'] = [
     holdToConfirm: false,
   },
   {
-    id: 'arrow_rate',
+    id: 'base_hp',
     tier: 1,
     maxTier: 3,
     price: 320,
@@ -61,7 +61,7 @@ const SHOP: TeamView['shop'] = [
     holdToConfirm: true,
   },
   {
-    id: 'spiked_walls',
+    id: 'archer_damage',
     tier: 0,
     maxTier: 1,
     price: 420,
@@ -77,15 +77,7 @@ const SHOP: TeamView['shop'] = [
     holdToConfirm: false,
   },
   {
-    id: 'crate',
-    tier: 0,
-    maxTier: 1,
-    price: 40,
-    visible: true,
-    holdToConfirm: false,
-  },
-  {
-    id: 'wall_hp',
+    id: 'archer_third',
     tier: 3,
     maxTier: 3,
     price: null,
@@ -99,14 +91,6 @@ const SHOP: TeamView['shop'] = [
     price: 500,
     visible: true,
     holdToConfirm: true,
-  },
-  {
-    id: 'emergency_kit',
-    tier: 0,
-    maxTier: 1,
-    price: 150,
-    visible: true,
-    holdToConfirm: false,
   },
 ];
 
@@ -130,7 +114,7 @@ export function sampleTeam(
     leaderId: 'dev',
     roster: roster(me),
     shop: SHOP,
-    wishlist: [{ item: 'spiked_walls', by: 'p2' }],
+    wishlist: [{ item: 'archer_damage', by: 'p2' }],
     nextWave: null,
     summary: null,
     ...over,

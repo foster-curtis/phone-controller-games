@@ -1,11 +1,11 @@
-// Steps 7–10 (SPEC §15.3): status effects and `onTick` hooks, deaths (coins, crate drops, flow field
-// rebuilds), the wave spawner with 3 s lane warnings, and the phase checks: wave cleared, base
+// Steps 8–11 (SPEC §15.3): status effects and `onTick` hooks, deaths (coins, destroyed builds), the
+// wave spawner with portal flares `rules.flareMs` ahead, and the phase checks: wave cleared, base
 // destroyed, build timer and ready-up. Also the phase transitions the commands reuse.
 import { tickEffects } from '../systems/effects';
-import { generateWave, playerScale, waveRng } from '../systems/waves';
+import { PORTAL_IDS, type PortalId } from '../../shared/ids';
+import { generateWave, waveRng } from '../systems/waves';
 import { bossSpawn, collapseAfterBoss } from './boss';
 import { closeOffers, dealOffers } from './cards';
-import { dropAll } from './crates';
 import { clearWishlist } from './shop';
 import { releaseAll, respawn } from './players';
 import { effects as effectDefs } from './registry';
@@ -59,7 +59,7 @@ export function stepEffects(s: FullState): void {
     if (u.mods.length > 0) refreshStats(u, s.baseStats.get(u.id)!, effectDefs, s.caps);
   }
   for (const e of w.enemies) if (e.hp > 0) tickUnit(s, e);
-  for (const st of w.structures) if (st.effects.length > 0 || st.mods.length > 0) tickUnit(s, st);
+  for (const b of w.builds) if (b.effects.length > 0 || b.mods.length > 0) tickUnit(s, b);
 }
 
 // ---- step 8: deaths -------------------------------------------------------------------------------
@@ -71,7 +71,9 @@ function coinsFor(s: FullState, e: EnemyEnt, paid: Set<number>): number {
   // A group pays once, when its last unit dies (§9.1), even if several die in the same step.
   if (groupLeft || paid.has(e.group)) return 0;
   paid.add(e.group);
-  return Math.round(s.cat.enemy(e.kind).budget * s.cat.difficulty.coinIncome);
+  return Math.round(
+    s.cat.enemy(e.kind).budget * s.cat.rules.coinRate * s.cat.difficulty.coinIncome,
+  );
 }
 
 export function stepDeaths(s: FullState): void {
@@ -99,7 +101,7 @@ export function stepDeaths(s: FullState): void {
   }
   w.enemies.length = write;
 
-  // Players: respawn at the base after the respawn time, dropping every crate carried (§5).
+  // Players: respawn at the base after the respawn time (§5).
   for (const p of w.players) {
     if (p.respawnAt !== null || p.hp > 0) continue;
     const killerId = s.killers.get(p.id) ?? null;
@@ -107,7 +109,6 @@ export function stepDeaths(s: FullState): void {
     p.hp = 0;
     p.respawnAt = t + s.cat.steps(p.stats.respawnMs);
     p.run.deaths++;
-    dropAll(s, p);
     releaseAll(p);
     p.push = null;
     s.emit({ e: 'death', id: p.id, what: 'player', killer: killerId, x: p.x, y: p.y });
@@ -115,23 +116,17 @@ export function stepDeaths(s: FullState): void {
     for (const f of s.hooks(p, 'onDeath')) f(s, p, killer);
   }
 
-  // Structures: a destroyed blocker rebuilds the flow fields this step.
+  // HP builds at 0 are destroyed (§7.1): removed, `buildGone`.
   write = 0;
-  for (const st of w.structures) {
-    // A snare whose last discharge is used fizzles out and frees its tile (§7.1): no `destroyed`
-    // event (its `snareDischarge` with 0 left says so) and no flow-field rebuild (not a blocker).
-    if (!st.damageable && st.discharges !== null && st.discharges <= 0) {
-      s.removeUnit(st.id);
+  for (const b of w.builds) {
+    if (!b.targetable || b.hp > 0) {
+      w.builds[write++] = b;
       continue;
     }
-    if (!st.damageable || st.hp > 0) {
-      w.structures[write++] = st;
-      continue;
-    }
-    s.emit({ e: 'destroyed', id: st.id, structure: st.kind, tile: st.tile });
-    s.removeUnit(st.id);
+    s.emit({ e: 'buildGone', build: b.id, kind: b.kind, destroyed: true });
+    s.removeUnit(b.id);
   }
-  w.structures.length = write;
+  w.builds.length = write;
 
   // Soldiers (FF9): the fallen collapse and return at the next build phase (squad/fillSquads).
   write = 0;
@@ -147,8 +142,6 @@ export function stepDeaths(s: FullState): void {
     s.removeUnit(u.id);
   }
   w.soldiers.length = write;
-
-  if (w.fields.dirty) s.rebuildFields();
 }
 
 // ---- step 9: spawner ------------------------------------------------------------------------------
@@ -157,30 +150,26 @@ export function stepSpawner(s: FullState): void {
   const w = s.world;
   if (w.phase !== 'combat' || w.spawns.length === 0) return;
   const t = w.tick;
-  const warn = s.cat.steps(s.cat.rules.spawnWarningMs);
+  const flare = s.cat.steps(s.cat.rules.flareMs);
   let write = 0;
   for (const g of w.spawns) {
-    if (!g.warned && t >= g.atTick - warn) {
-      g.warned = true;
-      s.emit({ e: 'laneWarning', lane: g.lane, spawnsAtTick: g.atTick });
+    // The portal flares about 1 s before it spawns a group (§3.1, §9.4).
+    if (!g.flared && t >= g.atTick - flare) {
+      g.flared = true;
+      s.emit({ e: 'portalFlare', portal: g.portal });
     }
     if (t < g.atTick) {
       w.spawns[write++] = g;
       continue;
     }
-    spawnGroup(s, g.enemy, g.lane, g.count);
+    spawnGroup(s, g.enemy, g.portal, g.count);
   }
   w.spawns.length = write;
 }
 
-/** `count` units of `enemy` just outside `lane`'s edge, spread across the lane (combat stream jitter). */
-export function spawnGroup(
-  s: FullState,
-  enemy: EnemyEnt['kind'],
-  lane: NonNullable<EnemyEnt['lane']>,
-  count: number,
-) {
-  const L = s.cat.map.lanes[lane];
+/** `count` units of `enemy` just outside `portal`'s edge, spread across it (combat stream jitter). */
+export function spawnGroup(s: FullState, enemy: EnemyEnt['kind'], portal: PortalId, count: number) {
+  const L = s.cat.map.portals[portal];
   let ex = 0;
   let ey = 0;
   for (const [c, r] of L.entry) {
@@ -212,7 +201,7 @@ export function spawnGroup(
       x = L.spawn.x + px * off;
       y = L.spawn.y + py * off;
     }
-    const e = s.spawnEnemy(enemy, x, y, lane, group);
+    const e = s.spawnEnemy(enemy, x, y, portal, group);
     group ??= e.id;
   }
 }
@@ -248,15 +237,25 @@ export function startCombat(s: FullState): void {
   const w = s.world;
   const cat = s.cat;
   const connected = w.players.filter((p) => p.connected);
-  const ranged = connected.some((p) => p.classId === 'ranger' || p.classId === 'artificer');
+  const ranged = connected.some((p) => cat.knight(p.classId).hitsFlyers);
+  // The player-count table (§9.4), fixed from the players connected now (§11.3).
+  const row = cat.playerCount(Math.max(1, connected.length));
   w.team.scaling = {
     players: connected.length,
-    mult: playerScale(connected.length, cat.scaling),
+    budget: row.budget,
+    bossHp: row.bossHp,
+    respawnMs: row.respawnMs * cat.difficulty.respawn,
+    activeCap: Math.min(connected.length + 1, PORTAL_IDS.length),
     flyers: ranged,
   };
   for (const p of w.players) {
     p.ready = false;
-    p.ghost = null;
+    // Respawn = table × difficulty (§5); Quick Recovery still subtracts through the stat.
+    const base = s.baseStats.get(p.id);
+    if (base) {
+      base.respawnMs = w.team.scaling.respawnMs;
+      refreshStats(p, base, effectDefs, s.caps);
+    }
   }
   // Offers not taken are gone, and the wishlist clears at the wave start (§6.1, §6.2; FF12).
   closeOffers(s);
@@ -269,32 +268,36 @@ export function startCombat(s: FullState): void {
       return { id, cost: e.budget, groupSize: e.groupSize };
     });
     const ground = def.allowed.filter((id) => !cat.enemy(id).flying);
+    const rng = waveRng(w.seed, w.wave);
+    // Every portal is live from wave 1; groups are dealt round-robin over all six (RD3 adds the hot
+    // side, the active-portal cap and the hot share).
     const groups = generateWave({
-      budget: def.budget * w.team.scaling.mult * cat.difficulty.budget,
+      budget: def.budget * w.team.scaling.budget * cat.difficulty.budget,
       pool,
-      guaranteed: def.guaranteed.map((g) => ({ id: g.enemy, count: g.count, lane: g.lane })),
-      lanes: def.lanes,
+      guaranteed: def.guaranteed.map((g) => ({ id: g.enemy, count: g.count, lane: g.portal })),
+      lanes: PORTAL_IDS,
       durationMs: def.durationMs,
       substitute: ranged ? undefined : { flyer: ground },
-      rng: waveRng(w.seed, w.wave),
+      rng,
     });
-    // Every group spawns after its lane has glowed for the warning time (§9.4).
-    const lead = cat.steps(cat.rules.spawnWarningMs);
+    // Every group spawns after its portal has flared (§9.4).
+    const lead = cat.steps(cat.rules.flareMs);
     for (const g of groups) {
       w.spawns.push({
         atTick: w.tick + lead + Math.round((g.atMs * 60) / 1000),
-        lane: g.lane as NonNullable<EnemyEnt['lane']>,
+        portal: g.lane as PortalId,
         enemy: g.id,
         count: g.count,
-        warned: false,
+        hot: null,
+        flared: false,
       });
     }
-    // A boss wave's boss walks in first, up its first lane (§9.2, FF11).
-    const boss = bossSpawn(def, w.tick + lead);
+    // A boss wave's boss walks in first, from a seeded portal (§9.2, §9.3).
+    const boss = bossSpawn(def, w.tick + lead, rng.pick(PORTAL_IDS));
     if (boss) w.spawns.push(boss);
   }
-  // The Hunters' tower threat picks up range cards and sentries bought in the build (FF10-fix-1).
-  s.rebuildFields();
+  // The Hunters' sentry threat picks up range upgrades bought in the build (FF10-fix-1).
+  s.repriceHunters();
   setPhase(s, 'combat', null);
 }
 

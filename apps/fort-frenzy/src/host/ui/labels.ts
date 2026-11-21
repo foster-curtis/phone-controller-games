@@ -48,37 +48,21 @@ export const ENEMY_RIG: Record<EnemyId, string> = {
 };
 
 export const SHOP_NAME: Record<ShopItemId, string> = {
-  crate: 'Power cell',
   repair: 'Base repair',
   archer_damage: 'Sentry damage',
   archer_range: 'Sentry range',
   archer_third: 'Third sentry',
-  squad_stats: 'Squad stats',
-  arrow_rate: 'Pulse turret fire rate',
-  bomb_radius: 'Mortar blast radius',
-  tower_hp: 'Tower HP',
-  wall_hp: 'Wall HP',
-  snare_charges: 'Shock net charges',
-  spiked_walls: 'Charged walls',
+  base_hp: 'Base max HP',
   base_armor: 'Base armor',
-  emergency_kit: 'Emergency kit',
 };
 
 export const SHOP_ICON: Record<ShopItemId, string> = {
-  crate: 'cell',
   repair: 'repair',
   archer_damage: 'sentry-damage',
   archer_range: 'sentry-range',
   archer_third: 'sentry-third',
-  squad_stats: 'squad',
-  arrow_rate: 'turret-rate',
-  bomb_radius: 'mortar-radius',
-  tower_hp: 'tower-hp',
-  wall_hp: 'wall-hp',
-  snare_charges: 'net-charges',
-  spiked_walls: 'charged-walls',
+  base_hp: 'base-hp',
   base_armor: 'base-armor',
-  emergency_kit: 'emergency-kit',
 };
 
 export const DIFFICULTY_NAME: Record<DifficultyId, string> = {

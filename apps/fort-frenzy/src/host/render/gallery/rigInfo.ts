@@ -27,5 +27,4 @@ export const RIG_INFO: Record<string, RigInfo> = {
   mite: { hitbox: 0.12, bodyH: 22, legH: 8, shadow: [8, 4.8] },
   stalker: { hitbox: 0.38, bodyH: 70, legH: 30, shadow: [26, 15.6] },
   colossus: { hitbox: 1.2, bodyH: 280, legH: 90, shadow: [60, 36] },
-  mortar: { hitbox: 0.5, bodyH: 90, legH: 20, shadow: [0, 0] },
 };

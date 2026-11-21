@@ -2,6 +2,7 @@
 // (spawner, warnings, scaling), wave clear, victory, defeat, summary.
 import { describe, expect, it } from 'vitest';
 import { rules, waves } from '../../../content/balance';
+import { PORTAL_IDS } from '../../../shared/ids';
 import { createSim } from '../index';
 import { harness, startOf } from './harness';
 
@@ -57,25 +58,52 @@ describe('countdown and build', () => {
 });
 
 describe('combat: spawner, warnings, scaling', () => {
-  it('each group is announced on its lane 3 s before it spawns', () => {
+  it('a group’s portal flares flareMs before it spawns; groups use all six portals', () => {
     const h = harness(2);
     h.toCombat();
-    const warnings: { lane: string; spawnsAtTick: number; at: number }[] = [];
-    const spawns: { lane: string | null; at: number }[] = [];
+    const flares: { portal: string; at: number }[] = [];
+    const spawns: { portal: string | null; at: number }[] = [];
     h.sim.command({ c: 'debug', slot: -1, action: 'invincible', on: true });
     for (let i = 0; i < 60 * 40 && h.sim.world.phase === 'combat'; i++) {
       h.sim.step();
       const t = h.sim.world.tick - 1;
-      for (const e of h.events('laneWarning')) warnings.push({ ...e, at: t });
-      for (const e of h.events('spawn')) spawns.push({ lane: e.lane, at: t });
+      for (const e of h.events('portalFlare')) flares.push({ portal: e.portal, at: t });
+      for (const e of h.events('spawn')) spawns.push({ portal: e.portal, at: t });
     }
-    expect(warnings.length).toBeGreaterThan(0);
-    for (const w of warnings) {
-      expect(w.lane).toBe('bottom');
-      expect(w.spawnsAtTick - w.at).toBe(steps(rules.spawnWarningMs));
-      expect(spawns.some((s) => s.at === w.spawnsAtTick)).toBe(true);
+    expect(flares.length).toBeGreaterThan(0);
+    const lead = steps(rules.flareMs);
+    for (const fl of flares) {
+      expect(PORTAL_IDS).toContain(fl.portal);
+      expect(spawns.some((x) => x.portal === fl.portal && x.at === fl.at + lead)).toBe(true);
     }
-    expect(spawns.every((s) => s.lane === 'bottom')).toBe(true);
+    for (const x of spawns) expect(PORTAL_IDS).toContain(x.portal);
+    // Round-robin over every portal (wave 1 has more groups than portals).
+    expect(new Set(spawns.map((x) => x.portal)).size).toBe(PORTAL_IDS.length);
+  });
+
+  it('debug spawn: a group at the chosen portal; an unknown portal is refused', () => {
+    const h = harness(1);
+    h.toCombat();
+    h.holdSpawns();
+    h.sim.command({ c: 'debug', slot: -1, action: 'spawn', enemy: 'grunt', portal: 'right-s' });
+    h.sim.step();
+    const e = h.sim.world.enemies.find((x) => x.portal === 'right-s')!;
+    const at = h.sim.content.map!.portals['right-s'].spawn;
+    expect(Math.abs(e.x - at.x)).toBeLessThan(1);
+    expect(Math.abs(e.y - at.y)).toBeLessThan(1);
+    h.sim.command({
+      c: 'debug',
+      slot: -1,
+      action: 'spawn',
+      enemy: 'grunt',
+      portal: 'top' as never,
+      ref: 9,
+    });
+    h.sim.step();
+    expect(h.events('command').find((x) => x.ref === 9)).toMatchObject({
+      ok: false,
+      reason: 'invalid',
+    });
   });
 
   it('scales the wave from the players connected at its start', () => {
@@ -91,10 +119,17 @@ describe('combat: spawner, warnings, scaling', () => {
       return { n, scaling: sim.world.team.scaling };
     };
     const two = count(4, 2);
-    expect(two.scaling).toEqual({ players: 2, mult: 1, flyers: true });
+    expect(two.scaling).toEqual({
+      players: 2,
+      budget: 1,
+      bossHp: 1,
+      respawnMs: 10_000,
+      activeCap: 3,
+      flyers: true,
+    });
     expect(Math.abs(two.n - waves[0]!.budget)).toBeLessThanOrEqual(1);
     const four = count(4, 4);
-    expect(four.scaling.mult).toBe(1.5);
+    expect(four.scaling.budget).toBe(1.5);
     expect(Math.abs(four.n - waves[0]!.budget * 1.5)).toBeLessThanOrEqual(1);
   });
 });

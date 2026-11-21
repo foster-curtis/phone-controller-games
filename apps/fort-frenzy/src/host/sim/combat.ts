@@ -1,10 +1,8 @@
-// Structures and base archers (step 4, after the enemy AI), projectiles and danger markers (step 6)
-// (SPEC §3.5, §7, §15.3). Every hit goes through `applyDamage`. Our shots and shells hit enemy
-// bodies (body.ts, C4); theirs hit feet circles.
-import { bodyAimY, circleHitsBody, segmentHitsBody } from './body';
+// Sentries (step 4, after the enemy AI), projectiles and danger markers (step 7) (SPEC §3.5, §15.3).
+// Every hit goes through `applyDamage`. Our shots hit enemy bodies (body.ts, C4); theirs hit feet
+// circles. Nothing blocks shots (§15.3).
+import { bodyAimY, segmentHitsBody } from './body';
 import { rectDist } from './geometry';
-import { structureBehaviors } from './registry';
-import { shellAt } from './structures/mortar';
 import type { FullState } from './state';
 import {
   BASE_ID,
@@ -16,16 +14,8 @@ import {
   type Unit,
 } from './types';
 
-const TOWERS = new Set(['arrow_tower', 'bomb_tower']);
 /** Peak height of an arcing shell, tiles. */
 export const ARC_APEX = 2.5;
-
-export function stepStructures(s: FullState): void {
-  for (const st of s.world.structures) {
-    if (st.damageable && st.hp <= 0) continue;
-    structureBehaviors[st.kind]?.(s, st);
-  }
-}
 
 /** Base archers (§3.5): each shoots the nearest enemy in range, Flyers included. */
 export function stepArchers(s: FullState): void {
@@ -90,21 +80,15 @@ function hittable(s: FullState, p: ProjectileEnt, id: number): Unit | null {
   return kind === 'soldier' ? u : null;
 }
 
-/** Straight shots: move, stop on blocking structures, hit the first unit along the step's segment. */
+/** Straight shots: move, hit the first unit along the step's segment. Arcing shells fly over. */
 export function stepProjectiles(s: FullState): void {
   const w = s.world;
   const t = w.tick;
-  const { cols, rows, occupant } = w.grid;
   let write = 0;
   for (let i = 0; i < w.projectiles.length; i++) {
     const p = w.projectiles[i]!;
     let alive = true;
-    // Arcing shells: ours (the mortar, FF8) burst where they land; theirs (Siege, FF10) fly over
-    // everything and their danger marker does the damage on landing.
-    if (p.arc && p.side === 'ours') {
-      if (stepShell(s, p)) w.projectiles[write++] = p;
-      continue;
-    }
+    // Arcing shells (Siege, FF10) fly over everything; their danger marker does the damage on landing.
     if (p.arc) {
       const a = p.arc;
       const u = Math.min(1, (t + 1 - a.launchedAt) / Math.max(1, a.landsAt - a.launchedAt));
@@ -120,19 +104,6 @@ export function stepProjectiles(s: FullState): void {
     const sy = p.vy / 60;
     const x1 = x0 + sx;
     const y1 = y0 + sy;
-
-    if (p.blockedBy.length > 0) {
-      const c = Math.floor(x1);
-      const r = Math.floor(y1);
-      if (c >= 0 && r >= 0 && c < cols && r < rows) {
-        const occ = occupant[r * cols + c]!;
-        const st = occ === 0 ? undefined : (s.units.get(occ) as { kind?: string } | undefined);
-        if (st?.kind !== undefined) {
-          const what = st.kind === 'wall' ? 'wall' : TOWERS.has(st.kind) ? 'tower' : null;
-          if (what !== null && p.blockedBy.includes(what)) alive = false;
-        }
-      }
-    }
 
     if (alive) {
       const len2 = sx * sx + sy * sy;
@@ -203,42 +174,6 @@ export function stepProjectiles(s: FullState): void {
   w.projectiles.length = write;
 }
 
-/**
- * One step of an arcing shell (FF8): it follows `shellAt` and, on its landing step, hits everything
- * its side can hit within the blast radius (ground only unless it hits Flyers). False = gone.
- */
-function stepShell(s: FullState, p: ProjectileEnt): boolean {
-  const arc = p.arc!;
-  const t = s.world.tick + 1;
-  const span = Math.max(1, arc.landsAt - arc.launchedAt);
-  const at = shellAt(arc, (t - arc.launchedAt) / span);
-  p.x = at.x;
-  p.y = at.y;
-  p.z = at.z;
-  if (t < arc.landsAt) return true;
-  // The blast reaches enemy bodies (C4), whose feet may stand up to `reach` south of it.
-  const m = s.cat.bodyMax;
-  const pad = arc.radius + m.r;
-  const ids = s.world.spatial
-    .queryBox(
-      arc.to.x - pad,
-      arc.to.y - pad,
-      arc.to.x + pad,
-      arc.to.y + arc.radius + m.reach,
-      s.scratch,
-    )
-    .slice();
-  for (const id of ids) {
-    const u = hittable(s, p, id);
-    if (!u) continue;
-    const b = s.cat.body((u as EnemyEnt).kind);
-    if (!circleHitsBody(arc.to.x, arc.to.y, arc.radius, u.x, u.y, b)) continue;
-    s.damage({ source: p.source, target: u.id, amount: p.damage, kind: p.kind, tags: [...p.tags] });
-    for (const fx of p.effects) s.applyEffect(u.id, fx, p.source);
-  }
-  return false;
-}
-
 function insideMarker(m: DangerMarker, u: Unit): boolean {
   const dx = u.x - m.x;
   const dy = u.y - m.y;
@@ -255,7 +190,7 @@ function insideMarker(m: DangerMarker, u: Unit): boolean {
   return true;
 }
 
-/** Telegraphed attacks land on their tick and hit everything inside (players, soldiers, structures). */
+/** Telegraphed attacks land on their tick and hit everything inside (players, soldiers, HP builds). */
 export function stepMarkers(s: FullState): void {
   const w = s.world;
   if (w.markers.length === 0) return;
@@ -276,9 +211,9 @@ export function stepMarkers(s: FullState): void {
     const victims: Unit[] = [];
     for (const p of w.players) if (s.targetable(p) && insideMarker(m, p)) victims.push(p);
     for (const u of w.soldiers) if (u.hp > 0 && insideMarker(m, u)) victims.push(u);
-    if (m.payload.hitsStructures) {
-      for (const st of w.structures)
-        if (st.damageable && st.hp > 0 && insideMarker(m, st)) victims.push(st);
+    if (m.payload.hitsBuilds) {
+      for (const b of w.builds)
+        if (b.targetable && b.state !== 'flight' && b.hp > 0 && insideMarker(m, b)) victims.push(b);
       // The Citadel too (Siege shells, FF10), when the marker reaches its footprint.
       if (w.base.hp > 0 && rectDist(m.x, m.y, s.baseRect) <= m.r) victims.push(w.base);
     }

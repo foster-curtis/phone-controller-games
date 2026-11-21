@@ -1,17 +1,14 @@
-// FF10 enemy scenarios (SPEC §9, §9.1, §15.5): Runner burst, Brute and walls, Siege range and shells,
-// Hunter fields and retargeting, Flyers over walls and their substitution, the aggro leash, Swarm
-// packs and coins per kill. Walls come from a stand-in def until FF8's wall is on main.
+// FF10 enemy scenarios (SPEC §9, §9.1, §15.5): Runner burst, the Brute as a walker (RD10 sends it
+// after builds), Siege range and shells, Hunter fields and retargeting, Flyers and their
+// substitution, the aggro leash, Swarm packs and coins per kill.
 import { describe, expect, it } from 'vitest';
 import { content as baseContent, type Content } from '../../../content';
 import {
-  brute as bruteDef,
-  ranger,
   flyer as flyerDef,
   hunter as hunterDef,
   runner as runnerDef,
   siege as siegeDef,
 } from '../../../content/balance';
-import type { StructureDef } from '../../../content/types';
 import type { ClassId } from '../../../shared/ids';
 import { createCatalog } from '../catalog';
 import { createSim, ScriptedInputSource, type Sim } from '../index';
@@ -19,25 +16,7 @@ import { createState } from '../state';
 import { BASE_ID, type EnemyEnt, type SimEvent } from '../types';
 import { startOf } from './harness';
 
-/** FF8 owns the real wall; this stands in with the same shape (blocks, damageable). */
-const wallStub: StructureDef = {
-  id: 'wall',
-  cost: 1,
-  hp: 400,
-  pathCost: 20,
-  blocksProjectiles: true,
-};
-
-const content: Content = {
-  ...baseContent,
-  structures: baseContent.structures.some((s) => s.id === 'wall')
-    ? baseContent.structures
-    : [...baseContent.structures, wallStub],
-  // A non-ranged class for the Flyer check (FF8's Warden may not be on main yet).
-  characters: baseContent.characters.some((c) => c.id === 'warden')
-    ? baseContent.characters
-    : [...baseContent.characters, { ...ranger, id: 'warden' as const }],
-};
+const content: Content = baseContent;
 
 interface Setup {
   sim: Sim;
@@ -116,60 +95,14 @@ describe('Runner', () => {
     expect(evs).toContainEqual(expect.objectContaining({ e: 'death', id: r.id, killer: null }));
     expect(w.team.coins).toBe(coins);
   });
-
-  it('a wall in its way takes the burst instead', () => {
-    const t = quiet();
-    for (let c = 0; c < 36; c++) t.sim.place('wall', c, 10, 0);
-    const wall = t.sim.world.structures.find((s) => s.tile[0] === 17 && s.tile[1] === 10)!;
-    const hp = t.sim.world.base.hp;
-    const r = t.sim.spawnEnemy('runner', 17.5, 14);
-    t.until(() => !t.sim.world.enemies.includes(r), 60 * 10);
-    expect(t.sim.world.base.hp).toBe(hp);
-    const hurt = t.sim.world.structures.filter((s) => s.kind === 'wall' && s.hp < s.maxHp);
-    expect(hurt).toHaveLength(1);
-    expect(hurt[0]!.maxHp - hurt[0]!.hp).toBe(runnerDef.attack.damage);
-    expect(Math.abs(hurt[0]!.tile[0] - wall.tile[0])).toBeLessThanOrEqual(2);
-  });
 });
 
 describe('Brute', () => {
-  it('smashes through a wall a Grunt walks around (2× damage to walls)', () => {
-    const walk = (kind: 'brute' | 'grunt') => {
-      const t = quiet();
-      for (let c = 13; c <= 22; c++) t.sim.place('wall', c, 10, 0);
-      const walls = new Set(
-        t.sim.world.structures.filter((s) => s.kind === 'wall').map((s) => s.id),
-      );
-      const e = t.sim.spawnEnemy(kind, 17.5, 15);
-      const evs: SimEvent[] = [];
-      for (let i = 0; i < 60 * 40 && e.y > 3; i++) evs.push(...t.run(1));
-      const wallHits = evs.filter(
-        (x): x is Extract<SimEvent, { e: 'damage' }> =>
-          x.e === 'damage' && walls.has(x.target) && x.source === e.id,
-      );
-      return { e, wallHits };
-    };
-    const b = walk('brute');
-    expect(b.wallHits.length).toBeGreaterThan(0);
-    expect(b.wallHits[0]!.amount).toBe(bruteDef.attack.damage * 2);
-    const g = walk('grunt');
-    expect(g.wallHits).toHaveLength(0);
-    expect(g.e.y).toBeLessThanOrEqual(3); // got round
-  });
-
-  it('a wall in the way of a chase gets smashed, and the Brute returns to its path', () => {
+  it('walks the ground field to the Citadel like a Grunt (RD10 sends it after builds)', () => {
     const t = quiet();
-    const p = t.sim.world.players[0]!;
-    const b = t.sim.spawnEnemy('brute', 10.5, 14.5);
-    p.x = 12.6;
-    p.y = 14.5;
-    t.until(() => b.ai === 'aggro', 60);
-    t.sim.place('wall', 11, 14, 0);
-    const wall = t.sim.world.structures.find((s) => s.kind === 'wall')!;
-    t.until(() => wall.hp < wall.maxHp, 60 * 5);
-    p.x = 33;
-    p.y = 4;
-    t.until(() => b.ai === 'path', 60 * 15);
+    const b = t.sim.spawnEnemy('brute', 17.5, 20);
+    t.until(() => b.ai === 'attack', 60 * 60);
+    expect(b.hp).toBe(b.maxHp);
   });
 });
 
@@ -191,17 +124,6 @@ describe('Siege', () => {
     t.run(60 * 5);
     expect(s.y).toBeCloseTo(y, 5); // planted
     expect(w.players[0]!.hp).toBe(w.players[0]!.maxHp);
-  });
-
-  it('shells a tower in range before the base, from beyond the tower’s reach', () => {
-    const t = quiet();
-    const w = t.sim.world;
-    const tower = t.sim.place('arrow_tower', 17, 12, 0);
-    const s = t.sim.spawnEnemy('siege', 17.5, 23);
-    t.until(() => tower.hp < tower.maxHp, 60 * 30);
-    expect(Math.hypot(s.x - tower.x, s.y - tower.y)).toBeGreaterThan(6);
-    expect(s.hp).toBe(s.maxHp);
-    expect(w.base.hp).toBe(w.base.maxHp);
   });
 });
 
@@ -270,75 +192,19 @@ describe('Hunter', () => {
     t.sim.spawnEnemy('hunter', 17.5, 4);
     const evs = t.run(60 * 25);
     expect(hits(evs, BASE_ID)).toHaveLength(0);
-    expect(p.hp).toBeLessThan(p.maxHp);
-  });
-
-  // C3 (FF10-fix-1): the Hunter's field prices tower range, so it slips round the defenses.
-  const turretRange = 6;
-  function towerRun(px: number, py: number) {
-    const t = quiet();
-    const w = t.sim.world;
-    const p = w.players[0]!;
-    p.x = px;
-    p.y = py;
-    const tower = t.sim.place('arrow_tower', 18, 19, 0);
-    t.run(1);
-    const h = t.sim.spawnEnemy('hunter', 5.5, 20.5);
-    h.hp = h.maxHp = 1e9;
-    let nearest = Infinity;
-    let shots = 0;
-    for (let i = 0; i < 60 * 40 && p.hp === p.maxHp; i++) {
-      const evs = t.run(1);
-      shots += evs.filter((e) => e.e === 'attack' && e.source === tower.id).length;
-      nearest = Math.min(nearest, Math.hypot(h.x - tower.x, h.y - tower.y) - h.r);
-    }
-    return { t, p, h, tower, nearest, shots };
-  }
-
-  it('takes a route round a tower’s range when there is one', () => {
-    const r = towerRun(30.5, 20.5);
-    expect(r.p.hp).toBeLessThan(r.p.maxHp);
-    expect(r.nearest).toBeGreaterThan(turretRange);
-    expect(r.shots).toBe(0);
-  });
-
-  it('still reaches a target standing in tower range', () => {
-    const r = towerRun(20.5, 19.5);
-    expect(r.p.hp).toBeLessThan(r.p.maxHp);
-    expect(r.shots).toBeGreaterThan(0);
-  });
-
-  it('re-prices its field when a tower is built or destroyed', () => {
-    const t = quiet();
-    const w = t.sim.world;
-    const p = w.players[0]!;
-    p.x = 30.5;
-    p.y = 20.5;
-    const probe = 20 * 36 + 14; // a tile 4 left of where the tower goes
-    t.sim.spawnEnemy('hunter', 5.5, 20.5);
-    t.run(1);
-    const d0 = w.fields.hunted[0]!.dist[probe]!;
-    const tower = t.sim.place('arrow_tower', 18, 19, 0);
-    t.run(1);
-    const d1 = w.fields.hunted[0]!.dist[probe]!;
-    expect(d1).toBeGreaterThan(d0);
-    tower.hp = 0;
-    t.run(2);
-    expect(w.fields.hunted[0]!.dist[probe]!).toBeCloseTo(d0, 4);
+    expect(hits(evs, p.id).length).toBeGreaterThan(0);
   });
 });
 
 describe('Flyer', () => {
-  it('flies over a sealed wall line to the Citadel and shoots it', () => {
+  it('flies to the Citadel and shoots it', () => {
     const t = quiet();
     const w = t.sim.world;
-    for (let c = 0; c < 36; c++) t.sim.place('wall', c, 10, 0);
     const f = t.sim.spawnEnemy('flyer', 17.5, 18);
     const evs: SimEvent[] = [];
     for (let i = 0; i < 60 * 20 && w.base.hp === w.base.maxHp; i++) evs.push(...t.run(1));
     expect(f.y).toBeLessThan(10);
     expect(w.base.maxHp - w.base.hp).toBe(flyerDef.attack.damage);
-    expect(w.structures.every((s) => s.hp === s.maxHp)).toBe(true);
   });
 
   it('melee can’t hit it', () => {
@@ -416,7 +282,7 @@ describe('Swarm and coins', () => {
   it('spawns a scattered pack of 8 that pays its 3 coins once, on the last mite', () => {
     const t = quiet();
     const w = t.sim.world;
-    t.sim.command({ c: 'debug', slot: -1, action: 'spawn', enemy: 'swarm', lane: 'bottom' });
+    t.sim.command({ c: 'debug', slot: -1, action: 'spawn', enemy: 'swarm', portal: 'bottom-w' });
     t.run(1);
     const pack = w.enemies.filter((e) => e.kind === 'swarm');
     expect(pack).toHaveLength(8);
@@ -436,7 +302,7 @@ describe('Swarm and coins', () => {
 
   it('a whole pack dying in one step still pays once', () => {
     const t = quiet();
-    t.sim.command({ c: 'debug', slot: -1, action: 'spawn', enemy: 'swarm', lane: 'left' });
+    t.sim.command({ c: 'debug', slot: -1, action: 'spawn', enemy: 'swarm', portal: 'bottom-w' });
     t.run(1);
     const coins = t.sim.world.team.coins;
     for (const e of t.sim.world.enemies) e.hp = 0;

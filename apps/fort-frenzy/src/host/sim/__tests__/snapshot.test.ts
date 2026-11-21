@@ -6,7 +6,7 @@ import { content } from '../../../content';
 import { memorySnapshotStore } from '../../net/resume';
 import { createCatalog } from '../catalog';
 import { offerFor } from '../cards';
-import { createSim, stateHash, ScriptedInputSource, type Sim } from '../index';
+import { createSim, stateHash, ScriptedInputSource } from '../index';
 import {
   parseSnapshot,
   resumeStart,
@@ -29,16 +29,6 @@ const meta: SnapshotMeta = {
   ids: (slot) => ({ playerKey: `key-${slot}`, deviceId: `dev-${slot}` }),
 };
 
-/** Open tiles away from the edges, in scan order. */
-function openTiles(sim: Sim, n: number): [number, number][] {
-  const { cols, rows, kinds } = sim.world.grid;
-  const out: [number, number][] = [];
-  for (let r = 2; r < rows - 2 && out.length < n; r++)
-    for (let c = 2; c < cols - 2 && out.length < n; c += 2)
-      if (kinds[r * cols + c] === 'open') out.push([c, r]);
-  return out;
-}
-
 /** A run in the build phase of wave 6 with a bit of everything a snapshot keeps. */
 function busyBuild() {
   const h = harness(4, 11, { classes: CLASSES });
@@ -51,43 +41,28 @@ function busyBuild() {
   expect(w.wave).toBe(6);
   sim.command({ c: 'debug', slot: -1, action: 'coins', amount: 5000 });
   h.run(1);
-  // Shop: whatever the team can buy now (tiers, archers, building upgrades).
-  for (const item of [
-    'archer_third',
-    'archer_damage',
-    'tower_hp',
-    'wall_hp',
-    'snare_charges',
-  ] as const)
+  // Shop: whatever the team can buy now (tiers, sentries, base max HP).
+  for (const item of ['archer_third', 'archer_damage', 'base_hp', 'base_armor'] as const)
     sim.command({ c: 'buy', slot: 0, item });
   h.run(1);
-  // Structures, one fortified, a used net, a damaged wall.
-  const [a, b, c, d] = openTiles(sim, 4);
-  const tower = sim.place('arrow_tower', a![0], a![1], 0);
-  sim.place('wall', b![0], b![1], 1).hp -= 7;
-  const net = sim.place('snare', c![0], c![1], 1);
-  net.discharges! -= 1;
-  sim.place('bomb_tower', d![0], d![1], 0);
+  // Builds (placeholder bodies until RD3 places them): a damaged generator, a spent-down mine.
+  sim.addBuild('shield_gen', 12.25, 9.5, 1).hp -= 7;
+  sim.addBuild('mine', 20.5, 15.75, 0).charges = 1;
+  sim.addBuild('beacon', 8.5, 12.5, 2);
   h.run(1);
   // Cards: slot 0 picks from its offer; the rest keep theirs open.
   const p0 = h.p(0);
   sim.command({ c: 'card', slot: 0, card: p0.offer![0]! });
   sim.command({ c: 'request', slot: 2, item: 'repair', on: true });
   h.run(1);
-  // Fortify the arrow tower directly (the build intent is gone).
-  h.put(1, tower.tile[0] + 1.5, tower.tile[1] + 0.5);
-  h.p(1).crates = 9;
-  tower.fortified = true;
-  h.run(1);
-  expect(tower.fortified).toBe(true);
   // Things the commands can't easily reach in a test.
   w.base.hp -= 120;
   h.p(1).hp -= 30;
-  h.p(2).crates = 2;
-  h.p(2).kits = 1;
   h.p(3).flag = { x: 20.5, y: 14.5 };
   for (const u of w.soldiers) u.veterans = u.index;
-  w.cratePiles.push({ id: w.nextId++, x: 12.25, y: 9.5, n: 3, lockedSlot: null, lockedUntil: 0 });
+  w.soldiers[0]!.hp -= 11;
+  h.p(0).meter = 0.4;
+  h.p(2).growth = { regular: 5, boss: 1 };
   h.p(1).run.kills = 9;
   // The scenario really holds each kind of state.
   expect(Object.values(w.team.shop).filter((n) => n > 0).length).toBeGreaterThanOrEqual(3);
@@ -110,8 +85,15 @@ describe('resume snapshot: round trip', () => {
     const snap = takeSnapshot(h.sim.world, content, meta);
     expect(snap.v).toBe(SNAPSHOT_VERSION);
     expect(snap.wave).toBe(6);
-    expect(snap.structures.length).toBe(4);
-    expect(snap.slots.find((s) => s.classId === 'commander')?.squad?.size).toBeGreaterThan(0);
+    // Three builds and the Commander's flag (a rally_flag build).
+    expect(snap.builds.map((b) => b.kind).sort()).toEqual([
+      'beacon',
+      'mine',
+      'rally_flag',
+      'shield_gen',
+    ]);
+    expect(snap.slots.find((s) => s.classId === 'commander')?.squad?.soldiers.length).toBe(2);
+    expect(snap.slots.find((s) => s.slot === 0)?.meter).toBe(0.4);
 
     // Through JSON, as in localStorage.
     const stored = JSON.parse(JSON.stringify(snap)) as RunSnapshot;
@@ -136,25 +118,23 @@ describe('resume snapshot: round trip', () => {
     expect(r.base.maxHp).toBe(w.base.maxHp);
     expect(r.base.archers.count).toBe(w.base.archers.count);
     const shape = (x: typeof w) =>
-      x.structures.map((s) => [s.kind, s.tile, s.hp, s.maxHp, s.discharges, s.fortified, s.owner]);
+      x.builds.map((b) => [b.kind, b.x, b.y, b.hp, b.maxHp, b.charges, b.owner, b.seq]);
     expect(shape(r)).toEqual(shape(w));
+    expect(r.players.map((p) => p.flag)).toEqual(w.players.map((p) => p.flag));
     for (const p of w.players) {
       const q = r.players.find((x) => x.slot === p.slot)!;
-      expect([q.hp, q.maxHp, q.crates, q.kits, q.cards, q.picked, q.run]).toEqual([
+      expect([q.hp, q.maxHp, q.cards, q.picked, q.run, q.meter, q.growth]).toEqual([
         p.hp,
         p.maxHp,
-        p.crates,
-        p.kits,
         p.cards,
         p.picked,
         p.run,
+        p.meter,
+        p.growth,
       ]);
     }
-    expect(r.soldiers.map((u) => [u.owner, u.index, u.veterans])).toEqual(
-      w.soldiers.map((u) => [u.owner, u.index, u.veterans]),
-    );
-    expect(r.cratePiles.map((c) => [c.x, c.y, c.n])).toEqual(
-      w.cratePiles.map((c) => [c.x, c.y, c.n]),
+    expect(r.soldiers.map((u) => [u.owner, u.index, u.veterans, u.hp])).toEqual(
+      w.soldiers.map((u) => [u.owner, u.index, u.veterans, u.hp]),
     );
   });
 

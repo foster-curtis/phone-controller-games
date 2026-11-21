@@ -1,23 +1,24 @@
 // Balance sheet (SPEC §15.4): every number that tunes Fort Frenzy lives in this one file. The
-// Citadel and run rules, difficulty and player scaling, the four classes, structures, enemies and the
-// Colossus, waves, upgrade cards and the team shop, typed with `satisfies` against ./types. Units:
+// Citadel and run rules, difficulty and player scaling, the classes, the knights and their builds, enemies
+// and the Colossus, waves, upgrade cards, the team shop and the balance harness, typed with `satisfies` against ./types. Units:
 // distances in tiles, speeds in tiles/s, times in ms (the sim converts them to steps at load), damage
 // and HP as plain numbers, `*Pct` and multipliers as fractions. The sim keeps no tuning numbers of its
 // own: card, passive and boss modules read every param from here (a missing one throws, and
 // content.test builds them all). Every value is a starting value for playtesting (§14 #2). The map's
 // layout is ./map.ts.
-import type { LaneId } from '../shared/ids';
 import type {
   BaseDef,
+  BuildDef,
   CardDef,
-  CharacterDef,
+  ClassDef,
   DifficultyDef,
   EnemyDef,
+  HarnessDef,
+  KnightDef,
+  PlayerCountRow,
   RulesDef,
-  ScalingDef,
   ShopItemDef,
   StatMod,
-  StructureDef,
   WaveDef,
 } from './types';
 
@@ -27,7 +28,6 @@ import type {
 
 export const base = {
   hp: 1000,
-  repairPerCrate: 20,
   stages: [0.66, 0.33, 0.1],
   alarmAt: 0.25,
   archers: {
@@ -51,17 +51,20 @@ export const base = {
 
 export const rules = {
   startCoins: 6,
+  coinRate: 1,
   countdownMs: 3000,
+  // RD3 sets the redesign's 20 s cap with the random card pick.
   buildCapMs: 45_000,
-  respawnMs: 10_000,
   victoryMs: 5000,
   defeatMs: 4000,
-  spawnWarningMs: 3000,
+  flareMs: 1000,
   inputStaleMs: 250,
-  dropLockMs: 1000,
-  pickupRadius: 0.9,
-  giveRadius: 2.5,
-  // In front of the gate, below the repair zone.
+  // HP tiers multiply it (classes): tank 176, marksman 88, support 99, control 110.
+  knightHp: 110,
+  regen: { delayMs: 4000, pct: 0.08, everyMs: 1000 },
+  respawnFloorMs: { solo: 4000, team: 5000 },
+  hot: { share: 0.55 },
+  // In front of the gate.
   respawn: [
     { x: 17.2, y: 3.5 },
     { x: 18.8, y: 3.5 },
@@ -74,18 +77,16 @@ export const rules = {
     range: { pctMax: 0.4 },
     moveSpeed: { pctMax: 0.4 },
     damageReduction: { addMax: 0.4 },
-    // Quick Recovery: −2 s a stack, never below 5 s of the 10 s respawn (§6.1).
+    // Quick Recovery: −2 s a stack, at most −5 s (RD3 adds the 4 s / 5 s floors, §5).
     respawnMs: { addMin: -5000 },
     // Deadeye's shorter Steady Aim wait never drops below a fifth of it.
     durationMs: { pctMin: -0.8 },
   },
-  breakerWallCost: 3,
   separation: 0.3,
   knockbackDecay: 0.85,
   projectileRadius: 0.12,
   enemySwingSlack: 0.25,
   enemyShotSlack: 1,
-  fortifyReach: 0.75,
   // About 15% of offers include one rare (§6.1); a boss wave guarantees one.
   cardOffer: { size: 3, rareChance: 0.15 },
   // Fire Arrows' burn ticks every 0.5 s, Venom Bolts' poison every second (§6.1).
@@ -100,21 +101,55 @@ export const rules = {
 // Difficulty (SPEC §2.2) and player-count scaling (§9.4). Starting values, set in playtesting.
 
 export const difficulties: DifficultyDef[] = [
-  { id: 'easy', budget: 0.75, enemyHp: 0.8, enemyDamage: 0.75, baseHp: 1.25, coinIncome: 1.25 },
-  { id: 'normal', budget: 1, enemyHp: 1, enemyDamage: 1, baseHp: 1, coinIncome: 1 },
-  { id: 'hard', budget: 1.25, enemyHp: 1.2, enemyDamage: 1.25, baseHp: 0.85, coinIncome: 0.9 },
+  {
+    id: 'easy',
+    budget: 0.75,
+    enemyHp: 0.8,
+    enemyDamage: 0.75,
+    baseHp: 1.25,
+    coinIncome: 1.25,
+    respawn: 0.8,
+  },
+  { id: 'normal', budget: 1, enemyHp: 1, enemyDamage: 1, baseHp: 1, coinIncome: 1, respawn: 1 },
+  {
+    id: 'hard',
+    budget: 1.25,
+    enemyHp: 1.2,
+    enemyDamage: 1.25,
+    baseHp: 0.85,
+    coinIncome: 0.9,
+    respawn: 1.2,
+  },
 ];
 
-/** `0.5 + 0.25 × players`: 1.0× with 2 players, 1.5× with 4, 2.0× with 6 (§9.4). */
-export const scaling = { base: 0.5, perPlayer: 0.25 } satisfies ScalingDef;
+/** The player-count table (§9.4): one row per player count, fixed at each wave start. */
+export const scaling: PlayerCountRow[] = [
+  { players: 1, budget: 0.6, bossHp: 0.6, respawnMs: 6000 },
+  { players: 2, budget: 1, bossHp: 1, respawnMs: 10_000 },
+  { players: 3, budget: 1.25, bossHp: 1.25, respawnMs: 10_000 },
+  { players: 4, budget: 1.5, bossHp: 1.5, respawnMs: 10_000 },
+  { players: 5, budget: 1.75, bossHp: 1.75, respawnMs: 15_000 },
+  { players: 6, budget: 2, bossHp: 2, respawnMs: 15_000 },
+];
 
-// ==== Characters (knights) =======================================================================
-// Characters (SPEC §8, §10.1 input table, §6 carry). Starting values for playtesting (§14).
-// FF6: the Ranger; FF9: the Artificer and Commander; FF8: the Warden.
+// ==== Classes ====================================================================================
+// The classes (SPEC §8.1): HP tier (× rules.knightHp) and damage band (RD3 applies it); class growth
+// per wave cleared comes with RD11.
+
+export const classes: ClassDef[] = [
+  { id: 'tank', hp: 1.6, damage: 0.9, growth: { regular: [], boss: [] } },
+  { id: 'marksman', hp: 0.8, damage: 1.15, growth: { regular: [], boss: [] } },
+  { id: 'support', hp: 0.9, damage: 0.8, growth: { regular: [], boss: [] } },
+  { id: 'control', hp: 1, damage: 0.95, growth: { regular: [], boss: [] } },
+];
+
+// ==== Knights =====================================================================================
+// The knights (SPEC §8.2, §10.1 input table). Starting values for playtesting (§14). Meters stay empty
+// until RD3 fills them (`meter`); each knight's kit milestone retunes its own section.
 
 export const ranger = {
   id: 'ranger',
-  hp: 100,
+  role: 'marksman',
   moveSpeed: 4.5,
   radius: 0.32,
   // Longbow: the longest range in the game (§8). Bolts fly at render PROJECTILE_SPEEDS.bolt (26 t/s,
@@ -126,7 +161,6 @@ export const ranger = {
     cooldownMs: 600,
     speed: 22,
     hitsFlyers: true,
-    blockedBy: ['wall', 'tower'],
   },
   // A wide circle around the Ranger: light area damage and knockback (§8). Radius 3 → 3.5 (C3).
   super: {
@@ -138,24 +172,23 @@ export const ranger = {
     knockback: 2.5,
     hitsFlyers: true,
   },
-  input: { main: 'aimed', super: 'tap' },
+  build: 'mine',
+  input: { main: 'aimed', super: 'tap', build: 'tap' },
+  hitsFlyers: true,
   /** Super charge per point of damage dealt (200 damage fills it). */
-  superChargeRate: 0.005,
+  superCharge: { perDamage: 0.005 },
+  meter: { perSec: 0, perPoint: 0, sources: ['damage'] },
+  passiveCard: 'steady_aim',
   passive: { module: 'steady_aim', params: { stillMs: 600, damagePct: 0.25, rangePct: 0.2 } },
-  // Arc order left, up, right.
-  build: ['arrow_tower', 'bomb_tower'],
-  carryCap: 4,
-  // Faster than linear (§6): one crate is barely noticeable, a full load is a real slowdown.
-  carrySlowdown: [0, 0.04, 0.1, 0.2, 0.32],
-} satisfies CharacterDef;
+} satisfies KnightDef;
 
 // Artificer (support, §6, §8): neon knights' Artificer.
 export const artificer = {
   id: 'artificer',
-  hp: 90,
+  role: 'support',
   moveSpeed: 4.6,
   radius: 0.32,
-  // 3–4 nanite bolts in a narrow cone, medium-long range; walls and towers block them (§8). Bolts fly
+  // 3–4 nanite bolts in a narrow cone, medium-long range (§8). Bolts fly
   // at render PROJECTILE_SPEEDS['nanite-bolt'] (20 t/s, FF3-fix-1).
   main: {
     shape: 'projectile',
@@ -166,10 +199,8 @@ export const artificer = {
     spreadDeg: 16,
     speed: 20,
     hitsFlyers: true,
-    blockedBy: ['wall', 'tower'],
   },
-  // A very wide, long cone through walls and towers: heals the players it hits and gives the towers
-  // it hits a temporary defense bonus (`effects`: damage reduction); it hurts no one (§8).
+  // A very wide, long cone: heals the knights it reaches (not himself); it hurts no one (§8).
   super: {
     shape: 'cone',
     damage: 0,
@@ -178,33 +209,25 @@ export const artificer = {
     cooldownMs: 500,
     hitsFlyers: true,
     heal: 40,
-    effects: [{ effect: 'tower_defense', strength: 0.3, durationMs: 6000 }],
   },
-  input: { main: 'aimed', super: 'aimed' },
-  superChargeRate: 0.005,
+  build: 'beacon',
+  input: { main: 'aimed', super: 'aimed', build: 'aimed' },
+  hitsFlyers: true,
+  superCharge: { perDamage: 0.005, perHeal: 0.002 },
+  meter: { perSec: 0, perPoint: 0, sources: ['damage', 'healing'] },
+  passiveCard: 'field_medic',
   // Field Medic heals nearby players every second in combat; its healing charges the super at
   // `chargeRate` per HP healed, slower than damage does (§8).
   passive: {
     module: 'field_medic',
     params: { radius: 2.5, heal: 3, everyMs: 1000, chargeRate: 0.002 },
   },
-  build: [],
-  // Carries 8 with no slowdown (§6).
-  carryCap: 8,
-  carrySlowdown: [0, 0, 0, 0, 0, 0, 0, 0, 0],
-  supply: {
-    crateDiscount: 0.5,
-    throwRange: 8,
-    throwSpeed: 12,
-    kitRepair: 250,
-    throwMinFlightMs: 250,
-  },
-} satisfies CharacterDef;
+} satisfies KnightDef;
 
 // Commander (squad leader, §8).
 export const commander = {
   id: 'commander',
-  hp: 130,
+  role: 'control',
   moveSpeed: 4.3,
   radius: 0.34,
   // Sword slash in a short arc in front of him; aimed, a quick tap auto-aims (FF7-fix-3, C3).
@@ -227,20 +250,21 @@ export const commander = {
     effects: [{ effect: 'morale', strength: 0.35, durationMs: 6000 }],
     selfEffects: [{ effect: 'haste', strength: 0.25, durationMs: 6000 }],
   },
-  input: { main: 'aimed', super: 'tap' },
-  superChargeRate: 0.008,
+  build: 'rally_flag',
+  input: { main: 'aimed', super: 'tap', build: 'aimed' },
+  hitsFlyers: false,
+  superCharge: { perDamage: 0.008, perSquadDamage: 0.004 },
+  meter: { perSec: 0, perPoint: 0, sources: ['damage'] },
+  passiveCard: 'morale',
   // Lead from the Front: his soldiers within `radius` deal +`damagePct` (a refreshed aura).
   passive: {
     module: 'lead_from_the_front',
     params: { radius: 3, damagePct: 0.25, auraMs: 200 },
   },
-  // The rally flag is free and isn't a structure (§6, action button row 7).
-  build: [],
-  carryCap: 4,
-  carrySlowdown: [0, 0.04, 0.1, 0.2, 0.32],
-  // 3 soldiers, 4 after the wave 5 boss, 5 after the wave 10 boss (boss waves come from wave data).
+  // 2 soldiers to start, up to 4 (RD9's Reinforcements fills it).
   squad: {
-    size: [3, 4, 5],
+    start: 2,
+    cap: 4,
     soldier: {
       hp: 60,
       moveSpeed: 4.4,
@@ -252,17 +276,17 @@ export const commander = {
     hurry: { at: 3, factor: 1.3 },
     formation: { flagRing: 0.8, followSpread: 0.6 },
   },
-} satisfies CharacterDef;
+} satisfies KnightDef;
 
 /**
  * Warden (tank, §8): an aimed ground slam in a short arc (a quick tap auto-aims; FF7-fix-3, C3), a
- * longer aimed stomp whose arc stuns, and Mason (walls near him repair, combat only). Both attacks wind up, so the
- * hammer and the foot land on the TV when the damage does (`windupMs` = the clips' impact times,
+ * longer aimed stomp whose arc stuns. Both attacks wind up, so the hammer and the foot land on the
+ * TV when the damage does (`windupMs` = the clips' impact times,
  * render/clips/warden.ts; src/host/__tests__/speeds.test.ts keeps them equal).
  */
 export const warden = {
   id: 'warden',
-  hp: 170,
+  role: 'tank',
   moveSpeed: 3.8,
   radius: 0.36,
   // C3: both arcs ~15% narrower and ~15% longer (slam 1.5 → 1.75 tiles, 120° → 102°; stomp 3.2 → 3.7,
@@ -287,102 +311,72 @@ export const warden = {
     hitsFlyers: false,
     effects: [{ effect: 'stun', strength: 1, durationMs: 1800 }],
   },
-  input: { main: 'aimed', super: 'aimed' },
+  build: 'shield_gen',
+  input: { main: 'aimed', super: 'aimed', build: 'aimed' },
+  hitsFlyers: false,
   /** ~185 damage fills it (160 before FF11-fix-1): the slam hits groups, so the stomp comes round often. */
-  superChargeRate: 0.0054,
-  passive: { module: 'mason', params: { radius: 2.5, hpPerSec: 10 } },
-  // Arc order left, up, right.
-  build: ['wall', 'snare', 'fortify'],
-  carryCap: 4,
-  carrySlowdown: [0, 0.03, 0.08, 0.16, 0.26],
-} satisfies CharacterDef;
+  superCharge: { perDamage: 0.0054 },
+  meter: { perSec: 0, perPoint: 0, sources: ['damage'] },
+  passiveCard: 'challenger',
+} satisfies KnightDef;
 
-export const characters: CharacterDef[] = [ranger, artificer, commander, warden];
+export const knights: KnightDef[] = [ranger, artificer, commander, warden];
 
-// ==== Structures =================================================================================
-// Structures (SPEC §7, §8 build kits). 1×1 tiles; walls and towers share a high path cost (§15.5).
-// FF6: the arrow tower (neon knights: pulse turret); FF8: the bomb tower (mortar), walls, snares
-// (shock nets) and Fortify.
+// ==== Builds =====================================================================================
+// One build per knight (SPEC §7.4). Starting values: RD3 (shield generator) and RD7–RD9 tune them.
 
-export const arrowTower = {
-  id: 'arrow_tower',
-  cost: 2,
-  hp: 250,
-  pathCost: 10,
-  blocksProjectiles: true,
-  // Long range, single target, hits Flyers (§8).
-  attack: {
-    shape: 'projectile',
-    damage: 14,
-    range: 6,
-    cooldownMs: 700,
-    speed: 26,
-    hitsFlyers: true,
-  },
-} satisfies StructureDef;
-
-/**
- * Bomb tower (neon knights: mortar tower, §8): short range, area damage. Lobs an arcing shell at the
- * nearest ground enemy's position; it bursts on landing and damages everything in `radius`. `speed`
- * is the shell's ground speed (tiles/s); a short lob still takes the minimum flight time
- * (sim/structures/mortar.ts).
- */
-export const bombTower = {
-  id: 'bomb_tower',
-  cost: 3,
-  hp: 220,
-  pathCost: 10,
-  blocksProjectiles: true,
-  attack: {
-    shape: 'projectile',
-    damage: 32,
-    range: 4.5,
-    cooldownMs: 2000,
-    speed: 6,
-    radius: 1.3,
-    minFlightMs: 700,
-    hitsFlyers: false,
-  },
-} satisfies StructureDef;
-
-/** Wall (§7): reroutes enemies (high path cost); Brutes and the Colossus smash through (§15.5). */
-export const wall = {
-  id: 'wall',
-  cost: 1,
+export const shieldGen = {
+  id: 'shield_gen',
+  input: 'aimed',
+  throw: { range: 6, speed: 12, minFlightMs: 300 },
   hp: 300,
-  pathCost: 30,
-  blocksProjectiles: true,
-} satisfies StructureDef;
+  radius: 2.5,
+  bodyRadius: 0.4,
+  maxActive: 1,
+  traits: { targetable: true, dealsDamage: false, hidden: false },
+  armMs: 400,
+  guard: 0.3,
+} satisfies BuildDef;
 
-/**
- * Snare (neon knights: shock net, §7.1): no HP, costs the same as an open tile to path through, 5
- * discharges that each slow every ground enemy on the tile by 40% for 2 s, rearming after 0.5 s.
- */
-export const snare = {
-  id: 'snare',
-  cost: 1,
-  hp: null,
-  pathCost: 1,
-  blocksProjectiles: false,
-  discharges: 8,
-  rearmMs: 1000,
-  slow: { effect: 'slow', strength: 0.4, durationMs: 2000 },
-  // The inner half of an enemy's body must be on the net.
-  triggerFraction: 0.5,
-} satisfies StructureDef;
+export const mine = {
+  id: 'mine',
+  input: 'tap',
+  charges: 1,
+  radius: 2,
+  bodyRadius: 0.3,
+  maxActive: 3,
+  traits: { targetable: false, dealsDamage: true, hidden: true },
+  triggerRadius: 1,
+  triggerMs: 400,
+  armMs: 1000,
+  damage: 60,
+  knockback: 1,
+} satisfies BuildDef;
 
-/** Fortify (§8): attaches to a tower (a flag on it, not a tile of its own) for a defense bonus. */
-export const fortify = {
-  id: 'fortify',
-  cost: 2,
-  hp: null,
-  pathCost: 1,
-  blocksProjectiles: false,
-  attachesTo: ['arrow_tower', 'bomb_tower'],
-  defense: 0.35,
-} satisfies StructureDef;
+export const beacon = {
+  id: 'beacon',
+  input: 'aimed',
+  throw: { range: 6, speed: 12, minFlightMs: 300 },
+  hp: 200,
+  radius: 2.5,
+  bodyRadius: 0.35,
+  maxActive: 1,
+  traits: { targetable: true, dealsDamage: false, hidden: false },
+  armMs: 400,
+  heal: { amount: 6, everyMs: 1000 },
+} satisfies BuildDef;
 
-export const structures: StructureDef[] = [arrowTower, bombTower, wall, snare, fortify];
+export const rallyFlag = {
+  id: 'rally_flag',
+  input: 'aimed',
+  throw: { range: 8, speed: 14, minFlightMs: 250 },
+  radius: 0.8,
+  bodyRadius: 0.3,
+  maxActive: 1,
+  traits: { targetable: false, dealsDamage: false, hidden: false },
+} satisfies BuildDef;
+
+export const builds: BuildDef[] = [shieldGen, mine, beacon, rallyFlag];
 
 // ==== Enemies and the Colossus ===================================================================
 // Enemies (SPEC §9, §9.1 starting stats). Speeds in tiles/s: the Grunt's 1.0 is 1.3 tiles/s and the
@@ -468,7 +462,7 @@ export const swarm = {
   },
 } satisfies EnemyDef;
 
-/** Brute: huge HP, smashes walls (2×) on the breaker field; a long wind-up is its tell. */
+/** Brute: huge HP, a long wind-up is its tell (RD10 sends it after builds). */
 export const brute = {
   id: 'brute',
   hp: 600,
@@ -479,7 +473,7 @@ export const brute = {
   body: { radius: 0.54, bottom: 0, top: 1.5 },
   budget: 5,
   ai: 'brute',
-  field: 'breaker',
+  field: 'ground',
   attack: {
     shape: 'arc',
     damage: 40,
@@ -489,13 +483,12 @@ export const brute = {
     arcDeg: 100,
     hitsFlyers: false,
   },
-  vsStructure: { wall: 2 },
   aggro: { radius: 2.5, leash: 4 },
   // Snares slow it at half strength (§7.1, FF8: `slowResist` in the effect pipeline).
   slowResist: 0.5,
 } satisfies EnemyDef;
 
-/** Wasp drone: flies over walls and shoots its stinger (render's wasp-shot speed, 16 tiles/s). */
+/** Wasp drone: flies straight in and shoots its stinger (render's wasp-shot speed, 16 tiles/s). */
 export const flyer = {
   id: 'flyer',
   hp: 80,
@@ -520,7 +513,7 @@ export const flyer = {
   aggro: { radius: 3, leash: 6 },
 } satisfies EnemyDef;
 
-/** Bombard: stops at range (under the Ranger's 9) and shells the base or towers. */
+/** Bombard: stops at range (under the Ranger's 9) and shells the base. */
 export const siege = {
   id: 'siege',
   hp: 150,
@@ -567,14 +560,23 @@ export const hunter = {
     arcDeg: 90,
     hitsFlyers: false,
   },
-  // Paths round tower and sentry range (+4 per covering attacker) and retargets on a player 2 tiles
+  // Paths round sentry range (+4 per covering attacker) and retargets on a player 2 tiles
   // closer (C3, FF10-fix-1).
-  hunt: { closeRange: 1.5, retargetTiles: 2, threatCost: 4, threatPad: 1 },
+  // RD10 turns on the lock-on sprint and the hidden-build pricing.
+  hunt: {
+    closeRange: 1.5,
+    retargetTiles: 2,
+    threatCost: 4,
+    threatPad: 1,
+    hiddenCost: 4,
+    lockRange: 5,
+    sprint: 1.4,
+  },
 } satisfies EnemyDef;
 
 /**
- * The Colossus (§9.2, FF11): a slow walker on the breaker field. `attack` is its slam (a 1.5 s red
- * circle in front of it, players and structures); walls take 3× (wall breaker), the Citadel 1.5×.
+ * The Colossus (§9.2, FF11): a slow walker on the ground field. `attack` is its slam (a 1.5 s red
+ * circle in front of it); the Citadel takes `baseMult` × its slams.
  * HP is Mk I's at 2 players on Normal: Mk II and III multiply it (`hpMk2`, `hpMk3`), then player
  * count and difficulty. Times in ms, distances in tiles, `stagger*` as fractions of the meter.
  */
@@ -588,7 +590,7 @@ export const colossus = {
   body: { radius: 1, bottom: 0, top: 0.8 },
   budget: 10,
   ai: 'boss',
-  field: 'breaker',
+  field: 'ground',
   attack: {
     shape: 'circle',
     damage: 60,
@@ -598,7 +600,6 @@ export const colossus = {
     radius: 1.5,
     hitsFlyers: false,
   },
-  vsStructure: { wall: 3, base: 1.5 },
   slowResist: 0.5,
   boss: {
     module: 'colossus',
@@ -610,7 +611,9 @@ export const colossus = {
       slamOffset: 0.7,
       slamReach: 0.6,
       baseReach: 0.3,
-      // Boulder throw (Mk II+): wind-up, then a lob at a tower or the largest group of players.
+      // The Citadel takes this × its slam damage.
+      baseMult: 1.5,
+      // Boulder throw (Mk II+): wind-up, then a lob at the largest group of players.
       boulderWindupMs: 1000,
       boulderMinFlightMs: 600,
       boulderCooldownMs: 7000,
@@ -651,24 +654,25 @@ export const colossus = {
 export const enemies: EnemyDef[] = [grunt, runner, swarm, brute, flyer, siege, hunter, colossus];
 
 // ==== Waves ======================================================================================
-// Wave data (SPEC §9.3, §9.4): budget, allowed types, open lanes, guaranteed spawns. Budgets are for
-// 2 players at Normal; player-count scaling and difficulty multiply them at wave start. Each wave
-// guarantees the type it introduces; every pool holds the Grunt (cost 1), so the generator spends to
-// within 1 of the budget. Lanes: bottom from wave 1, left from 3, right from 8 (§9.4). Waves 5, 10
-// and 15 carry the Colossus (`boss`); until FF11 the boss doesn't spawn and those waves end with
-// their escorts (§9.2: a light Grunt stream; Grunts and Swarms; final-phase Runners).
+// Wave data (SPEC §9.3, §9.4): budget, allowed types, guaranteed spawns, the hot-side schedule (RD3).
+// Budgets are for 2 players at Normal; the player-count table and difficulty multiply them at wave
+// start. Each wave guarantees the type it introduces; every pool holds the Grunt (cost 1), so the
+// generator spends to within 1 of the budget. Every portal is live from wave 1 (§3.1). Waves 5, 10
+// and 15 carry the Colossus (`boss`; §9.2: a light Grunt stream; Grunts and Swarms; final-phase
+// Runners).
 // Starting values for playtesting (§14): about 16 minutes of combat over 15 waves.
 
-const ONE: LaneId[] = ['bottom'];
-const TWO: LaneId[] = ['bottom', 'left'];
-const THREE: LaneId[] = ['bottom', 'left', 'right'];
+const HOLD = { mode: 'wave', shifts: 0 } as const;
+const SHIFT1 = { mode: 'wave', shifts: 1 } as const;
+const SHIFT2 = { mode: 'wave', shifts: 2 } as const;
+const GROUP = { mode: 'group' } as const;
 
 export const waves: WaveDef[] = [
   {
     n: 1,
     budget: 12,
     allowed: ['grunt'],
-    lanes: ONE,
+    hot: HOLD,
     guaranteed: [{ enemy: 'grunt', count: 1 }],
     durationMs: 30_000,
   },
@@ -676,7 +680,7 @@ export const waves: WaveDef[] = [
     n: 2,
     budget: 16,
     allowed: ['grunt', 'runner'],
-    lanes: ONE,
+    hot: HOLD,
     guaranteed: [{ enemy: 'runner', count: 2 }],
     durationMs: 40_000,
   },
@@ -684,15 +688,15 @@ export const waves: WaveDef[] = [
     n: 3,
     budget: 22,
     allowed: ['grunt', 'runner', 'swarm'],
-    lanes: TWO,
-    guaranteed: [{ enemy: 'swarm', count: 1, lane: 'left' }],
+    hot: HOLD,
+    guaranteed: [{ enemy: 'swarm', count: 1 }],
     durationMs: 45_000,
   },
   {
     n: 4,
     budget: 26,
     allowed: ['grunt', 'runner', 'swarm', 'brute'],
-    lanes: TWO,
+    hot: SHIFT1,
     guaranteed: [{ enemy: 'brute', count: 1 }],
     durationMs: 50_000,
   },
@@ -700,7 +704,7 @@ export const waves: WaveDef[] = [
     n: 5,
     budget: 20,
     allowed: ['grunt'],
-    lanes: TWO,
+    hot: HOLD,
     guaranteed: [],
     durationMs: 60_000,
     boss: { id: 'colossus', mk: 1 },
@@ -709,7 +713,7 @@ export const waves: WaveDef[] = [
     n: 6,
     budget: 30,
     allowed: ['grunt', 'runner', 'swarm', 'brute', 'flyer'],
-    lanes: TWO,
+    hot: SHIFT1,
     guaranteed: [{ enemy: 'flyer', count: 2 }],
     durationMs: 55_000,
   },
@@ -717,7 +721,7 @@ export const waves: WaveDef[] = [
     n: 7,
     budget: 34,
     allowed: ['grunt', 'runner', 'swarm', 'brute', 'flyer', 'siege'],
-    lanes: TWO,
+    hot: SHIFT1,
     guaranteed: [{ enemy: 'siege', count: 1 }],
     durationMs: 60_000,
   },
@@ -725,15 +729,15 @@ export const waves: WaveDef[] = [
     n: 8,
     budget: 40,
     allowed: ['grunt', 'runner', 'swarm', 'brute', 'flyer', 'siege', 'hunter'],
-    lanes: THREE,
-    guaranteed: [{ enemy: 'hunter', count: 2, lane: 'right' }],
+    hot: SHIFT1,
+    guaranteed: [{ enemy: 'hunter', count: 2 }],
     durationMs: 65_000,
   },
   {
     n: 9,
     budget: 46,
     allowed: ['grunt', 'runner', 'swarm', 'brute', 'flyer', 'siege', 'hunter'],
-    lanes: THREE,
+    hot: SHIFT2,
     guaranteed: [],
     durationMs: 70_000,
   },
@@ -741,7 +745,7 @@ export const waves: WaveDef[] = [
     n: 10,
     budget: 30,
     allowed: ['grunt', 'swarm'],
-    lanes: THREE,
+    hot: HOLD,
     guaranteed: [],
     durationMs: 75_000,
     boss: { id: 'colossus', mk: 2 },
@@ -750,7 +754,7 @@ export const waves: WaveDef[] = [
     n: 11,
     budget: 58,
     allowed: ['grunt', 'runner', 'swarm', 'brute', 'flyer', 'siege', 'hunter'],
-    lanes: THREE,
+    hot: SHIFT2,
     guaranteed: [],
     durationMs: 75_000,
   },
@@ -758,7 +762,7 @@ export const waves: WaveDef[] = [
     n: 12,
     budget: 68,
     allowed: ['grunt', 'runner', 'swarm', 'brute', 'flyer', 'siege', 'hunter'],
-    lanes: THREE,
+    hot: GROUP,
     guaranteed: [
       { enemy: 'brute', count: 2 },
       { enemy: 'siege', count: 1 },
@@ -769,7 +773,7 @@ export const waves: WaveDef[] = [
     n: 13,
     budget: 72,
     allowed: ['grunt', 'runner', 'swarm', 'brute', 'flyer', 'siege', 'hunter'],
-    lanes: THREE,
+    hot: GROUP,
     guaranteed: [],
     durationMs: 80_000,
   },
@@ -777,7 +781,7 @@ export const waves: WaveDef[] = [
     n: 14,
     budget: 76,
     allowed: ['grunt', 'runner', 'swarm', 'brute', 'flyer', 'siege', 'hunter'],
-    lanes: THREE,
+    hot: GROUP,
     guaranteed: [
       { enemy: 'brute', count: 2 },
       { enemy: 'hunter', count: 2 },
@@ -789,7 +793,7 @@ export const waves: WaveDef[] = [
     n: 15,
     budget: 44,
     allowed: ['grunt', 'runner', 'swarm'],
-    lanes: THREE,
+    hot: GROUP,
     guaranteed: [{ enemy: 'runner', count: 4 }],
     durationMs: 90_000,
     boss: { id: 'colossus', mk: 3 },
@@ -797,7 +801,7 @@ export const waves: WaveDef[] = [
 ];
 
 // ==== Upgrade cards ==============================================================================
-// Upgrade cards (SPEC §6.1): the 8 shared commons (numbers tuned per class, `perClass`), then each
+// Upgrade cards (SPEC §6.1): the 8 shared commons (numbers tuned per class, `perKnight`), then each
 // class's 2 commons, 5 rares and 1 combo, in the spec's table order. Stat cards change stats (attack
 // stats scoped to their button, so aim previews read the effective values); the rest are sim
 // modules (src/host/sim/cards/). Every number is a starting value for playtesting (§14 #2).
@@ -810,7 +814,7 @@ const per = (
   warden: number,
   artificer: number,
   commander: number,
-): CardDef['perClass'] => {
+): CardDef['perKnight'] => {
   const mod = (v: number): StatMod[] => [key === 'add' ? { stat, add: v } : { stat, addPct: v }];
   return {
     ranger: mod(ranger),
@@ -827,50 +831,50 @@ export const commonCards: CardDef[] = [
     id: 'vitality',
     owner: 'common',
     tier: 'common',
-    perClass: per('maxHp', 'addPct', 0.12, 0.1, 0.12, 0.1),
+    perKnight: per('maxHp', 'addPct', 0.12, 0.1, 0.12, 0.1),
   },
   {
     id: 'might',
     owner: 'common',
     tier: 'common',
-    perClass: per('damage', 'addPct', 0.1, 0.1, 0.12, 0.1),
+    perKnight: per('damage', 'addPct', 0.1, 0.1, 0.12, 0.1),
   },
   {
     id: 'haste',
     owner: 'common',
     tier: 'common',
-    perClass: per('attackSpeed', 'addPct', 0.1, 0.1, 0.1, 0.12),
+    perKnight: per('attackSpeed', 'addPct', 0.1, 0.1, 0.1, 0.12),
   },
   {
     id: 'reach',
     owner: 'common',
     tier: 'common',
-    perClass: per('range', 'addPct', 0.08, 0.1, 0.1, 0.12),
+    perKnight: per('range', 'addPct', 0.08, 0.1, 0.1, 0.12),
   },
   {
     id: 'swiftness',
     owner: 'common',
     tier: 'common',
-    perClass: per('moveSpeed', 'addPct', 0.08, 0.1, 0.08, 0.08),
+    perKnight: per('moveSpeed', 'addPct', 0.08, 0.1, 0.08, 0.08),
   },
   {
     id: 'focus',
     owner: 'common',
     tier: 'common',
-    perClass: per('superCharge', 'addPct', 0.12, 0.12, 0.15, 0.12),
+    perKnight: per('superCharge', 'addPct', 0.12, 0.12, 0.15, 0.12),
   },
   {
     id: 'toughness',
     owner: 'common',
     tier: 'common',
-    perClass: per('damageReduction', 'add', 0.06, 0.08, 0.06, 0.07),
+    perKnight: per('damageReduction', 'add', 0.06, 0.08, 0.06, 0.07),
   },
   // −2 s respawn, never below 5 s (the rules cap Σ add at −5000 ms on a 10 s respawn).
   {
     id: 'quick_recovery',
     owner: 'common',
     tier: 'common',
-    perClass: per('respawnMs', 'add', -2000, -2000, -2000, -2000),
+    perKnight: per('respawnMs', 'add', -2000, -2000, -2000, -2000),
   },
 ];
 
@@ -913,7 +917,7 @@ export const rangerCards: CardDef[] = [
     id: 'deadeye',
     owner: 'ranger',
     tier: 'rare',
-    stats: [{ stat: 'durationMs', addPct: -0.4, scope: 'passive' }],
+    stats: [{ stat: 'durationMs', addPct: -0.4 }],
   },
   {
     id: 'volley',
@@ -963,21 +967,7 @@ export const wardenCards: CardDef[] = [
     favoredEnemy: 'brute',
     module: { module: 'giant_slayer', params: { enemies: 'brute,colossus', pct: 0.5 } },
   },
-  {
-    id: 'master_mason',
-    owner: 'warden',
-    tier: 'rare',
-    stats: [
-      { stat: 'repairRate', addPct: 0.5, scope: 'passive' },
-      { stat: 'auraRadius', addPct: 0.3, scope: 'passive' },
-    ],
-  },
-  {
-    id: 'bodyguard',
-    owner: 'warden',
-    tier: 'rare',
-    module: { module: 'bodyguard', params: { radius: 3, reduction: 0.2, auraMs: 200 } },
-  },
+
   {
     id: 'unshakable',
     owner: 'warden',
@@ -985,35 +975,11 @@ export const wardenCards: CardDef[] = [
     unique: true,
     module: { module: 'unshakable' },
   },
-  {
-    id: 'fault_line',
-    owner: 'warden',
-    tier: 'combo',
-    requires: ['aftershock', 'master_mason'],
-    // `touch`: how close to a wall (tiles past an enemy's body) the shock reaches.
-    module: { module: 'fault_line', params: { slow: 0.4, slowMs: 1500, touch: 0.15 } },
-  },
 ];
 
 // ---- artificer ------------------------------------------------------------------------------
 
 export const artificerCards: CardDef[] = [
-  {
-    id: 'light_load',
-    owner: 'artificer',
-    tier: 'common',
-    unique: true,
-    module: { module: 'light_load', params: { factor: 0.5, auraMs: 200 } },
-  },
-  {
-    id: 'strong_arm',
-    owner: 'artificer',
-    tier: 'common',
-    stats: [
-      { stat: 'throwRange', addPct: 0.3 },
-      { stat: 'throwSpeed', addPct: 0.3 },
-    ],
-  },
   {
     id: 'venom_bolts',
     owner: 'artificer',
@@ -1027,12 +993,7 @@ export const artificerCards: CardDef[] = [
     unique: true,
     module: { module: 'overflow', params: { cap: 40, durationMs: 6000 } },
   },
-  {
-    id: 'bulk_buyer',
-    owner: 'artificer',
-    tier: 'rare',
-    module: { module: 'bulk_buyer', params: { every: 3, minEvery: 2 } },
-  },
+
   {
     id: 'wide_aura',
     owner: 'artificer',
@@ -1058,12 +1019,6 @@ export const artificerCards: CardDef[] = [
 // ---- commander ----------------------------------------------------------------------------------
 
 export const commanderCards: CardDef[] = [
-  {
-    id: 'bladework',
-    owner: 'commander',
-    tier: 'common',
-    stats: [{ stat: 'arcDeg', addPct: 0.2, scope: 'main' }],
-  },
   {
     id: 'forced_march',
     owner: 'commander',
@@ -1120,23 +1075,12 @@ export const cards: CardDef[] = [
 ];
 
 // ==== Team shop ==================================================================================
-// Team shop items (SPEC §3.4, §3.5, §6.2): crates at the depot price, rising repair, the 3 sentry
-// upgrades, squad stats after regular waves, structure tiers, Charged walls (the `spiked_walls` item)
-// and the Artificer-only base armor and emergency kit. Prices rise with each tier; building
-// upgrades apply to every structure of that type, including ones built later. Items are shown only
-// when the team can use them (`visibleIf`). Every number is a starting value (§14 #2).
+// Team shop items (SPEC §3.4, §3.5, §6.2): rising repair, the 3 sentry upgrades, base max HP and base
+// armor. Prices rise with each tier; every item is always shown. Every number is a starting value
+// (§14 #2; RD11 sets the pricing).
 
 /** Items at or above this price ask for a press-and-hold to confirm (§6.2, ~0.6 s). */
 export const HOLD_CONFIRM_PRICE = 10;
-
-const RANGER = { teamHasAny: ['ranger' as const] };
-const WARDEN = { teamHasAny: ['warden' as const] };
-
-export const crate = {
-  id: 'crate',
-  tiers: [{ price: 2, effect: { kind: 'crates', count: 1 } }],
-  repeatable: true,
-} satisfies ShopItemDef;
 
 /** Repeatable; the price climbs this ladder per purchase and stays at the last step (§3.4). */
 export const repair = {
@@ -1173,94 +1117,20 @@ export const archerThird = {
   tiers: [{ price: 12, effect: { kind: 'archers', add: 1 } }],
 } satisfies ShopItemDef;
 
-/**
- * Squad stats (§6.2, §8): one tier per regular (non-boss) wave cleared, sold only in the build phase
- * after a regular wave; squad size grows after the boss waves instead.
- */
-export const squadStats = {
-  id: 'squad_stats',
-  tiers: Array.from({ length: 12 }, (_, i) => ({
-    price: 5 + i,
-    effect: {
-      kind: 'stats' as const,
-      target: 'squad' as const,
-      stats: [
-        { stat: 'maxHp' as const, addPct: 0.1 },
-        { stat: 'damage' as const, addPct: 0.1 },
-      ],
-    },
-  })),
-  visibleIf: { teamHasAny: ['commander'] },
-  afterRegularWaveOnly: true,
-} satisfies ShopItemDef;
-
 const tiers3 = (prices: [number, number, number], effect: ShopItemDef['tiers'][number]['effect']) =>
   prices.map((price) => ({ price, effect }));
 
-export const arrowRate = {
-  id: 'arrow_rate',
+/** Each tier raises the Citadel's max HP and its current HP by the same amount (§6.2). */
+export const baseHp = {
+  id: 'base_hp',
   tiers: tiers3([6, 10, 14], {
     kind: 'stats',
-    target: 'arrow_tower',
-    stats: [{ stat: 'attackSpeed', addPct: 0.2 }],
+    target: 'base',
+    stats: [{ stat: 'maxHp', add: 150 }],
   }),
-  visibleIf: RANGER,
 } satisfies ShopItemDef;
 
-export const bombRadius = {
-  id: 'bomb_radius',
-  tiers: tiers3([6, 10, 14], {
-    kind: 'stats',
-    target: 'bomb_tower',
-    stats: [{ stat: 'radius', addPct: 0.15 }],
-  }),
-  visibleIf: RANGER,
-} satisfies ShopItemDef;
-
-export const towerHp = {
-  id: 'tower_hp',
-  tiers: tiers3([5, 8, 12], {
-    kind: 'stats',
-    target: 'towers',
-    stats: [{ stat: 'maxHp', addPct: 0.25 }],
-  }),
-  visibleIf: RANGER,
-} satisfies ShopItemDef;
-
-export const wallHp = {
-  id: 'wall_hp',
-  tiers: tiers3([4, 7, 10], {
-    kind: 'stats',
-    target: 'wall',
-    stats: [{ stat: 'maxHp', addPct: 0.3 }],
-  }),
-  visibleIf: WARDEN,
-} satisfies ShopItemDef;
-
-/** More discharges per net (§7.1), existing nets included. */
-export const snareCharges = {
-  id: 'snare_charges',
-  tiers: tiers3([4, 7, 10], { kind: 'discharges', add: 2 }),
-  visibleIf: WARDEN,
-} satisfies ShopItemDef;
-
-/** Charged walls (neon knights' name, §7.2): enemies that attack a wall take `damage` per hit. */
-export const spikedWalls = {
-  id: 'spiked_walls',
-  tiers: [
-    {
-      price: 10,
-      effect: {
-        kind: 'module',
-        target: 'wall',
-        module: { module: 'charged_walls', params: { damage: 10 } },
-      },
-    },
-  ],
-  visibleIf: WARDEN,
-} satisfies ShopItemDef;
-
-/** Artificer-only (§6.2): the Citadel takes less damage (capped with every damage reduction). */
+/** The Citadel takes less damage (capped with every damage reduction). */
 export const baseArmor = {
   id: 'base_armor',
   tiers: tiers3([8, 12, 16], {
@@ -1268,32 +1138,30 @@ export const baseArmor = {
     target: 'base',
     stats: [{ stat: 'damageReduction', add: 0.1 }],
   }),
-  visibleIf: { teamHasAny: ['artificer'] },
-  qmOnly: true,
-} satisfies ShopItemDef;
-
-/** Artificer-only (§3.4): held one at a time, used with the action button in the repair zone. */
-export const emergencyKit = {
-  id: 'emergency_kit',
-  tiers: [{ price: 6, effect: { kind: 'kit' } }],
-  visibleIf: { teamHasAny: ['artificer'] },
-  qmOnly: true,
-  repeatable: true,
 } satisfies ShopItemDef;
 
 export const shop: ShopItemDef[] = [
-  crate,
   repair,
   archerDamage,
   archerRange,
   archerThird,
-  squadStats,
-  arrowRate,
-  bombRadius,
-  towerHp,
-  wallHp,
-  snareCharges,
-  spikedWalls,
+  baseHp,
   baseArmor,
-  emergencyKit,
 ];
+
+// ==== Harness ====================================================================================
+// The balance harness (SPEC §15.9; a report, never a gate): each knight alone against the standard
+// wave from one portal (RD3 runs it).
+
+export const harness = {
+  wave: [
+    { enemy: 'grunt', count: 12 },
+    { enemy: 'runner', count: 4 },
+    { enemy: 'swarm', count: 1 },
+    { enemy: 'brute', count: 1 },
+  ],
+  portal: 'bottom-w',
+  difficulty: 'normal',
+  seeds: [1, 2, 3, 4, 5],
+  bands: [0.2, 0.25],
+} satisfies HarnessDef;

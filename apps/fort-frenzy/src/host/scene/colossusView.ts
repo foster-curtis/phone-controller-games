@@ -1,9 +1,8 @@
 // The Colossus on the TV (SPEC §9.2, §9.6; FF11), driven from the boss's sim state on top of the
 // enemy drawing in worldView.ts: its Mk I/II/III groups and the final phase's cracked core and
-// plumes, the clip for each attack in sync with the sim's wind-up (slam and wall breaker, boulder
+// plumes, the clip for each attack in sync with the sim's wind-up (slam, boulder
 // throw, Runner call) and the kneel while staggered, head tracking that snaps to the target before a
-// slam or throw, the tells (fist seams flaring through the slam's wind-up, the targeted wall
-// flashing, scrap torn up for a boulder, spires surging before Runners launch), the core showing the
+// slam or throw, the tells (fist seams flaring through the slam's wind-up, scrap torn up for a boulder, spires surging before Runners launch), the core showing the
 // stagger meter, the shockwave rings rolling out of final-phase slams (a violet outline on the
 // sim's band, so dodging reads), and impacts where slams and boulders land. The sim is read, never
 // written. Graphics are made on first use (FF7-fix-1's frame-cost rule).
@@ -69,17 +68,11 @@ export class ColossusView {
   private readonly markers = new Map<EntityId, KnownMarker>();
   private readonly waves = new Map<string, Wave>();
   private readonly glow: Scratch<Phaser.GameObjects.Graphics>;
-  private readonly flash: Scratch<Phaser.GameObjects.Graphics>;
   private t = 0;
 
   constructor(private readonly w: RenderWorld) {
     this.glow = new Scratch(() => {
       const g = w.scene.make.graphics({}, false).setDepth(1e6 + 1);
-      w.layers.effects.add(g);
-      return g;
-    });
-    this.flash = new Scratch(() => {
-      const g = w.scene.make.graphics({}, false).setDepth(1e6);
       w.layers.effects.add(g);
       return g;
     });
@@ -89,7 +82,6 @@ export class ColossusView {
   begin(dtMs: number): void {
     this.t += dtMs;
     this.glow.begin();
-    this.flash.begin();
   }
 
   /** The Colossus is playing one of its own clips: a hit flashes it but doesn't replace the clip. */
@@ -191,16 +183,12 @@ export class ColossusView {
     const g = this.glow.draw();
     switch (act.kind) {
       case 'slam':
-      case 'breaker': {
+      case 'charge': {
         // Fist seams flare as the fists come up.
         const lvl = chargeLevel(age, COLOSSUS_SLAM_MS);
         for (const a of ['fist-near', 'fist-far']) {
           const p = rig.attach(a);
           if (p) drawGlow(g, p.sx, p.sy - 10 * k1, 9 * k1, lvl);
-        }
-        if (act.kind === 'breaker' && act.target !== null) {
-          const st = w.structures.find((s) => s.id === act.target);
-          if (st) this.flashTile(st.tile[0], st.tile[1]);
         }
         return;
       }
@@ -228,19 +216,6 @@ export class ColossusView {
         return;
       }
     }
-  }
-
-  /** The wall a breaker targets flashes (danger red, pulsing) until the slam lands. */
-  private flashTile(col: number, row: number) {
-    const cam = this.w.camera;
-    const a = cam.worldToScreen(col, row);
-    const b = cam.worldToScreen(col + 1, row + 1);
-    const u = 0.5 + 0.5 * Math.sin(this.t * 0.03);
-    const up = 0.6 * (b.sy - a.sy) + 6;
-    this.flash
-      .draw()
-      .fillStyle(theme.color.danger.num, 0.18 + 0.3 * u)
-      .fillRect(a.sx, a.sy - up, b.sx - a.sx, b.sy - a.sy + up);
   }
 
   /**
@@ -348,6 +323,5 @@ export class ColossusView {
   destroy(): void {
     this.clear();
     this.glow.destroy();
-    this.flash.destroy();
   }
 }

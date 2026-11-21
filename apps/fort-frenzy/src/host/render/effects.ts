@@ -30,15 +30,13 @@ const BURST_FRAMES = {
 const PROJECTILE_FRAMES = {
   bolt: fk('bolt'),
   'nanite-bolt': fk('nanite-bolt'),
-  'mortar-shell': fk('mortar-shell'),
   'bombard-shell': fk('bombard-shell'),
   boulder: fk('boulder'),
   'wasp-shot': fk('wasp-shot'),
-  'power-cell': fk('power-cell'),
 } as const satisfies Record<ProjectileKind, string>;
 
 /** Tumbling projectiles don't point along their heading. */
-const TUMBLES = new Set<ProjectileKind>(['boulder', 'power-cell', 'mortar-shell', 'bombard-shell']);
+const TUMBLES = new Set<ProjectileKind>(['boulder', 'bombard-shell']);
 
 /** Scrap shows this long before fading (default) and fades over this long. */
 const SCRAP_SHOW_MS = 960;
@@ -165,21 +163,6 @@ export class Effects implements EffectSpawner {
         const t = u * ttl;
         a.img.setAlpha(t < holdMs ? 1 : 1 - (t - holdMs) / SCRAP_FADE_MS);
       },
-    );
-  }
-
-  wallStrike(from: ScreenPoint, to: ScreenPoint) {
-    const pool = this.pool(fk('wall-strike'), 'effects');
-    const a = pool.get();
-    const len = Math.hypot(to.sx - from.sx, to.sy - from.sy);
-    // Runs (0,0)–(100,0) in units: stretch x only so the bolt stays thin.
-    this.ctx.lib.setUnitScale(a, this.ctx.unitPx, len / (100 * this.ctx.unitPx), 1);
-    a.img.setPosition(from.sx, from.sy).setRotation(Math.atan2(to.sy - from.sy, to.sx - from.sx));
-    this.add(
-      a.img,
-      140,
-      () => pool.release(a),
-      (u) => a.img.setAlpha(u < 0.5 ? 1 : 2 - 2 * u),
     );
   }
 

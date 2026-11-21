@@ -1,11 +1,11 @@
 // `hunter` AI (SPEC §9, §9.6, §15.5): the Stalker hunts players instead of the base. It picks the
 // nearest targetable player (ties by slot) and follows that player's own flow field (one per hunted
 // player, rebuilt when they move to a new tile), going straight at them once close. Its field
-// prices tiles in tower and sentry range (ai/threat.ts, C3), so it slips round the defenses when it
-// can. When its quarry goes down or dazed (§11.3), or another player comes clearly closer, it
-// retargets; with nobody to hunt it walks the ground field and attacks the Citadel like a Grunt. A
-// wall or tower blocking its field gets attacked. Its bite winds up (it crouches low, then lunges).
-import { dist, rectDist, rectNearest, tileRect } from '../geometry';
+// prices tiles in sentry range (ai/threat.ts, C3; RD10 adds damage-dealing builds), so it slips round
+// the defenses when it can. When its quarry goes down or dazed (§11.3), or another player comes
+// clearly closer, it retargets; with nobody to hunt it walks the ground field and attacks the Citadel
+// like a Grunt. Its bite winds up (it crouches low, then lunges).
+import { dist, rectDist, rectNearest } from '../geometry';
 import { state, type SimState } from '../internal';
 import { BASE_ID, type EnemyEnt, type PlayerEnt, type SimCtx } from '../types';
 import { fieldStep, knocked, windup } from './field';
@@ -92,12 +92,4 @@ function follow(
 ) {
   const step = fieldStep(s, e, field, speed);
   if (step.kind === 'goal') atGoal();
-  else if (step.kind === 'blocked') {
-    const def = s.cat.enemy(e.kind);
-    if (rectDist(e.x, e.y, tileRect(step.col, step.row)) - e.r <= def.attack.range) {
-      const keep = e.ai;
-      swing(s, e, def, step.st.id, step.st.x, step.st.y);
-      e.ai = keep;
-    } else walkTo(e, step.st.x, step.st.y, speed);
-  }
 }

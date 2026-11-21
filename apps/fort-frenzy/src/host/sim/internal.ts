@@ -2,7 +2,7 @@
 // registered behaviors share (SPEC §15.3). Types only, so behaviors can import it without a cycle
 // through the registry.
 import type { AttackDef, StatId, TileKind } from '../../content/types';
-import type { ClassId, EnemyId, StructureId } from '../../shared/ids';
+import type { ClassId, EnemyId } from '../../shared/ids';
 import type { Catalog } from './catalog';
 import type {
   DamageKind,
@@ -16,12 +16,11 @@ import type {
   PlayerInput,
   ProjectileEnt,
   SimCtx,
-  StructureEnt,
   Unit,
   World,
 } from './types';
 
-export type UnitKind = 'player' | 'soldier' | 'enemy' | 'structure' | 'base';
+export type UnitKind = 'player' | 'soldier' | 'enemy' | 'build' | 'base';
 
 /** This step's input for one slot, after counter diffing (§15.3 step 2). */
 export interface SlotInput {
@@ -77,7 +76,12 @@ export interface SimState extends SimCtx {
   tick(): number;
   modifiers(u: Unit): readonly Modifier[];
   hooks<K extends keyof Hooks>(u: Unit, key: K): NonNullable<Hooks[K]>[];
-  attackStat(u: Unit, base: number, stat: StatId, scope?: 'main' | 'super' | 'passive'): number;
+  attackStat(
+    u: Unit,
+    base: number,
+    stat: StatId,
+    scope?: 'main' | 'super' | 'build' | 'squad',
+  ): number;
   player(slot: number): PlayerEnt | undefined;
   /** Alive, connected (not dazed) players are the only ones enemies can target (§11.3). */
   targetable(p: PlayerEnt): boolean;
@@ -86,13 +90,16 @@ export interface SimState extends SimCtx {
   fire(spec: FireSpec): ProjectileEnt;
   tileKind(col: number, row: number): TileKind | null;
   classOf(p: PlayerEnt): ClassId;
-  spawnEnemy(kind: EnemyId, x: number, y: number, lane: EnemyEnt['lane'], group?: number): EnemyEnt;
-  placeStructure(kind: StructureId, col: number, row: number, owner: number): StructureEnt;
-  /** Marks the flow fields for a rebuild (a blocker placed or destroyed). */
-  fieldsDirty(): void;
+  spawnEnemy(
+    kind: EnemyId,
+    x: number,
+    y: number,
+    portal: EnemyEnt['portal'],
+    group?: number,
+  ): EnemyEnt;
   /**
    * The ground field toward the player in `slot` (Hunters, §15.5), kept in `world.fields.hunted`:
-   * built on first use, rebuilt when that player moves to a new tile or the fields rebuild. Null if
+   * built on first use, rebuilt when that player moves to a new tile or the Hunters re-price. Null if
    * there's no such player.
    */
   huntField(slot: number): FlowField | null;

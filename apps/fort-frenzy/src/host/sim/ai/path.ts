@@ -1,19 +1,12 @@
-// `path` AI (SPEC §9 Grunt, §15.5): follow the flow field to the base and attack whatever blocks it
-// (a tower or wall on the next tile) or the base itself; aggro-leash enemies leave the path for a
+// `path` AI (SPEC §9 Grunt, §15.5): follow the ground field to the base and attack it; aggro-leash
+// enemies leave the path for a
 // targetable player in the aggro radius, chase up to the leash, then walk back (§9, §11.3).
 // Melee swings wind up, root the enemy, and land if the target is still in reach.
 import type { EnemyDef } from '../../../content/types';
-import { dist, rectDist, rectNearest, tileRect } from '../geometry';
+import { dist, rectDist, rectNearest } from '../geometry';
 import { state, type SimState } from '../internal';
 import { steerTile } from '../../systems/flowfield';
-import {
-  BASE_ID,
-  type EnemyEnt,
-  type FlowField,
-  type PlayerEnt,
-  type SimCtx,
-  type StructureEnt,
-} from '../types';
+import { BASE_ID, type EnemyEnt, type FlowField, type PlayerEnt, type SimCtx } from '../types';
 
 /** A knockback faster than this (tiles/s) overrides walking. */
 export const KNOCKED = 1;
@@ -103,14 +96,14 @@ function followPath(s: SimState, e: EnemyEnt, def: EnemyDef) {
     swing(s, e, def, BASE_ID, n.x, n.y);
     return;
   }
-  const field = def.field === 'breaker' ? w.fields.breaker : w.fields.ground;
+  const field = w.fields.ground;
   const { cols, rows } = field;
   const col = Math.floor(e.x);
   const row = Math.floor(e.y);
   e.ai = 'path';
   e.target = null;
   if (col < 0 || row < 0 || col >= cols || row >= rows) {
-    toLane(s, e, speed);
+    toPortal(s, e, speed);
     return;
   }
   const t = row * cols + col;
@@ -120,20 +113,6 @@ function followPath(s: SimState, e: EnemyEnt, def: EnemyDef) {
     const n = rectNearest(e.x, e.y, s.baseRect);
     walkTo(e, n.x, n.y, speed);
     return;
-  }
-  const occ = w.grid.occupant[next]!;
-  if (occ !== 0) {
-    const st = s.units.get(occ) as StructureEnt | undefined;
-    if (st && st.damageable && s.cat.structure(st.kind).pathCost > 1) {
-      const nc = next % cols;
-      const nr = (next - nc) / cols;
-      if (rectDist(e.x, e.y, tileRect(nc, nr)) - e.r <= def.attack.range) {
-        swing(s, e, def, st.id, st.x, st.y);
-        return;
-      }
-      walkTo(e, st.x, st.y, speed);
-      return;
-    }
   }
   steerAlong(e, field, t, next, speed);
 }
@@ -176,10 +155,12 @@ export function steerAlong(e: EnemyEnt, field: FlowField, t: number, next: numbe
   e.facing = Math.atan2(dy, dx);
 }
 
-/** Off the map: walk to the nearest entry tile of the lane (spawns sit just outside the edge). */
-export function toLane(s: SimState, e: EnemyEnt, speed: number) {
-  const lanes = s.cat.map.lanes;
-  const entries = e.lane ? lanes[e.lane].entry : Object.values(lanes).flatMap((l) => l.entry);
+/** Off the map: walk to the nearest entry tile of its portal (spawns sit just outside the edge). */
+export function toPortal(s: SimState, e: EnemyEnt, speed: number) {
+  const portals = s.cat.map.portals;
+  const entries = e.portal
+    ? portals[e.portal].entry
+    : Object.values(portals).flatMap((p) => p.entry);
   let bx = 0;
   let by = 0;
   let bd = Infinity;
@@ -240,20 +221,13 @@ export function land(s: SimState, e: EnemyEnt, def: EnemyDef) {
   const kind = s.kinds.get(id);
   // A little extra reach: the target may have stepped back during the wind-up.
   const range = def.attack.range + s.cat.rules.enemySwingSlack;
-  let mult = 1;
   if (kind === 'base') {
     if (rectDist(e.x, e.y, s.baseRect) - e.r > range) return;
-    mult = def.vsStructure?.base ?? 1;
-  } else if (kind === 'structure') {
-    const st = u as StructureEnt;
-    if (!st.damageable) return;
-    if (rectDist(e.x, e.y, tileRect(st.tile[0], st.tile[1])) - e.r > range) return;
-    mult = def.vsStructure?.[st.kind] ?? 1;
   } else if (kind === 'player') {
     if (!s.targetable(u as PlayerEnt)) return;
     if (dist(e.x, e.y, u.x, u.y) - e.r - u.r > range) return;
   } else {
     if (dist(e.x, e.y, u.x, u.y) - e.r - u.r > range) return;
   }
-  s.damage({ source: e.id, target: id, amount: e.stats.damage * mult, kind: 'melee', tags: [] });
+  s.damage({ source: e.id, target: id, amount: e.stats.damage, kind: 'melee', tags: [] });
 }

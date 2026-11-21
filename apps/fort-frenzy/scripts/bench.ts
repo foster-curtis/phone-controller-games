@@ -31,7 +31,7 @@ interface Outcome {
 function counts(w: World): string {
   return (
     `${w.players.length} knights, ${w.soldiers.length} footmen, ${w.enemies.length} enemies, ` +
-    `${w.projectiles.length} projectiles, ${w.structures.length} structures, ` +
+    `${w.projectiles.length} projectiles, ${w.builds.length} builds, ` +
     `state ${stateHash(w).toString(16)}`
   );
 }

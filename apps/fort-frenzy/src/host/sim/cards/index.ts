@@ -97,7 +97,7 @@ export function cardModifier(cat: Catalog, p: PlayerEnt, id: CardId, n: number):
   const mod = def?.module ? modules[def.module.module] : undefined;
   const m: Modifier = mod ? mod.make({ ...(def?.module?.params ?? {}), stacks: n }) : { id: '' };
   m.id = `card:${id}`;
-  const stats = [...(def?.stats ?? []), ...(def?.perClass?.[p.classId] ?? [])];
+  const stats = [...(def?.stats ?? []), ...(def?.perKnight?.[p.classId] ?? [])];
   if (stats.length > 0) m.stats = [...(m.stats ?? []), ...scaled(stats, n)];
   return m;
 }

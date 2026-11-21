@@ -1,10 +1,9 @@
-// Step 3 (SPEC §15.3): players — respawn, movement with carry slowdown, attacks and supers (fire on
+// Step 3 (SPEC §15.3): players — respawn, movement, attacks and supers (fire on
 // release, a release during the cooldown fires when it ends) and build presses (§10.1).
 import type { AttackDef, EffectApply, Vec2 } from '../../content/types';
 import { AIM_DEAD_ZONE } from '../../shared/messages';
 import { bodyAimY, circleHitsBody } from './body';
 import { landArc, windupSteps } from './classes/warden';
-import { carrySpeed } from './crates';
 import { recallFlag } from './classes/commander';
 import { attackShapes } from './classes/shapes';
 import { cleanVec } from './geometry';
@@ -72,7 +71,7 @@ export function stepPlayers(s: FullState): void {
       continue;
     }
     const inp = s.inputs.get(p.slot)!;
-    move(s, p, inp, acting);
+    move(p, inp, acting);
     p.mainAim = heldAim(p.main, inp.input.mainAiming, inp.input.mainAim);
     p.superAim = heldAim(p.super, inp.input.superAiming, inp.input.superAim);
     // Builds are placed only in combat (§7.1): the preview shows only then.
@@ -85,9 +84,9 @@ export function stepPlayers(s: FullState): void {
   }
 }
 
-function move(s: FullState, p: PlayerEnt, inp: SlotInput, acting: boolean) {
+function move(p: PlayerEnt, inp: SlotInput, acting: boolean) {
   const m = acting ? cleanVec(inp.input.move.x, inp.input.move.y) : { x: 0, y: 0 };
-  const speed = p.stats.moveSpeed * carrySpeed(s, p);
+  const speed = p.stats.moveSpeed;
   p.vx = m.x * speed;
   p.vy = m.y * speed;
   if (m.x !== 0 || m.y !== 0) {
@@ -99,7 +98,7 @@ function move(s: FullState, p: PlayerEnt, inp: SlotInput, acting: boolean) {
 }
 
 function attacks(s: FullState, p: PlayerEnt, inp: SlotInput) {
-  const def = s.cat.character(p.classId);
+  const def = s.cat.knight(p.classId);
   const t = s.world.tick;
   if (inp.main) {
     p.main.queued = true;
@@ -126,7 +125,7 @@ function attacks(s: FullState, p: PlayerEnt, inp: SlotInput) {
 
 /** Lands the wind-ups that end this step; true while one is still winding. */
 function landWindups(s: FullState, p: PlayerEnt): boolean {
-  const def = s.cat.character(p.classId);
+  const def = s.cat.knight(p.classId);
   for (const slot of ['main', 'super'] as const) {
     const st = p[slot];
     if (st.windupEndsAt === null) continue;

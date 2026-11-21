@@ -26,7 +26,7 @@ export const steadyAim: ModuleDef = {
       hooks: {
         onTick(ctx, self) {
           // The wait is the passive's duration, so Deadeye (FF12) shortens it as a stat.
-          const wait = state(ctx).attackStat(self, stillMs, 'durationMs', 'passive');
+          const wait = state(ctx).attackStat(self, stillMs, 'durationMs');
           active = (self as PlayerEnt).stillTicks >= msToSteps(wait, SIM_HZ);
         },
         onAttack(_ctx, _self, atk) {

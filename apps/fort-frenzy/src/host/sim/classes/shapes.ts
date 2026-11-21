@@ -1,7 +1,7 @@
 // Player attack shapes beyond projectiles and circles (SPEC §8): the Commander's sword `arc`, the
-// Artificer's super `cone` (heals players, buffs towers, passes through walls and towers) and the
-// Commander's morale `buff`. Players' `fire` dispatches here by `AttackDef.shape`.
-import type { AttackDef, CharacterDef, EffectApply } from '../../../content/types';
+// Artificer's super `cone` (heals knights; RD8 replaces it with the heal cone) and the Commander's
+// morale `buff` (until RD9). Players' `fire` dispatches here by `AttackDef.shape`.
+import type { AttackDef, EffectApply, KnightDef } from '../../../content/types';
 import type { FullState } from '../state';
 import type { AttackEvent, PlayerEnt } from '../types';
 import { sectorHitsBody } from '../body';
@@ -17,9 +17,7 @@ export type ShapeFire = (
   atk: AttackEvent,
 ) => void;
 
-type SuperDef = CharacterDef['super'];
-
-const TOWERS = new Set(['arrow_tower', 'bomb_tower']);
+type SuperDef = KnightDef['super'];
 
 /** The attack's sector from the player's facing (already turned to the aim). */
 export function sectorOf(s: FullState, p: PlayerEnt, a: AttackDef, slot: 'main' | 'super'): Sector {
@@ -40,7 +38,7 @@ function hitEnemies(
   // A snapshot: hooks may spawn or kill while we hit.
   for (const e of s.world.enemies.slice()) {
     if (e.hp <= 0 || (e.flying && !a.hitsFlyers)) continue;
-    // Enemy bodies (C4, body.ts); players and towers below by their feet.
+    // Enemy bodies (C4, body.ts); knights below by their feet.
     if (!sectorHitsBody(sec, e.x, e.y, s.cat.body(e.kind))) continue;
     s.damage({ source: p.id, target: e.id, amount: damage, kind, tags: [...atk.tags] });
     for (const fx of atk.effects) s.applyEffect(e.id, fx, p.id);
@@ -53,8 +51,8 @@ const arc: ShapeFire = (s, p, a, slot, damage, atk) => {
 };
 
 /**
- * Nanite cone (Artificer super): heals the players it reaches (not himself) and puts its
- * `effects` on the towers it reaches; damages enemies only if it has damage. Nothing blocks it.
+ * Nanite cone (Artificer super): heals the knights it reaches (not himself, not builds, §8.2);
+ * damages enemies only if it has damage. Nothing blocks it.
  */
 const cone: ShapeFire = (s, p, a, slot, damage, atk) => {
   const sup = a as SuperDef;
@@ -66,10 +64,6 @@ const cone: ShapeFire = (s, p, a, slot, damage, atk) => {
       if (q === p || !s.targetable(q) || !inSector(sec, q.x, q.y, q.r)) continue;
       s.heal(q.id, heal, p.id);
     }
-  }
-  for (const st of s.world.structures) {
-    if (!TOWERS.has(st.kind) || st.hp <= 0 || !inSector(sec, st.x, st.y, st.r)) continue;
-    for (const fx of sup.effects ?? []) s.applyEffect(st.id, fx, p.id);
   }
 };
 

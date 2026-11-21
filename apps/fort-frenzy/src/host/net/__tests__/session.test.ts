@@ -145,14 +145,14 @@ describe('session: run', () => {
       s.afterStep();
     }
     expect(sim.world.phase).toBe('build');
-    s.handleMessage('a', { t: 'intent', seq: 703, intent: { k: 'buy', item: 'crate' } });
+    s.handleMessage('a', { t: 'intent', seq: 703, intent: { k: 'buy', item: 'base_hp' } });
     s.handleMessage('a', { t: 'intent', seq: 704, intent: { k: 'buy', item: 'repair' } });
     expect(ackOf(sent, 703)).toBeUndefined();
     sim.step();
     s.afterStep();
     expect(ackOf(sent, 703)).toMatchObject({ ok: true });
     expect(ackOf(sent, 704)).toMatchObject({ ok: false, reason: 'invalid' });
-    expect(sim.world.players[0]!.crates).toBe(1);
+    expect(sim.world.team.shop.base_hp).toBe(1);
   });
 
   it('a dropped phone dazes its knight; its hello restores the slot by player key', () => {
@@ -210,7 +210,7 @@ describe('session: run', () => {
     // FF8: the Warden is content now; a class without content (until FF9) is refused.
     s.handleMessage('a', { t: 'intent', seq: 900, intent: { k: 'class', classId: 'warden' } });
     expect(ackOf(sent, 900)).toMatchObject({ ok: true });
-    const missing = CLASS_IDS.find((id) => !content.characters.some((c) => c.id === id));
+    const missing = CLASS_IDS.find((id) => !content.knights.some((c) => c.id === id));
     if (!missing) return;
     s.handleMessage('a', { t: 'intent', seq: 901, intent: { k: 'class', classId: missing } });
     expect(ackOf(sent, 901)).toMatchObject({ ok: false, reason: 'invalid' });

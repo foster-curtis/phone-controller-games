@@ -119,7 +119,7 @@ export class AutopilotInputSource implements InputSource {
     const w = this.world();
     const p = w.players.find((q) => q.slot === this.slot);
     if (!p || p.respawnAt !== null || !p.connected) return out;
-    const def = this.content.characters.find((c) => c.id === p.classId);
+    const def = this.content.knights.find((c) => c.id === p.classId);
     if (!def) return out;
     const map = this.content.map!;
     const home = {

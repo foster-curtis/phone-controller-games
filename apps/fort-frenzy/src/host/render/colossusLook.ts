@@ -17,10 +17,10 @@ export function colossusGroupsFor(mk: 1 | 2 | 3, final: boolean): string[] {
 /** Every optional group of the rig, to switch the rest off. */
 export const COLOSSUS_GROUPS = ['mk2', 'mk3', 'final'] as const;
 
-/** The clip a boss attack (`BossAct.kind`) plays; the wall breaker is the slam's motion. */
+/** The clip a boss attack (`BossAct.kind`) plays; the charge reuses the slam's motion. */
 export const CLIP_OF_ACT: Readonly<Record<string, string>> = {
   slam: 'slam',
-  breaker: 'slam',
+  charge: 'slam',
   boulder: 'throw',
   call: 'call',
 };

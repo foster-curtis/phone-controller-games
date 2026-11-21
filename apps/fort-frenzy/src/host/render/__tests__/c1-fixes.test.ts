@@ -3,9 +3,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { manifest } from '../../../../generated/manifest';
 import { presentationHost } from '../../../presentation/host';
-import { ART_SET, isPosed, type RigView, type ArtSetAssets } from '../../../presentation/types';
+import { isPosed, type RigView } from '../../../presentation/types';
 import {
   citadelCollapseAt,
   CITADEL_COLLAPSE_MS,
@@ -21,9 +20,7 @@ import { GAUGE_CELLS_BOTTOM_UP, gaugeGroups } from '../gauge';
 import { apply, composeView } from '../rigMath';
 import { half, splitView } from '../split';
 import { crawlLook, locomotionClip, locomotionSpeed } from '../status';
-import { turretMuzzleIndices } from '../structures';
 import { MAX_WOBBLE, mitePack, mitePose } from '../swarm';
-import { TURRET_AIMS } from '../types';
 
 const { rigs, clips } = presentationHost;
 const KNIGHTS = ['warden', 'ranger', 'commander', 'artificer'];
@@ -268,23 +265,6 @@ describe('note 4: down pile and enemy deaths', () => {
 describe('note 5: respawn is slower', () => {
   it('runs past the old 700 ms', () => {
     for (const k of KNIGHTS) expect(clips[`${k}/respawn`]!.durationMs).toBeGreaterThanOrEqual(1000);
-  });
-});
-
-describe('note 6: two-barrel turret heads flash from both barrels', () => {
-  it('gives tiers II and III two muzzles, and every ii/iii head frame has both', () => {
-    expect(turretMuzzleIndices(0)).toEqual([1]);
-    expect(turretMuzzleIndices(1)).toEqual([1]);
-    expect(turretMuzzleIndices(2)).toEqual([1, 2]);
-    expect(turretMuzzleIndices(3)).toEqual([1, 2]);
-    const frames = (manifest.sets[ART_SET] as ArtSetAssets).frames;
-    for (const head of ['ii', 'iii'])
-      for (const aim of TURRET_AIMS) {
-        const a = frames[`pulse-turret/${head}/${aim}`]!.attach ?? {};
-        expect(a['muzzle-1'], `${head}/${aim}`).toBeDefined();
-        expect(a['muzzle-2'], `${head}/${aim}`).toBeDefined();
-        expect(a['muzzle-1']).not.toEqual(a['muzzle-2']);
-      }
   });
 });
 

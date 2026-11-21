@@ -1,46 +1,36 @@
-// The run drawn from sim state (SPEC §15.2) through the renderer in render/: the map and lanes, the
-// Citadel with sentries and damage stages, the Armory, knights (rings with the aim notch, carry pips,
+// The run drawn from sim state (SPEC §15.2) through the renderer in render/: the map and portals, the
+// Citadel with sentries and damage stages, knights (rings with the aim notch,
 // the amber super-ready pulse, nametags and HP bars that flip below near the top, aim previews, the
-// build ghost and arc, the Ranger's shot (draw, hold, release; the bolt leaves from the bow), super
-// and build kneel with the deploy beacon, down piles and respawns), enemies (walk, attack, hit and
+// Ranger's shot (draw, hold, release; the bolt leaves from the bow), super
+// down piles and respawns), enemies (walk, attack, hit and
 // death clips; stun forces idle; FF10: tell glows, the Skitter's core throb, the Stalker's target
 // flash (C3), Wasp hover over its shadow, mites at their own sizes and paces, shots from the weapon,
-// burn/poison tick flashes), pulse turrets (aim and muzzle flashes), projectiles, crate piles,
+// burn/poison tick flashes), projectiles,
 // danger markers and the debug overlays. Positions are lerped between the last two sim steps; the
 // sim is read, never written.
 import { lerp } from '@pcg/game-kit';
 import type * as Phaser from 'phaser';
 import type { Content } from '../../content';
-import type { ClassId, EffectId, LaneId } from '../../shared/ids';
-import { LANE_IDS } from '../../shared/ids';
+import type { ClassId, EffectId } from '../../shared/ids';
 import { theme } from '../../shared/theme';
 import type { ArtImage } from '../render/atlas';
 import { drawBowString } from '../render/bowString';
 import { pickFacing, enemyMirror, type Facing } from '../render/aim';
 import { KNIGHT_DOWN } from '../render/clipKit';
-import { ATTACK_MS, BUILD_PLACE_MS } from '../render/clips/ranger';
-import { BUILD_TAP_MS } from '../render/clips/warden';
-import { placeFrame } from '../render/context';
+import { ATTACK_MS } from '../render/clips/ranger';
 import { clipLandedMs, spawnPile } from '../render/fall';
 import { RIG_INFO, type RigInfo } from '../render/gallery/rigInfo';
-import { fk, iconFrame } from '../render/keys';
+import { iconFrame } from '../render/keys';
 import { TILE_W } from '../render/camera';
 import { DANGER_EDGE } from '../render/legibility';
 import { MapView } from '../render/map';
 import { mitePack } from '../render/swarm';
 import type { RigSprite } from '../render/rig';
 import { locomotionClip, locomotionSpeed, StatusSprites } from '../render/status';
-import { Citadel, frameAt, type SentryId } from '../render/structures';
+import { Citadel, type SentryId } from '../render/structures';
 import type { IconKey, ProjectileKind, ProjectileSprite, StatusLook } from '../render/types';
 import type { RenderWorld } from '../render/world';
-import {
-  aimPreview,
-  buildTile,
-  groundBody,
-  placementValid,
-  shieldOf,
-  type GroundBody,
-} from '../sim';
+import { aimPreview, groundBody, shieldOf, type GroundBody } from '../sim';
 import {
   BASE_ID,
   STEP_MS,
@@ -66,7 +56,6 @@ import { lerpGround, lerpPos } from './interp';
 import { anchorToWorld, shotPos, shotTiming, type Launch, type Pos } from './shot';
 import { shotAnchor } from './support';
 import { SupportView } from './supportView';
-import { StructuresView } from './structuresView';
 import { superPulse } from './superPulse';
 import { syncTag, type TagState } from './tag';
 import { wardenAttack } from './wardenFx';
@@ -90,9 +79,8 @@ export interface FrameInput {
   overlays: Overlays;
 }
 
-/** Map v1 anchors (SPEC §15.2): the Citadel's front-center and the Armory pad's center. */
+/** Map v1 anchor (SPEC §15.2): the Citadel's front-center. */
 const CITADEL_AT = { x: 18, y: 2 };
-const ARMORY_AT = { x: 22.5, y: 1.5 };
 /** Knights near the top edge (by the Citadel) get their label below the sprite (§2.1). */
 const FLIP_BELOW_Y = 4;
 const ONE_SHOTS = new Set(['attack', 'super', 'build', 'hit', 'respawn', 'throw', 'plant']);
@@ -133,7 +121,6 @@ interface Knight {
   reconnect: ArtImage;
   /** Overflow shield (§6.1, FF12): the icon beside the HP bar while a shield holds. */
   overflow: ArtImage;
-  ghost: ArtImage;
 }
 
 interface Enemy {
@@ -161,20 +148,17 @@ interface Timer {
 }
 
 export class WorldView {
-  private readonly map: MapView;
   /** The Artificer, the Commander and his squad (FF9). */
   private readonly support: SupportView;
   private readonly citadel: Citadel;
   private readonly knights = new Map<number, Knight>();
   private readonly enemies = new Map<EntityId, Enemy>();
-  private readonly structs: StructuresView;
   /** The Colossus's tiers, attack clips, tells, core and shockwaves (FF11). */
   private readonly boss: ColossusView;
   private readonly shots = new Map<EntityId, ProjectileSprite>();
   private readonly launches = new Map<EntityId, Launch>();
   private readonly launchers = new Map<EntityId, Knight>();
   private readonly enemyShots = new Map<EntityId, EnemyShot>();
-  private readonly piles = new Map<EntityId, ArtImage[]>();
   private readonly ui: Phaser.GameObjects.Graphics;
   private readonly ground: Phaser.GameObjects.Graphics;
   private readonly debug: Phaser.GameObjects.Graphics;
@@ -184,7 +168,6 @@ export class WorldView {
   /** Reused by the aim previews each frame. */
   private readonly aimFrame: GroundFrame = { sx: 0, sy: 0, kx: 0, ky: 0 };
   private t = 0;
-  private openLanes = new Set<LaneId>();
   /** Enemy body hitboxes on the ground (the sim's, for the hitbox overlay). */
   private readonly bodies: Map<string, GroundBody>;
 
@@ -195,13 +178,10 @@ export class WorldView {
     this.bodies = new Map(
       content.enemies.flatMap((e) => (e.body ? [[e.id, groundBody(e.body)] as const] : [])),
     );
-    this.map = new MapView(w, w.theme.map);
+    new MapView(w, w.theme.map);
     this.citadel = new Citadel(w, CITADEL_AT.x, CITADEL_AT.y);
     this.support = new SupportView(w, content, (slot) => this.knights.get(slot) ?? null);
-    this.structs = new StructuresView(w, content);
     this.boss = new ColossusView(w);
-    frameAt(w, fk('armory/pad'), 'ground', ARMORY_AT.x, ARMORY_AT.y);
-    frameAt(w, fk('armory/kiosk'), 'world', ARMORY_AT.x, ARMORY_AT.y);
     const gfx = (layer: 'groundOverlay' | 'worldUi' | 'effects', depth: number) => {
       const g = w.scene.make.graphics({}, false).setDepth(depth);
       w.layers[layer].add(g);
@@ -211,7 +191,6 @@ export class WorldView {
     this.ui = gfx('worldUi', -1);
     this.debug = gfx('worldUi', 1e6);
     this.glow = gfx('effects', 1e6);
-    for (const l of LANE_IDS) this.map.setLane(l, 'sealed');
   }
 
   /** Dev fallback shapes drawn (e2e asserts none). */
@@ -242,13 +221,10 @@ export class WorldView {
       for (const d of due) d.fn();
     }
     const w = f.world;
-    this.syncLanes(w);
     this.syncKnights(w);
     this.syncEnemies(w);
-    this.structs.sync(w, f.events);
     for (const e of f.events) {
       this.event(e, w);
-      this.structs.event(e, w);
     }
     this.ground.clear();
     this.ui.clear();
@@ -258,12 +234,10 @@ export class WorldView {
     this.drawCitadel(w, f.dtMs);
     this.drawKnights(w, f);
     this.support.update(f);
-    this.structs.update(w, f.dtMs, (p) => this.knights.get(p.slot)?.rig.attach('hammer') ?? null);
     this.boss.begin(f.dtMs);
     this.drawEnemies(w, f);
     this.boss.frame(w, (id) => this.enemies.get(id)?.rig ?? null);
     this.drawProjectiles(w, f);
-    this.drawPiles(w);
     this.drawMarkers(w);
     if (f.overlays.hitbox || f.overlays.range || f.overlays.flow) this.drawOverlays(w, f);
     this.w.update(f.dtMs);
@@ -271,17 +245,6 @@ export class WorldView {
   }
 
   // ---- entity lifecycles ----------------------------------------------------------------------------
-
-  private syncLanes(w: World) {
-    const open = new Set<LaneId>(
-      this.content.waves.filter((d) => d.n <= Math.max(1, w.wave)).flatMap((d) => d.lanes),
-    );
-    for (const l of LANE_IDS) {
-      if (open.has(l) !== this.openLanes.has(l))
-        this.map.setLane(l, open.has(l) ? 'open' : 'sealed');
-    }
-    this.openLanes = open;
-  }
 
   private rigFor(classId: ClassId) {
     return classId; // a knight's rig id is its class id
@@ -315,8 +278,6 @@ export class WorldView {
         })
         .setOrigin(0.5, 1);
       this.w.layers.worldUi.add(tag);
-      const ghost = placeFrame(this.w, fk('build-ghost/valid'), 'groundOverlay', 0, 0);
-      ghost.img.setVisible(false);
       this.knights.set(p.slot, {
         id: p.id,
         slot: p.slot,
@@ -335,7 +296,6 @@ export class WorldView {
         tagState: { color: theme.color.foreground.hex },
         reconnect: this.icon('reconnecting'),
         overflow: this.icon('overflow-shield'),
-        ghost,
       });
     }
   }
@@ -461,23 +421,6 @@ export class WorldView {
         k.rig.play('respawn', { restart: true, fadeMs: 0 });
         return;
       }
-      case 'built': {
-        const k = this.knights.get(e.slot);
-        if (k && !k.down) k.rig.play('build', { restart: true, fadeMs: 60 });
-        const [c, r] = e.tile;
-        // The structure sketches and fills once the builder's hands reach the ground (FF8).
-        const ranger = k?.rig.rigId === 'ranger';
-        this.structs.built(e, !k ? 0 : ranger ? BUILD_PLACE_MS : BUILD_TAP_MS);
-        if (!ranger) return;
-        // The deploy beacon lands as he reaches the ground; the turret unfolds over it (§2.4).
-        this.later(BUILD_PLACE_MS, () => {
-          const b = frameAt(this.w, fk('deploy-beacon'), 'world', c + 0.5, r + 0.55);
-          this.w.fx.ring('ours', c + 0.5, r + 0.5, 0.7);
-          this.later(500, () => b.img.setAlpha(0.5));
-          this.later(900, () => b.img.destroy());
-        });
-        return;
-      }
       case 'runEnd':
         if (e.result === 'defeat') this.citadel.collapse(this.w.fx);
         return;
@@ -499,7 +442,6 @@ export class WorldView {
       fx.burst('muzzle-ours', m.sx, m.sy - 8, screenRot(e.angle));
       return;
     }
-    if (this.structs.attack(e)) return;
     const en = this.enemies.get(e.source);
     if (en && !en.dying) {
       en.mirror = enemyMirror(Math.cos(e.angle), en.mirror);
@@ -530,7 +472,7 @@ export class WorldView {
     if (p.classId === 'warden') {
       // The slam and the stomp land on their clips' impact frames (FF8, wardenFx.ts).
       k.shotDelay = 0;
-      const def = this.content.characters.find((c) => c.id === p.classId);
+      const def = this.content.knights.find((c) => c.id === p.classId);
       if (def) wardenAttack(this.w, k.rig, e, def, (ms, fn) => this.later(ms, fn));
       return;
     }
@@ -563,7 +505,7 @@ export class WorldView {
       k.rig.setPose('ready', 0);
       k.rig.play('super', { restart: true, fadeMs: 40 });
       // The pulse ring is sized exactly to the hit circle (§2.4).
-      const def = this.content.characters.find((c) => c.id === p.classId);
+      const def = this.content.knights.find((c) => c.id === p.classId);
       fx.ring('ours', e.x, e.y, def?.super.radius ?? def?.super.range ?? 3, 520);
     }
   }
@@ -602,7 +544,6 @@ export class WorldView {
       k.wy = at.y;
       const rig = k.rig;
       rig.setPosition(at.sx, at.sy);
-      const def = this.content.characters.find((c) => c.id === p.classId);
       const color = theme.players[p.color].fill.num;
       rig.setTint(color);
 
@@ -644,7 +585,7 @@ export class WorldView {
         rig.setAlpha(p.connected ? 1 : 0.45);
       }
 
-      // Ground: shadow, ring with the aim notch, carried-cell pips (§2.4). Super ready pulses the
+      // Ground: shadow, ring with the aim notch (§2.4). Super ready pulses the
       // ring with amber light (§10.1, C2), under the colored ring so the player color stays on top.
       const ring = k.info.ring ?? 0.68;
       marks.shadow(at.sx, at.sy, k.info.shadow[0] * 2, k.info.shadow[1] * 2);
@@ -652,7 +593,6 @@ export class WorldView {
         const pulse = superPulse(p, this.t);
         if (pulse) marks.superRing(at.sx, at.sy, ring, pulse.color, pulse.scale, pulse.alpha);
         marks.ring(at.sx, at.sy, ring, color, this.aimOf(p, k) ?? p.facing);
-        if (p.crates > 0) marks.carry(at.sx, at.sy, ring, p.crates, def?.carryCap ?? 4);
       }
 
       this.drawKnightUi(w, p, k, at, color);
@@ -708,17 +648,6 @@ export class WorldView {
     k.overflow.img.setVisible(shielded);
     if (shielded) k.overflow.img.setPosition(at.sx + 23 + 9, below ? tagY + 26 : tagY + 5);
     this.drawAim(p, at);
-    // Build ghost at the feet (§10.2): dashed amber when valid, red with an X when blocked.
-    const ghost = w.phase === 'build' && p.ghost !== null && p.respawnAt === null;
-    k.ghost.img.setVisible(ghost);
-    if (ghost) {
-      // Fortify's ghost sits on the tower it would attach to (FF8).
-      const [c, r] = buildTile(w, p.ghost!, p, this.content.rules?.fortifyReach ?? 0);
-      const valid = placementValid(w, p.ghost!, [c, r], p.slot);
-      this.w.lib.setFrame(k.ghost, valid ? fk('build-ghost/valid') : fk('build-ghost/blocked'));
-      const s = this.w.camera.worldToScreen(c + 0.5, r + 0.5);
-      k.ghost.img.setPosition(s.sx, s.sy);
-    }
   }
 
   /**
@@ -727,7 +656,7 @@ export class WorldView {
    */
   private drawAim(p: PlayerEnt, at: { x: number; y: number }) {
     if (p.respawnAt !== null) return;
-    const def = this.content.characters.find((c) => c.id === p.classId);
+    const def = this.content.knights.find((c) => c.id === p.classId);
     if (!def) return;
     for (const slot of ['main', 'super'] as const) {
       const aim = slot === 'main' ? p.mainAim : p.superAim;
@@ -864,9 +793,7 @@ export class WorldView {
       if (!launch) {
         const k = pr.side === 'ours' ? this.knightById(pr.source) : null;
         const delayMs = k && pr.slot === 'main' ? k.shotDelay : 0;
-        // Mortar shells leave from the barrel (FF8).
-        const origin = pr.arc ? this.structs.shellOrigin(pr) : null;
-        launch = { bornMs: this.t, delayMs, origin };
+        launch = { bornMs: this.t, delayMs, origin: null };
         this.launches.set(pr.id, launch);
         if (k) this.launchers.set(pr.id, k);
       }
@@ -929,32 +856,6 @@ export class WorldView {
     return enemyShotPos(s, this.t, sim);
   }
 
-  private drawPiles(w: World) {
-    const live = new Set<EntityId>();
-    for (const pile of w.cratePiles) {
-      live.add(pile.id);
-      let imgs = this.piles.get(pile.id);
-      if (!imgs) {
-        imgs = [];
-        this.piles.set(pile.id, imgs);
-      }
-      const n = Math.min(3, pile.n);
-      while (imgs.length < n) imgs.push(placeFrame(this.w, fk('power-cell'), 'world', 0, 0));
-      while (imgs.length > n) imgs.pop()!.img.destroy();
-      const s = this.w.camera.worldToScreen(pile.x, pile.y);
-      imgs.forEach((a, i) =>
-        a.img
-          .setPosition(s.sx + (i - (n - 1) / 2) * 12, s.sy - (i % 2) * 4)
-          .setDepth(s.sy + i * 0.001),
-      );
-    }
-    for (const [id, imgs] of this.piles) {
-      if (live.has(id)) continue;
-      for (const a of imgs) a.img.destroy();
-      this.piles.delete(id);
-    }
-  }
-
   /** Red danger markers on the ground (boss telegraphs, §3.6), filling as they land. */
   private drawMarkers(w: World) {
     for (const m of w.markers) {
@@ -984,7 +885,7 @@ export class WorldView {
     const g = this.debug;
     const marks = this.w.marks;
     const cam = this.w.camera;
-    const units = [...w.players, ...w.enemies, ...w.structures];
+    const units = [...w.players, ...w.enemies];
     if (f.overlays.hitbox) {
       for (const u of units) {
         const s = cam.worldToScreen(u.x, u.y);
@@ -1002,14 +903,9 @@ export class WorldView {
     }
     if (f.overlays.range) {
       for (const p of w.players) {
-        const def = this.content.characters.find((c) => c.id === p.classId);
+        const def = this.content.knights.find((c) => c.id === p.classId);
         const s = cam.worldToScreen(p.x, p.y);
         if (def) marks.hitbox(s.sx, s.sy, def.main.range, theme.color.amber.num);
-      }
-      for (const st of w.structures) {
-        const def = this.content.structures.find((d) => d.id === st.kind);
-        const s = cam.worldToScreen(st.x, st.y);
-        if (def?.attack) marks.hitbox(s.sx, s.sy, def.attack.range, theme.color.amber.num);
       }
       const archers = this.content.base?.archers;
       if (archers) {
@@ -1043,7 +939,6 @@ export class WorldView {
       k.tag.destroy();
     }
     for (const [id, en] of this.enemies) this.dropEnemy(id, en);
-    this.structs.destroy();
     for (const s of this.shots.values()) s.release();
     this.support.destroy();
     this.boss.destroy();
@@ -1065,14 +960,12 @@ function looksOf(effects: readonly { def: EffectId }[]): StatusLook[] {
 }
 
 /**
- * Straight shots are bolts; the Artificer's are nanite bolts (FF9), enemies' their own (FF10);
- * mortars lob shells (FF8).
+ * Straight shots are bolts; the Artificer's are nanite bolts (FF9), enemies' their own (FF10).
  */
 function projectileKind(from: string): ProjectileKind {
   if (from === 'artificer') return 'nanite-bolt';
   if (from === 'flyer') return 'wasp-shot';
   if (from === 'siege') return 'bombard-shell';
-  if (from === 'bomb_tower') return 'mortar-shell';
   if (from === 'colossus') return 'boulder';
   return 'bolt';
 }

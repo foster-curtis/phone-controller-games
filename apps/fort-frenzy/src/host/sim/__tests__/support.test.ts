@@ -1,10 +1,8 @@
-// Support classes (SPEC §6, §8, §10.1 rows 3, 6, 7; BUILD_PLAN FF9): the Artificer's supply perks,
-// throws, emergency kit, Field Medic and nanite cone; the Commander's slash, morale, Lead from the
-// Front, rally flag and squad.
+// Support knights (SPEC §8; BUILD_PLAN FF9): the Artificer's Field Medic and nanite cone; the
+// Commander's slash, morale, Lead from the Front, rally flag and squad.
 import { describe, expect, it } from 'vitest';
 import { content as baseContent, type Content } from '../../../content';
 import { commander, artificer } from '../../../content/balance';
-import type { WaveDef } from '../../../content/types';
 import type { ClassId, PlayerColorId } from '../../../shared/ids';
 import { PLAYER_COLOR_IDS } from '../../../shared/ids';
 import { createSim, ScriptedInputSource, squadSize, type Sim } from '../index';
@@ -92,9 +90,9 @@ describe('Field Medic (§8)', () => {
     const heals = h.collect('heal', 181);
     expect(h.p(1).hp).toBe(50 + 3 * 3);
     expect(heals.every((e) => e.source === h.p(0).id)).toBe(true);
-    const params = artificer.passive.params;
+    const params = artificer.passive!.params;
     expect(h.p(0).superCharge).toBeCloseTo(9 * params.chargeRate, 9);
-    expect(params.chargeRate).toBeLessThan(artificer.superChargeRate);
+    expect(params.chargeRate).toBeLessThan(artificer.superCharge.perDamage);
   });
 
   it('leaves players out of its radius alone', () => {
@@ -109,34 +107,32 @@ describe('Field Medic (§8)', () => {
 });
 
 describe('Artificer attacks (§8)', () => {
-  it('main bolts fan out and are blocked by towers; the super cone passes through and heals', () => {
+  it('main bolts fan out and hit; the super cone heals knights only (§8.2)', () => {
     const h = mixed(['artificer', 'ranger']);
     h.toCombat();
+    h.sim.world.spawns.length = 0;
     h.put(0, 10.5, 10.5);
     h.put(1, 15.5, 10.5);
-    // A tower right in front of the Artificer, between him and the Ranger.
-    h.sim.place('arrow_tower', 12, 10, 1);
-    const enemy = h.sim.spawnEnemy('grunt', 14.5, 10.5);
+    const enemy = h.sim.spawnEnemy('grunt', 13.5, 10.5);
+    enemy.stats.moveSpeed = 0;
     h.pads[0]!.tap('mainFires', { mainAim: { x: 1, y: 0 } });
     h.run(1);
     const bolts = h.sim.world.projectiles.filter((p) => p.from === 'artificer');
     expect(bolts).toHaveLength(artificer.main.count);
     expect(new Set(bolts.map((b) => Math.round(Math.atan2(b.vy, b.vx) * 100))).size).toBe(4);
-    // The tower shoots the enemy too; none of the Artificer's bolts reach it.
     const hits = h.collect('damage', 40).filter((d) => d.target === enemy.id);
-    expect(hits.some((d) => d.source === h.p(0).id)).toBe(false);
-    expect(h.sim.world.projectiles.filter((p) => p.from === 'artificer')).toHaveLength(0);
+    expect(hits.some((d) => d.source === h.p(0).id)).toBe(true);
 
     hurt(h.p(1), 30);
+    const build = h.sim.addBuild('beacon', 12.5, 10.5, 1);
+    build.hp -= 50;
     h.p(0).superCharge = 1;
     h.pads[0]!.tap('superFires', { superAim: { x: 1, y: 0 } });
     h.run(1);
     expect(h.p(1).hp).toBe(30 + artificer.super.heal);
-    // The tower in the cone got the defense bonus.
-    const tower = h.sim.world.structures[0]!;
-    expect(tower.effects.map((e) => e.def)).toContain('tower_defense');
-    h.run(1);
-    expect(tower.stats.damageReduction).toBeCloseTo(0.3, 9);
+    // Builds aren't healed, and nothing in the cone gets a buff.
+    expect(build.hp).toBe(build.maxHp - 50);
+    expect(build.effects).toHaveLength(0);
   });
 
   it("the super's healing doesn't charge the super", () => {
@@ -171,11 +167,11 @@ describe('Commander (§8)', () => {
     expect(back.hp).toBe(b0);
   });
 
-  it('starts with 3 soldiers that follow him', () => {
+  it('starts with 2 soldiers that follow him', () => {
     const h = mixed(['commander']);
     h.toBuild();
-    expect(h.squad(0)).toHaveLength(3);
-    expect(h.squad(0).map((u) => u.index)).toEqual([0, 1, 2]);
+    expect(h.squad(0)).toHaveLength(2);
+    expect(h.squad(0).map((u) => u.index)).toEqual([0, 1]);
     h.toCombat();
     h.put(0, 10, 12);
     h.run(240);
@@ -203,7 +199,7 @@ describe('Commander (§8)', () => {
     expect(deaths).toEqual([
       { e: 'death', id: victim.id, what: 'soldier', killer: null, x: victim.x, y: victim.y },
     ]);
-    expect(h.squad(0).map((u) => u.index)).toEqual([0, 2]);
+    expect(h.squad(0).map((u) => u.index)).toEqual([0]);
     // Clear the wave: back to build, the fallen soldier returns at the base.
     h.sim.world.spawns.length = 0;
     h.until(() => h.sim.world.phase === 'build', 10);
@@ -212,36 +208,21 @@ describe('Commander (§8)', () => {
         .squad(0)
         .map((u) => u.index)
         .sort(),
-    ).toEqual([0, 1, 2]);
+    ).toEqual([0, 1]);
     const back = h.squad(0).find((u) => u.index === 1)!;
     expect(back.y).toBeLessThan(5);
     expect(back.hp).toBe(commander.squad.soldier.hp);
   });
 
-  it('the squad grows to 4 after the wave 5 boss and to 5 after the wave 10 boss (wave data)', () => {
-    const waves: WaveDef[] = Array.from({ length: 12 }, (_, i) => ({
-      n: i + 1,
-      budget: 1,
-      allowed: ['grunt'],
-      lanes: ['bottom'],
-      guaranteed: [],
-      durationMs: 1000,
-      ...(i + 1 === 5 || i + 1 === 10 ? { boss: { id: 'grunt' as const, mk: 1 as const } } : {}),
-    }));
-    const sizes = commander.squad.size;
-    expect([1, 5, 6, 10, 11, 12].map((n) => squadSize(waves, sizes, n))).toEqual([
-      3, 3, 4, 4, 5, 5,
-    ]);
-    const h = mixed(['commander'], { ...baseContent, waves });
+  it('the squad keeps its starting size through the run (RD9 adds Reinforcements)', () => {
+    expect(squadSize(commander.squad)).toBe(2);
+    const h = mixed(['commander']);
     h.toBuild();
-    expect(h.squad(0)).toHaveLength(3);
-    h.sim.command({ c: 'debug', slot: -1, action: 'jumpWave', wave: 6 });
-    h.run(1);
-    expect(h.squad(0)).toHaveLength(4);
+    expect(h.squad(0)).toHaveLength(2);
     h.sim.command({ c: 'debug', slot: -1, action: 'jumpWave', wave: 11 });
     h.run(1);
-    expect(h.squad(0)).toHaveLength(5);
-    expect(h.squad(0).map((u) => u.index)).toEqual([0, 1, 2, 3, 4]);
+    expect(h.squad(0)).toHaveLength(2);
+    expect(h.squad(0).map((u) => u.index)).toEqual([0, 1]);
   });
 
   it('morale: squad and Commander hit harder and faster, he also runs faster', () => {

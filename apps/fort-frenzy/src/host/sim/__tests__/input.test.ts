@@ -120,10 +120,10 @@ describe('build press without a full meter (§10.1, RD2)', () => {
     h.holdSpawns();
     const p = h.p(0);
     p.meter = 0;
-    const before = { crates: p.crates, flag: p.flag, structures: h.sim.world.structures.length };
+    const before = { flag: p.flag, builds: h.sim.world.builds.length };
     h.pads[0]!.tap('buildFires');
     expect(h.collect('recall', 2)).toHaveLength(0);
-    expect(h.sim.world.structures).toHaveLength(before.structures);
-    expect([p.crates, p.flag]).toEqual([before.crates, before.flag]);
+    expect(h.sim.world.builds).toHaveLength(before.builds);
+    expect(p.flag).toEqual(before.flag);
   });
 });

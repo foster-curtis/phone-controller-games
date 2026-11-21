@@ -1,14 +1,12 @@
-// `siege` AI (SPEC §3.3, §9, §9.6, §15.5): the Bombard walks the ground field until a tower or the
-// Citadel is in range, then stops and shells it; it never attacks players. A shot plants and charges
-// (the wind-up, its tell), then lobs a shell: a red danger marker shows where it lands, and the
-// landing hits everything inside (players, soldiers, structures, the Citadel; combat.ts). A wall
-// blocking its way gets shelled the same way. Rangers outrange it (§8).
-import { rectDist, rectNearest, tileRect } from '../geometry';
+// `siege` AI (SPEC §3.3, §9, §9.6, §15.5): the Bombard walks the ground field until the Citadel is in
+// range, then stops and shells it (RD10 adds players and builds: base > players > builds, #108). A
+// shot plants and charges (the wind-up, its tell), then lobs a shell: a red danger marker shows where
+// it lands, and the landing hits everything inside (players, soldiers, HP builds, the Citadel;
+// combat.ts). Rangers outrange it (§8).
+import { rectDist, rectNearest } from '../geometry';
 import { state, type SimState } from '../internal';
-import { BASE_ID, type EnemyEnt, type SimCtx, type StructureEnt } from '../types';
+import { BASE_ID, type EnemyEnt, type SimCtx } from '../types';
 import { fieldStep, knocked, toBase } from './field';
-
-const TOWERS = new Set(['arrow_tower', 'bomb_tower']);
 
 export function siegeAi(ctx: SimCtx, e: EnemyEnt): void {
   const s = state(ctx);
@@ -37,30 +35,14 @@ export function siegeAi(ctx: SimCtx, e: EnemyEnt): void {
   e.target = null;
   const step = fieldStep(s, e, s.world.fields.ground, e.stats.moveSpeed);
   if (step.kind === 'goal') toBase(s, e, e.stats.moveSpeed);
-  else if (step.kind === 'blocked') {
-    e.ai = 'siege';
-    shell(s, e, step.st.id);
-  }
 }
 
-/** The nearest tower in range (ties by id), else the Citadel if in range, else null. */
+/** The Citadel if in range, else null. */
 function pickTarget(s: SimState, e: EnemyEnt, range: number): number | null {
-  let best: StructureEnt | null = null;
-  let bestD = Infinity;
-  for (const st of s.world.structures) {
-    if (!st.damageable || st.hp <= 0 || !TOWERS.has(st.kind)) continue;
-    const d = rectDist(e.x, e.y, tileRect(st.tile[0], st.tile[1])) - e.r;
-    if (d <= range && d < bestD) {
-      best = st;
-      bestD = d;
-    }
-  }
-  if (best) return best.id;
-  if (rectDist(e.x, e.y, s.baseRect) - e.r <= range) return BASE_ID;
-  return null;
+  return rectDist(e.x, e.y, s.baseRect) - e.r <= range ? BASE_ID : null;
 }
 
-/** Where a shell at `target` lands: a tower's center, or the Citadel's nearest edge. */
+/** Where a shell at `target` lands: a unit's position, or the Citadel's nearest edge. */
 function aimPoint(s: SimState, e: EnemyEnt, target: number): { x: number; y: number } {
   if (target === BASE_ID) return rectNearest(e.x, e.y, s.baseRect);
   const u = s.units.get(target)!;
@@ -113,7 +95,6 @@ function lob(s: SimState, e: EnemyEnt, target: number) {
     tags: [],
     effects: [],
     hitsFlyers: false,
-    blockedBy: [],
     pierce: 0,
     hit: [],
     expiresAt: t + flight,
@@ -129,7 +110,7 @@ function lob(s: SimState, e: EnemyEnt, target: number) {
     r: radius,
     createdAt: t,
     landsAt: t + flight,
-    payload: { damage: e.stats.damage, kind: 'shell', tags: [], hitsStructures: true },
+    payload: { damage: e.stats.damage, kind: 'shell', tags: [], hitsBuilds: true },
   });
   s.emit({ e: 'marker', id, source: e.id, landsAtTick: t + flight });
 }

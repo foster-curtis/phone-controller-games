@@ -1,6 +1,6 @@
-// Smoke (SPEC §15.9; BUILD_PLAN FF7): TV home → room → two phones join and pick the Ranger → both
-// ready → countdown → build (buy two cells, place a pulse turret) → combat of wave 1 (a Drone dies,
-// coins rise) → on to combat of wave 2. Sim time is frozen and stepped through `__pcg`, so nothing
+// Smoke (SPEC §15.9; RD2): TV home → room → two phones join (the Ranger) → both ready → countdown →
+// build phase (the shop view: no Build tab, no supply items; a card pick and a purchase) → combat of
+// wave 1 (the build button is there, dimmed; a Drone dies, coins rise) → on to combat of wave 2. Sim time is frozen and stepped through `__pcg`, so nothing
 // depends on wall time or the TV's frame rate.
 import { expect } from '@playwright/test';
 import {
@@ -19,7 +19,7 @@ import {
 
 test.afterEach(closeContexts);
 
-test('lobby → class select → start → build → combat to wave 2', async ({ browser, baseURL }) => {
+test('lobby → class select → start → shop → combat to wave 2', async ({ browser, baseURL }) => {
   test.setTimeout(150_000);
   const host = await openHost(browser);
   await freeze(host);
@@ -51,36 +51,29 @@ test('lobby → class select → start → build → combat to wave 2', async ({
 
   await readyUp([ann, bob]);
   await stepUntil(host, { phase: 'build' });
-  const shop = ann.page.locator('.screen.build [data-tab=shop]');
+  // The build phase is the shop view: no tabs, no Build tab, no supply items.
+  const shop = ann.page.locator('.screen.build');
   await expect(shop).toBeVisible();
   await expect(bob.page.locator('.screen.build')).toBeVisible();
+  await expect(ann.page.locator('.screen.build [data-tab], .screen.build .tabs')).toHaveCount(0);
+  await expect(ann.page.locator('.kit-tile, .give')).toHaveCount(0);
+  await expect(ann.page.locator('.shop-row[data-item=repair]')).toBeVisible();
+  await expect(ann.page.locator('.shop-row[data-item=base_hp]')).toBeVisible();
 
-  // Build: two cells from the shop, then a pulse turret at Ann's feet.
+  // A card from the offer, then the cheapest buy the starting coins allow (base max HP, 6).
+  const card = ann.page.locator('.upgrade-card .take').first();
+  if (await card.isVisible()) await card.click();
   const coins0 = (await stats(host)).coins;
-  await shop.click();
-  const buy = ann.page.locator('.shop-row[data-item=crate] .price');
-  const annCrates = stepped(
-    host,
-    async () => (await players(host)).find((p) => p.name === 'Ann')?.crates,
-  );
-  for (let n = 1; n <= 2; n++) {
-    await buy.click();
-    await expect.poll(annCrates).toBe(n);
-  }
-  expect((await stats(host)).coins).toBe(coins0 - 4);
-  await ann.page.locator('.screen.build [data-tab=build]').click();
-  await ann.page.locator('.kit-tile[data-structure=arrow_tower]').click();
-  const place = ann.page.locator('.place');
-  await expect.poll(stepped(host, () => place.isEnabled())).toBe(true);
+  await ann.page.locator('.shop-row[data-item=base_hp] .price').click();
+  await expect.poll(stepped(host, async () => (await stats(host)).coins)).toBe(coins0 - 6);
   await host.page.screenshot({ path: 'e2e/__screens__/smoke-build.png' });
-  await place.click();
-  await expect.poll(stepped(host, async () => (await stats(host)).structures)).toBe(1);
-  expect((await players(host)).find((p) => p.name === 'Ann')?.crates).toBe(0);
 
   // Both ready: combat of wave 1.
   for (const p of [ann, bob]) await p.page.locator('.screen.build .ready').click();
   await stepUntil(host, { phase: 'combat', wave: 1 }, 1);
   await expect(ann.page.locator('.screen.combat')).toBeVisible();
+  // The old action button is the build button now: there, dimmed (meters stay empty until RD3).
+  await expect(ann.page.locator('.screen.combat .round-btn.action')).toBeVisible();
   const combatCoins = (await stats(host)).coins;
 
   // Ann drags the main attack (the aim line shows on the TV), then releases: a shot.
@@ -101,7 +94,7 @@ test('lobby → class select → start → build → combat to wave 2', async ({
     window.__pcg!.command({ c: 'debug', slot: -1, action: 'invincible', on: true }),
   );
 
-  // A Drone dies (turret, sentries) and pays coins.
+  // A Drone dies (Ann, the sentries) and pays coins.
   await stepUntilKill(host);
   expect((await stats(host)).coins).toBeGreaterThan(combatCoins);
 

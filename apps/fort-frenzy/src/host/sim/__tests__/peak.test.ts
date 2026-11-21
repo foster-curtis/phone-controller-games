@@ -15,7 +15,7 @@ describe('peak loads', () => {
       load.topUp();
       expect(w.players).toHaveLength(PEAK.knights);
       expect(w.soldiers).toHaveLength(PEAK.footmen);
-      expect(w.structures).toHaveLength(PEAK.structures);
+      expect(w.builds).toHaveLength(PEAK.builds);
       expect(w.enemies.length).toBeGreaterThanOrEqual(PEAK.enemies - 10);
       expect(w.projectiles.length).toBeGreaterThanOrEqual(PEAK.projectiles);
       expect(w.phase).toBe('combat');

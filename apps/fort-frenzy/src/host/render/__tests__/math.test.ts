@@ -1,7 +1,7 @@
-// Camera projection, ground ellipses and carried-cell pips (SPEC §2.5, §15.2).
+// Camera projection, ground ellipses (SPEC §2.5, §15.2).
 import { describe, expect, it } from 'vitest';
 import { FixedCamera, UNIT_PX } from '../camera';
-import { carryPip, carryPips, ellipsePoint, PIP_PAD_Y } from '../ground';
+import { ellipsePoint } from '../ground';
 
 describe('FixedCamera', () => {
   const cam = new FixedCamera();
@@ -43,42 +43,5 @@ describe('FixedCamera', () => {
     const down = ellipsePoint(0, 0, 10, 6, Math.PI / 2);
     expect(down.x).toBeCloseTo(0);
     expect(down.y).toBeCloseTo(6);
-  });
-});
-
-describe('carry pips (§15.2: a = 90° + (cap − 1)·7.5° − k·15°)', () => {
-  const rx = 54.4;
-  const ry = 32.64;
-
-  it('centers a single slot straight in front of the ring', () => {
-    const p = carryPip(0, 1, 0, 0, rx, ry);
-    expect(p.x).toBeCloseTo(0);
-    expect(p.y).toBeCloseTo(ry + PIP_PAD_Y);
-  });
-
-  it('spreads cap 4 at 112.5°, 97.5°, 82.5°, 67.5°, left to right, symmetric', () => {
-    const pts = [0, 1, 2, 3].map((k) => carryPip(k, 4, 100, 200, rx, ry));
-    const deg = [112.5, 97.5, 82.5, 67.5].map((d) => (d * Math.PI) / 180);
-    pts.forEach((p, k) => {
-      expect(p.x).toBeCloseTo(100 + (rx + 8) * Math.cos(deg[k]!));
-      expect(p.y).toBeCloseTo(200 + (ry + 4.8) * Math.sin(deg[k]!));
-    });
-    expect(pts[0]!.x).toBeLessThan(pts[3]!.x);
-    expect(pts[0]!.x - 100).toBeCloseTo(-(pts[3]!.x - 100));
-    expect(pts[0]!.y).toBeCloseTo(pts[3]!.y);
-  });
-
-  it('cap 8 (the Artificer) spans 142.5°…37.5°, all on the front arc', () => {
-    const first = carryPip(0, 8, 0, 0, rx, ry);
-    const last = carryPip(7, 8, 0, 0, rx, ry);
-    expect(first.x).toBeCloseTo((rx + 8) * Math.cos((142.5 * Math.PI) / 180));
-    expect(last.x).toBeCloseTo((rx + 8) * Math.cos((37.5 * Math.PI) / 180));
-    for (let k = 0; k < 8; k++) expect(carryPip(k, 8, 0, 0, rx, ry).y).toBeGreaterThan(0);
-  });
-
-  it('shows pips only while carrying, filled left to right', () => {
-    expect(carryPips(0, 4, 0, 0, rx, ry)).toEqual([]);
-    expect(carryPips(3, 4, 0, 0, rx, ry).map((p) => p.filled)).toEqual([true, true, true, false]);
-    expect(carryPips(5, 8, 0, 0, rx, ry)).toHaveLength(8);
   });
 });

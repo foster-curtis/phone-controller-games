@@ -1,15 +1,15 @@
 // Developer tools on the TV (SPEC §9.5, §15.9), dev or `?debug=1` only: the debug panel (jump to a
-// wave, spawn any enemy in any lane, invincible, add coins, 2× speed, show / set the seed, hitbox /
+// wave, spawn any enemy at any portal, invincible, add coins, 2× speed, show / set the seed, hitbox /
 // range / flow-field overlays, download a replay; an uncaught error offers the download), and the
 // `window.__pcg` hooks the e2e suite drives. Never shown to players.
 import { installDebug } from '@pcg/game-kit';
 import {
   ENEMY_IDS,
-  LANE_IDS,
+  PORTAL_IDS,
+  type BuildId,
   type CardId,
   type ClassId,
   type PlayerColorId,
-  type StructureId,
 } from '../shared/ids';
 import type { TeamView } from '../shared/messages';
 import type { Runtime } from './game';
@@ -25,10 +25,9 @@ export interface FfDebugPlayer {
   color: PlayerColorId;
   classId: ClassId | null;
   connected: boolean;
-  /** In the run: alive, hp, crates; null in the lobby. */
+  /** In the run: alive, hp; null in the lobby. */
   hp: number | null;
   alive: boolean | null;
-  crates: number | null;
   /** The knight is dazed (its phone is away, §11.3); null in the lobby. */
   dazed: boolean | null;
   /** Holding an aimed main attack (the TV aim line). */
@@ -51,8 +50,9 @@ export interface FfDebugApi {
     enemies: number;
     enemyDeaths: number;
     shots: number;
-    structures: number;
     baseHp: number;
+    /** Builds on the map (§7). */
+    builds: number;
     /** Every run player disconnected (§11.3). */
     paused: boolean;
     /** Who paused the run from their phone (FF14-fix-1), or null. */
@@ -70,12 +70,12 @@ export interface FfDebugApi {
   command(cmd: SimCommand): void;
   seed(): number | null;
   replay(): unknown;
-  /** Structures in the run (FF14 resume checks). */
-  structures(): { kind: StructureId; tile: [number, number]; hp: number }[];
+  /** A build at (x, y) for `slot`, outside the rules (e2e resume checks; RD3 places real ones). */
+  addBuild(kind: BuildId, x: number, y: number, slot: number): void;
+  /** The builds on the map. */
+  builds(): { kind: BuildId; x: number; y: number; hp: number; owner: number }[];
   /** Each run slot's cards and private offer (FF14 resume checks). */
   cards(): { slot: number; cards: Partial<Record<CardId, number>>; offer: CardId[] | null }[];
-  /** Places a structure directly (bypasses the rules and the replay log; e2e setup only). */
-  place(kind: StructureId, col: number, row: number, slot: number): void;
   /** The resume snapshot in storage, or null (§15.8). */
   saved(): RunSnapshot | null;
   /** Canvas and overlay boxes in CSS px (they must match: one shared fit). */
@@ -110,7 +110,6 @@ export function installFfDebug(rt: Runtime, fallbacks: () => number): void {
           connected: m.connected,
           hp: p ? p.hp : null,
           alive: p ? p.respawnAt === null : null,
-          crates: p ? p.crates : null,
           dazed: p ? !p.connected : null,
           aiming: !!p?.mainAim,
         };
@@ -123,8 +122,8 @@ export function installFfDebug(rt: Runtime, fallbacks: () => number): void {
         enemies: w?.enemies.length ?? 0,
         enemyDeaths: rt.stats.enemyDeaths,
         shots: rt.stats.shots,
-        structures: w?.structures.length ?? 0,
         baseHp: w?.base.hp ?? 0,
+        builds: w?.builds.length ?? 0,
         paused: rt.pausedAll,
         pausedBy: rt.paused?.name ?? null,
         steps: rt.stats.steps,
@@ -139,11 +138,14 @@ export function installFfDebug(rt: Runtime, fallbacks: () => number): void {
     command: (cmd) => rt.session.command(cmd),
     seed: () => rt.session.start?.seed ?? rt.nextSeed,
     replay: () => rt.session.recorder?.recording() ?? null,
-    structures: () =>
-      (rt.world?.structures ?? []).map((s) => ({
-        kind: s.kind,
-        tile: [s.tile[0], s.tile[1]],
-        hp: s.hp,
+    addBuild: (kind, x, y, slot) => void rt.session.sim?.addBuild(kind, x, y, slot),
+    builds: () =>
+      (rt.world?.builds ?? []).map((b) => ({
+        kind: b.kind,
+        x: b.x,
+        y: b.y,
+        hp: b.hp,
+        owner: b.owner,
       })),
     cards: () =>
       (rt.world?.players ?? []).map((p) => ({
@@ -151,9 +153,6 @@ export function installFfDebug(rt: Runtime, fallbacks: () => number): void {
         cards: { ...p.cards },
         offer: p.offer ? [...p.offer] : null,
       })),
-    place: (kind, col, row, slot) => {
-      rt.session.sim?.place(kind, col, row, slot);
-    },
     saved: () => localSnapshotStore().load(Date.now()),
     boxes: () => ({
       canvas: document.querySelector('#tv canvas')?.getBoundingClientRect() ?? null,
@@ -255,15 +254,15 @@ export function mountDebugPanel(rt: Runtime): DebugPanel {
     const ok = rt.session.content.enemies.some((e) => e.id === id);
     enemy.add(new Option(ok ? id : `${id} (n/a)`, id, false, id === 'grunt'));
   }
-  const lane = h('select') as HTMLSelectElement;
-  for (const l of LANE_IDS) lane.add(new Option(l, l));
+  const portal = h('select') as HTMLSelectElement;
+  for (const id of PORTAL_IDS) portal.add(new Option(id, id));
   row(
     enemy,
-    lane,
+    portal,
     button('Spawn', () => {
       const id = enemy.value as (typeof ENEMY_IDS)[number];
       if (!rt.session.content.enemies.some((e) => e.id === id)) return;
-      cmd({ c: 'debug', slot: -1, action: 'spawn', enemy: id, lane: lane.value as never });
+      cmd({ c: 'debug', slot: -1, action: 'spawn', enemy: id, portal: portal.value as never });
     }),
   );
   let invincible = false;

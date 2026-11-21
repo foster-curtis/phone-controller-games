@@ -1018,6 +1018,12 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD1] decision: `rigFor.class` and `CLASS_RIG` (presentation) are gone: a knight's rig id is its `ClassId`. `rigFor.enemy/soldier/structure` and `map.lanes` stay until RD2 (lanes, structures). `ui/labels.ts` keeps its own identity `CLASS_RIG` for portrait files.
 - [RD1] decision: `PROTOCOL_VERSION` 2 and `SNAPSHOT_VERSION` 2; the only home rows now are create and difficulty (Normal default); the leader `theme` intent and `TeamView.theme` are removed from the wire.
 - [RD1] decision: the phone's "Change Knight" copy stays "class" wording until RD4; renamed copy only (Engineer/Quartermaster to Ranger/Artificer, a/an fixed).
+- [RD2] decision: the wire contract landed first (step 1), which left the action table, build arc, Give, the `build`/`give` intents and crate input unreachable, so their phone, view and input paths went in step 1 and the dead sim code in steps 2–3 (the "hook nobody calls" rule); steps 4 and 5 had nothing left of their own and are folded into steps 1 and 3.
+- [RD2] contract: `SNAPSHOT_VERSION` is 3, not 2 (RD1 had already used 2 for the renamed ids); SPEC §15.8 and §15.11 fixed.
+- [RD2] decision: until RD4 the phone's build button keeps the old action button's size and spot, is tap-only (no aimed build gesture, flag 4 never set) and stays dimmed while `me.build.mode` is `none`; the build phase shows the shop view (coins, the private card offer, shop rows, Ready) with no tabs and no stick.
+- [RD2] decision: `MeView.build` comes from a knight → build table in `net/views.ts` (shield generator, mines, beacon, rally flag; `act-*` icons) until RD3 reads it from content; `meter` stays 0, so every button is dimmed except the Commander's recall (none can happen yet: nothing plants a flag until RD9).
+- [RD2] decision: the autopilot only moves and fights (no Armory, crates or structures); soak and the recorder ready every slot 2 s into each build phase.
+- [RD2] decision: the `aura_field_medic` effect keeps its id with no stats (Light Load's carry relief went with the crates); RD8 gives it a use.
 
 ## 9. Final handoff
 

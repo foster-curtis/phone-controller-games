@@ -1,14 +1,13 @@
-// Every frame and icon key the theme pack and the renderer reference exists in the manifest, and
+// Every frame and icon key the presentation pack and the renderer reference exists in the manifest, and
 // code names frames only through typed keys (`fk('…')`, `ik('…')` or the builders in
 // render/keys.ts), never as a bare string (BUILD_PLAN FF3).
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { manifest } from '../../../generated/manifest';
-import { CLASS_IDS, LANE_IDS } from '../../shared/ids';
-import { ALL_MASKS } from '../../host/render/autotile';
+import { CLASS_IDS } from '../../shared/ids';
 import * as keys from '../../host/render/keys';
-import { SENTRY_AIMS, SENTRY_LOADOUTS, TURRET_AIMS, type TowerTier } from '../../host/render/types';
+import { SENTRY_AIMS, SENTRY_LOADOUTS } from '../../host/render/types';
 import { presentationHost } from '../host';
 import { presentationShared } from '../shared';
 import { ART_SET, isPosed, type ArtSetAssets } from '../types';
@@ -65,32 +64,16 @@ describe('asset keys', () => {
 
   it('every builder output exists', () => {
     const out: string[] = [];
-    for (const m of ALL_MASKS) {
-      out.push(
-        keys.wallFrame(m),
-        keys.wallRailFrame(m),
-        keys.wallChargedFrame(m),
-        keys.wallDmgFrame(m),
-        keys.netFrame(m),
-      );
-    }
-    for (const tier of [0, 1, 2, 3] as TowerTier[]) {
-      out.push(keys.turretPedestalFrame(tier));
-      for (const aim of TURRET_AIMS) out.push(keys.turretHeadFrame(tier, aim));
-    }
-    out.push(...keys.TURRET_BANDS);
     for (const lo of SENTRY_LOADOUTS)
       for (const aim of SENTRY_AIMS) out.push(keys.sentryFrame(lo, aim));
     for (let v = 1; v <= 4; v++) out.push(keys.groundFrame(v));
-    for (const lane of LANE_IDS)
-      out.push(keys.laneFrame(lane, 'open'), keys.laneFrame(lane, 'sealed'));
     for (let s = 1; s <= 5; s++) out.push(keys.scrapFrame('ours', s), keys.scrapFrame('theirs', s));
     out.push(
       ...Object.values(keys.EDGE_FRAMES),
       ...keys.DECOR_FRAMES,
       ...Object.values(keys.CITADEL),
     );
-    out.push(...Object.values(keys.STATUS_FRAMES).flat(), ...Object.values(keys.PIP_FRAMES));
+    out.push(...Object.values(keys.STATUS_FRAMES).flat());
     for (const f of out) expect(frames.has(f), f).toBe(true);
     expect(keys.iconFrame('coins')).toBe('icons/coins');
   });
@@ -99,8 +82,8 @@ describe('asset keys', () => {
     const map = presentationHost.map;
     for (const f of [...map.ground, ...Object.values(map.edges), ...(map.decor ?? [])])
       expect(frames.has(f), f).toBe(true);
-    for (const l of Object.values(map.lanes))
-      for (const f of [l.open, l.sealed]) expect(frames.has(f), f).toBe(true);
+    for (const p of Object.values(map.portals))
+      for (const f of [p.idle, p.flare]) expect(frames.has(f), f).toBe(true);
     for (const group of Object.values(presentationShared.iconFor))
       for (const id of Object.values(group)) expect(icons.has(id), id).toBe(true);
     const rigFor = presentationHost.rigFor;
@@ -108,7 +91,7 @@ describe('asset keys', () => {
       ...CLASS_IDS,
       ...Object.values(rigFor.enemy),
       rigFor.soldier,
-      ...Object.values(rigFor.structure),
+      ...Object.values(rigFor.knight),
     ])
       expect(assets.rigs, r).toContain(r);
   });

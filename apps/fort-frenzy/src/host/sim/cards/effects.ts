@@ -57,26 +57,18 @@ export const shieldEffect: EffectDef = {
   modifier: () => ({ id: 'effect:shield' }),
 };
 
-/** Bodyguard (Warden) and Vanguard (Commander) auras: damage reduction (capped, §6.1). */
-export const bodyguardAura: EffectDef = {
-  id: 'aura_bodyguard',
-  stacking: 'refresh',
-  modifier: (k) => ({ id: 'effect:aura_bodyguard', stats: [{ stat: 'damageReduction', add: k }] }),
-};
+/** Vanguard (Commander) aura: damage reduction (capped, §6.1). */
 export const vanguardAura: EffectDef = {
   id: 'aura_vanguard',
   stacking: 'refresh',
   modifier: (k) => ({ id: 'effect:aura_vanguard', stats: [{ stat: 'damageReduction', add: k }] }),
 };
 
-/** Light Load (Artificer): allies in the Field Medic aura feel `k` less of the carry slowdown. */
-export const lightLoadAura: EffectDef = {
+/** The Field Medic aura marker (§6.1): no stats of its own since Light Load went (RD2); RD8 reuses it. */
+export const fieldMedicAura: EffectDef = {
   id: 'aura_field_medic',
   stacking: 'refresh',
-  modifier: (k) => ({
-    id: 'effect:aura_field_medic',
-    stats: [{ stat: 'carrySlowdown', addPct: -k }],
-  }),
+  modifier: () => ({ id: 'effect:aura_field_medic' }),
 };
 
 /** Spends a unit's shield on a hit; returns what it absorbed (state.ts damage stage 5). */

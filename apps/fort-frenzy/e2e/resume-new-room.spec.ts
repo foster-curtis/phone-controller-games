@@ -27,10 +27,10 @@ test('room expired → device-ID match and a claim → resumed run', async ({ br
   const bob = await joinPhone(browser, old.code, 'Bob');
   await readyUp([ann, bob]);
   await stepUntil(old, { phase: 'build' });
-  await old.page.evaluate(() => window.__pcg!.place('arrow_tower', 10, 6, 0));
+  await old.page.evaluate(() => window.__pcg!.addBuild('beacon', 10.5, 6.5, 0));
   await advance(old, 2);
   await expect
-    .poll(() => old.page.evaluate(() => window.__pcg!.saved()?.structures.length ?? 0))
+    .poll(() => old.page.evaluate(() => window.__pcg!.saved()?.builds.length ?? 0))
     .toBe(1);
   const storage = await old.page.evaluate(() => ({ ...localStorage }));
   await old.context.close();
@@ -85,7 +85,7 @@ test('room expired → device-ID match and a claim → resumed run', async ({ br
     ['Ann', 0, false],
     ['Bob', 1, false],
   ]);
-  const structures = await page.evaluate(() => window.__pcg!.structures());
-  expect(structures.map((s) => [s.kind, s.tile])).toEqual([['arrow_tower', [10, 6]]]);
+  const builds = await page.evaluate(() => window.__pcg!.builds());
+  expect(builds.map((b) => [b.kind, b.x, b.y])).toEqual([['beacon', 10.5, 6.5]]);
   expect(errors).toEqual([]);
 });

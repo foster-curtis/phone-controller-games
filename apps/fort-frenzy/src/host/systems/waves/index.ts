@@ -1,7 +1,9 @@
 // Generic wave generator: spends a threat budget on a pool and spreads the groups over lanes and time
 // (SPEC §9.3, §9.4, §15.4). Extraction-ready (§15.1; Dungeon Crew reuses it for rooms): enemy ids are
 // a generic and lanes are plain strings. Seeded: the same rng stream gives the same wave.
-// Frozen at FF2 (BUILD_PLAN §3): additive changes only.
+// Frozen at FF2 (BUILD_PLAN §3): additive changes only. RD2 added the v2 inputs (`sides`, `hot`,
+// `hotShare`, `activeCap`) and `WaveGroup.hot`; without them every lane is live and groups go
+// round-robin over the lanes (Fort Frenzy's 6 portals until RD3 adds the hot side).
 import { rngStream, type Rng } from '@pcg/game-kit';
 
 /** One spawnable type. `cost` is per group; a group is `groupSize` units (default 1). */
@@ -34,6 +36,15 @@ export interface WaveInput<E extends string> {
   /** Types replaced and what replaces them (Flyers → ground units, §9); replacements cost as in the pool. */
   substitute?: Partial<Record<E, readonly E[]>>;
   rng: Rng;
+  // ---- v2 (additive, RD3 implements the rules) ----
+  /** Lane → side (Fort Frenzy: portal → `left` | `bottom` | `right`). */
+  sides?: Readonly<Record<string, string>>;
+  /** Hot-side schedule (§9.4). */
+  hot?: { mode: 'wave'; shifts: 0 | 1 | 2 } | { mode: 'group' };
+  /** Budget share to the hot side's lanes. */
+  hotShare?: number;
+  /** Lanes used per spawn pulse. */
+  activeCap?: number;
 }
 
 /** One spawn: `count` units of `id` from `lane` at `atMs` into the wave. */
@@ -42,6 +53,8 @@ export interface WaveGroup<E extends string> {
   lane: string;
   id: E;
   count: number;
+  /** The hot side at this group (v2, set when `hot` is). */
+  hot?: string;
 }
 
 /** The seeded stream for wave `n`: `waves:<n>` (§15.3). */

@@ -1,40 +1,30 @@
 // Shared AI steps for the FF10 roster (SPEC §15.5): one step along a flow field (path.ts
-// `steerAlong`: at the farthest clear tile down its chain), what blocks it, and the melee wind-up
+// `steerAlong`: at the farthest clear tile down its chain) and the melee wind-up
 // every swinging enemy shares (it roots the enemy and is called off if a player target goes down or
 // dazed).
 import type { EnemyDef } from '../../../content/types';
 import { rectNearest } from '../geometry';
 import type { SimState } from '../internal';
-import type { EnemyEnt, FlowField, PlayerEnt, StructureEnt } from '../types';
-import { land, steerAlong, toLane, walkTo } from './path';
+import type { EnemyEnt, FlowField, PlayerEnt } from '../types';
+import { land, steerAlong, toPortal, walkTo } from './path';
 
 export type FieldStep =
   /** Walking: velocity set. */
   | { kind: 'walk' }
   /** At a goal tile (or cut off): the caller decides where to go; no velocity set. */
-  | { kind: 'goal' }
-  /** A damageable blocker (wall, tower) sits on the next tile; no velocity set. */
-  | { kind: 'blocked'; st: StructureEnt; col: number; row: number };
+  | { kind: 'goal' };
 
-/** One step along `field` at `speed`. Off the map, walks to its lane's entry. */
+/** One step along `field` at `speed`. Off the map, walks to its portal's entry. */
 export function fieldStep(s: SimState, e: EnemyEnt, field: FlowField, speed: number): FieldStep {
   const { cols, rows } = field;
   const col = Math.floor(e.x);
   const row = Math.floor(e.y);
   if (col < 0 || row < 0 || col >= cols || row >= rows) {
-    toLane(s, e, speed);
+    toPortal(s, e, speed);
     return { kind: 'walk' };
   }
   const next = field.next[row * cols + col]!;
   if (next < 0) return { kind: 'goal' };
-  const occ = s.world.grid.occupant[next]!;
-  if (occ !== 0) {
-    const st = s.units.get(occ) as StructureEnt | undefined;
-    if (st && st.damageable && s.cat.structure(st.kind).pathCost > 1) {
-      const nc = next % cols;
-      return { kind: 'blocked', st, col: nc, row: (next - nc) / cols };
-    }
-  }
   steerAlong(e, field, row * cols + col, next, speed);
   return { kind: 'walk' };
 }

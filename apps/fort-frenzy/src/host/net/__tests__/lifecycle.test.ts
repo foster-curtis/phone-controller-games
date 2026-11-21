@@ -176,9 +176,9 @@ describe('resume snapshot on the host (§11.5, §15.8)', () => {
     const env = toBuild();
     expect(env.store.load(env.clock.wall)?.wave).toBe(1);
     const sim = env.s.sim!;
-    sim.place('arrow_tower', 10, 10, 0);
+    sim.addBuild('shield_gen', 10.5, 10.5, 0);
     step(env);
-    expect(env.store.load(env.clock.wall)?.structures.length).toBe(1);
+    expect(env.store.load(env.clock.wall)?.builds.length).toBe(1);
     toCombat(env);
     // Combat keeps the build-phase snapshot: a reload resumes the build of this wave.
     expect(env.store.load(env.clock.wall)?.wave).toBe(1);
@@ -188,7 +188,7 @@ describe('resume snapshot on the host (§11.5, §15.8)', () => {
 
   it('a reloaded TV in the same room: phones match by key, the leader resumes the same build', () => {
     const before = toBuild();
-    before.s.sim!.place('wall', 12, 11, 1);
+    before.s.sim!.addBuild('beacon', 12.5, 11.5, 1);
     before.s.sim!.world.team.coins = 77;
     step(before);
     const offers = before.s.sim!.world.players.map((p) => p.offer);
@@ -213,7 +213,7 @@ describe('resume snapshot on the host (§11.5, §15.8)', () => {
     expect(ackOf(env.sent, yes)?.ok).toBe(true);
     const w = env.s.sim!.world;
     expect([w.phase, w.wave, w.team.coins]).toEqual(['build', 1, 77]);
-    expect(w.structures.map((x) => [x.kind, x.tile])).toEqual([['wall', [12, 11]]]);
+    expect(w.builds.map((x) => [x.kind, x.x, x.y])).toEqual([['beacon', 12.5, 11.5]]);
     expect(w.players.map((p) => p.offer)).toEqual(offers);
     expect(w.players.every((p) => p.connected)).toBe(true);
     step(env);

@@ -3,7 +3,7 @@
 // overlay only renders it. World UI (nametags, aim lines, the build arc) is Phaser, not here.
 // Frozen at FF1 (BUILD_PLAN §3): additive changes only.
 import type { QrMatrix } from '@pcg/game-kit';
-import type { DifficultyId, EnemyId, LaneId, PlayerColorId, ShopItemId } from '../../shared/ids';
+import type { DifficultyId, EnemyId, PlayerColorId, ShopItemId } from '../../shared/ids';
 import type { TeamView } from '../../shared/messages';
 
 export type TvScreen =
@@ -52,8 +52,6 @@ export interface TvView {
   bossBar: { enemy: EnemyId; hp: number; maxHp: number; mk: 1 | 2 | 3; staggered: boolean } | null;
   /** Newest last; the overlay stacks them bottom-left. */
   announcements: Announcement[];
-  /** Lanes glowing now (spawn warning, §9.4). */
-  laneWarnings: LaneId[];
   /** Base below 25%: red vignette and "Citadel under attack" (§3.3). */
   lowHpAlarm: boolean;
   /** Build phase, right side: each requested item with who asked. */

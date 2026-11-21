@@ -2,19 +2,12 @@
 // a `ref` (the intent ack, BUILD_PLAN §8 FF1).
 import type { AckReason } from '../../shared/messages';
 import { offerFor, pickCard } from './cards';
-import { dropAll } from './crates';
 import { buy, request } from './shop';
 import { spawnGroup, startBuild } from './lifecycle';
 import { releaseAll } from './players';
 import { fillSquads } from './squad';
 import type { FullState } from './state';
-import type { PlayerEnt, SimCommand } from './types';
-
-function daze(s: FullState, p: PlayerEnt) {
-  dropAll(s, p);
-  releaseAll(p);
-  p.push = null;
-}
+import type { SimCommand } from './types';
 
 function apply(s: FullState, cmd: SimCommand): AckReason | null {
   const w = s.world;
@@ -28,7 +21,10 @@ function apply(s: FullState, cmd: SimCommand): AckReason | null {
       p.connected = cmd.connected;
       // The first sample after a (re)connect only re-baselines the counters (§15.3).
       s.inputs.get(p.slot)!.baseline = true;
-      if (!cmd.connected) daze(s, p);
+      if (!cmd.connected) {
+        releaseAll(p);
+        p.push = null;
+      }
       s.emit({ e: 'presence', slot: p.slot, connected: cmd.connected });
       return null;
     }
@@ -84,7 +80,8 @@ function debug(s: FullState, cmd: Extract<SimCommand, { c: 'debug' }>): AckReaso
     case 'spawn':
       // One group: a Swarm spawns its whole pack (§9.1). The Colossus has no content until FF11.
       if (!s.cat.content.enemies.some((e) => e.id === cmd.enemy)) return 'invalid';
-      spawnGroup(s, cmd.enemy, cmd.lane, s.cat.enemy(cmd.enemy).groupSize ?? 1);
+      if (!(cmd.portal in s.cat.map.portals)) return 'invalid';
+      spawnGroup(s, cmd.enemy, cmd.portal, s.cat.enemy(cmd.enemy).groupSize ?? 1);
       return null;
     case 'jumpWave': {
       const last = s.cat.waves[s.cat.waves.length - 1]?.n ?? 1;
@@ -92,7 +89,6 @@ function debug(s: FullState, cmd: Extract<SimCommand, { c: 'debug' }>): AckReaso
       for (const e of w.enemies) s.removeUnit(e.id);
       w.enemies.length = 0;
       w.spawns.length = 0;
-      if (w.fields.dirty) s.rebuildFields();
       startBuild(s, n);
       return null;
     }

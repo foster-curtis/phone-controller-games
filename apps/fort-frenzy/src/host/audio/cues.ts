@@ -1,5 +1,5 @@
-// Sim events → sound cues (SPEC §12; BUILD_PLAN FF13). Append-only registry (BUILD_PLAN §3): add
-// entries at the end, never reorder or delete.
+// Sim events → sound cues (SPEC §12; BUILD_PLAN FF13). Append-only registry (REDESIGN_BUILD_PLAN §3):
+// add entries at the end, never reorder or delete. RD2: the build cues (the structure ones' sounds).
 import type { SfxId } from '../../shared/ids';
 import type { SimEvent } from '../sim/events';
 
@@ -28,8 +28,6 @@ export const cues: readonly Cue[] = [
     when: (e, k) => e.e === 'damage' && !e.killed && k(e.target) === 'enemy',
   },
   { on: 'death', sfx: 'enemy_death', when: (e) => e.e === 'death' && e.what === 'enemy' },
-  { on: 'built', sfx: 'structure_placed' },
-  { on: 'destroyed', sfx: 'structure_destroyed' },
   // The boss telegraph marker is the wind-up (§9.4); FF11 may add richer events later.
   { on: 'marker', sfx: 'boss_windup' },
   { on: 'purchase', sfx: 'purchase' },
@@ -37,6 +35,8 @@ export const cues: readonly Cue[] = [
   { on: 'phase', sfx: 'wave_start', when: (e) => e.e === 'phase' && e.phase === 'combat' },
   { on: 'runEnd', sfx: 'victory', when: (e) => e.e === 'runEnd' && e.result === 'victory' },
   { on: 'runEnd', sfx: 'defeat', when: (e) => e.e === 'runEnd' && e.result === 'defeat' },
+  { on: 'buildPlaced', sfx: 'build_placed' },
+  { on: 'buildGone', sfx: 'build_destroyed', when: (e) => e.e === 'buildGone' && e.destroyed },
 ];
 
 /** Plays the cues for a frame's events. */

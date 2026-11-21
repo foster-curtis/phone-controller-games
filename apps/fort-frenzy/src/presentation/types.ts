@@ -2,15 +2,19 @@
 // (§15.2 plus the art README's shared `viewBox` and `{ part, at }` attach points) and the generated
 // asset manifest's shape (`generated/manifest.ts`, written by scripts/build-atlases.ts).
 // The sim can't import this folder (lint, §15.1).
-// Frozen at FF1 (BUILD_PLAN §3): additive changes only. That includes the manifest format.
+// Frozen after RD2 (REDESIGN_BUILD_PLAN §3): additive changes only. That includes the manifest
+// format. RD2: names and icons for roles and builds, `iconFor.knight` (was `class`), portal frames in
+// place of the lane and structure maps.
 import type {
+  ActIconId,
+  BuildId,
   CardId,
-  ClassId,
   EnemyId,
-  LaneId,
+  KnightId,
+  RoleId,
   SfxId,
   ShopItemId,
-  StructureId,
+  SideId,
 } from '../shared/ids';
 
 // ---- rigs (art/<set>/rigs/<id>.json) ----------------------------------------------------------
@@ -203,22 +207,27 @@ export interface AtlasRef {
 
 /** Phones and TV. */
 export interface PresentationShared {
-  names: Record<ClassId | EnemyId | StructureId | ShopItemId | CardId | 'base' | 'faction', string>;
-  /** Class card lines, card text. */
+  /** The one display-name table (§2.1). */
+  names: Record<
+    KnightId | RoleId | EnemyId | BuildId | ShopItemId | CardId | 'base' | 'faction',
+    string
+  >;
+  /** Knight card lines, card text. */
   flavor?: Partial<Record<string, string>>;
   /** art/<set>/icons/*.svg as one inline SVG sprite. */
   icons: IconSprite;
   /** Icon ids for internal ids (fixed ids like `act-*` or `coins` need no mapping). */
   iconFor: {
-    class: Record<ClassId, string>;
-    main: Record<ClassId, string>;
-    super: Record<ClassId, string>;
-    structure: Record<StructureId, string>;
+    knight: Record<KnightId, string>;
+    role: Record<RoleId, string>;
+    main: Record<KnightId, string>;
+    super: Record<KnightId, string>;
+    build: Record<BuildId, ActIconId>;
     shop: Record<ShopItemId, string>;
     card: Record<CardId, string>;
   };
-  /** Front-view images (class select, lineup). `color` is the tint mask. */
-  portraits: Record<ClassId, { body: string; color: string }>;
+  /** Front-view images (knight select, lineup). `color` is the tint mask. */
+  portraits: Record<KnightId, { body: string; color: string }>;
 }
 
 /** TV only. */
@@ -229,19 +238,20 @@ export interface PresentationHost {
   clips: Record<string, Clip>;
   /** Rig ids for internal ids. */
   rigFor: {
+    knight: Record<KnightId, string>;
     enemy: Record<EnemyId, string>;
     soldier: string;
-    structure: Partial<Record<StructureId, string>>;
   };
   /** Music joins this map in v2 (§13). */
   sfx: Partial<Record<SfxId, string>>;
   map: {
     ground: string[];
     edges: Record<'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw', string>;
-    lanes: Record<LaneId, { open: string; sealed: string }>;
+    /** `map/portal/<side>-idle` and `-flare` (§3.1); bottom portals use the bottom frames. */
+    portals: Record<SideId, { idle: string; flare: string }>;
     decor?: string[];
     /**
-     * `0xRRGGBB` added to every ground, edge and decor frame's color (Phaser's ADD tint; lanes are
+     * `0xRRGGBB` added to every ground, edge and decor frame's color (Phaser's ADD tint; portals are
      * left alone, they hold the glows), so the floor can be lighter than its art. Additive (FF3-fix-2).
      */
     floorLift?: number;

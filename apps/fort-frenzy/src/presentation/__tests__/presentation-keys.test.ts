@@ -2,12 +2,13 @@
 // (a whitelist, so a gameplay field can't sneak in), and it covers every internal id.
 import { describe, expect, it } from 'vitest';
 import {
+  BUILD_IDS,
   CARD_IDS,
   CLASS_IDS,
   ENEMY_IDS,
-  LANE_IDS,
+  ROLE_IDS,
   SHOP_ITEM_IDS,
-  STRUCTURE_IDS,
+  SIDE_IDS,
 } from '../../shared/ids';
 import { presentationHost } from '../host';
 import { presentationShared } from '../shared';
@@ -20,11 +21,12 @@ describe('presentation key whitelist', () => {
     for (const k of keysOf(presentationShared)) expect(allowed, k).toContain(k);
     expect(keysOf(presentationShared.icons)).toEqual(['ids', 'markup']);
     expect(keysOf(presentationShared.iconFor)).toEqual([
+      'build',
       'card',
-      'class',
+      'knight',
       'main',
+      'role',
       'shop',
-      'structure',
       'super',
     ]);
     for (const p of Object.values(presentationShared.portraits))
@@ -34,9 +36,9 @@ describe('presentation key whitelist', () => {
   it('PresentationHost has only its own keys', () => {
     const allowed = ['atlases', 'rigs', 'clips', 'rigFor', 'sfx', 'map'];
     for (const k of keysOf(presentationHost)) expect(allowed, k).toContain(k);
-    expect(keysOf(presentationHost.rigFor)).toEqual(['enemy', 'soldier', 'structure']);
+    expect(keysOf(presentationHost.rigFor)).toEqual(['enemy', 'knight', 'soldier']);
     for (const k of keysOf(presentationHost.map))
-      expect(['decor', 'edges', 'floorLift', 'ground', 'lanes'], k).toContain(k);
+      expect(['decor', 'edges', 'floorLift', 'ground', 'portals'], k).toContain(k);
     for (const a of presentationHost.atlases)
       expect(keysOf(a)).toEqual(['image', 'json', 'key', 'scale']);
     for (const r of Object.values(presentationHost.rigs)) {
@@ -50,8 +52,9 @@ describe('presentation key whitelist', () => {
   it('names every internal id (SPEC §2.1 display names)', () => {
     const ids = [
       ...CLASS_IDS,
+      ...ROLE_IDS,
       ...ENEMY_IDS,
-      ...STRUCTURE_IDS,
+      ...BUILD_IDS,
       ...SHOP_ITEM_IDS,
       ...CARD_IDS,
       'base',
@@ -66,13 +69,13 @@ describe('presentation key whitelist', () => {
     expect(presentationShared.names).toMatchObject({
       ranger: 'Ranger',
       artificer: 'Artificer',
-      arrow_tower: 'Pulse turret',
-      snare: 'Shock Net',
+      shield_gen: 'Shield generator',
+      tank: 'Tank',
       grunt: 'Drone',
       swarm: 'Scrap mites',
       base: 'Citadel',
       faction: 'The Iron Tide',
-      spiked_walls: 'Charged walls',
+      base_hp: 'Citadel max HP',
     });
   });
 
@@ -86,7 +89,13 @@ describe('presentation key whitelist', () => {
       hunter: 'stalker',
     });
     expect(presentationHost.rigFor.soldier).toBe('footman');
-    expect(keysOf(presentationHost.map.lanes)).toEqual([...LANE_IDS].sort());
+    expect(keysOf(presentationHost.map.portals)).toEqual([...SIDE_IDS].sort());
+    expect(presentationShared.iconFor.build).toEqual({
+      shield_gen: 'act-shield',
+      mine: 'act-mine',
+      beacon: 'act-beacon',
+      rally_flag: 'act-flag',
+    });
   });
 
   it('has 1× and 2× atlases with URLs, and portraits and the icon sprite', () => {

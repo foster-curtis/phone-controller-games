@@ -1,5 +1,5 @@
 // C3 enemy-motion fixes (FF10-fix-1; SPEC §9, §15.5): walkers on the v1 map head for the Citadel on
-// a direct diagonal from every open lane (no L-shaped route up the field and along the back), and a
+// a direct diagonal from every portal (no L-shaped route up the field and along the back), and a
 // Wasp flies its unobstructed route with steady progress, never stepping backward.
 import { describe, expect, it } from 'vitest';
 import { mapV1 } from '../../../content/map';
@@ -7,9 +7,9 @@ import { rectDist } from '../geometry';
 import type { EnemyEnt } from '../types';
 import { harness, type Harness } from './harness';
 
-const LANES = Object.entries(mapV1.lanes) as [string, (typeof mapV1.lanes)['bottom']][];
+const PORTALS = Object.entries(mapV1.portals) as [string, (typeof mapV1.portals)['bottom-w']][];
 
-/** Combat on wave 1 with no spawns, no sentries, and the player parked out of every lane's way. */
+/** Combat on wave 1 with no spawns, no sentries, and the player parked out of every portal's way. */
 function quiet(): Harness {
   const h = harness(1, 3);
   h.toCombat();
@@ -48,8 +48,8 @@ function shape(pts: readonly { x: number; y: number }[]) {
 }
 
 describe('ground paths to the Citadel (C3)', () => {
-  for (const [lane, def] of LANES) {
-    it(`${lane} lane: a Grunt walks a near-straight line to the Citadel`, () => {
+  for (const [portal, def] of PORTALS) {
+    it(`${portal} portal: a Grunt walks a near-straight line to the Citadel`, () => {
       const h = quiet();
       const e = h.sim.spawnEnemy('grunt', def.spawn.x, def.spawn.y);
       const pts = walk(h, e);
@@ -59,23 +59,11 @@ describe('ground paths to the Citadel (C3)', () => {
       expect(s.maxDev).toBeLessThan(1);
     });
   }
-
-  it('still routes round a wall line through its gap', () => {
-    const h = quiet();
-    for (let c = 0; c < 36; c++) if (c !== 4) h.sim.place('wall', c, 10, 0);
-    h.run(1);
-    const e = h.sim.spawnEnemy('grunt', mapV1.lanes.bottom.spawn.x, mapV1.lanes.bottom.spawn.y);
-    const pts = walk(h, e);
-    expect(e.ai).toBe('attack');
-    expect(h.sim.world.structures.every((s) => s.hp === s.maxHp)).toBe(true);
-    const crossing = pts.find((p, i) => i > 0 && pts[i - 1]!.y >= 11 && p.y < 11)!;
-    expect(Math.floor(crossing.x)).toBe(4);
-  });
 });
 
 describe('Wasp motion (C3)', () => {
-  for (const [lane, def] of LANES) {
-    it(`${lane} lane: progress toward the Citadel is monotone, no step reverses`, () => {
+  for (const [portal, def] of PORTALS) {
+    it(`${portal} portal: progress toward the Citadel is monotone, no step reverses`, () => {
       const h = quiet();
       const f = h.sim.spawnEnemy('flyer', def.spawn.x, def.spawn.y);
       let px = f.x;

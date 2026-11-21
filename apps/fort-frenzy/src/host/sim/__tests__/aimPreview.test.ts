@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { content as baseContent, type Content } from '../../../content';
 import { commander, ranger, grunt, artificer, warden } from '../../../content/balance';
-import type { CharacterDef } from '../../../content/types';
+import type { KnightDef } from '../../../content/types';
 import type { CardId, ClassId } from '../../../shared/ids';
 import { windupSteps } from '../classes/warden';
 import { aimPreview } from '../preview';
@@ -21,7 +21,7 @@ const content: Content = {
   ),
 };
 const DEG = Math.PI / 180;
-const DEFS: Record<ClassId, CharacterDef> = { ranger, artificer, commander, warden };
+const DEFS: Record<ClassId, KnightDef> = { ranger, artificer, commander, warden };
 const AIM = { x: 1, y: 0 };
 const PX = 10;
 const PY = 13;
@@ -224,11 +224,10 @@ describe('the sim hits exactly the previewed area', () => {
     }
   }
 
-  // FF12's slam and slash cards (Heavy Slam, Bladework: +20% arc, main only) and Reach move the
+  // FF12's slam card (Heavy Slam: +20% arc, main only) and Reach move the
   // aimed preview with the hit.
   for (const [cls, card] of [
     ['warden', 'heavy_slam'],
-    ['commander', 'bladework'],
     ['warden', 'reach'],
     ['commander', 'reach'],
   ] as const) {
@@ -254,25 +253,6 @@ describe('the sim hits exactly the previewed area', () => {
       const a = 30 * DEG;
       expect(hits('ranger', 'super', boosted, (s) => polar(rad(s) - 0.02, a))).toBe(true);
       expect(hits('ranger', 'super', boosted, (s) => polar(rad(s) + 0.02, a))).toBe(false);
-    });
-  }
-
-  for (const boosted of [false, true]) {
-    it(`artificer super${boosted ? ' (with a mod)' : ''}: towers inside the cone get the bonus`, () => {
-      const probe = (at: (s: HitShape, r: number) => [number, number]) => {
-        const h = setup('artificer', boosted);
-        const st = h.sim.place('arrow_tower', 10, 14, 0);
-        const [dx, dy] = at(shapeOf(h, 'super'), st.r);
-        h.put(0, st.x - dx, st.y - dy);
-        fire(h, 'super');
-        return st.effects.some((e) => e.def === 'tower_defense');
-      };
-      expect(probe((s, r) => [cone(s).range + r - 0.02, 0])).toBe(true);
-      expect(probe((s, r) => [cone(s).range + r + 0.02, 0])).toBe(false);
-      const d = (s: HitShape) => cone(s).range * 0.6;
-      const edge = (s: HitShape, r: number) => cone(s).half + Math.asin(r / d(s));
-      expect(probe((s, r) => polar(d(s), edge(s, r) - 0.02))).toBe(true);
-      expect(probe((s, r) => polar(d(s), edge(s, r) + 0.02))).toBe(false);
     });
   }
 

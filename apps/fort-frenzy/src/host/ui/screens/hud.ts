@@ -2,17 +2,13 @@
 // its own section so a coin tick doesn't restart another piece's animation.
 import type { Section, RenderCtx } from '../render';
 import { enemyArt, esc, icon, panel } from '../html';
-import { laneBand, type LaneKey } from '../layout';
 import { COLOR_VAR, ENEMY_NAME, SHOP_ICON, SHOP_NAME, fmtInt, roman } from '../labels';
-import type { LaneId } from '../../../shared/ids';
 import type { TvView } from '../types';
 
 export const TOTAL_WAVES = 15;
 /** Base HP fraction under which the alarm shows (SPEC §3.3). */
 export const LOW_HP = 0.25;
 const MAX_ANNOUNCEMENTS = 3;
-
-const LANE_KEY: Record<LaneId, LaneKey> = { bottom: 'bottom', left: 'left', right: 'right' };
 
 export function hudSections(view: TvView, ctx: RenderCtx): Section[] {
   const team = view.team;
@@ -53,19 +49,6 @@ export function hudSections(view: TvView, ctx: RenderCtx): Section[] {
     out.push({
       name: 'alarm',
       html: `<div class="vignette" data-edge></div><div class="alarm-text tag">Citadel under attack</div>`,
-    });
-  }
-
-  // ---- lane warnings (§2.6): violet bands on the edge where a lane enters ----
-  if (view.laneWarnings.length) {
-    out.push({
-      name: 'lanes',
-      html: view.laneWarnings
-        .map((l) => {
-          const b = laneBand(LANE_KEY[l]);
-          return `<div class="lane ${b.edge}" data-edge style="left:${b.x}px;top:${b.y}px;width:${b.w}px;height:${b.h}px"></div>`;
-        })
-        .join(''),
     });
   }
 

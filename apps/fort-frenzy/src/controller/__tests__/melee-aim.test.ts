@@ -4,7 +4,7 @@
 // a return to the dead zone (or a hold past 150 ms that never left it) cancels.
 import { createLocalClient } from '@pcg/controller-kit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { characters } from '../../content/balance';
+import { knights } from '../../content/balance';
 import { createApp, type App } from '../app';
 import { CLASS_INFO } from '../copy';
 import { layoutCombat } from '../layout';
@@ -56,7 +56,7 @@ function combat(sample: 'combat-warden' | 'combat-commander') {
 
 describe('class copy follows the content input kinds', () => {
   it('every main and super is aimed on the phone exactly when the sim calls it aimed', () => {
-    for (const c of characters)
+    for (const c of knights)
       for (const k of ['main', 'super'] as const)
         expect(CLASS_INFO[c.id][k].mode, `${c.id} ${k}`).toBe(
           c.input[k] === 'aimed' ? 'aim' : 'tap',

@@ -108,7 +108,7 @@ describe('screens follow me.screen', () => {
     expect(root.querySelector('.tabs, .kit-tile, .give, [data-tab]')).toBeNull();
     expect(root.querySelector('[data-item="base_armor"]')).not.toBeNull();
     expect(root.querySelector('[data-item="repair"]')).not.toBeNull();
-    expect(root.querySelector('[data-item="spiked_walls"] .shop-req')!.textContent).toContain(
+    expect(root.querySelector('[data-item="archer_damage"] .shop-req')!.textContent).toContain(
       'Maya',
     );
   });

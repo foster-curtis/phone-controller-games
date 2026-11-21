@@ -1,6 +1,6 @@
 // Host runtime (SPEC §15.3, §15.6): the relay client ↔ session (party, phones, intents) ↔ the run's
 // sim, driven by the fixed-step loop with render interpolation; the TV's home screen and room; the
-// run's transient UI state for the overlay (lane warnings, announcements). No Phaser here: the World
+// run's transient UI state for the overlay (announcements). No Phaser here: the World
 // scene calls `frame()` once per render frame and draws what it returns.
 import {
   catchUpSteps,
@@ -11,7 +11,7 @@ import {
   type QrMatrix,
 } from '@pcg/game-kit';
 import type { ConnectionStatus, HostClient } from '@pcg/net-client';
-import { DIFFICULTY_IDS, type LaneId } from '../shared/ids';
+import { DIFFICULTY_IDS } from '../shared/ids';
 import { GAME_ID, type TeamPause } from '../shared/messages';
 import {
   connectSession,
@@ -107,7 +107,6 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
   let client = opts.client ?? makeClient();
   let runId = 0;
   const stats: RunStats = { enemyDeaths: 0, shots: 0, playerDeaths: 0, steps: 0 };
-  const laneWarnings = new Map<LaneId, number>();
   let announcements: { a: Announcement; at: number }[] = [];
   let annId = 0;
 
@@ -122,7 +121,6 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
         loop.reset();
         prev.clear();
         events = [];
-        laneWarnings.clear();
         announcements = [];
         stats.enemyDeaths = stats.playerDeaths = stats.steps = stats.shots = 0;
       },
@@ -185,8 +183,7 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
     if (events.length > 4000) events = events.slice(-2000);
     for (const e of w.events) {
       events.push(e);
-      if (e.e === 'laneWarning') laneWarnings.set(e.lane, e.spawnsAtTick);
-      else if (e.e === 'attack' && e.slot !== 'attack') stats.shots++;
+      if (e.e === 'attack' && e.slot !== 'attack') stats.shots++;
       else if (e.e === 'death') {
         if (e.what === 'enemy') stats.enemyDeaths++;
         else if (e.what === 'player') stats.playerDeaths++;
@@ -346,7 +343,6 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
         home,
         room,
         announcements: announcements.map((x) => x.a),
-        laneWarnings,
         outdated: session.outdated,
       });
     },

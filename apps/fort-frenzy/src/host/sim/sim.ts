@@ -2,11 +2,10 @@
 // that changes run state enters as an input sample or a command at the start of a step; the step runs
 // its systems in the fixed order below.
 import { content as defaultContent, type Content } from '../../content';
-import type { EnemyId, StructureId } from '../../shared/ids';
+import type { BuildId, EnemyId } from '../../shared/ids';
 import { createCatalog } from './catalog';
-import { stepThrown } from './classes/artificer';
 import { stepSquads } from './squad';
-import { stepArchers, stepMarkers, stepProjectiles, stepStructures } from './combat';
+import { stepArchers, stepMarkers, stepProjectiles } from './combat';
 import { applyCommands } from './commands';
 import { stepDeaths, stepEffects, stepPhases, stepSpawner } from './lifecycle';
 import { rebuildSpatial, stepMovement } from './movement';
@@ -20,8 +19,8 @@ import type {
   PlayerInput,
   RunStart,
   SimCommand,
+  BuildEnt,
   SoldierEnt,
-  StructureEnt,
   World,
 } from './types';
 
@@ -55,7 +54,8 @@ export interface Sim {
    * rules and the command log, so a replay can't reproduce them: the host uses commands.
    */
   spawnEnemy(kind: EnemyId, x: number, y: number): EnemyEnt;
-  place(kind: StructureId, col: number, row: number, slot: number): StructureEnt;
+  /** A build at (x, y) for `slot` (the bench's placeholder builds until RD3 places real ones). */
+  addBuild(kind: BuildId, x: number, y: number, slot: number): BuildEnt;
   addSoldier(owner: number, x: number, y: number): SoldierEnt;
 }
 
@@ -120,30 +120,26 @@ export function createSim(start: RunStart, opts: SimOptions = {}): Sim {
     queue = [];
     obs?.commands?.(w.tick, cmds);
     applyCommands(s, cmds);
-    if (w.fields.dirty) s.rebuildFields();
     // 2. input samples → presses
     sampleInputs(s, sources, obs);
-    // 3. players: movement, attacks and supers, action button, build arc, crates
+    // 3. players: movement, attacks and supers, build presses
     rebuildSpatial(s);
     stepPlayers(s);
-    if (w.fields.dirty) s.rebuildFields();
-    // 4. AI: enemies (soldiers and the boss arrive with FF9/FF11), then structures and archers
+    // 4. AI: enemies (the boss module included), then the sentries
     if (w.phase === 'combat') {
       stepEnemies(s);
-      stepStructures(s);
       stepArchers(s);
     }
     // The Commanders' squads (FF9): follow or hold the flag in both phases, fight in combat.
     if (w.phase === 'combat' || w.phase === 'build') stepSquads(s);
-    // 5. integrate movement, soft separation, structure collision
+    // 5. integrate movement, soft separation, `blocked`-tile collision
     stepMovement(s);
     // 6. projectiles and area attacks
     stepProjectiles(s);
     stepMarkers(s);
-    stepThrown(s);
     // 7. status effects, onTick hooks
     stepEffects(s);
-    // 8. deaths: hooks, coins, crate drops; destroyed blockers rebuild the flow fields
+    // 8. deaths: hooks, coins; destroyed builds removed
     stepDeaths(s);
     // 9. wave spawner
     stepSpawner(s);
@@ -164,7 +160,7 @@ export function createSim(start: RunStart, opts: SimOptions = {}): Sim {
     },
     step,
     spawnEnemy: (kind, x, y) => s.spawnEnemy(kind, x, y, null),
-    place: (kind, col, row, slot) => s.placeStructure(kind, col, row, slot),
+    addBuild: (kind, x, y, slot) => s.addBuild(kind, x, y, slot),
     addSoldier: (owner, x, y) => s.addSoldier(owner, x, y),
   };
 }

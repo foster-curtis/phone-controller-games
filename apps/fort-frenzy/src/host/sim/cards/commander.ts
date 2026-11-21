@@ -86,8 +86,7 @@ export const lastStand: ModuleDef = {
             hooks: {
               modifyOutgoing(c, _u, d) {
                 const st = state(c);
-                const sizes = st.cat.character(me.classId).squad?.size ?? [];
-                const full = squadSize(st.cat.waves, sizes, st.world.wave);
+                const full = squadSize(st.cat.knight(me.classId).squad);
                 const lost = Math.max(0, full - ownSoldiers(st, me.slot).length);
                 d.amount *= 1 + pct * lost * stacksOfCard(st, me.slot, 'last_stand');
               },
@@ -139,7 +138,7 @@ export const veterans: ModuleDef = {
           if (!m.fighting) return;
           m.fighting = false;
           if (s.world.phase !== 'build') return;
-          const baseHp = s.cat.character(me.classId).squad?.soldier.hp ?? 0;
+          const baseHp = s.cat.knight(me.classId).squad?.soldier.hp ?? 0;
           for (const u of ownSoldiers(s, me.slot)) {
             if (!m.alive.includes(u.id) || u.veterans >= max) continue;
             u.veterans++;

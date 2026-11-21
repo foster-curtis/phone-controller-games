@@ -1,21 +1,21 @@
 // Gameplay config types (SPEC §15.4). Content files in src/content/ are TS data typed with
 // `satisfies` against these. Units: distances in tiles, speeds in tiles/s, times in ms (the sim
 // converts to steps at load), damage and HP as plain numbers. Presentation never lives here (§2.1).
-// Frozen at FF1 (BUILD_PLAN §3): additive changes only. Tuning values in src/content/ are not frozen.
-// FF6 added `BaseDef` and `RulesDef`. FF9 added the `buff` shape, `CharacterDef.super.selfEffects` and
-// `CharacterDef.supply`. FF10 added the `swarm` and `brute` AI kinds. FF8 added `StructureDef.defense`.
-// The balance pass moved the sim's own tuning numbers here: `AttackDef.minFlightMs`, the squad's
-// `aggro`/`hurry`/`formation`, `supply.throwMinFlightMs`, `EnemyDef.hunt`/`jitter`,
-// `StructureDef.triggerFraction` and the `RulesDef` fields from `projectileRadius` on.
+// Frozen after RD2 (REDESIGN_BUILD_PLAN §3): additive changes only. Tuning values in src/content/ are
+// not frozen. RD2 implemented the v2 shapes: `ClassDef` + `KnightDef` (was CharacterDef), `BuildDef`
+// (was StructureDef), `PlayerCountRow` (was ScalingDef), `HarnessDef`, portals on `MapDef`, the
+// hot-side schedule on `WaveDef`. Marked "until RD#": transitional fields the named milestone removes.
 import type {
+  BuildId,
   CardId,
-  ClassId,
   DifficultyId,
   EffectId,
   EnemyId,
-  LaneId,
+  KnightId,
+  PortalId,
+  RoleId,
   ShopItemId,
-  StructureId,
+  SideId,
 } from '../shared/ids';
 
 // ---- geometry -----------------------------------------------------------------------------------
@@ -29,14 +29,14 @@ export interface Vec2 {
 /** A grid tile: [col, row], row 0 at the top (the Citadel's edge). */
 export type Tile = readonly [col: number, row: number];
 
-/** What a map tile is (placement rules, SPEC §7). Only `open` is buildable. */
-export type TileKind = 'open' | 'blocked' | 'citadel' | 'repair' | 'armory' | 'lane';
+/** What a map tile is (SPEC §3.1). `blocked` is impassable (none on the v1 map, §15.5). */
+export type TileKind = 'open' | 'blocked' | 'citadel' | 'portal';
 
 // ---- stats and modules --------------------------------------------------------------------------
 
 /**
  * Stats a modifier can change (SPEC §6.1, §15.3). `value = base × (1 + clamp(Σ addPct, min, cap)) + Σ add`.
- * Append-only.
+ * Append-only after RD2. The tower-defense supply stats and `repairRate` are gone.
  */
 export const STAT_IDS = [
   'maxHp',
@@ -56,10 +56,25 @@ export const STAT_IDS = [
   'knockback',
   'throwRange',
   'throwSpeed',
-  'crateDiscount',
-  'carrySlowdown',
   'auraRadius',
-  'repairRate',
+  // redesign
+  /** Build meter fill rate (Tinkerer). */
+  'buildCharge',
+  /** The knight's HP builds (Reinforced Generator, Booster Beacon). */
+  'buildHp',
+  /** Effect / blast radius (Wide Field, Shrapnel Charge). */
+  'buildRadius',
+  /** Guard strength, heal per pulse (Reinforced Generator, Booster Beacon). */
+  'buildPower',
+  /** Mine trigger delay (Shrapnel Charge: negative addPct). */
+  'buildTriggerMs',
+  /** Extra active builds (Minefield: add 1). */
+  'buildMax',
+  /** Reinforced Ranks: add 1. */
+  'squadCap',
+  'squadHp',
+  'squadDamage',
+  'squadSpeed',
 ] as const;
 export type StatId = (typeof STAT_IDS)[number];
 
@@ -68,14 +83,14 @@ export interface StatMod {
   stat: StatId;
   addPct?: number;
   add?: number;
-  /** Which attack the change applies to; omitted = the whole unit. */
-  scope?: 'main' | 'super' | 'passive';
+  /** What the change applies to; omitted = the whole knight. */
+  scope?: 'main' | 'super' | 'build' | 'squad';
 }
 
-/** A module (passive, card behavior, boss) by registry id, built from config params (§15.3). */
+/** A module (passive, card behavior, build, boss) by registry id, built from config params (§15.3). */
 export type ModuleRef = { module: string; params?: Record<string, number | string | boolean> };
 
-/** A status effect an attack or structure applies (§6.1, §15.3). */
+/** A status effect an attack or build applies (§6.1, §15.3). */
 export interface EffectApply {
   effect: EffectId;
   /** Effect-specific: slow fraction, damage per tick, stun has none (1). */
@@ -86,10 +101,7 @@ export interface EffectApply {
 // ---- attacks and units --------------------------------------------------------------------------
 
 export interface AttackDef {
-  /**
-   * `buff` (FF9) hits nothing: the super's `effects` go on the attacker and its squad, and its
-   * `selfEffects` on the attacker only (the Commander's morale).
-   */
+  /** `buff` (until RD9): hits nothing; the super's `effects` go on the Commander and his squad. */
   shape: 'projectile' | 'arc' | 'cone' | 'circle' | 'buff';
   damage: number;
   range: number;
@@ -98,13 +110,14 @@ export interface AttackDef {
   arcDeg?: number;
   count?: number;
   spreadDeg?: number;
+  /** Nanite blast: `count` shots over this long (RD8). */
+  burstMs?: number;
   speed?: number;
   hitsFlyers: boolean;
-  blockedBy?: ('wall' | 'tower')[];
   knockback?: number;
   /** Area radius for `circle` attacks and shells landing (tiles). */
   radius?: number;
-  /** Lobbed shells (Bombard, mortar): the shortest flight, so a close lob still arcs (ms). */
+  /** Lobbed shells (Bombard): the shortest flight, so a close lob still arcs (ms). */
   minFlightMs?: number;
 }
 
@@ -116,53 +129,97 @@ export interface UnitStats {
   attack: AttackDef;
 }
 
-export interface CharacterDef {
-  id: ClassId;
+/** A class (§8.1). Keyed by RoleId; a knight names its class. */
+export interface ClassDef {
+  id: RoleId;
+  /** HP tier: × `rules.knightHp` (tank 1.6). */
   hp: number;
+  /** Damage band: × main and super damage (tank 0.9; RD3 applies it). */
+  damage: number;
+  /** Per wave cleared; boss waves use `boss` (RD11). */
+  growth: { regular: StatMod[]; boss: StatMod[] };
+}
+
+export type InputType = 'aimed' | 'tap';
+export type ChargeSource = 'damage' | 'healing';
+
+/** A knight (§8.2). */
+export interface KnightDef {
+  id: KnightId;
+  role: RoleId;
   moveSpeed: number;
   radius: number;
   main: AttackDef;
   /**
-   * `effects` go to what the super helps: towers in a cone (Artificer), the squad and the
-   * attacker for `buff` (Commander); `heal` heals players in a cone; `selfEffects` (FF9) go on the
-   * attacker only.
+   * `heal`: heals allied knights in the cone (Artificer). `spawn`: Reinforcements throws `count`
+   * soldiers `throwRange` tiles (Commander, RD9; Rally Cry may double it). `selfEffects` (until RD9):
+   * the Commander's morale super's effects on himself only.
    */
-  super: AttackDef & { effects?: EffectApply[]; heal?: number; selfEffects?: EffectApply[] };
-  /** §10.1 table. */
-  input: { main: 'aimed' | 'tap'; super: 'aimed' | 'tap' };
-  superChargeRate: number;
-  passive: ModuleRef;
-  /** Arc order: left, up, right (at most 3, the build arc). */
-  build: StructureId[];
-  carryCap: number;
-  /** Speed multiplier lost per crate count (index = crates carried). */
-  carrySlowdown: number[];
-  /**
-   * `size` per stage (start, after wave 5 boss, after wave 10 boss). `aggro`: a soldier engages
-   * enemies within `radius` and never chases past `leash` from its post. `hurry`: further than `at`
-   * from its slot it walks at `factor` × speed. `formation`: slot radius round a planted flag, and the
-   * spread between follow slots (radians).
-   */
+  super: AttackDef & {
+    effects?: EffectApply[];
+    heal?: number;
+    spawn?: { count: number; throwRange: number; throwSpeed: number; minFlightMs: number };
+    selfEffects?: EffectApply[];
+  };
+  build: BuildId;
+  /** `build` mirrors BuildDef.input. */
+  input: { main: InputType; super: InputType; build: InputType };
+  /** §9 Flyer spawn rule. */
+  hitsFlyers: boolean;
+  /** Super charge per point (§8.3): own damage (main and its build's), healing, squad damage. */
+  superCharge: { perDamage: number; perHeal?: number; perSquadDamage?: number };
+  /** Build meter (§7.2): passive fill per second in combat, plus per point from `sources` (RD3). */
+  meter: { perSec: number; perPoint: number; sources: ChargeSource[] };
+  /** Its rare, unique passive card (§6.1). */
+  passiveCard: CardId;
+  /** The always-on passive module (until the knight's kit milestone makes it the passive card). */
+  passive?: ModuleRef;
+  /** Commander only (§8.4). */
   squad?: {
-    size: number[];
+    /** 2 and 4 to start; the squad stays at `start` until Reinforcements (RD9). */
+    start: number;
+    cap: number;
     soldier: UnitStats;
     followRadius: number;
-    aggro?: { radius: number; leash: number };
+    aggro: { radius: number; leash: number };
     hurry?: { at: number; factor: number };
-    formation?: { flagRing: number; followSpread: number };
+    formation: { flagRing: number; followSpread: number };
   };
-  /**
-   * Supply perks (§6, Artificer; FF9): crate price discount (fraction), crate throw reach
-   * (tiles) and flight speed (tiles/s), and the HP an emergency repair kit restores (§3.4).
-   * `throwMinFlightMs`: a throw is never shorter than this (a lob, even point-blank).
-   */
-  supply?: {
-    crateDiscount: number;
-    throwRange: number;
-    throwSpeed: number;
-    kitRepair: number;
-    throwMinFlightMs?: number;
-  };
+}
+
+/** A build (§7). */
+export interface BuildDef {
+  id: BuildId;
+  /** 'tap' at feet, 'aimed' thrown. */
+  input: InputType;
+  /** Thrown builds. */
+  throw?: { range: number; speed: number; minFlightMs: number };
+  /** HP builds (targetable). */
+  hp?: number;
+  /** Charge builds (mines: 1). */
+  charges?: number;
+  /** Effect radius: field, heal area, blast, flag ring. */
+  radius: number;
+  /** Its own hitbox (enemies attack it, the Charge crosses it). */
+  bodyRadius: number;
+  /** 1; mines 3. */
+  maxActive: number;
+  traits: { targetable: boolean; dealsDamage: boolean; hidden: boolean };
+  /** Mines: a ground enemy this close sets it off. */
+  triggerRadius?: number;
+  /** Mines: delay before the burst. */
+  triggerMs?: number;
+  /** Placed → live (mine arming, landed → active). */
+  armMs?: number;
+  /** Mine burst. */
+  damage?: number;
+  knockback?: number;
+  /** Shield generator: damage reduction 0..1 (`guard`). */
+  guard?: number;
+  /** Beacon pulses. */
+  heal?: { amount: number; everyMs: number };
+  /** Its behavior's extra params, if any. */
+  module?: ModuleRef;
 }
 
 export interface EnemyDef {
@@ -173,22 +230,29 @@ export interface EnemyDef {
   flying: boolean;
   budget: number;
   groupSize?: number;
-  /** FF10 added `swarm` (path with in-sim jitter) and `brute` (path that smashes walls it meets). */
   ai: 'path' | 'runner' | 'siege' | 'hunter' | 'flyer' | 'boss' | 'swarm' | 'brute';
-  field: 'ground' | 'breaker' | 'none';
+  /** The wall-smashing field is gone (§15.5). */
+  field: 'ground' | 'none';
   attack: AttackDef;
-  /** Damage multipliers vs structures (Brute 2× walls, Colossus 3×). */
-  vsStructure?: Partial<Record<StructureId | 'base', number>>;
   aggro?: { radius: number; leash: number };
-  /** Fraction of any slow resisted: Brutes and the Colossus take slows at half strength (0.5, §7.1). */
+  /** Fraction of any slow resisted: Brutes and the Colossus take slows at half strength (0.5). */
   slowResist?: number;
   boss?: ModuleRef;
   /**
-   * Hunter (§9, C3): within `closeRange` it runs straight at its quarry; another player must be
-   * `retargetTiles` closer to take over. Its field adds `threatCost` per tower or sentry covering a
-   * tile, a tile counting as covered within the attacker's range + `threatPad`.
+   * Hunter (§9): within `closeRange` it runs straight at its quarry; another player must be
+   * `retargetTiles` closer to take over. `lockRange` (about 5 tiles) starts the sprint at × `sprint`
+   * (RD10); its field adds `threatCost` per sentry or damage-dealing build covering a tile (range +
+   * `threatPad`) and `hiddenCost` on hidden builds' trigger radii.
    */
-  hunt?: { closeRange: number; retargetTiles: number; threatCost: number; threatPad: number };
+  hunt?: {
+    closeRange: number;
+    retargetTiles: number;
+    threatCost: number;
+    threatPad: number;
+    hiddenCost: number;
+    lockRange: number;
+    sprint: number;
+  };
   /**
    * Swarm (FF10): each mite re-rolls a sideways `drift` (fraction of the forward step) and a pace of
    * `pace` + up to `paceRange` × speed every `rollMs`; a re-roll is a stop of `stopMs` with
@@ -203,85 +267,68 @@ export interface EnemyDef {
     stopMs: [number, number];
   };
   /**
-   * The body our attacks hit (C4, FF10-fix-2; SPEC §9, §15.3): the drawn torso, head and legs (arms,
-   * tails, rotors and barrels left out), in tiles of drawn height above the ground point, from
-   * `bottom` (0 on the ground; the Wasp's flight height) to `top`; `radius` is half its width. The
-   * sim sweeps a circle of `radius` up the screen over that span (`sim/body.ts`). Every enemy has one.
+   * The body our attacks hit (C4, FF10-fix-2; SPEC §9, §15.3): the drawn torso, head and legs, in
+   * tiles of drawn height above the ground point, from `bottom` (0 on the ground; the Wasp's flight
+   * height) to `top`; `radius` is half its width. The sim sweeps a circle of `radius` up the screen
+   * over that span (`sim/body.ts`). Every enemy has one.
    */
   body?: { radius: number; bottom: number; top: number };
-}
-
-export interface StructureDef {
-  id: StructureId;
-  cost: number;
-  /** null = can't be damaged (snare, §7.1). */
-  hp: number | null;
-  pathCost: number;
-  blocksProjectiles: boolean;
-  attack?: AttackDef;
-  attachesTo?: StructureId[];
-  /** Snare (§7.1). */
-  discharges?: number;
-  rearmMs?: number;
-  slow?: EffectApply;
-  /** Fortify (§8, FF8): damage reduction (0..1) the tower it attaches to gains. */
-  defense?: number;
-  /** Snare: an enemy sets it off when this fraction of its body radius overlaps the tile. */
-  triggerFraction?: number;
 }
 
 // ---- cards and shop -----------------------------------------------------------------------------
 
 export interface CardDef {
   id: CardId;
-  owner: ClassId | 'common';
+  owner: KnightId | 'common';
   tier: 'common' | 'rare' | 'combo';
   unique?: boolean;
-  requires?: [CardId, CardId];
+  /** 1 (improves a passive) or 2 (combo) ids. */
+  requires?: CardId[];
   favoredEnemy?: EnemyId;
-  requiresClass?: ClassId;
+  requiresKnight?: KnightId;
   stats?: StatMod[];
   module?: ModuleRef;
-  /** Shared commons: numbers tuned per class. */
-  perClass?: Partial<Record<ClassId, StatMod[]>>;
+  /** Commons: numbers tuned per knight. */
+  perKnight?: Partial<Record<KnightId, StatMod[]>>;
 }
 
 /** What a shop upgrade changes. */
-export type UpgradeTarget = 'base' | 'archers' | 'squad' | 'towers' | StructureId;
+export type UpgradeTarget = 'base' | 'archers';
 
 /** One shop tier's effect (SPEC §6.2). */
 export type UpgradeEffect =
-  | { kind: 'crates'; count: number }
   | { kind: 'repair'; hp: number }
-  | { kind: 'kit' }
+  /** Base max HP, base armor, sentries. */
   | { kind: 'stats'; target: UpgradeTarget; stats: StatMod[] }
   | { kind: 'archers'; add: number }
-  | { kind: 'discharges'; add: number }
   | { kind: 'module'; target: UpgradeTarget; module: ModuleRef };
 
-/** When a shop item is shown (§6.2: only when the team can use it). */
-export type Condition = { teamHasAny: ClassId[] } | { waveAtLeast: number };
+/** When a shop item is shown (§6.2: every item is always shown in v1). */
+export type Condition = { teamHasAny: KnightId[] } | { waveAtLeast: number };
 
 export interface ShopItemDef {
   id: ShopItemId;
   tiers: { price: number; effect: UpgradeEffect }[];
   visibleIf?: Condition;
-  qmOnly?: boolean;
-  afterRegularWaveOnly?: boolean;
   holdToConfirm?: boolean;
-  /** Crates, repair: bought again and again (repair's price still rises per purchase). */
+  /** Repair: bought again and again, price rising. */
   repeatable?: boolean;
 }
 
 // ---- waves, difficulty, map ---------------------------------------------------------------------
 
+/** Hot-side schedule (§9.4; RD3 implements it). */
+export type HotSchedule = { mode: 'wave'; shifts: 0 | 1 | 2 } | { mode: 'group' };
+
 export interface WaveDef {
   n: number;
   budget: number;
   allowed: EnemyId[];
-  lanes: LaneId[];
-  guaranteed: { enemy: EnemyId; count: number; lane?: LaneId }[];
+  guaranteed: { enemy: EnemyId; count: number; portal?: PortalId }[];
   durationMs: number;
+  hot: HotSchedule;
+  /** Default 1 (§9.3). */
+  enemyMult?: { hp?: number; damage?: number };
   boss?: { id: EnemyId; mk: 1 | 2 | 3 };
 }
 
@@ -292,12 +339,16 @@ export interface DifficultyDef {
   enemyDamage: number;
   baseHp: number;
   coinIncome: number;
+  /** Respawn multiplier (§5). */
+  respawn: number;
 }
 
-/** Player-count scaling: `base + perPlayer × players` (§9.4). */
-export interface ScalingDef {
-  base: number;
-  perPlayer: number;
+/** One row per player count 1–6 (§9.4). */
+export interface PlayerCountRow {
+  players: number;
+  budget: number;
+  bossHp: number;
+  respawnMs: number;
 }
 
 export interface MapDef {
@@ -307,68 +358,77 @@ export interface MapDef {
   /** ASCII rows, top to bottom, one char per tile. */
   tiles: string[];
   legend: Record<string, TileKind>;
-  lanes: Record<LaneId, { entry: Tile[]; spawn: Vec2 }>;
+  /** The six portals (§3.1): side, edge tiles, and the spawn point just outside the edge. */
+  portals: Record<PortalId, { side: SideId; entry: Tile[]; spawn: Vec2 }>;
 }
 
-// ---- base and run rules (FF6, additive) ---------------------------------------------------------
+// ---- base and run rules -------------------------------------------------------------------------
 
 /** The Citadel (SPEC §3.3–§3.5). */
 export interface BaseDef {
   hp: number;
-  /** HP one delivered crate restores (§3.4). */
-  repairPerCrate: number;
   /** Visual damage stages (§3.3), descending HP fractions: cracks, fire, heavy smoke. */
   stages: number[];
   /** The alarm and red edge tint at or below this HP fraction (§3.3). */
   alarmAt: number;
-  /** Base archers (§3.5) shoot from these points (tiles), in order; `count` are present at start. */
+  /** Sentries (§3.5) shoot from these points (tiles), in order; `count` are present at start. */
   archers: { count: number; at: Vec2[]; attack: AttackDef };
 }
 
-/** Run-wide rules and timings that aren't per class, enemy or structure (SPEC §4–§6, §10, §11). */
+/** Run-wide rules and timings (SPEC §4–§6, §10, §11). */
 export interface RulesDef {
   startCoins: number;
+  /** Coins per kill = enemy budget × `coinRate` × difficulty `coinIncome` (§6). */
+  coinRate: number;
   countdownMs: number;
-  /** Build phase cap (§10.2: 45 s). */
+  /** Build phase cap (§10.2: 20 000 from RD3). */
   buildCapMs: number;
-  /** Death to respawn at the base (§5: 10 s). */
-  respawnMs: number;
   /** Victory and defeat last this long before the summary (§4). */
   victoryMs: number;
   defeatMs: number;
-  /** Lane glow ahead of a group's spawn (§9.4: ~3 s). */
-  spawnWarningMs: number;
+  /** Portal flare ahead of a spawn (~1000, §9.4). */
+  flareMs: number;
   /** Input older than this is neutral (§11.4: 250 ms). */
   inputStaleMs: number;
-  /** A dropped crate can't be picked back up by its dropper for this long (§10.1: ~1 s). */
-  dropLockMs: number;
-  /** Reach for picking up a crate pile and for giving a crate to a teammate (tiles). */
-  pickupRadius: number;
-  giveRadius: number;
+  /** Baseline knight HP (× ClassDef.hp). */
+  knightHp: number;
+  /** Regen (§5; RD3): 4000, 0.08, 1000. */
+  regen: { delayMs: number; pct: number; everyMs: number };
+  /** Quick Recovery floor (§5): 4000 solo, 5000 otherwise. */
+  respawnFloorMs: { solo: number; team: number };
+  /** Hot share (§9.3; RD3). */
+  hot: { share: number };
   /** Respawn points at the base (§5), one per slot in order (tiles). */
   respawn: Vec2[];
   /** Bounds on summed `addPct` / `add` per stat (§15.3 caps). */
   statCaps: Partial<
     Record<StatId, { pctMin?: number; pctMax?: number; addMin?: number; addMax?: number }>
   >;
-  /** Breaker field (§15.5): what a wall tile costs a Brute or the Colossus. */
-  breakerWallCost: number;
   /** Soft separation: the fraction of an overlap pushed apart per step. */
   separation: number;
   /** Knockback velocity kept per step (0..1). */
   knockbackDecay: number;
-  /** Hit radius of a straight shot (bolts, turret and sentry shots, the Wasp's stinger; tiles). */
+  /** Hit radius of a straight shot (bolts, sentry shots, the Wasp's stinger; tiles). */
   projectileRadius: number;
   /** Extra reach when an enemy's wound-up melee swing lands (the target may have stepped back). */
   enemySwingSlack: number;
   /** An enemy's straight shot flies this far past its target, so a moving player can step into it. */
   enemyShotSlack: number;
-  /** Fortify reaches a tower whose tile is this close to the builder's center (tiles). */
-  fortifyReach: number;
   /** Upgrade card offers (§6.1): cards per offer, and the chance an offer holds one rare. */
   cardOffer: { size: number; rareChance: number };
   /** Damage-over-time effects (§6.1 burn, poison): stack cap and tick interval. */
   dots: Partial<Record<EffectId, { maxStacks: number; tickEveryMs: number }>>;
   /** Wildfire and Plague: a dying enemy passes its burn or poison on this far, for this long. */
   comboSpread: { radius: number; durationMs: number };
+}
+
+/** The balance harness (§15.9; RD3). */
+export interface HarnessDef {
+  /** 12 grunt, 4 runner, 1 swarm, 1 brute (grouped types count groups). */
+  wave: { enemy: EnemyId; count: number }[];
+  portal: PortalId;
+  difficulty: DifficultyId;
+  seeds: number[];
+  /** ±0.20 and ±0.25 of the mean clear time. */
+  bands: [number, number];
 }

@@ -91,7 +91,6 @@ const base = (over: Partial<TvView>): TvView => ({
   countdownMs: null,
   bossBar: null,
   announcements: [],
-  laneWarnings: [],
   lowHpAlarm: false,
   wishlist: [],
   readyStatus: [],
@@ -108,10 +107,9 @@ const combat = (over: Partial<TvView> = {}): TvView =>
     screen: 'combat',
     team: team(),
     announcements: [
-      { ...who(0), id: 1, item: 'arrow_rate', tier: 2 },
+      { ...who(0), id: 1, item: 'archer_damage', tier: 2 },
       { ...who(2), id: 2, item: 'repair', tier: 1 },
     ],
-    laneWarnings: ['right', 'bottom'],
     ...over,
   });
 
@@ -196,12 +194,10 @@ export function sampleView(name: UiScreenName): TvView {
       return combat({
         team: team({ baseHp: 190 }),
         lowHpAlarm: true,
-        laneWarnings: [],
       });
     case 'boss':
       return combat({
         team: team({ wave: 10 }),
-        laneWarnings: ['bottom'],
         bossBar: { enemy: 'colossus', hp: 14200, maxHp: 24000, mk: 2, staggered: false },
       });
     case 'build':
@@ -231,11 +227,10 @@ export function sampleView(name: UiScreenName): TvView {
         })),
         wishlist: [
           { item: 'repair', tier: 1, price: 150, by: [who(2)] },
-          { item: 'spiked_walls', tier: 1, price: 400, by: [who(0), who(1)] },
+          { item: 'archer_third', tier: 1, price: 400, by: [who(0), who(1)] },
           { item: 'archer_range', tier: 1, price: 300, by: [who(1)] },
         ],
-        announcements: [{ ...who(0), id: 3, item: 'wall_hp', tier: 2 }],
-        laneWarnings: [],
+        announcements: [{ ...who(0), id: 3, item: 'base_armor', tier: 2 }],
       });
     case 'victory':
       return summary('victory');

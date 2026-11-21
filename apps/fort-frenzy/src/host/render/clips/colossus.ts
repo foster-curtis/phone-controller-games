@@ -4,7 +4,7 @@
 // leg in front; the body drops hard on each footfall while the planted foot stays on the ground.
 // Tier add-ons are children of their base parts, so they follow.
 // FF11 (§9.6 tells): `slam` (both fists raise over the 1.5 s wind-up, then come down on the impact
-// frame; the wall breaker plays it too), `throw` (the near fist tears up scrap, winds back and throws
+// frame; the charge plays it too), `throw` (the near fist tears up scrap, winds back and throws
 // at the wind-up's end), `call` (it rears up and the spires surge, the Runners launch at the end) and
 // `stagger` (drops to one knee for the 3 s stagger, then rises). The legs are single parts (no knee,
 // BUILD_PLAN §8 FF3-fix-1), so the kneel is a body drop with the near leg swung forward and both

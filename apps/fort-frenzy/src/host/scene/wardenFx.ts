@@ -2,7 +2,7 @@
 // once (the sim winds up for the same time), and on the impact frame the ground shockwave rolls out
 // across the exact hit arc (§2.5: a 0.6 band of the sim's sector) from where the hammer or the foot
 // lands, with sparks at the hammer head (C2 note 2: effects leave from the weapon).
-import type { CharacterDef } from '../../content/types';
+import type { KnightDef } from '../../content/types';
 import { SLAM_IMPACT_MS, STOMP_IMPACT_MS } from '../render/clips/warden';
 import type { RigSprite } from '../render/rig';
 import type { RenderWorld } from '../render/world';
@@ -12,7 +12,7 @@ export function wardenAttack(
   w: RenderWorld,
   rig: RigSprite,
   e: Extract<SimEvent, { e: 'attack' }>,
-  def: CharacterDef,
+  def: KnightDef,
   later: (ms: number, fn: () => void) => void,
 ) {
   const main = e.slot === 'main';

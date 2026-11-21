@@ -566,62 +566,6 @@
   color: var(--danger);
   animation: ff-pulse var(--pulse-period) ease-in-out infinite;
 }
-#tv-ui .lane {
-  position: absolute;
-  animation: ff-pulse var(--pulse-period) ease-in-out infinite;
-}
-#tv-ui .lane.bottom {
-  background: linear-gradient(
-    to top,
-    color-mix(in srgb, var(--hostile) 70%, transparent),
-    transparent
-  );
-  mask-image: linear-gradient(
-    to right,
-    transparent,
-    var(--brand-ink) 30%,
-    var(--brand-ink) 70%,
-    transparent
-  );
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent,
-    var(--brand-ink) 30%,
-    var(--brand-ink) 70%,
-    transparent
-  );
-}
-#tv-ui .lane.left,
-#tv-ui .lane.right {
-  mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    var(--brand-ink) 30%,
-    var(--brand-ink) 70%,
-    transparent
-  );
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    var(--brand-ink) 30%,
-    var(--brand-ink) 70%,
-    transparent
-  );
-}
-#tv-ui .lane.left {
-  background: linear-gradient(
-    to right,
-    color-mix(in srgb, var(--hostile) 70%, transparent),
-    transparent
-  );
-}
-#tv-ui .lane.right {
-  background: linear-gradient(
-    to left,
-    color-mix(in srgb, var(--hostile) 70%, transparent),
-    transparent
-  );
-}
 #tv-ui .hud-boss {
   left: 640px;
   top: 907px;

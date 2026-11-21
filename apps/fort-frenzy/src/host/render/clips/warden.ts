@@ -4,7 +4,7 @@
 // the hammer on the plate). Attacks are solved per view (`attack@side`, …): the hammer swings
 // forward in side view and toward or away from the camera in front and back views. Impact times are
 // the sim's wind-ups (content `windupMs`; src/host/__tests__/speeds.test.ts keeps them equal), so the
-// hammer lands when the damage does. Mason's sparks are effects (scene/structuresView.ts).
+// hammer lands when the damage does.
 import rig from '../../../../art/neon-knights/rigs/warden.json';
 import type { Clip, Keyframe, RigDef, ViewId } from '../../../presentation/types';
 import { each, knightClips, once, perViewClips, type KnightParts } from '../clipKit';
@@ -46,7 +46,7 @@ const parts: KnightParts = {
 export const SLAM_IMPACT_MS = 200;
 /** The stomp's foot hits the ground (= content `warden.super.windupMs`). */
 export const STOMP_IMPACT_MS = 320;
-/** The build kneel's first hammer tap on the plate: wiring starts the structure's sketch here. */
+/** The build kneel's first hammer tap on the plate. */
 export const BUILD_TAP_MS = 300;
 
 const SLAM_MS = 600;

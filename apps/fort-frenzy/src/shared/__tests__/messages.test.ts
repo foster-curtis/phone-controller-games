@@ -26,8 +26,8 @@ const intents: Intent[] = [
   { k: 'leader', action: 'difficulty', difficulty: 'hard' },
   { k: 'leader', action: 'remove', playerId: 'p2' },
   { k: 'leader', action: 'end', option: 'classes' },
-  { k: 'buy', item: 'emergency_kit' },
-  { k: 'request', item: 'tower_hp', on: false },
+  { k: 'buy', item: 'base_armor' },
+  { k: 'request', item: 'base_hp', on: false },
   { k: 'card', card: 'fire_arrows' },
   { k: 'claim', slot: 2 },
 ];
@@ -63,7 +63,7 @@ const team: TeamView = {
   ],
   shop: [
     {
-      id: 'arrow_rate',
+      id: 'base_hp',
       tier: 1,
       maxTier: 3,
       price: 80,
@@ -71,7 +71,7 @@ const team: TeamView = {
       holdToConfirm: true,
     },
     {
-      id: 'spiked_walls',
+      id: 'archer_damage',
       tier: 1,
       maxTier: 1,
       price: null,
@@ -206,7 +206,7 @@ describe('isControllerMsg', () => {
     ['stick out of range', mutate(tuple, (t) => (t[0] = 101))],
     ['fractional stick', mutate(tuple, (t) => (t[1] = 0.5))],
     ['v1-shaped tuple (11 fields)', [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
-    ['v1-shaped tuple with radialSlot -1', [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1]],
+    ['v1-shaped tuple with a -1 last field', [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1]],
     ['aim out of range', mutate(tuple, (t) => (t[6] = 101))],
     ['build aim fractional', mutate(tuple, (t) => (t[7] = 0.5))],
     ['flags out of range', mutate(tuple, (t) => (t[8] = 8))],
@@ -298,7 +298,7 @@ describe('isHostMsg', () => {
     ['me bad claim', mutate(meMsg, (m) => (m.me.claim = [{ slot: 0, name: 'x' }]))],
     ['ack without ok', { t: 'ack', seq: 1 }],
     ['ack bad reason', { t: 'ack', seq: 1, ok: false, reason: 'nope' }],
-    ['ack removed reason crates', { t: 'ack', seq: 1, ok: false, reason: 'crates' }],
+    ['ack with a removed reason', { t: 'ack', seq: 1, ok: false, reason: 'supply' }],
     ['outdated without proto', { t: 'outdated' }],
   ];
   it.each(bad)('rejects %s', (_, m) => {

@@ -1,13 +1,13 @@
 // Map ground (SPEC §3.1, §15.2 Map v1): stone tiles (variant 1 on most, 2–4 sparsely by a seeded
-// hash of the tile, so the ground is stable run to run), border edges except on lane tiles, the lane
-// entries open or sealed, and sparse flat decor. All on layer 1. The theme's `floorLift` lightens the
-// tiles, edges and decor at draw time (C3 floor contrast, BUILD_PLAN §8 FF3-fix-2).
+// hash of the tile, so the ground is stable run to run), border edges except on portal tiles, the six
+// idle portal frames at the edge entries, and sparse flat decor. All on layer 1. `floorLift`
+// lightens the tiles, edges and decor at draw time (C3 floor contrast, BUILD_PLAN §8 FF3-fix-2).
 import type * as Phaser from 'phaser';
-import type { LaneId } from '../../shared/ids';
+import { mapV1 } from '../../content/map';
+import type { SideId } from '../../shared/ids';
 import type { PresentationHost } from '../../presentation/types';
 import type { ArtImage } from './atlas';
 import { placeFrame, type RenderContext } from './context';
-import type { LaneState } from './types';
 
 /** `Phaser.TintModes.ADD`, as a literal so node tests that import `tileHash` don't load Phaser. */
 const TINT_ADD = 2 as Phaser.TintModes;
@@ -15,30 +15,19 @@ const TINT_ADD = 2 as Phaser.TintModes;
 export const MAP_COLS = 36;
 export const MAP_ROWS = 24;
 
-/** Lane entry tiles (map v1) and the lane frame anchors in world tiles. */
-export const LANES: Record<LaneId, { tiles: [number, number][]; anchor: [number, number] }> = {
-  bottom: {
-    tiles: [
-      [17, 23],
-      [18, 23],
-    ],
-    anchor: [18, 24],
-  },
-  left: {
-    tiles: [
-      [0, 11],
-      [0, 12],
-    ],
-    anchor: [0.5, 12],
-  },
-  right: {
-    tiles: [
-      [35, 11],
-      [35, 12],
-    ],
-    anchor: [35.5, 12],
-  },
-};
+/**
+ * Portal entry tiles (map v1) and each portal's frame anchor in world tiles: the edge midpoint
+ * between its two entry tiles (§15.2). Every bottom portal uses the bottom frames, side portals their
+ * side's.
+ */
+export const PORTALS: { side: SideId; tiles: [number, number][]; anchor: [number, number] }[] =
+  Object.values(mapV1.portals).map(({ side, entry }) => {
+    const tiles = entry.map(([c, r]) => [c, r] as [number, number]);
+    const mid = (i: 0 | 1) => tiles.reduce((a, t) => a + t[i] + 0.5, 0) / tiles.length;
+    const anchor: [number, number] =
+      side === 'bottom' ? [mid(0), tiles[0]![1] + 1] : [tiles[0]![0] + 0.5, mid(1)];
+    return { side, tiles, anchor };
+  });
 
 /** A stable 32-bit hash of a tile and a salt (render variety without randomness). */
 export function tileHash(c: number, r: number, salt = 0): number {
@@ -74,15 +63,14 @@ export function edgeFor(c: number, r: number, cols = MAP_COLS, rows = MAP_ROWS):
   return null;
 }
 
-const isLaneTile = (c: number, r: number) =>
-  Object.values(LANES).some((l) => l.tiles.some(([lc, lr]) => lc === c && lr === r));
+const isPortalTile = (c: number, r: number) =>
+  PORTALS.some((p) => p.tiles.some(([pc, pr]) => pc === c && pr === r));
 
 export class MapView {
-  private lanes = new Map<LaneId, ArtImage>();
   private images: ArtImage[] = [];
 
   constructor(
-    private readonly ctx: RenderContext,
+    ctx: RenderContext,
     private readonly map: PresentationHost['map'],
     /** Draw only this tile window (the gallery's map sample); default the whole map. */
     readonly window: { c0: number; r0: number; c1: number; r1: number } = {
@@ -94,12 +82,12 @@ export class MapView {
   ) {
     const { c0, r0, c1, r1 } = window;
     const lift = map.floorLift;
-    // Layer-1 order: tiles (row by row), decor, edges, lanes; the Citadel plate sorts after them.
+    // Layer-1 order: tiles (row by row), decor, edges, portals; the Citadel plate sorts after them.
     const at = (name: string, c: number, r: number, base: number) => {
       const { sx, sy } = ctx.camera.worldToScreen(c + 0.5, r + 0.5);
       const a = placeFrame(ctx, name, 'ground', sx, sy, { sortY: base + r * 0.01 });
       // The floor lift (C3, FF3-fix-2) adds to every channel, so seams, hash variety and the rim
-      // keep their steps; lanes stay untinted (their glows must stay amber and violet).
+      // keep their steps; portals stay untinted (their glows keep their colors).
       if (lift) a.img.setTintMode(TINT_ADD).setTint(lift);
       this.images.push(a);
     };
@@ -118,24 +106,17 @@ export class MapView {
     for (let r = r0; r <= r1; r++) {
       for (let c = c0; c <= c1; c++) {
         const e = edgeFor(c, r);
-        if (e && !isLaneTile(c, r))
+        if (e && !isPortalTile(c, r))
           at(this.map.edges[e as keyof PresentationHost['map']['edges']], c, r, 2);
       }
     }
-    for (const lane of Object.keys(LANES) as LaneId[]) {
-      const [x, y] = LANES[lane].anchor;
+    for (const { side, anchor } of PORTALS) {
+      const [x, y] = anchor;
       if (x < c0 || x > c1 + 1 || y < r0 || y > r1 + 1) continue;
       const { sx, sy } = ctx.camera.worldToScreen(x, y);
-      this.lanes.set(
-        lane,
-        placeFrame(ctx, this.map.lanes[lane].sealed, 'ground', sx, sy, { sortY: 3 }),
+      this.images.push(
+        placeFrame(ctx, this.map.portals[side].idle, 'ground', sx, sy, { sortY: 3 }),
       );
     }
-  }
-
-  /** Open lanes show violet chevrons; sealed lanes an amber hard-light gate (§3.1). */
-  setLane(lane: LaneId, state: LaneState) {
-    const a = this.lanes.get(lane);
-    if (a) this.ctx.lib.setFrame(a, this.map.lanes[lane][state]);
   }
 }

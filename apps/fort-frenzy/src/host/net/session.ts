@@ -354,8 +354,8 @@ export function createSession(deps: SessionDeps): Session {
       case 'name':
         return res(party.setName(from, i.name));
       case 'class':
-        // Only classes in content (the Warden arrives with FF8).
-        if (!content.characters.some((c) => c.id === i.classId)) return ack(from, seq, 'invalid');
+        // Only knights in content.
+        if (!content.knights.some((c) => c.id === i.classId)) return ack(from, seq, 'invalid');
         return res(party.setClass(from, i.classId));
       case 'color':
         // Reasons pass through unchanged (FF2-fix-1: they are ack reasons).

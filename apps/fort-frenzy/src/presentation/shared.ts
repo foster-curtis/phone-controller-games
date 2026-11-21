@@ -1,10 +1,10 @@
-// Neon knights theme, the part phones and the TV share (SPEC §2.1, §2.6, §15.4): display names for
-// every internal id, the icon map (internal ids → icon ids), the inline icon sprite and the class
+// Neon knights presentation, the part phones and the TV share (SPEC §2.1, §2.6, §15.4): display names
+// for every internal id, the icon map (internal ids → icon ids), the inline icon sprite and the knight
 // portraits. Presentation only; the sim never sees it. Icon ids are typed against the generated
 // names, so a missing icon fails the typecheck.
 import type { IconName } from '../../generated/keys';
 import iconMarkup from '../../generated/neon-knights/icons.svg?raw';
-import type { CardId, ClassId, ShopItemId, StructureId } from '../shared/ids';
+import type { ActIconId, BuildId, CardId, ClassId, RoleId, ShopItemId } from '../shared/ids';
 import { ICON_SYMBOL_PREFIX, type PresentationShared } from './types';
 
 /** Typed icon id; the asset-keys test also checks each literal against the manifest. */
@@ -41,32 +41,31 @@ const superIcons = {
   commander: ik('super-commander'),
 } satisfies Record<ClassId, IconName>;
 
-const structureIcons = {
-  arrow_tower: ik('turret'),
-  bomb_tower: ik('mortar'),
-  wall: ik('wall'),
-  snare: ik('net'),
-  fortify: ik('fortify'),
-} satisfies Record<StructureId, IconName>;
+const roleIcons = {
+  tank: ik('role-tank'),
+  marksman: ik('role-marksman'),
+  support: ik('role-support'),
+  control: ik('role-control'),
+} satisfies Record<RoleId, IconName>;
+
+/** The build button's icon per build (§10.1); the Commander's recall is `act-recall`. */
+const buildIcons = {
+  shield_gen: 'act-shield',
+  mine: 'act-mine',
+  beacon: 'act-beacon',
+  rally_flag: 'act-flag',
+} satisfies Record<BuildId, ActIconId & IconName>;
 
 const shopIcons = {
-  crate: ik('cell'),
   repair: ik('repair'),
   archer_damage: ik('sentry-damage'),
   archer_range: ik('sentry-range'),
   archer_third: ik('sentry-third'),
-  squad_stats: ik('squad'),
-  arrow_rate: ik('turret-rate'),
-  bomb_radius: ik('mortar-radius'),
-  tower_hp: ik('tower-hp'),
-  wall_hp: ik('wall-hp'),
-  snare_charges: ik('net-charges'),
-  spiked_walls: ik('charged-walls'),
+  base_hp: ik('base-hp'),
   base_armor: ik('base-armor'),
-  emergency_kit: ik('emergency-kit'),
 } satisfies Record<ShopItemId, IconName>;
 
-// Card marks (SPEC §6.1 table): the 8 commons have their own marks.
+// Card marks (SPEC §6.1 table, §15.11 #88): the commons have their own marks.
 const cardIcons = {
   vitality: ik('card-vitality'),
   might: ik('card-might'),
@@ -76,16 +75,26 @@ const cardIcons = {
   focus: ik('card-focus'),
   toughness: ik('card-toughness'),
   quick_recovery: ik('card-recovery'),
+  tinkerer: ik('card-tinkerer'),
   quick_draw: ik('card-attack'),
   piercing_shot: ik('card-attack'),
   volley: ik('card-attack'),
   heavy_slam: ik('card-attack'),
-  bladework: ik('card-attack'),
+  heavy_bash: ik('card-attack'),
   blast_radius: ik('card-super'),
   earthshaker: ik('card-super'),
   rally_cry: ik('card-super'),
+  shrapnel_charge: ik('card-build'),
+  minefield: ik('card-build'),
+  wide_field: ik('card-build'),
+  reinforced_generator: ik('card-build'),
+  booster_beacon: ik('card-build'),
+  strong_arm: ik('card-build'),
+  steady_aim: ik('card-passive'),
+  challenger: ik('card-passive'),
+  field_medic: ik('card-passive'),
+  morale: ik('card-passive'),
   deadeye: ik('card-passive'),
-  master_mason: ik('card-passive'),
   wide_aura: ik('card-passive'),
   fire_arrows: ik('card-effect'),
   venom_bolts: ik('card-effect'),
@@ -93,15 +102,13 @@ const cardIcons = {
   skyhunter: ik('card-hunter'),
   giant_slayer: ik('card-hunter'),
   siege_breakers: ik('card-hunter'),
-  bodyguard: ik('card-ally'),
   overflow: ik('card-ally'),
   triage: ik('card-ally'),
-  strong_arm: ik('card-supply'),
-  bulk_buyer: ik('card-supply'),
-  light_load: ik('card-supply'),
   forced_march: ik('card-squad'),
   veterans: ik('card-squad'),
   last_stand: ik('card-squad'),
+  drillmaster: ik('card-squad'),
+  reinforced_ranks: ik('card-squad'),
   unshakable: ik('card-toughness'),
   vanguard: ik('card-toughness'),
   wildfire: ik('card-combo'),
@@ -119,57 +126,56 @@ const cardNames = {
   focus: 'Focus',
   toughness: 'Toughness',
   quick_recovery: 'Quick Recovery',
+  tinkerer: 'Tinkerer',
   quick_draw: 'Quick Draw',
   blast_radius: 'Blast Radius',
+  shrapnel_charge: 'Shrapnel Charge',
   fire_arrows: 'Fire Arrows',
   piercing_shot: 'Piercing Shot',
   skyhunter: 'Skyhunter',
-  deadeye: 'Deadeye',
   volley: 'Volley',
+  steady_aim: 'Steady Aim',
+  deadeye: 'Deadeye',
+  minefield: 'Minefield',
   wildfire: 'Wildfire',
   heavy_slam: 'Heavy Slam',
   earthshaker: 'Earthshaker',
+  wide_field: 'Wide Field',
   aftershock: 'Aftershock',
   giant_slayer: 'Giant Slayer',
-  master_mason: 'Master Mason',
-  bodyguard: 'Bodyguard',
   unshakable: 'Unshakable',
+  challenger: 'Challenger',
+  reinforced_generator: 'Reinforced Generator',
   fault_line: 'Fault Line',
-  light_load: 'Light Load',
   strong_arm: 'Strong Arm',
+  booster_beacon: 'Booster Beacon',
   venom_bolts: 'Venom Bolts',
   overflow: 'Overflow',
-  bulk_buyer: 'Bulk Buyer',
-  wide_aura: 'Wide Aura',
   triage: 'Triage',
+  field_medic: 'Field Medic',
+  wide_aura: 'Wide Aura',
   plague: 'Plague',
-  bladework: 'Bladework',
+  heavy_bash: 'Heavy Bash',
   forced_march: 'Forced March',
-  rally_cry: 'Rally Cry',
+  drillmaster: 'Drillmaster',
   siege_breakers: 'Siege Breakers',
   veterans: 'Veterans',
   last_stand: 'Last Stand',
   vanguard: 'Vanguard',
+  rally_cry: 'Rally Cry',
+  morale: 'Morale',
+  reinforced_ranks: 'Reinforced Ranks',
   warcry: 'Warcry',
 } satisfies Record<CardId, string>;
 
-// Shop items in the theme's words (SPEC §2.1: arrow towers are pulse turrets, base archers are
-// sentry guns, spiked walls are charged walls, crates are power cells).
+// Shop items in the set's words (SPEC §2.1: base archers are sentry guns).
 const shopNames = {
-  crate: 'Power cell',
   repair: 'Citadel repair',
   archer_damage: 'Sentry damage',
   archer_range: 'Sentry range',
   archer_third: 'Third sentry',
-  squad_stats: 'Squad stats',
-  arrow_rate: 'Pulse turret fire rate',
-  bomb_radius: 'Mortar blast radius',
-  tower_hp: 'Tower armor',
-  wall_hp: 'Wall HP',
-  snare_charges: 'Shock Net charges',
-  spiked_walls: 'Charged walls',
+  base_hp: 'Citadel max HP',
   base_armor: 'Citadel armor',
-  emergency_kit: 'Emergency repair kit',
 } satisfies Record<ShopItemId, string>;
 
 export const presentationShared: PresentationShared = {
@@ -179,11 +185,14 @@ export const presentationShared: PresentationShared = {
     warden: 'Warden',
     artificer: 'Artificer',
     commander: 'Commander',
-    arrow_tower: 'Pulse turret',
-    bomb_tower: 'Mortar tower',
-    wall: 'Wall',
-    snare: 'Shock Net',
-    fortify: 'Fortify',
+    tank: 'Tank',
+    marksman: 'Marksman',
+    support: 'Support',
+    control: 'Control',
+    shield_gen: 'Shield generator',
+    mine: 'Mines',
+    beacon: 'Healing beacon',
+    rally_flag: 'Rally flag',
     grunt: 'Drone',
     runner: 'Skitter',
     brute: 'Brute',
@@ -202,10 +211,11 @@ export const presentationShared: PresentationShared = {
     ids: [...iconMarkup.matchAll(SYMBOL_ID)].map((m) => m[1]!),
   },
   iconFor: {
-    class: classIcons,
+    knight: classIcons,
+    role: roleIcons,
     main: mainIcons,
     super: superIcons,
-    structure: structureIcons,
+    build: buildIcons,
     shop: shopIcons,
     card: cardIcons,
   },

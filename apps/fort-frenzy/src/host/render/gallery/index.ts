@@ -5,7 +5,7 @@ import * as Phaser from 'phaser';
 import { manifest } from '../../../../generated/manifest';
 import { content } from '../../../content';
 import { groundBody } from '../../sim/body';
-import { LANE_IDS, PLAYER_COLOR_IDS } from '../../../shared/ids';
+import { PLAYER_COLOR_IDS } from '../../../shared/ids';
 import { theme } from '../../../shared/theme';
 import { presentationHost } from '../../../presentation/host';
 import { ART_SET, type ArtSetAssets } from '../../../presentation/types';
@@ -115,13 +115,6 @@ class GalleryScene extends Phaser.Scene {
       if (w > 0) m.shadow(u.sx, u.sy, w * 2, h * 2);
       if (u.knight) {
         m.ring(u.sx, u.sy, u.info.ring ?? 0.6, u.color ?? color, u.aim);
-        m.carry(
-          u.sx,
-          u.sy,
-          u.info.ring ?? 0.6,
-          this.state.carry,
-          u.rig.rigId === 'artificer' ? 8 : 4,
-        );
       }
       if (this.state.hitbox) {
         m.hitbox(u.sx, u.sy, u.info.hitbox);
@@ -228,30 +221,11 @@ function panel(game: Phaser.Game) {
     (v) => (s.gauge = v),
   );
   select(
-    'carry',
-    [0, 1, 2, 3, 4, 5, 6, 7, 8],
-    () => s.carry,
-    (v) => (s.carry = v),
-  );
-  select(
     'colossus',
     ['1', '2', '3', 'final'],
     () => (s.colossus === 4 ? 'final' : String(s.colossus)),
     (v) => (s.colossus = v === 'final' ? 4 : (Number(v) as 1 | 2 | 3)),
   );
-  select(
-    'tier',
-    [0, 1, 2, 3],
-    () => s.tier,
-    (v) => (s.tier = v as 0 | 1 | 2 | 3),
-  );
-  for (const l of LANE_IDS)
-    select(
-      `lane ${l}`,
-      ['open', 'sealed'],
-      () => s.lanes[l],
-      (v) => (s.lanes[l] = v as 'open' | 'sealed'),
-    );
   document.body.append(el);
 }
 

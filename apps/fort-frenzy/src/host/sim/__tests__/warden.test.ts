@@ -38,7 +38,10 @@ describe('Warden slam', () => {
     h.run(1);
     for (const e of front) expect(e.maxHp - e.hp).toBe(warden.main.damage);
     expect(behind.hp).toBe(behind.maxHp);
-    expect(h.p(0).superCharge).toBeCloseTo(3 * warden.main.damage * warden.superChargeRate, 6);
+    expect(h.p(0).superCharge).toBeCloseTo(
+      3 * warden.main.damage * warden.superCharge.perDamage,
+      6,
+    );
   });
 
   it('dying during the wind-up calls it off', () => {
@@ -93,42 +96,5 @@ describe('Warden stomp', () => {
     h.pads[0]!.tap('superFires', { superAim: { x: 1, y: 0 } });
     h.run(steps(warden.super.windupMs) + 2);
     expect(h.p(0).superCharge).toBe(0);
-  });
-});
-
-describe('Mason', () => {
-  it('repairs walls near the Warden in combat, never far ones', () => {
-    const h = combat();
-    h.put(0, 10.5, 12.5);
-    const near = h.sim.place('wall', 11, 13, 0);
-    const far = h.sim.place('wall', 20, 13, 0);
-    near.hp = far.hp = 100;
-    h.run(60);
-    expect(near.hp).toBeCloseTo(100 + 10, 0);
-    expect(far.hp).toBe(100);
-    near.hp = near.maxHp - 1;
-    h.run(60);
-    expect(near.hp).toBe(near.maxHp);
-  });
-
-  it('is off during the build phase', () => {
-    const h = harness(1, 1, { classes: ['warden'] });
-    h.toBuild();
-    h.put(0, 10.5, 12.5);
-    const near = h.sim.place('wall', 11, 13, 0);
-    near.hp = 100;
-    h.run(120);
-    expect(h.sim.world.phase).toBe('build');
-    expect(near.hp).toBe(100);
-  });
-
-  it('is off while he is down', () => {
-    const h = combat();
-    h.put(0, 10.5, 12.5);
-    const near = h.sim.place('wall', 11, 13, 0);
-    near.hp = 100;
-    h.p(0).hp = 0;
-    h.run(60);
-    expect(near.hp).toBe(100);
   });
 });

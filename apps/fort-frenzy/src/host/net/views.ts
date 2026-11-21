@@ -60,9 +60,9 @@ function nextWave(ctx: ViewCtx, w: World): TeamView['nextWave'] {
   const def = ctx.content.waves.find((x) => x.n === w.wave);
   if (!def) return null;
   const diff = ctx.content.difficulties.find((d) => d.id === ctx.settings.difficulty);
-  const sc = ctx.content.scaling;
-  const n = w.players.filter((p) => p.connected).length;
-  const mult = (sc ? sc.base + sc.perPlayer * n : 1) * (diff?.budget ?? 1);
+  const n = Math.min(6, Math.max(1, w.players.filter((p) => p.connected).length));
+  const row = ctx.content.scaling.find((r) => r.players === n);
+  const mult = (row?.budget ?? 1) * (diff?.budget ?? 1);
   const types = def.allowed.length || 1;
   const enemies = def.allowed.map((id) => {
     const e = ctx.content.enemies.find((x) => x.id === id);
@@ -120,20 +120,22 @@ export function teamView(ctx: ViewCtx): TeamView {
   };
 }
 
-/** Each knight's build and its button (§7.4, §10.1). RD3 reads them from content. */
-const BUILD_OF: Record<ClassId, { id: BuildId; input: MeBuild['input']; icon: ActIconId }> = {
-  warden: { id: 'shield_gen', input: 'aimed', icon: 'act-shield' },
-  ranger: { id: 'mine', input: 'tap', icon: 'act-mine' },
-  artificer: { id: 'beacon', input: 'aimed', icon: 'act-beacon' },
-  commander: { id: 'rally_flag', input: 'aimed', icon: 'act-flag' },
+/** The build button's icon per build (§10.1, mirrors presentation `iconFor.build`). */
+const BUILD_ICON: Record<BuildId, ActIconId> = {
+  shield_gen: 'act-shield',
+  mine: 'act-mine',
+  beacon: 'act-beacon',
+  rally_flag: 'act-flag',
 };
 
 /**
  * The build button (§10.1): the meter ring, and what a release does now. Full meter → place; else a
  * Commander with his flag out → recall (a tap, `act-recall`); else dimmed. Builds only in combat.
  */
-export function buildFor(w: World, p: PlayerEnt): MeBuild {
-  const b = BUILD_OF[p.classId];
+export function buildFor(content: Content, w: World, p: PlayerEnt): MeBuild {
+  const knight = content.knights.find((k) => k.id === p.classId);
+  const id: BuildId = knight?.build ?? 'shield_gen';
+  const b = { id, input: knight?.input.build ?? 'tap', icon: BUILD_ICON[id] };
   const full = p.meter >= 1;
   const able = w.phase === 'combat' && p.respawnAt === null && p.connected;
   const recall = !full && p.classId === 'commander' && p.flag !== null;
@@ -174,7 +176,7 @@ export function blankMe(screen: MeView['screen']): MeView {
 /** One phone's view; `m` null = not in the party (full, or before hello). */
 export function meView(ctx: ViewCtx, m: FfMember | null, full = false): MeView {
   if (!m) return blankMe(full ? 'full' : 'name');
-  const { party, world: w } = ctx;
+  const { party, content, world: w } = ctx;
   const base: MeView = {
     ...blankMe('name'),
     name: m.name,
@@ -225,7 +227,7 @@ export function meView(ctx: ViewCtx, m: FfMember | null, full = false): MeView {
     superReady: p.superCharge >= 1,
     // The Commander at his squad cap (RD9).
     superBlocked: false,
-    build: buildFor(w, p),
+    build: buildFor(content, w, p),
     respawnMs: dead ? Math.max(0, Math.round((p.respawnAt! - w.tick) * STEP_MS)) : null,
     // Private card offer and owned stacks (§6.1, FF12).
     cards: {

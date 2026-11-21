@@ -23,7 +23,7 @@ const WALL = 50;
 /** Ground field costs (§15.5): open 1, snare 1, wall/tower high, blocked impassable. */
 const groundCost = (k: Kind) => (k === 'W' ? WALL : k === '#' ? IMPASSABLE : OPEN);
 /** Breaker field: walls cheap, so Brutes and the Colossus smash through (§7). */
-const breakerCost = (k: Kind) => (k === 'W' ? 2 : k === '#' ? IMPASSABLE : OPEN);
+const cheapWallCost = (k: Kind) => (k === 'W' ? 2 : k === '#' ? IMPASSABLE : OPEN);
 
 function makeMap(): Kind[] {
   return Array.from({ length: COLS * ROWS }, () => '.' as Kind);
@@ -52,7 +52,7 @@ describe('buildField', () => {
     expect(path).toContain(at(18, 5));
   });
 
-  it('goes through one wall when the line is sealed', () => {
+  it('goes through one wall when the line is closed', () => {
     const map = makeMap();
     wallLine(map, null);
     const f = field(map, groundCost);
@@ -83,13 +83,13 @@ describe('buildField', () => {
     expect(withSnares.next).toEqual(without.next);
   });
 
-  it('the breaker field prefers walls; the ground field goes round', () => {
+  it('a field with cheap walls goes through them; the ground field goes round', () => {
     const map = makeMap();
     wallLine(map, 5);
     expect(walls(map, pathFrom(field(map, groundCost), start))).toBe(0);
-    const breaker = pathFrom(field(map, breakerCost), start);
-    expect(walls(map, breaker)).toBe(1);
-    expect(breaker).not.toContain(at(18, 5));
+    const through = pathFrom(field(map, cheapWallCost), start);
+    expect(walls(map, through)).toBe(1);
+    expect(through).not.toContain(at(18, 5));
   });
 
   it('rebuilds on place and destroy', () => {
@@ -114,7 +114,7 @@ describe('buildField', () => {
       for (let i = 0; i < 200; i++) {
         map[rng.int(0, COLS * ROWS - 1)] = rng.next() < 0.5 ? 'W' : '#';
       }
-      // A pocket sealed off by impassable terrain.
+      // A pocket shut off by impassable terrain.
       for (const [c, r] of [
         [2, 1],
         [1, 2],
@@ -185,10 +185,10 @@ describe('diagonal fields and steering', () => {
     const round = pathFrom(dfield(gap, groundCost), start);
     expect(walls(gap, round)).toBe(0);
     expect(round).toContain(at(18, 5));
-    const sealed = makeMap();
-    wallLine(sealed, null);
-    expect(walls(sealed, pathFrom(dfield(sealed, groundCost), start))).toBe(1);
-    expect(walls(gap, pathFrom(dfield(gap, breakerCost), start))).toBe(1);
+    const closed = makeMap();
+    wallLine(closed, null);
+    expect(walls(closed, pathFrom(dfield(closed, groundCost), start))).toBe(1);
+    expect(walls(gap, pathFrom(dfield(gap, cheapWallCost), start))).toBe(1);
     const snared = [...gap];
     for (let r = 8; r < 16; r++) for (let c = 4; c < 12; c++) snared[at(c, r)] = 'S';
     expect(dfield(snared, groundCost).next).toEqual(dfield(gap, groundCost).next);

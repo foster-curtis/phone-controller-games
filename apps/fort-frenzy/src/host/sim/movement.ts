@@ -182,12 +182,11 @@ function separate(s: FullState) {
 
 /** Pushes a circle out of solid tiles; players are also kept on the map. */
 function collide(s: FullState, u: Unit, isPlayer: boolean) {
-  const { cols, rows, kinds, occupant } = s.world.grid;
+  const { cols, rows, kinds } = s.world.grid;
   if (isPlayer) {
     u.x = Math.min(cols - u.r, Math.max(u.r, u.x));
     u.y = Math.min(rows - u.r, Math.max(u.r, u.y));
   }
-  const flying = (u as { flying?: boolean }).flying === true;
   const c0 = Math.floor(u.x - u.r);
   const c1 = Math.floor(u.x + u.r);
   const r0 = Math.floor(u.y - u.r);
@@ -198,12 +197,7 @@ function collide(s: FullState, u: Unit, isPlayer: boolean) {
       if (col < 0 || col >= cols) continue;
       const t = row * cols + col;
       const k = kinds[t];
-      let solid = k === 'citadel' || k === 'blocked';
-      if (!solid && !flying && occupant[t] !== 0) {
-        const st = s.units.get(occupant[t]!) as { kind?: string } | undefined;
-        solid = st !== undefined && s.isBlocker(st.kind as never);
-      }
-      if (!solid) continue;
+      if (k !== 'citadel' && k !== 'blocked') continue;
       pushOut(u, col, row);
     }
   }

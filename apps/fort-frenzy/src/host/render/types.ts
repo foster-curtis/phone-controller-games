@@ -63,7 +63,7 @@ export interface PlayOptions {
   offsetMs?: number;
 }
 
-/** One composed rig on the world layer: a knight, footman, enemy, the Colossus or the mortar. */
+/** One composed rig on the world layer: a knight, footman, enemy or the Colossus. */
 export interface RigInstance {
   readonly rigId: string;
   readonly view: ViewId;
@@ -103,13 +103,6 @@ export interface RigInstance {
 
 // ---- structures and world pieces (§3.6, §7.2, §15.2) ----------------------------------------------
 
-/** Pulse-turret aims; `s` faces the camera. Order is counter-clockwise from east in screen space. */
-export const TURRET_AIMS = ['e', 'se', 's', 'sw', 'w', 'nw', 'n', 'ne'] as const;
-export type TurretAim = (typeof TURRET_AIMS)[number];
-
-/** 0 = unupgraded, then shop tiers I–III. */
-export type TowerTier = 0 | 1 | 2 | 3;
-
 export const SENTRY_AIMS = ['l', 'dl', 'c', 'dr', 'r'] as const;
 export type SentryAim = (typeof SENTRY_AIMS)[number];
 export const SENTRY_LOADOUTS = ['base', 'dmg', 'rng', 'max'] as const;
@@ -121,21 +114,12 @@ export type CitadelStage = 0 | 1 | 2 | 3;
 /** 4-bit same-type neighbor mask: N = 1, E = 2, S = 4, W = 8. */
 export type TileMask = number;
 
-export type LaneState = 'open' | 'sealed';
-
 /** Status looks (§6.1) the renderer draws on a unit. */
 export type StatusLook = 'burn' | 'poison' | 'stun' | 'slow';
 
 // ---- effects (§15.2 layer 4, pooled) --------------------------------------------------------------
 
-export type ProjectileKind =
-  | 'bolt'
-  | 'nanite-bolt'
-  | 'mortar-shell'
-  | 'bombard-shell'
-  | 'boulder'
-  | 'wasp-shot'
-  | 'power-cell';
+export type ProjectileKind = 'bolt' | 'nanite-bolt' | 'bombard-shell' | 'boulder' | 'wasp-shot';
 
 export type BurstKind =
   'spark-ours' | 'spark-theirs' | 'heal-glint' | 'nanite-mote' | 'muzzle-ours' | 'muzzle-theirs';
@@ -166,7 +150,6 @@ export interface EffectSpawner {
    */
   scrap(side: ScrapSide, size: 1 | 2 | 3 | 4 | 5, sx: number, sy: number, holdMs?: number): void;
   /** The charged-wall strike from a post to an attacker. */
-  wallStrike(from: ScreenPoint, to: ScreenPoint): void;
   /** Ground ring (AoE, blast, shockwave) at a world point, radius in tiles, expanding and fading. */
   ring(side: ScrapSide | 'danger', x: number, y: number, r: number, ms?: number): void;
   /**

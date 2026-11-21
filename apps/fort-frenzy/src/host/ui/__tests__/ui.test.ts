@@ -8,7 +8,6 @@ import {
   fitScale,
   fitTransform,
   insideSafe,
-  laneBand,
 } from '../layout';
 import { ARM_MS, createRemoveArm } from '../removeArm';
 import type { HomeRow } from '../types';
@@ -36,11 +35,8 @@ describe('band geometry (SPEC §15.2 table)', () => {
     expect([BANDS.playfield.x, BANDS.playfield.x + BANDS.playfield.w]).toEqual([96, 1824]);
     expect(SAFE_BOX).toEqual({ x: 96, y: 96, w: 1728, h: 888 });
   });
-  it('centers the base bar over the Citadel and puts lane bands on their edges', () => {
+  it('centers the base bar over the Citadel ', () => {
     expect(CITADEL_CENTER_X).toBe(960);
-    expect(laneBand('bottom').y + laneBand('bottom').h).toBe(1080);
-    expect(laneBand('left').x).toBe(0);
-    expect(laneBand('right').x + laneBand('right').w).toBe(1920);
   });
   it('fits 1920 × 1080 into any window', () => {
     expect(fitScale(1280, 720)).toEqual({ scale: 2 / 3, x: 0, y: 0 });

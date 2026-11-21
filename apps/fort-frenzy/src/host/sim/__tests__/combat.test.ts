@@ -1,7 +1,7 @@
-// Combat scenarios: the Ranger's kit (SPEC §8, §10.1), the pulse turret, base archers (§3.5), the
+// Combat scenarios: the Ranger's kit (SPEC §8, §10.1), the sentries (§3.5), the
 // Grunt (§9, aggro leash), dazed (§11.3), death and respawn (§5), danger markers, invincible (§9.5).
 import { describe, expect, it } from 'vitest';
-import { arrowTower, base as baseDef, ranger, grunt } from '../../../content/balance';
+import { base as baseDef, ranger, grunt } from '../../../content/balance';
 import { harness } from './harness';
 
 const MAIN = ranger.main.damage;
@@ -67,7 +67,7 @@ describe('Ranger longbow', () => {
     h.sim.spawnEnemy('grunt', 13, 16);
     h.pads[0]!.tap('mainFires');
     h.run(30);
-    expect(h.p(0).superCharge).toBeCloseTo(MAIN * ranger.superChargeRate, 6);
+    expect(h.p(0).superCharge).toBeCloseTo(MAIN * ranger.superCharge.perDamage, 6);
   });
 });
 
@@ -135,19 +135,7 @@ describe('Steady Aim', () => {
   });
 });
 
-describe('pulse turret and base archers', () => {
-  it('the turret shoots the nearest enemy in range', () => {
-    const h = combat();
-    h.put(0, 30, 4);
-    h.sim.place('arrow_tower', 10, 14, 0);
-    const near = h.sim.spawnEnemy('grunt', 10.5, 18);
-    const far = h.sim.spawnEnemy('grunt', 14.5, 18.5);
-    near.stats.moveSpeed = far.stats.moveSpeed = 0;
-    h.run(20);
-    expect(near.hp).toBe(near.maxHp - arrowTower.attack.damage);
-    expect(far.hp).toBe(far.maxHp);
-  });
-
+describe('sentries', () => {
   it('archers shoot the nearest enemy in range, flyers included', () => {
     const h = combat();
     h.put(0, 30, 4);
@@ -202,17 +190,14 @@ describe('Grunt', () => {
     expect(g.target).toBeNull();
   });
 
-  it('a dazed (disconnected) player is untargetable and drops their crates', () => {
+  it('a dazed (disconnected) player is untargetable', () => {
     const h = combat();
     h.put(0, 11, 14.5);
-    h.p(0).crates = 2;
     h.sim.command({ c: 'presence', slot: 0, connected: false });
     const g = h.sim.spawnEnemy('grunt', 10.5, 14.5);
     h.run(120);
     expect(h.p(0).hp).toBe(h.p(0).maxHp);
     expect(g.ai).toBe('path');
-    expect(h.p(0).crates).toBe(0);
-    expect(h.sim.world.cratePiles).toEqual([expect.objectContaining({ n: 2 })]);
     expect(h.p(0).connected).toBe(false);
   });
 
@@ -228,7 +213,7 @@ describe('Grunt', () => {
 });
 
 describe('death, respawn, invincible, danger markers', () => {
-  it('a dead player respawns at the base after 10 s', () => {
+  it('a dead player respawns at the base after the player-count table’s time (6 s solo)', () => {
     const h = combat();
     h.put(0, 10, 14);
     h.p(0).hp = 1;
@@ -236,8 +221,8 @@ describe('death, respawn, invincible, danger markers', () => {
     h.until(() => h.p(0).respawnAt !== null, 300);
     const died = h.sim.world.tick;
     h.until(() => h.p(0).respawnAt === null, 60 * 12);
-    expect(h.sim.world.tick - died).toBeGreaterThanOrEqual(600 - 1);
-    expect(h.sim.world.tick - died).toBeLessThanOrEqual(600 + 1);
+    expect(h.sim.world.tick - died).toBeGreaterThanOrEqual(360 - 1);
+    expect(h.sim.world.tick - died).toBeLessThanOrEqual(360 + 1);
     expect(h.p(0).hp).toBe(h.p(0).maxHp);
     expect(h.p(0).y).toBeLessThan(5);
   });
@@ -266,7 +251,7 @@ describe('death, respawn, invincible, danger markers', () => {
       r: 2,
       createdAt: w.tick,
       landsAt: w.tick + 30,
-      payload: { damage: 20, kind: 'area', tags: [], hitsStructures: false },
+      payload: { damage: 20, kind: 'area', tags: [], hitsBuilds: false },
     });
     h.run(29);
     expect(h.p(0).hp).toBe(h.p(0).maxHp);

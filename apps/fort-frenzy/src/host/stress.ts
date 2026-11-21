@@ -1,7 +1,7 @@
 // In-game stress mode (`?debug=1&stress=1`, SPEC §15.2 budget; FF15): the real sim and the real
 // World scene at the §15.2 peak, with no relay and no phones. Six autopilot knights (every class,
 // invincible) on wave 15 with the Colossus Mk III held in its final phase, Swarm packs topping the
-// crowd up to 150, 60 towers, 30 footmen and 100 projectiles (sim/peak.ts), stepped at 60 Hz on the
+// crowd up to 150, 30 footmen and 100 projectiles (sim/peak.ts), stepped at 60 Hz on the
 // runtime's timer like a run. The overlay shows frame, CPU render, bloom and sim step times; the
 // numbers only mean something on the target laptop (headless Chromium has software GL, BUILD_PLAN §8).
 // `&peak=synthetic` swaps in the scattered whole-roster crowd; `&seed=N` reseeds it.
@@ -55,7 +55,7 @@ export async function startStress(parent: HTMLElement, params: URLSearchParams):
       p99Ms: recent[Math.min(k - 1, Math.floor(k * 0.99))] ?? 0,
       counts:
         `${w.players.length} knights  ${w.soldiers.length} footmen  ${w.enemies.length} enemies  ` +
-        `${w.projectiles.length} projectiles  ${w.structures.length} structures`,
+        `${w.projectiles.length} projectiles`,
     };
   };
 

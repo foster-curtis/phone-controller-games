@@ -1,18 +1,19 @@
 // Peak loads (SPEC §15.2 budget, §15.9; FF15) for the bench (scripts/bench.ts) and the TV's stress
-// mode (`?debug=1&stress=1`): 6 knights (every class, autopilot, invincible), 30 footmen, 150 enemies,
-// 100 projectiles, 60 structures, held there by `topUp` before every step. They use the sim's tooling
-// helpers (`spawnEnemy`, `place`, `addSoldier`) and edit HP directly, so they are not replayable.
+// mode (`?debug=1&stress=1`): 6 knights (every knight, autopilot, invincible), 30 footmen, 150
+// enemies, 100 projectiles, 24 builds (6 Rangers × 4 mines with Minefield; placeholder bodies until
+// RD3 places real builds), held there by `topUp` before every step. They use the sim's tooling
+// helpers (`spawnEnemy`, `addBuild`, `addSoldier`) and edit HP directly, so they are not replayable.
 // - `boss`, the real peak: wave 15 in the full sim with the Colossus Mk III held in its final phase
 //   (rings, Runner calls), the wave's own groups and Swarm packs through the spawn command.
 // - `synthetic`: the whole roster scattered over the field (every AI, hunted fields, Siege shells).
 import { rngStream, type Rng } from '@pcg/game-kit';
-import { LANE_IDS, type ClassId, type StructureId } from '../../shared/ids';
+import { BUILD_IDS, PORTAL_IDS, type ClassId } from '../../shared/ids';
 import { createSim, type Sim } from './sim';
 import { soakStart } from './soak';
 import { AutopilotInputSource } from './sources';
 import type { EnemyEnt, ProjectileEnt } from './types';
 
-export const PEAK = { knights: 6, footmen: 30, enemies: 150, projectiles: 100, structures: 60 };
+export const PEAK = { knights: 6, footmen: 30, enemies: 150, projectiles: 100, builds: 24 };
 export type PeakKind = 'boss' | 'synthetic';
 
 /** Every class, two Commanders (the footmen need squads). */
@@ -39,8 +40,6 @@ const ROSTER = [
   'siege',
   'hunter',
 ] as const;
-/** Towers on the lattice: mostly pulse turrets, every third a mortar. */
-const TOWERS: StructureId[] = ['arrow_tower', 'arrow_tower', 'bomb_tower'];
 /** The Colossus's HP fraction held in the bench: under content's `finalAt` (0.5). */
 const FINAL_HP = 0.45;
 
@@ -63,20 +62,16 @@ function toCombat(sim: Sim, wave: number) {
 }
 
 /**
- * Towers on a loose lattice across the field (lanes and the base area stay clear) up to
- * `PEAK.structures`, healed: stats reset `maxHp` when effects land, so they can't just be unbreakable.
+ * Builds on a loose lattice across the field (portals and the base area stay clear) up to
+ * `PEAK.builds`, every kind in turn, healed (placeholder bodies until RD3 gives them behaviors).
  */
 function lattice(sim: Sim) {
   const w = sim.world;
-  const { cols, kinds, occupant } = w.grid;
-  for (const st of w.structures) if (st.damageable && st.hp > 0) st.hp = st.maxHp;
-  for (let off = 0; off < 3 && w.structures.length < PEAK.structures; off++) {
-    for (let row = 6 + off; row < 22 && w.structures.length < PEAK.structures; row += 3) {
-      for (let col = 2 + off; col < 34 && w.structures.length < PEAK.structures; col += 3) {
-        if (kinds[row * cols + col] !== 'open' || occupant[row * cols + col] !== 0) continue;
-        const n = w.structures.length;
-        sim.place(TOWERS[n % TOWERS.length]!, col, row, n % PEAK.knights);
-      }
+  for (const b of w.builds) if (b.targetable && b.hp > 0) b.hp = b.maxHp;
+  for (let row = 6; row < 22 && w.builds.length < PEAK.builds; row += 4) {
+    for (let col = 3; col < 34 && w.builds.length < PEAK.builds; col += 6) {
+      const n = w.builds.length;
+      sim.addBuild(BUILD_IDS[n % BUILD_IDS.length]!, col + 0.5, row + 0.5, n % PEAK.knights);
     }
   }
 }
@@ -112,7 +107,6 @@ function projectiles(sim: Sim, rng: Rng) {
       tags: [],
       effects: [],
       hitsFlyers: true,
-      blockedBy: [],
       pierce: 0,
       hit: [],
       expiresAt: w.tick + 15,
@@ -158,15 +152,15 @@ export function peakLoad(kind: PeakKind, seed: number): PeakLoad {
   // The Colossus walks in first on wave 15 (Mk III).
   while (!w.enemies.some((e) => e.boss)) sim.step();
   const colossus = w.enemies.find((e) => e.boss)!;
-  let lane = 0;
+  let portal = 0;
   return {
     sim,
     colossus,
     topUp() {
       // Swarm packs through the spawn command (the real spawn path) while under the count.
       if (w.enemies.length < PEAK.enemies) {
-        const at = LANE_IDS[lane++ % LANE_IDS.length]!;
-        sim.command({ c: 'debug', slot: -1, action: 'spawn', enemy: 'swarm', lane: at });
+        const at = PORTAL_IDS[portal++ % PORTAL_IDS.length]!;
+        sim.command({ c: 'debug', slot: -1, action: 'spawn', enemy: 'swarm', portal: at });
       }
       if (colossus.hp > 0) colossus.hp = colossus.maxHp * FINAL_HP;
       lattice(sim);

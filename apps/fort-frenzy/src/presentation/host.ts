@@ -48,6 +48,8 @@ export const presentationHost: PresentationHost = {
   rigs,
   clips,
   rigFor: {
+    // A knight's rig id is its id (RD1).
+    knight: { ranger: 'ranger', warden: 'warden', artificer: 'artificer', commander: 'commander' },
     enemy: {
       grunt: 'drone',
       runner: 'skitter',
@@ -59,8 +61,6 @@ export const presentationHost: PresentationHost = {
       colossus: 'colossus',
     } satisfies Record<EnemyId, string>,
     soldier: 'footman',
-    // The pulse turret, walls, nets and Fortify are frame stacks, not rigs (render/structures.ts).
-    structure: { bomb_tower: 'mortar' },
   },
   sfx: Object.fromEntries(
     Object.entries(sfxUrls).map(([p, u]) => [p.slice(p.lastIndexOf('/') + 1, -4), u]),
@@ -77,10 +77,10 @@ export const presentationHost: PresentationHost = {
       se: fk('edge/se'),
       sw: fk('edge/sw'),
     },
-    lanes: {
-      bottom: { open: fk('lane/bottom-open'), sealed: fk('lane/bottom-sealed') },
-      left: { open: fk('lane/left-open'), sealed: fk('lane/left-sealed') },
-      right: { open: fk('lane/right-open'), sealed: fk('lane/right-sealed') },
+    portals: {
+      left: { idle: fk('portal/left-idle'), flare: fk('portal/left-flare') },
+      bottom: { idle: fk('portal/bottom-idle'), flare: fk('portal/bottom-flare') },
+      right: { idle: fk('portal/right-idle'), flare: fk('portal/right-flare') },
     },
     decor: [fk('decor/grate'), fk('decor/plate'), fk('decor/lines'), fk('decor/crack')],
     // C3: the art's #262b33 stone sat at the violet-iron hulls' luminance (1.0–1.2:1), so enemies

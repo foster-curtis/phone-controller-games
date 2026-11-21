@@ -2,8 +2,9 @@
 // and the TV; imports nothing but ids.
 // Frozen after RD2 (REDESIGN_BUILD_PLAN §3): additive changes only (new optional fields, new union
 // members, new guard cases). A breaking change bumps PROTOCOL_VERSION and is logged in SPEC §15.11.
-// RD2 implemented the v2 shapes: InputTuple v2 (build aim and fires, no radial fields), Intent without
-// `build`/`give`, AckReason without `crates`, RunStats with `buildsPlaced`, MeView with `build: MeBuild`.
+// RD2 implemented the v2 shapes: InputTuple v2 (build aim and fires; the build-arc fields are gone),
+// Intent without `build`/`give`, AckReason without the supply reason, RunStats with `buildsPlaced`,
+// MeView with `build: MeBuild`.
 import {
   ACT_ICON_IDS,
   BUILD_IDS,

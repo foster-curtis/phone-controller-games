@@ -1,23 +1,11 @@
-// Gallery pages (BUILD_PLAN FF3): every rig × view × pose × clip, turret tiers × aims and mortars,
-// the Citadel at each stage with sentries, all 16 autotile masks, effects and statuses, every icon
-// as a world-UI badge, and the map with lanes open or sealed.
+// Gallery pages (BUILD_PLAN FF3): every rig × view × pose × clip, the Citadel at each stage with
+// sentries, effects and statuses, every icon
+// as a world-UI badge, and the map with its six portals.
 import { manifest } from '../../../../generated/manifest';
-import { LANE_IDS } from '../../../shared/ids';
 import { theme } from '../../../shared/theme';
 import { ART_SET, type ArtSetAssets, type ViewId } from '../../../presentation/types';
-import { ALL_MASKS } from '../autotile';
 import { placeFrame } from '../context';
-import {
-  fk,
-  iconFrame,
-  netFrame,
-  scrapFrame,
-  sentryFrame,
-  wallChargedFrame,
-  wallDmgFrame,
-  wallFrame,
-  wallRailFrame,
-} from '../keys';
+import { fk, iconFrame, scrapFrame, sentryFrame } from '../keys';
 import { MapView } from '../map';
 import type { RigSprite } from '../rig';
 import { drawBowString } from '../bowString';
@@ -27,21 +15,17 @@ import { SLAM_IMPACT_MS, STOMP_IMPACT_MS } from '../clips/warden';
 import { content } from '../../../content';
 import { KNIGHT_DOWN } from '../clipKit';
 import { PROJECTILE_SPEEDS } from '../effectsMath';
-import { BuildFill, Collapse } from '../buildFx';
 import { clipLandedMs, spawnPile } from '../fall';
 import { locomotionSpeed, StatusSprites } from '../status';
 import { mitePack, mitePose } from '../swarm';
-import { Citadel, Mortar, NetField, PulseTurret, WallField, frameAt } from '../structures';
+import { Citadel, frameAt } from '../structures';
 import {
   SENTRY_AIMS,
   SENTRY_LOADOUTS,
-  TURRET_AIMS,
   type BurstKind,
   type IconKey,
   type ProjectileKind,
   type StatusLook,
-  type TowerTier,
-  type TurretAim,
 } from '../types';
 import type { RenderWorld } from '../world';
 import { RIG_INFO, type RigInfo } from './rigInfo';
@@ -107,13 +91,6 @@ function addRig(
   if (rigId === 'commander' && s.banner) groups.push('banner');
   if (rigId === 'artificer') groups.push(...gaugeGroups(s.gauge));
   if (rigId === 'colossus') groups.push(...colossusGroups(s.colossus));
-  if (rigId === 'mortar') {
-    groups.push(
-      ...(s.tier >= 1 ? ['band1'] : []),
-      ...(s.tier >= 2 ? ['band2', 'ii'] : []),
-      ...(s.tier >= 3 ? ['band3', 'iii'] : []),
-    );
-  }
   const rig = k.world.rig(rigId, {
     view,
     tint: theme.players[s.color].fill.num,
@@ -140,10 +117,6 @@ function addRig(
         if (clip === 'hit') rig.flash(60);
         if (clip === 'super' && rigId !== 'warden')
           k.world.fx.ring('ours', ...worldAt(k, sx, sy), 3);
-        if (rigId === 'mortar' && clip === 'attack') {
-          const m = rig.attach(k.state.tier >= 3 ? 'muzzle-iii' : 'muzzle');
-          if (m) k.world.fx.burst('muzzle-ours', m.sx, m.sy, -Math.PI / 2);
-        }
       }
     });
     if (clip === 'attack' && rigId === 'ranger') {
@@ -175,7 +148,7 @@ function addRig(
  * hit arc and sparks at the hammer head.
  */
 function wardenWaves(k: PageKit, rig: RigSprite, sx: number, sy: number, clip: 'attack' | 'super') {
-  const def = content.characters.find((c) => c.id === 'warden')!;
+  const def = content.knights.find((c) => c.id === 'warden')!;
   const a = clip === 'attack' ? def.main : def.super;
   const angle =
     rig.view === 'side'
@@ -302,17 +275,7 @@ function rigsPage(k: PageKit) {
     k.label(`footman ${v}`, colX(6 + j), rowB + 34);
   });
   const rowC = 960;
-  const enemies = [
-    'drone',
-    'skitter',
-    'brute',
-    'bombard',
-    'wasp',
-    'mite',
-    'stalker',
-    'colossus',
-    'mortar',
-  ];
+  const enemies = ['drone', 'skitter', 'brute', 'bombard', 'wasp', 'mite', 'stalker', 'colossus'];
   enemies.forEach((rig, i) => {
     if (rig === 'mite') mitePackAt(k, colX(i), rowC - 10);
     else addRig(k, rig, colX(i), rowC, 'side');
@@ -323,91 +286,6 @@ function rigsPage(k: PageKit) {
       colX(i),
       rowC + 34,
     );
-  });
-}
-
-// ---- turrets + mortars -----------------------------------------------------------------------------
-
-/** Screen rotation of a turret aim (aims step 45° around the world ground from east). */
-const aimRotation = (aim: TurretAim) => {
-  const a = (TURRET_AIMS.indexOf(aim) * Math.PI) / 4;
-  return Math.atan2(Math.sin(a) * 0.6, Math.cos(a));
-};
-
-function turretsPage(k: PageKit) {
-  const w = k.world;
-  const rowTurrets: { t: PulseTurret; tier: TowerTier }[] = [];
-  ([0, 1, 2, 3] as TowerTier[]).forEach((tier, row) => {
-    const y = 2 + row * 4;
-    TURRET_AIMS.forEach((aim, i) => {
-      const t = new PulseTurret(w, 2 + i * 3, y);
-      rowTurrets.push({ t, tier });
-      t.setTier(tier);
-      t.setAim(aim);
-      t.setUnlit(k.state.unlit);
-      k.hitboxes.push({ sx: t.sx, sy: t.sy, r: 0.5 });
-      if (row === 0) k.label(aim, t.sx, t.sy + 26);
-    });
-    const p = w.camera.worldToScreen(0.6, y);
-    k.label(
-      tier === 0 ? 'unupgraded' : `tier ${'I'.repeat(tier).replace('III', 'III')}`,
-      p.sx,
-      p.sy - 10,
-    );
-  });
-  // Tracking turrets: 8° hysteresis on a sweeping target; tiers II and III flash from both barrels.
-  ([2, 3] as TowerTier[]).forEach((tier, j) => {
-    const tracker = new PulseTurret(w, 28 + j * 3, 6);
-    tracker.setTier(tier);
-    k.label(
-      j === 0 ? 'tracking II (8° hysteresis, twin flash)' : 'III',
-      tracker.sx + (j === 0 ? 40 : 0),
-      tracker.sy + 26,
-    );
-    k.tick((_dt, t) => {
-      const a = t / 1400 + j * 0.7;
-      tracker.aimAt(a);
-      if (Math.floor(t / 400) !== Math.floor((t - _dt) / 400))
-        tracker.fire(w.fx, Math.atan2(Math.sin(a) * 0.6, Math.cos(a)));
-    });
-  });
-  // Every tier II and III head fires from both barrels.
-  k.tick((_dt, t) => {
-    if (Math.floor(t / 700) === Math.floor((t - _dt) / 700)) return;
-    for (const tt of rowTurrets.filter((x) => x.tier >= 2)) tt.t.fire(w.fx, aimRotation(tt.t.aim));
-  });
-  // Damage, defense bonus and Fortify.
-  const dmg = new PulseTurret(w, 28, 10);
-  dmg.setTier(1);
-  dmg.setDamaged(true);
-  k.label('damaged', dmg.sx, dmg.sy + 26);
-  const bonus = new PulseTurret(w, 31, 10);
-  bonus.setTier(1);
-  bonus.setDefenseBonus(true);
-  k.label('defense bonus', bonus.sx, bonus.sy + 26);
-  const fort = new PulseTurret(w, 31, 14);
-  fort.setTier(3);
-  fort.setFortify(true);
-  k.label('fortify', fort.sx, fort.sy + 26);
-  // Mortars: tiers 0–III and damaged, tubes sweeping within ±75°.
-  const mortars: Mortar[] = [];
-  ([0, 1, 2, 3] as TowerTier[]).forEach((tier, i) => {
-    const m = new Mortar(w, w.rig('mortar'), 2 + i * 4, 20);
-    m.setTier(tier);
-    m.rig.setUnlit(k.state.unlit);
-    mortars.push(m);
-    k.label(`mortar ${tier === 0 ? 'base' : 'I'.repeat(tier)}`, m.sx, m.sy + 26);
-  });
-  const dm = new Mortar(w, w.rig('mortar'), 18, 20);
-  dm.setTier(2);
-  dm.setDamaged(true);
-  mortars.push(dm);
-  k.label('mortar damaged', dm.sx, dm.sy + 26);
-  const clamp = new Mortar(w, w.rig('mortar'), 22, 20);
-  clamp.aimScreen(1, 0.4); // a target below the horizon: clamps to +75°
-  k.label('clamped +75°', clamp.sx, clamp.sy + 26);
-  k.tick((_dt, t) => {
-    mortars.forEach((m, i) => m.aimScreen(Math.sin(t / 900 + i), -1));
   });
 }
 
@@ -472,174 +350,13 @@ function citadelPage(k: PageKit) {
   });
 }
 
-// ---- autotiles -------------------------------------------------------------------------------------
-
-function autotilesPage(k: PageKit) {
-  const w = k.world;
-  const rows: [string, (m: number) => string[]][] = [
-    ['wall + rail', (m) => [wallRailFrame(m), wallFrame(m)]],
-    ['charged', (m) => [wallRailFrame(m), wallFrame(m), wallChargedFrame(m)]],
-    ['damaged', (m) => [wallRailFrame(m), wallFrame(m), wallDmgFrame(m)]],
-    ['shock net', (m) => [netFrame(m)]],
-  ];
-  rows.forEach(([name, frames], row) => {
-    const y = 2.5 + row * 3.4;
-    for (const m of ALL_MASKS) {
-      const p = w.camera.worldToScreen(3.5 + m * 2, y);
-      frames(m).forEach((f, j) => {
-        const ground = f.startsWith('wall/rail') || f.startsWith('shock-net');
-        placeFrame(w, f, ground ? 'groundOverlay' : 'world', p.sx, p.sy, {
-          sortY: p.sy + j * 0.001,
-          unlit: k.state.unlit,
-        });
-      });
-      if (row === 0) k.label(`m${m}`, p.sx, p.sy - 70);
-    }
-    const p = w.camera.worldToScreen(0.8, y);
-    k.label(name, p.sx, p.sy);
-  });
-  // Sample layouts: masks computed from neighbors (shared posts drawn once).
-  const walls = new WallField(w);
-  const layout: [number, number][] = [
-    [3, 16],
-    [4, 16],
-    [5, 16],
-    [6, 16],
-    [6, 17],
-    [6, 18],
-    [6, 19],
-    [5, 19],
-    [4, 19],
-    [3, 19],
-    [3, 18],
-    [3, 17],
-    [9, 16],
-    [9, 17],
-    [9, 18],
-    [10, 17],
-    [11, 17],
-    [13, 18],
-    [14, 18],
-    [14, 17],
-    [15, 18],
-    [14, 19],
-  ];
-  walls.set(
-    layout.map(([c, r], i) => ({ c, r, charged: i % 5 === 1 || c >= 13, damaged: i % 4 === 3 })),
-    k.state.unlit,
-  );
-  const wl = w.camera.worldToScreen(9, 21.4);
-  k.label('wall layout (charged + damaged mixed)', wl.sx, wl.sy);
-  const nets = new NetField(w);
-  nets.set(
-    [
-      [19, 16],
-      [20, 16],
-      [21, 16],
-      [19, 17],
-      [20, 17],
-      [21, 17],
-      [23, 16],
-      [23, 17],
-      [24, 17],
-      [26, 18],
-      [27, 18],
-      [28, 18],
-      [27, 17],
-      [27, 19],
-    ].map(([c, r]) => ({ c: c!, r: r! })),
-  );
-  const nl = w.camera.worldToScreen(23.5, 21.4);
-  k.label('shock net layout', nl.sx, nl.sy);
-  structureStates(k);
-}
-
-/**
- * FF8 structure states: a joined net whose tiles each dim as their discharges run out and flash on
- * each one; a wall building (sketch, then fill from the plate up); a wall destroyed (collapse into
- * scrap); the charged crackle and damaged flicker; Mason's sparks sealing a wall's cracks.
- */
-function structureStates(k: PageKit) {
-  const w = k.world;
-  const at = (x: number, y: number) => w.camera.worldToScreen(x, y);
-  const nets = new NetField(w);
-  const tiles = [31, 32, 33].map((c) => ({ c, r: 15 }));
-  nets.set(tiles);
-  const left = [5, 5, 5];
-  k.tick((dt, t) => {
-    tiles.forEach((tile, i) => {
-      const period = 700 + i * 230;
-      if (Math.floor(t / period) !== Math.floor((t - dt) / period)) {
-        left[i] = left[i]! <= 1 ? 5 : left[i]! - 1;
-        nets.flash(tile.c, tile.r);
-      }
-      nets.setCharge(tile.c, tile.r, left[i]!, 5, t % period > 500);
-    });
-    nets.update(dt);
-  });
-  k.label('net discharges', at(32.5, 16.2).sx, at(32.5, 16.2).sy);
-  // Build: a wall and a net sketch and fill on a loop.
-  const building = new WallField(w);
-  const bnet = new NetField(w);
-  let fills: BuildFill[] = [];
-  const build = () => {
-    building.set([{ c: 31, r: 18 }]);
-    bnet.set([{ c: 31, r: 19 }]);
-    fills = [new BuildFill(w, () => building.at(31, 18)), new BuildFill(w, () => bnet.at(31, 19))];
-  };
-  build();
-  every(k, 1800, 1, build);
-  k.tick((dt) => (fills = fills.filter((f) => f.update(dt))));
-  k.label('build', at(31.5, 20.4).sx, at(31.5, 20.4).sy);
-  // Destroyed: a charged, damaged wall collapses into scrap, then stands again.
-  const doomed = new WallField(w);
-  let collapses: Collapse[] = [];
-  const stand = () => doomed.set([{ c: 33, r: 18, charged: true, damaged: true }]);
-  stand();
-  every(k, 1800, 900, () => {
-    const s = at(33.5, 18.5);
-    collapses.push(new Collapse(w, doomed.at(33, 18)));
-    doomed.set([]);
-    w.fx.scrap('ours', 3, s.sx, s.sy);
-    w.fx.burst('spark-ours', s.sx, s.sy - 18);
-  });
-  every(k, 1800, 1700, stand);
-  k.tick((dt) => {
-    doomed.update(dt);
-    collapses = collapses.filter((c) => c.update(dt));
-  });
-  k.label('destroyed', at(33.5, 20.4).sx, at(33.5, 20.4).sy);
-  // Mason: sparks from the hammer to a damaged wall; its cracks seal halfway through the loop.
-  const mended = new WallField(w);
-  const p = at(31.2, 22.6);
-  const warden = addRig(k, 'warden', p.sx, p.sy, 'side', undefined, 'idle');
-  every(k, 3000, 1, () => mended.set([{ c: 33, r: 22, damaged: true }]));
-  every(k, 3000, 1800, () => mended.set([{ c: 33, r: 22 }]));
-  every(k, 480, 1, () => {
-    const from = warden.rig.attach('hammer');
-    const to = w.camera.worldToScreen(33.5, 22.5, 0.55);
-    if (from) w.fx.tracer('ours', from, to, 140);
-    w.fx.burst('spark-ours', to.sx, to.sy);
-  });
-  k.tick((dt) => mended.update(dt));
-  k.label('mason', at(32.5, 23.6).sx, at(32.5, 23.6).sy);
-}
-
 // ---- effects + statuses ----------------------------------------------------------------------------
 
 function effectsPage(k: PageKit) {
   const w = k.world;
   const at = (x: number, y: number) => w.camera.worldToScreen(x, y);
   // Projectiles at a few headings (static) and in flight (arcs sort by their shadow).
-  const kinds: ProjectileKind[] = [
-    'bolt',
-    'nanite-bolt',
-    'mortar-shell',
-    'bombard-shell',
-    'boulder',
-    'wasp-shot',
-    'power-cell',
-  ];
+  const kinds: ProjectileKind[] = ['bolt', 'nanite-bolt', 'bombard-shell', 'boulder', 'wasp-shot'];
   kinds.forEach((kind, i) => {
     const pr = w.fx.projectile(kind);
     pr.set(2.5 + i * 2.5, 3, 0, -0.5);
@@ -685,7 +402,7 @@ function effectsPage(k: PageKit) {
       if (Math.floor(t / 250) !== Math.floor((t - dt) / 250)) w.fx.burst(b, p.sx, p.sy - 10);
     });
   });
-  // Tracers, rings, wall strike.
+  // Tracers and rings.
   k.tick((dt, t) => {
     if (Math.floor(t / 300) === Math.floor((t - dt) / 300)) return;
     const a = at(21, 6.5);
@@ -695,7 +412,6 @@ function effectsPage(k: PageKit) {
     w.fx.ring('ours', 29, 7.5, 1.2);
     w.fx.ring('theirs', 32, 7.5, 1.2);
     w.fx.ring('danger', 29, 10.5, 1.2);
-    w.fx.wallStrike(at(30, 10.5), at(33, 9.5));
   });
   // Scrap: ours and theirs, 1–5.
   (['ours', 'theirs'] as const).forEach((side, row) => {
@@ -705,21 +421,9 @@ function effectsPage(k: PageKit) {
       k.label(`scrap-${side}-${s}`, p.sx, p.sy + 20);
     }
   });
-  // Structures and pieces that aren't rigs.
-  const pieces: [string, string, 'ground' | 'groundOverlay' | 'world'][] = [
-    ['armory pad', fk('armory/pad'), 'ground'],
-    ['armory kiosk', fk('armory/kiosk'), 'world'],
-    ['build ghost valid', fk('build-ghost/valid'), 'groundOverlay'],
-    ['build ghost blocked', fk('build-ghost/blocked'), 'groundOverlay'],
-    ['deploy beacon', fk('deploy-beacon'), 'world'],
-    ['power cell', fk('power-cell'), 'world'],
-  ];
-  pieces.forEach(([name, f, layer], i) => {
-    const x = i === 1 ? 2.5 : 2.5 + i * 3;
-    frameAt(w, f, layer, x, 14);
-    if (i !== 0) k.label(name, at(x, 14).sx, at(x, 14).sy + 22);
-    else k.label('armory', at(x, 14).sx, at(x, 14).sy + 34);
-  });
+  // Pieces that aren't rigs.
+  frameAt(w, fk('power-cell'), 'world', 2.5, 14);
+  k.label('power cell', at(2.5, 14).sx, at(2.5, 14).sy + 22);
   // Rally flag: ring (ground), pole, cloth (player color), trim.
   const fp = at(21, 14);
   placeFrame(w, fk('rally-flag/ring'), 'groundOverlay', fp.sx, fp.sy);
@@ -821,43 +525,20 @@ function iconsPage(k: PageKit) {
 
 function mapPage(k: PageKit) {
   const w = k.world;
-  const map = new MapView(w, w.theme.map);
-  for (const l of LANE_IDS) map.setLane(l, k.state.lanes[l]);
+  new MapView(w, w.theme.map);
   const c = new Citadel(w, 18, 2);
   c.setLoadout(false, false, true);
   k.tick((dt) => c.update(dt));
-  frameAt(w, fk('armory/pad'), 'ground', 22.5, 1.5);
-  frameAt(w, fk('armory/kiosk'), 'world', 22.5, 1.5);
-  const t = new PulseTurret(w, 14.5, 8.5);
-  t.setTier(1);
-  const walls = new WallField(w);
-  walls.set(
-    [
-      [20, 8],
-      [21, 8],
-      [22, 8],
-      [22, 9],
-    ].map(([c2, r]) => ({ c: c2!, r: r! })),
-  );
   const a = w.camera.worldToScreen(18, 6);
   addRig(k, 'warden', a.sx - 60, a.sy, 'front');
   addRig(k, 'ranger', a.sx + 60, a.sy, 'side');
   const d = w.camera.worldToScreen(18, 20);
   addRig(k, 'drone', d.sx, d.sy, 'side').rig.play('walk');
-  for (const l of LANE_IDS) {
-    const p = w.camera.worldToScreen(
-      l === 'bottom' ? 18 : l === 'left' ? 2.5 : 33.5,
-      l === 'bottom' ? 22 : 12,
-    );
-    k.label(`${l}: ${k.state.lanes[l]}`, p.sx, p.sy);
-  }
 }
 
 export const PAGE_BUILDERS: Record<PageId, (k: PageKit) => void> = {
   rigs: rigsPage,
-  turrets: turretsPage,
   citadel: citadelPage,
-  autotiles: autotilesPage,
   effects: effectsPage,
   icons: iconsPage,
   map: mapPage,
