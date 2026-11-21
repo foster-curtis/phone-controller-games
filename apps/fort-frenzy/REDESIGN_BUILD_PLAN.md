@@ -802,7 +802,7 @@ Rules:
 - RD0 Spec rewrite
   - [x] Tag `fort-frenzy-td-final` on `main`; branch `redesign/fort-frenzy`
   - [x] SPEC §1–§14 rewritten; §15 contract sketches; decision log rows
-  - [ ] **User approved RC0**; merged
+  - [x] **User approved RC0**; merged
 - RD1 Art merge, rename, de-theme
   - [ ] `art/redesign` merged; rig-contract and manifest tests updated
   - [ ] `engineer` → `ranger`, `quartermaster` → `artificer`
