@@ -822,7 +822,7 @@ Rules:
   - [ ] Merged
 - RD4 Controller slice
   - [x] 68 px build button + ring + gestures; card pop-up; shop + stick; class select; dev samples
-  - [ ] Merged
+  - [x] Merged
 - RD5 TV slice
   - [ ] Build-view API + life cycle + shield generator; portal flare; HP bars; throw preview; HUD
   - [ ] Warden slam group swap, jump slam, cracks, dust
