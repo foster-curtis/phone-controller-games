@@ -1,5 +1,5 @@
 // End of run (SPEC §4, §2.6): result banner, waves survived, one award card per player in their color,
-// and the party leader's three options (play again, change classes, home). Everyone gets Give feedback
+// and the party leader's three options (play again, Change Knight, home). Everyone gets Give feedback
 // (PLATFORM decision #11).
 import { feedbackUrl } from '@pcg/catalog';
 import { el } from '@pcg/controller-kit';
@@ -10,7 +10,7 @@ import { formatClock, type ScreenCtx, type Snapshot, type View } from './common'
 
 const OPTIONS = [
   { option: 'again', label: 'PLAY AGAIN', cls: 'btn btn-primary' },
-  { option: 'classes', label: 'CHANGE CLASSES', cls: 'btn' },
+  { option: 'classes', label: 'CHANGE KNIGHT', cls: 'btn' },
   { option: 'home', label: 'HOME', cls: 'btn' },
 ] as const;
 

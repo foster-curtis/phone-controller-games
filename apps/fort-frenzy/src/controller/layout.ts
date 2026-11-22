@@ -1,6 +1,7 @@
 // Combat layout (SPEC §10.1, §15.7): a pure function from the viewport and safe-area insets to the
 // stick and button circles, in viewport px. Percentages apply inside the safe area, so every offset is
-// "added to env(safe-area-inset-*)"; fixed sizes stay in px. The bottom offset is clamped so no button
+// "added to env(safe-area-inset-*)"; fixed sizes stay in px. The build button is 68 px (RD0 #105: it keeps
+// the (-118, +20) offset). The bottom offset is clamped so no button
 // edge is closer than 64 px to the right or bottom (a 300 px high phone would break it otherwise).
 import type { SafeInsets } from '@pcg/controller-kit';
 
@@ -23,7 +24,7 @@ export const STICK_BASE_D = 120;
 export const STICK_KNOB_D = 52;
 export const MAIN_D = 96;
 export const SUPER_D = 76;
-export const ACTION_D = 56;
+export const ACTION_D = 68;
 export const MIN_EDGE = 64;
 export const MIN_GAP = 24;
 /** A button's touch target extends this far beyond its drawn edge. */

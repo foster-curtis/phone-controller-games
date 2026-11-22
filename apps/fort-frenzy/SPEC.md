@@ -2726,7 +2726,9 @@ overlay; §15.11 #104); `Announcement.item` is a v2 `ShopItemId`. No other field
     test, so the TV shows a preview exactly when a release would fire.
   - **Tap button** (tap supers, at-feet builds, the Commander's recall): fires on release (§10.1).
   - The build button swaps between the two gestures when `me.build.input` changes (the Commander's
-    recall), and is inert while `me.build.mode` is `none`. The kit's radial gesture is unused.
+    recall), and is inert while `me.build.mode` is `none`. An aimed build uses the same floating aim
+    zones as the attacks (build aiming flag 4, `buildX`/`buildY`, `buildFires`). The kit's radial
+    gesture is unused.
 - **Super ring, build ring, status strip, build icon:** drawn from `me`; the rings animate between
   updates. The flash and 1.2 Hz pulse on `superReady` are CSS animations; the build ring's full state is
   a steady amber ring. Buttons and menu items use the icon set's lit badges; a dimmed build button shows
@@ -2734,6 +2736,8 @@ overlay; §15.11 #104); `Announcement.item` is a v2 `ShopItemId`. No other field
 - **Card pop-up:** full screen, no stick; tapping a card selects it locally (amber edge), Confirm sends
   `card`; once `me.cards.picked` is set the view switches to the shop. The header renders
   `me.cards.growth`.
+  Ready stays in the top bar on both screens (the coin count, shop only, sits left of it); Confirm
+  locks for 1.5 s after it sends, so a double tap makes one intent.
 - **Shop:** right 2/3, the stick on the left third; hold-to-confirm (0.6 s) on items with
   `holdToConfirm`; Request toggles; Ready top right; purchase failures show the `ack` reason as a toast.
 - **Team pause (§10.5):** the combat and build views share one pause control (`createPauseControl`):

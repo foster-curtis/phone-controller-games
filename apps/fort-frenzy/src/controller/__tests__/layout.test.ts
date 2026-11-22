@@ -91,6 +91,16 @@ describe('layoutCombat (SPEC §10.1)', () => {
     }
   }
 
+  it('the build button is 68 px and keeps the (-118, +20) offset at every viewport (RD0 #105)', () => {
+    expect(ACTION_D).toBe(68);
+    for (const [width, height] of VIEWPORTS) {
+      const l = layoutCombat({ width, height });
+      expect(l.action.d, `${width}x${height}`).toBe(68);
+      expect(l.action.cx - l.main.cx).toBe(-118);
+      expect(l.action.cy - l.main.cy).toBe(20);
+    }
+  });
+
   it('matches the 844x390 reference positions', () => {
     const l = layoutCombat({ width: 844, height: 390 });
     expect(l.main.cx).toBeCloseTo(844 - 168.8, 1);

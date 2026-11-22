@@ -9,7 +9,12 @@ import {
   type AimedState,
   type InputSender,
 } from '@pcg/controller-kit';
-import { AIM_DEAD_ZONE, INPUT_FLAG_MAIN_AIMING, INPUT_FLAG_SUPER_AIMING } from '../shared/messages';
+import {
+  AIM_DEAD_ZONE,
+  INPUT_FLAG_BUILD_AIMING,
+  INPUT_FLAG_MAIN_AIMING,
+  INPUT_FLAG_SUPER_AIMING,
+} from '../shared/messages';
 
 export const TUPLE_LAYOUT = [
   'moveX',
@@ -77,14 +82,17 @@ export function createPhoneSender(send: (tuple: number[]) => void): PhoneSender 
 }
 
 export type AttackKey = 'main' | 'super';
+/** Every aimed button: the attacks and a thrown build (flag 4, buildX/buildY, buildFires; SPEC §15.6). */
+export type AimKey = AttackKey | 'build';
 
 const ATTACK = {
   main: { x: 'mainX', y: 'mainY', fires: 'mainFires', flag: INPUT_FLAG_MAIN_AIMING },
   super: { x: 'superX', y: 'superY', fires: 'superFires', flag: INPUT_FLAG_SUPER_AIMING },
+  build: { x: 'buildX', y: 'buildY', fires: 'buildFires', flag: INPUT_FLAG_BUILD_AIMING },
 } as const;
 
 /** Aimed press state → the aiming flag (the TV draws the aim line while it is set). */
-export function encodeAimedState(sender: PhoneSender, key: AttackKey, state: AimedState): void {
+export function encodeAimedState(sender: PhoneSender, key: AimKey, state: AimedState): void {
   const aiming = isAiming(state);
   sender.setButton(ATTACK[key].flag, aiming);
   // The live aim rides along while aiming, so the TV's line follows the thumb (FF7: the sim reads
@@ -97,7 +105,7 @@ export function encodeAimedState(sender: PhoneSender, key: AttackKey, state: Aim
 }
 
 /** An aimed outcome: tap = fire with aim 0,0 (auto-aim), fire = the aim, cancel = nothing. */
-export function encodeAimed(sender: PhoneSender, key: AttackKey, out: AimedOutput): void {
+export function encodeAimed(sender: PhoneSender, key: AimKey, out: AimedOutput): void {
   const a = ATTACK[key];
   if (out.kind === 'tap') sender.bump(a.fires, { [a.x]: 0, [a.y]: 0 });
   else if (out.kind === 'fire') {
@@ -112,7 +120,10 @@ export function encodeTapAttack(sender: PhoneSender, key: AttackKey): void {
   sender.bump(a.fires, { [a.x]: 0, [a.y]: 0 });
 }
 
-/** The build button: a tap (release) places or recalls, build aim 0,0. No aimed build gesture yet. */
+/** The build button as a tap: a release places or recalls, build aim 0,0 (an at-feet build, the recall). */
 export function encodeBuildTap(sender: PhoneSender): void {
   sender.bump('buildFires', { buildX: 0, buildY: 0 });
 }
+
+/** The `touch` name of a button's finger-down (the build button is 'action'). */
+export const touchName = (key: AimKey): string => (key === 'build' ? 'action' : key);

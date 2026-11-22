@@ -1,5 +1,5 @@
 // Combat controller (SPEC §10.1, §10.4, §15.7): stick on the left half, main / super / build on the
-// right per `layoutCombat`, the charge ring, the status strip. `dead` shares this view (a held thumb
+// right per `layoutCombat`, the super's charge ring, the build meter ring, the status strip. `dead` shares this view (a held thumb
 // survives the switch) and shows the respawn countdown only.
 import {
   bindGesture,
@@ -20,6 +20,7 @@ import {
   encodeAimed,
   encodeAimedState,
   encodeBuildTap,
+  type AimKey,
   encodeTapAttack,
   type AttackKey,
   type PhoneSender,
@@ -97,7 +98,7 @@ export function buildEnabled(build: MeView['build']): boolean {
   return build !== null && build.mode !== 'none';
 }
 
-/** Binds the build button: a tap (release) while enabled fires `buildFires`, aim 0,0 (SPEC §10.1). */
+/** Binds a tap-type build button: a release while enabled fires `buildFires`, aim 0,0 (SPEC §10.1). */
 export function bindBuild(
   btn: HTMLElement,
   sender: PhoneSender,
@@ -119,11 +120,13 @@ export function createCombat(ctx: ScreenCtx): View {
   const sup = RoundButton('super', 'super-ranger');
   const action = RoundButton('action', 'act-shield');
   const ring = ChargeRing();
-  for (const b of [main, sup]) b.el.append(el('span', { class: 'aim-ring' }));
+  const buildRing = ChargeRing('build');
+  for (const b of [main, sup, action]) b.el.append(el('span', { class: 'aim-ring' }));
   main.label('ATTACK');
   sup.label('SUPER');
   action.label('BUILD');
   sup.el.append(ring.el);
+  action.el.append(buildRing.el);
   const dead = el(
     'div',
     { class: 'dead-overlay' },
@@ -138,7 +141,7 @@ export function createCombat(ctx: ScreenCtx): View {
   let wasPaused = false;
 
   let me: MeView | null = null;
-  let boundClass: ClassId | null = null;
+  let boundKey: string | null = null;
   let bindings: GestureBinding<unknown>[] = [];
   const countdown = createCountdown(clock, formatClock, ctx.now);
 
@@ -147,7 +150,9 @@ export function createCombat(ctx: ScreenCtx): View {
   const zones: AimZones = mountAimZones(root, {
     sender: ctx.sender,
     getLayout: () => layout,
-    buttons: { main: main.el, super: sup.el },
+    buttons: { main: main.el, super: sup.el, build: action.el },
+    // A dimmed build button takes no aimed touch (SPEC §10.1: a release before the meter is full does nothing).
+    enabled: (k) => k !== 'build' || buildEnabled(me?.build ?? null),
   });
   // After the aim zones, so the top bar's pause button and the paused card sit above them.
   root.append(pause.button, pause.layer);
@@ -161,7 +166,6 @@ export function createCombat(ctx: ScreenCtx): View {
     main.place(l.main.cx, l.main.cy, l.main.d);
     sup.place(l.super.cx, l.super.cy, l.super.d);
     action.place(l.action.cx, l.action.cy, l.action.d);
-    ring.el.style.setProperty('--ring-d', `${l.super.d + 16}px`);
     root.style.setProperty('--zone-label-x', `${l.stick.cx}px`);
     root.style.setProperty('--zone-label-y', `${l.stick.cy + l.stick.d / 2 + 8}px`);
   };
@@ -169,11 +173,14 @@ export function createCombat(ctx: ScreenCtx): View {
   window.addEventListener('resize', onResize);
   place();
 
-  const bind = (classId: ClassId) => {
+  // The build button swaps gestures when `me.build.input` changes (the Commander's recall): rebind on it.
+  const bind = (classId: ClassId, buildInput: 'aimed' | 'tap') => {
     for (const b of bindings) b.destroy();
     const info = CLASS_INFO[classId];
-    const aimed = (['main', 'super'] as const).filter((k) => info[k].mode === 'aim');
+    const aimed: AimKey[] = (['main', 'super'] as const).filter((k) => info[k].mode === 'aim');
+    if (buildInput === 'aimed') aimed.push('build');
     zones.setAimed(aimed);
+    action.el.classList.toggle('aim', buildInput === 'aimed');
     for (const [k, b] of [
       ['main', main],
       ['super', sup],
@@ -184,9 +191,11 @@ export function createCombat(ctx: ScreenCtx): View {
       ...(['main', 'super'] as const)
         .filter((k) => info[k].mode === 'tap')
         .map((k) => bindAttack((k === 'main' ? main : sup).el, ctx.sender, k, 'tap')),
-      bindBuild(action.el, ctx.sender, () => buildEnabled(me?.build ?? null)),
+      ...(buildInput === 'tap'
+        ? [bindBuild(action.el, ctx.sender, () => buildEnabled(me?.build ?? null))]
+        : []),
     ];
-    boundClass = classId;
+    boundKey = `${classId}|${buildInput}`;
   };
 
   const update = (s: Snapshot) => {
@@ -201,8 +210,9 @@ export function createCombat(ctx: ScreenCtx): View {
     }
     wasPaused = isPaused;
     const cls = m.classId ?? 'ranger';
-    if (boundClass !== cls) {
-      bind(cls);
+    const buildInput = m.build?.input ?? 'tap';
+    if (boundKey !== `${cls}|${buildInput}`) {
+      bind(cls, buildInput);
       const info = CLASS_INFO[cls];
       main.setIcon(`main-${info.rig}`);
       sup.setIcon(`super-${info.rig}`);
@@ -220,6 +230,7 @@ export function createCombat(ctx: ScreenCtx): View {
     strip.update(m, team);
     ring.set(m.superCharge, m.superReady);
     action.setIcon(m.build?.icon ?? 'act-shield', !buildEnabled(m.build));
+    buildRing.set(m.build?.meter ?? 0, m.build?.full ?? false);
   };
 
   return {

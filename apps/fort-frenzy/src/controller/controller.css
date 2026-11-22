@@ -1252,8 +1252,9 @@ button {
   min-height: 0;
 }
 
+/* Shop (SPEC §10.3): the right 2/3; the movement stick keeps the left third. */
 .build.shop-open .build-panel {
-  left: max(var(--space-4), env(safe-area-inset-left));
+  left: calc(33.333% + var(--space-2));
   width: auto;
 }
 
@@ -1381,15 +1382,23 @@ button {
   font-size: 20px;
 }
 
-.coin-box {
-  display: none;
+/* Top bar, right (SPEC §10.3): coins (shop only) and Ready, left of the pause button (FF14-fix-1). */
+.build-bar {
+  position: absolute;
+  top: max(var(--space-2), env(safe-area-inset-top));
+  right: calc(max(var(--space-4), env(safe-area-inset-right)) + 44px + var(--space-3));
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
-.build.shop-open .coin-box {
-  position: fixed;
-  top: max(var(--space-2), env(safe-area-inset-top));
-  /* Left of the pause button (FF14-fix-1). */
-  right: calc(max(var(--space-4), env(safe-area-inset-right)) + 44px + var(--space-3));
+.build-bar .ready {
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  font-size: 18px;
+}
+
+.build .coin-box {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -2034,9 +2043,6 @@ body:has(.screen.join, .screen.lobby) .pcg-fullscreen-corner {
 }
 
 /* Shop open: the footer spans the width, so leave the corner icon its space. */
-.build.shop-open .build-footer {
-  padding-left: 40px;
-}
 
 .pcg-sheet {
   background: var(--scrim);
@@ -2139,4 +2145,96 @@ body:has(.screen.join, .screen.lobby) .pcg-fullscreen-corner {
   color: var(--foreground);
   border: 1px solid var(--border);
   font: inherit;
+}
+
+/* ---- build meter ring (RD4, SPEC §10.1): dimmed until full, then a steady amber; no flash, no pulse ---- */
+
+.charge-ring.build .ring-arc {
+  opacity: 0.55;
+}
+
+.charge-ring.build.full {
+  animation: none;
+  filter: drop-shadow(var(--glow-sm));
+}
+
+.charge-ring.build.full .ring-arc {
+  opacity: 1;
+}
+
+.round-btn.action:not(.dimmed) .round-face {
+  border-color: var(--accent);
+}
+
+/* ---- knight select: the class badge, the build block ---- */
+
+.class-role {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.role-glyph {
+  width: 18px;
+  height: 18px;
+}
+
+/* ---- card pop-up (RD4, SPEC §10.2): full screen, no stick ---- */
+
+.build.popup-open .popup {
+  position: absolute;
+  top: calc(max(var(--space-2), env(safe-area-inset-top)) + 52px);
+  left: max(var(--space-4), env(safe-area-inset-left));
+  right: max(var(--space-4), env(safe-area-inset-right));
+  bottom: max(var(--space-3), env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 0;
+}
+
+.growth {
+  margin: 0;
+  color: var(--accent-text);
+  text-align: center;
+}
+
+.popup .section-title {
+  margin: 0;
+  text-align: center;
+}
+
+.popup .cards {
+  gap: var(--space-3);
+}
+
+.popup-footer {
+  display: flex;
+  justify-content: center;
+}
+
+.popup-footer .confirm {
+  min-width: 200px;
+  min-height: 44px;
+  font-size: 20px;
+}
+
+.upgrade-card[role='button'] {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* selected: the amber edge (the rare card already carries one) */
+.upgrade-card.selected {
+  background: var(--accent);
+  box-shadow: var(--glow-md);
+}
+
+.upgrade-card.selected::before {
+  background: var(--surface-strong);
+}
+
+/* The shop's stick takes the left third only; the rows own the rest (SPEC §10.3). */
+.build .stick-zone {
+  width: 33.333%;
 }

@@ -1,9 +1,16 @@
-// Build phase (SPEC §10.2, §10.3, §15.7): the Shop view, full screen, no tabs and no stick: coins, your
-// private 1-of-3 card, the team shop rows, Request toggles, the timer, pause and Ready. (RD2 cut the
-// Build tab, Give and the cell action; the build button returns in a later milestone.)
-import { el } from '@pcg/controller-kit';
-import type { MeView, TeamView } from '../../shared/messages';
-import { ShopRow, StatusStrip, UpgradeCard, icon } from '../components';
+// Build phase (SPEC §10.2, §10.3, §15.7): two phone screens in one view, then Ready.
+//  1. Card pop-up: full screen, no stick: the class growth header, your three cards (tap selects, then
+//     Confirm sends the one `card` intent), the phase timer. Selection is phone-local.
+//  2. Shop (once `me.cards.picked` is set, or when no pop-up was dealt): the right 2/3 holds the team
+//     coins' rows with price, hold-to-confirm and Request; the movement stick stays on the left third,
+//     so players can reposition while shopping. No tabs, no builds (RD2 cut them).
+// Ready is top right on both (a player may Ready before confirming; the pick is made at the deadline).
+import { el, readSafeInsets } from '@pcg/controller-kit';
+import type { CardId } from '../../shared/ids';
+import type { MeGrowth, MeView, TeamView } from '../../shared/messages';
+import { ShopRow, UpgradeCard, icon } from '../components';
+import { layoutCombat } from '../layout';
+import { mountStick } from './combat';
 import {
   createCountdown,
   createKeyedList,
@@ -26,50 +33,127 @@ export function requesters(
   };
 }
 
-export function createBuild(ctx: ScreenCtx): View {
-  const root = el('section', { class: 'screen build shop-open' });
-  const phase = el('span', { class: 'phase-clock tag' });
-  const strip = StatusStrip();
-  const clock = createCountdown(phase, (ms) => `BUILD PHASE · ${Math.ceil(ms / 1000)} S`, ctx.now);
+const GROWTH_LABEL: Record<MeGrowth['stats'][number], string> = {
+  maxHp: '+HP',
+  damage: '+DMG',
+  healing: '+HEAL',
+};
 
-  // shop
+/** The pop-up's header (§10.2): "Wave 4 cleared: +HP +DMG"; null before wave 1 (no growth yet). */
+export function growthText(g: MeGrowth | null): string | null {
+  if (!g) return null;
+  const head = g.boss ? `Boss down, wave ${g.wave} cleared` : `Wave ${g.wave} cleared`;
+  return g.stats.length ? `${head}: ${g.stats.map((s) => GROWTH_LABEL[s]).join(' ')}` : head;
+}
+
+/** The pop-up shows while a hand is dealt and no pick is made yet. */
+export const showsPopup = (me: MeView): boolean =>
+  me.cards.picked === null && me.cards.offer !== null && me.cards.offer.length > 0;
+
+/** How long Confirm stays pressed after it sends, so a double tap sends one intent (ms). */
+export const CONFIRM_LOCK_MS = 1500;
+
+export function createBuild(ctx: ScreenCtx): View {
+  const root = el('section', { class: 'screen build' });
+  const phase = el('span', { class: 'phase-clock tag' });
+  const clock = createCountdown(phase, (ms) => `BUILD PHASE · ${Math.ceil(ms / 1000)} S`, ctx.now);
+  const stick = mountStick(root, ctx.sender);
+
+  // ---- top bar: timer left; coins (shop only) and Ready right, left of the pause button ----
   const coinsEl = el('span', { class: 'coins score' });
   const coinBox = el('div', { class: 'coin-box' }, icon('coins', 'coin-glyph'), coinsEl);
+  const ready = el('button', { type: 'button', class: 'btn btn-outline ready' });
+  const topRow = el('div', { class: 'build-top' }, phase);
+  const bar = el('div', { class: 'build-bar' }, coinBox, ready);
+
+  // ---- card pop-up ----
+  const growth = el('p', { class: 'growth tag' });
   const cardsHost = el('div', { class: 'cards' });
   const cards = createKeyedList(cardsHost);
-  const cardTitle = el('p', { class: 'section-title tag' });
-  const rowsHost = el('div', { class: 'shop-rows' });
-  const rows = createKeyedList(rowsHost);
-  const shopHint = el('p', {
-    class: 'hint body',
-    text: 'Big buys need a press-and-hold. Request puts an item on the TV wishlist.',
+  const confirm = el('button', {
+    type: 'button',
+    class: 'btn btn-primary confirm',
+    'data-confirm': '',
+    text: 'CONFIRM',
   });
-  const shopBody = el(
+  const popup = el(
     'div',
-    { class: 'tab-body shop-body' },
-    el('div', { class: 'shop-cards' }, cardTitle, cardsHost),
-    el(
-      'div',
-      { class: 'shop-list' },
-      el('p', { class: 'section-title tag', text: 'TEAM SHOP · ANYONE CAN BUY' }),
-      rowsHost,
-      shopHint,
-    ),
+    { class: 'popup' },
+    growth,
+    el('p', { class: 'section-title tag', text: 'YOUR UPGRADE · PICK 1' }),
+    cardsHost,
+    el('div', { class: 'popup-footer' }, confirm),
   );
 
-  const ready = el('button', { type: 'button', class: 'btn btn-outline ready' });
-  const footer = el('div', { class: 'build-footer' }, ready);
+  // ---- shop ----
+  const rowsHost = el('div', { class: 'shop-rows' });
+  const rows = createKeyedList(rowsHost);
+  const shop = el(
+    'div',
+    { class: 'build-panel shop-body' },
+    el('p', { class: 'section-title tag', text: 'TEAM SHOP · ANYONE CAN BUY' }),
+    rowsHost,
+    el('p', {
+      class: 'hint body',
+      text: 'Big buys need a press-and-hold. Request puts an item on the TV wishlist.',
+    }),
+  );
 
-  const panel = el('div', { class: 'build-panel' }, shopBody, footer, coinBox);
-  const topRow = el('div', { class: 'build-top' }, phase);
   const pause = createPauseControl(ctx);
   let wasPaused = false;
-  root.append(topRow, strip.el, panel, pause.button, pause.layer);
+  root.append(topRow, bar, popup, shop, pause.button, pause.layer);
+
+  const place = () => {
+    const l = layoutCombat(
+      { width: root.clientWidth || innerWidth, height: root.clientHeight || innerHeight },
+      readSafeInsets(),
+    );
+    stick.place(l.stick);
+  };
+  const onResize = () => place();
+  window.addEventListener('resize', onResize);
+  place();
 
   let last: Snapshot | null = null;
-  ready.addEventListener('click', () => last && ctx.intent({ k: 'ready', ready: !last.me.ready }));
+  let selected: CardId | null = null;
+  let offerKey = '';
+  let locked = false;
+  let lockTimer: ReturnType<typeof setTimeout> | null = null;
+  let wasPopup = false;
 
-  const update = (s: Snapshot) => {
+  ready.addEventListener('click', () => last && ctx.intent({ k: 'ready', ready: !last.me.ready }));
+  confirm.addEventListener('click', () => {
+    if (!selected || locked) return;
+    ctx.intent({ k: 'card', card: selected });
+    // One intent per confirm; unlocks after a while in case the host refused it (the ack toasts).
+    locked = true;
+    confirm.disabled = true;
+    lockTimer = setTimeout(() => {
+      locked = false;
+      if (last) render(last);
+    }, CONFIRM_LOCK_MS);
+  });
+
+  const renderCards = (offer: readonly CardId[]) => {
+    cards.set(
+      offer.map((id) => ({
+        key: id,
+        sig: `${id}|${selected === id}`,
+        make: () => ({
+          el: UpgradeCard(id, {
+            state: selected === id ? 'selected' : 'offer',
+            onSelect: () => {
+              if (locked) return;
+              selected = id;
+              if (last) render(last);
+            },
+          }),
+        }),
+      })),
+    );
+  };
+
+  const render = (s: Snapshot) => {
     last = s;
     const { me, team } = s;
     // Paused (FF14-fix-1): nothing held may carry over once the run resumes.
@@ -77,36 +161,43 @@ export function createBuild(ctx: ScreenCtx): View {
     if (isPaused && !wasPaused) ctx.sender.neutral();
     wasPaused = isPaused;
     clock.set(team.buildEndsInMs);
-    strip.update(me, team);
     ready.replaceChildren(
       icon('ready', 'ready-glyph'),
       el('span', { text: me.ready ? 'READY ✓' : 'READY' }),
     );
     ready.classList.toggle('on', me.ready);
 
-    // ---- shop ----
-    coinsEl.textContent = team.coins.toLocaleString('en-US');
-    const offer = me.cards.offer;
-    cardTitle.textContent = offer ? 'YOUR UPGRADE · PICK 1' : 'YOUR UPGRADE';
-    const picked = me.cards.picked;
-    const cardItems = picked
-      ? [{ id: picked, state: 'picked' as const }]
-      : (offer ?? []).map((id) => ({ id, state: 'offer' as const }));
-    cards.set(
-      cardItems.map((c) => ({
-        key: c.id,
-        sig: `${c.id}|${c.state}`,
-        make: () => ({
-          el: UpgradeCard(c.id, {
-            state: c.state,
-            onTake: () => ctx.intent({ k: 'card', card: c.id }),
-          }),
-        }),
-      })),
-    );
-    if (cardItems.length === 0)
-      cardsHost.replaceChildren(el('p', { class: 'body hint', text: 'No upgrade this phase.' }));
+    const inPopup = showsPopup(me);
+    root.classList.toggle('popup-open', inPopup);
+    root.classList.toggle('shop-open', !inPopup);
+    popup.hidden = !inPopup;
+    shop.hidden = inPopup;
+    coinBox.hidden = inPopup;
+    stick.zone.hidden = inPopup;
+    if (inPopup !== wasPopup) ctx.sender.neutral();
+    wasPopup = inPopup;
 
+    if (inPopup) {
+      const offer = me.cards.offer ?? [];
+      // A new hand (next build phase) clears the local selection and the Confirm lock.
+      const key = offer.join(',');
+      if (key !== offerKey) {
+        offerKey = key;
+        selected = null;
+        locked = false;
+        if (lockTimer !== null) clearTimeout(lockTimer);
+      }
+      const g = growthText(me.cards.growth);
+      growth.textContent = g ?? '';
+      growth.hidden = g === null;
+      renderCards(offer);
+      confirm.disabled = selected === null || locked;
+      return;
+    }
+
+    // ---- shop ----
+    cards.set([]);
+    coinsEl.textContent = team.coins.toLocaleString('en-US');
     const myId = ctx.myId();
     const shown = team.shop.filter((r) => r.visible);
     rows.set(
@@ -139,11 +230,14 @@ export function createBuild(ctx: ScreenCtx): View {
 
   return {
     el: root,
-    update,
+    update: render,
     destroy() {
+      window.removeEventListener('resize', onResize);
+      if (lockTimer !== null) clearTimeout(lockTimer);
       clock.destroy();
       cards.destroy();
       rows.destroy();
+      stick.destroy();
       ctx.sender.neutral();
     },
   };

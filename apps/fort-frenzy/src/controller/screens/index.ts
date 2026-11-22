@@ -1,5 +1,5 @@
 // Screen registry: which view each `me.screen` mounts and which screens share a view (SPEC §15.7:
-// combat + dead; lobby + class select; build with its Build and Shop tabs).
+// combat + dead; lobby + knight select; build = card pop-up then shop).
 import type { MeScreen } from '../../shared/messages';
 import { createBuild } from './build';
 import { createCombat } from './combat';

@@ -821,7 +821,7 @@ Rules:
   - [ ] Solo lobby; autopilot builds; balance harness
   - [ ] Merged
 - RD4 Controller slice
-  - [ ] 68 px build button + ring + gestures; card pop-up; shop + stick; class select; dev samples
+  - [x] 68 px build button + ring + gestures; card pop-up; shop + stick; class select; dev samples
   - [ ] Merged
 - RD5 TV slice
   - [ ] Build-view API + life cycle + shield generator; portal flare; HP bars; throw preview; HUD
@@ -1037,6 +1037,11 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD2] decision: the build cues are `build_placed` (`buildPlaced`) and `build_destroyed` (`buildGone` destroyed); their mp3s were renamed from the structure ones (`audio/neon-knights`, not an input pack) with their LICENSES paths.
 - [RD2] decision: the mortar's render clips stay (`render/clips/mortar.ts`): its rig is kept-on-file art and the rig contract test wants an idle clip for every rig; nothing in the game draws it.
 - [RD2] decision: acceptance grep hits that stay: the card id `siege_breakers` (SPEC §15.4 ids, as RD0 noted) and the icon id `emergency-kit` in `presentation/__tests__/manifest.test.ts` (the on-disk icon list; the icon is kept on file until RD12). No gallery hits.
+- [RD4] decision: `ChargeRing(variant)`: the build variant (`.charge-ring.build`) is dimmed until full, then a steady amber with no flash and no pulse; both variants carry the state class `empty` / `filling` / `full` (`ringState`).
+- [RD4] decision: an aimed build rides the existing floating aim zones (`AimKey` adds `build`, mapped to the layout's `action` zone); the zone ignores touches while the build is dimmed (`enabled`), and the button rebinds when `me.build.input` flips (Commander recall tap, flag throw aimed). Dimmed aimed builds never send flag 4.
+- [RD4] decision: the build view is one view with two states by `me.cards`: pop-up while `offer` is non-empty and `picked` is null, the shop otherwise; the one Ready button sits in the top bar (left of the pause button) on both, coins only in the shop; the combat status strip is not shown in the build phase. Confirm locks for 1.5 s after it sends so a double tap makes one `card` intent.
+- [RD4] decision: knight select copy comes from `CLASS_INFO` (role + `role-*` icon, main, super, build with tap/aim, passive card); the build input type shown is a copy field (`build.mode`) like main and super; the Commander's super stays tap as in content (SPEC §8.2's table says aimed; RD9 settles it). Start's minimum ready count is 1 (#100); end-of-run option reads CHANGE KNIGHT (#107).
+- [RD4] decision: host-side view fields needed later: none; `MeBuild` carries everything the button uses. RD6 note: the host must deal `me.cards.offer` and set `picked` for the pop-up to leave; `smoke.spec.ts` now picks a card through the pop-up (select, Confirm) before the shop rows exist.
 
 ## 9. Final handoff
 

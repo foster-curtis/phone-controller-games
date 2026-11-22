@@ -161,10 +161,11 @@ for (const vp of VIEWPORTS) {
       });
     });
 
-    test('class cards describe passive, builds and attacks, inside the card', async ({ page }) => {
+    test('knight cards show role, main, super, build and passive, inside the card', async ({ page }) => {
       await open(page, 'classSelect');
       const card = page.locator('.class-card').first();
-      for (const part of ['main', 'super', 'passive', 'builds']) {
+      await expect(card.locator('.class-role .role-glyph')).toBeVisible();
+      for (const part of ['main', 'super', 'build', 'passive']) {
         await expect(card.locator(`[data-part="${part}"] .cc-desc`).first()).toBeVisible();
       }
       const over = await card
@@ -182,29 +183,85 @@ for (const vp of VIEWPORTS) {
       await expect(page.locator('.link-btn')).toBeDisabled();
     });
 
-    test('shop upgrade cards center their content; Take is narrower than the card', async ({
-      page,
-    }) => {
-      await open(page, 'shop');
+    test('pop-up cards center their content; selecting one lights Confirm', async ({ page }) => {
+      await open(page, 'cards');
       await page.waitForTimeout(100);
+      await expect(page.locator('.stick-zone')).toBeHidden();
       const cards = page.locator('.upgrade-card');
-      expect(await cards.count()).toBeGreaterThan(1);
-      for (let i = 0; i < (await cards.count()); i++) {
+      expect(await cards.count()).toBe(3);
+      for (let i = 0; i < 3; i++) {
         const m = await cards.nth(i).evaluate((card) => {
           const b = card.getBoundingClientRect();
           const kids = [...card.children].map((k) => k.getBoundingClientRect());
           return {
             top: Math.min(...kids.map((k) => k.top)) - b.top,
             bottom: b.bottom - Math.max(...kids.map((k) => k.bottom)),
-            take: (card.querySelector('.take') as HTMLElement | null)?.offsetWidth ?? 0,
-            w: b.width,
           };
         });
-        expect(m.top).toBeGreaterThanOrEqual(10);
-        expect(m.bottom).toBeGreaterThanOrEqual(10);
-        expect(Math.abs(m.top - m.bottom)).toBeLessThanOrEqual(6);
-        expect(m.take).toBeLessThan(m.w * 0.8);
+        expect(m.top).toBeGreaterThanOrEqual(8);
+        expect(m.bottom).toBeGreaterThanOrEqual(8);
+        expect(Math.abs(m.top - m.bottom)).toBeLessThanOrEqual(8);
       }
+      await expect(page.locator('.confirm')).toBeDisabled();
+      await cards.nth(1).click();
+      await expect(cards.nth(1)).toHaveClass(/selected/);
+      await expect(page.locator('.confirm')).toBeEnabled();
+      const confirm = (await page.locator('.confirm').boundingBox())!;
+      expect(confirm.y + confirm.height).toBeLessThanOrEqual(vp.height);
+    });
+
+    test('shop: rows fill the right 2/3, the stick keeps the left third, Ready is top right', async ({
+      page,
+    }) => {
+      await open(page, 'shop');
+      const panel = (await page.locator('.build-panel').boundingBox())!;
+      expect(panel.x).toBeGreaterThanOrEqual(vp.width / 3 - 1);
+      const stick = (await page.locator('.stick-zone').boundingBox())!;
+      expect(stick.x + stick.width).toBeLessThanOrEqual(vp.width / 3 + 1);
+      const ready = (await page.locator('.build-bar .ready').boundingBox())!;
+      expect(ready.y).toBeLessThan(60);
+      expect(ready.x).toBeGreaterThan(vp.width / 2);
+      expect(await page.locator('.shop-row').count()).toBeGreaterThan(2);
+    });
+
+    test('the build button is 68 px with a ring; its states render', async ({ page }) => {
+      for (const sample of [
+        'combat-build-empty',
+        'combat-build-charging',
+        'combat-build-ready',
+        'combat-commander',
+        'combat-build-aiming',
+      ]) {
+        await open(page, sample);
+        const face = (await page.locator('.round-btn.action .round-face').boundingBox())!;
+        expect(Math.round(face.width)).toBe(68);
+        await expect(page.locator('.round-btn.action .charge-ring.build')).toHaveCount(1);
+      }
+      await open(page, 'combat-build-charging');
+      await expect(page.locator('.round-btn.action')).toHaveClass(/dimmed/);
+      await expect(page.locator('.round-btn.action .charge-ring')).toHaveClass(/filling/);
+      await open(page, 'combat-build-ready');
+      await expect(page.locator('.round-btn.action')).not.toHaveClass(/dimmed/);
+      await expect(page.locator('.round-btn.action .charge-ring')).toHaveClass(/full/);
+    });
+
+    test('an aimed build drags out (flag 4) and fires on release (buildFires is slot 11)', async ({
+      page,
+    }) => {
+      await open(page, 'combat-warden-ready');
+      const face = (await page.locator('.round-btn.action .round-face').boundingBox())!;
+      const x = face.x + face.width / 2;
+      const y = face.y + face.height / 2;
+      await page.mouse.move(x, y);
+      await page.mouse.down();
+      await page.mouse.move(x - 50, y, { steps: 4 });
+      await expect
+        .poll(async () => (await page.locator('.dev-readout').textContent()) ?? '')
+        .toMatch(/^[0, 0, 0, 0, 0, 0, -d+, 0, 4, 0, 0, 0/);
+      await page.mouse.up();
+      await expect
+        .poll(async () => (await page.locator('.dev-readout').textContent()) ?? '')
+        .toMatch(/^[0, 0, 0, 0, 0, 0, -d+, 0, 0, 0, 0, 1/);
     });
   });
 }

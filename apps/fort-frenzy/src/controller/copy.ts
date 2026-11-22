@@ -11,102 +11,135 @@ export interface AttackInfo {
   mode: 'tap' | 'aim';
 }
 
+export interface BuildInfo {
+  name: string;
+  text: string;
+  /** How the build button is used (§10.1, §7.3): at-feet builds are tap, thrown builds are aimed. */
+  mode: 'tap' | 'aim';
+  /** The button's icon while it can place (`act-*`, §2.6). */
+  icon: string;
+}
+
 export interface ClassInfo {
   name: string;
+  /** The class (§8.1): Tank, Marksman, Support, Control. */
   role: string;
+  /** Its `role-*` badge. */
+  roleIcon: string;
   /** Rig id: portraits and icon ids are named by it. */
   rig: 'ranger' | 'warden' | 'artificer' | 'commander';
   main: AttackInfo;
   super: AttackInfo;
-  passive: string;
-  passiveText: string;
-  builds: string;
-  /** The build kit, one entry per structure (or the Artificer's supply role). */
-  kit: { name: string; text: string }[];
+  build: BuildInfo;
+  /** The knight's rare, unique passive card (§6.1, §8.2): no knight has a built-in passive. */
+  passiveCard: CardId;
 }
 
+// ==== Knights: Ranger =============================================================================
+const RANGER: ClassInfo = {
+  name: 'Ranger',
+  role: 'Marksman',
+  roleIcon: 'role-marksman',
+  rig: 'ranger',
+  main: {
+    name: 'Longbow shot',
+    mode: 'aim',
+    text: 'The longest range in the game. Drag to aim.',
+  },
+  super: {
+    name: 'Shockwave',
+    mode: 'tap',
+    text: 'A wide ring around you that knocks enemies back and hurts them a little.',
+  },
+  build: {
+    name: 'Mines',
+    mode: 'tap',
+    icon: 'act-mine',
+    text: 'Drops a mine at your feet.',
+  },
+  passiveCard: 'steady_aim',
+};
+
+// ==== Knights: Warden =============================================================================
+const WARDEN: ClassInfo = {
+  name: 'Warden',
+  role: 'Tank',
+  roleIcon: 'role-tank',
+  rig: 'warden',
+  main: {
+    name: 'Hammer smash',
+    mode: 'aim',
+    text: 'Damage in an arc in front of you. Drag to aim.',
+  },
+  super: {
+    name: 'Jump slam',
+    mode: 'aim',
+    text: 'Leap, then stun in a longer arc. Drag to aim.',
+  },
+  build: {
+    name: 'Shield generator',
+    mode: 'aim',
+    icon: 'act-shield',
+    text: 'Throw a field that shields allies inside it.',
+  },
+  passiveCard: 'challenger',
+};
+
+// ==== Knights: Artificer ==========================================================================
+const ARTIFICER: ClassInfo = {
+  name: 'Artificer',
+  role: 'Support',
+  roleIcon: 'role-support',
+  rig: 'artificer',
+  main: {
+    name: 'Nanite blast',
+    mode: 'aim',
+    text: 'A burst of nanites in a narrow cone. Drag to aim.',
+  },
+  super: {
+    name: 'Heal cone',
+    mode: 'aim',
+    text: 'A wide cone that heals you and the knights it reaches. Drag to aim.',
+  },
+  build: {
+    name: 'Healing beacon',
+    mode: 'aim',
+    icon: 'act-beacon',
+    text: 'Throw a beacon that heals knights near it.',
+  },
+  passiveCard: 'field_medic',
+};
+
+// ==== Knights: Commander ==========================================================================
+const COMMANDER: ClassInfo = {
+  name: 'Commander',
+  role: 'Control',
+  roleIcon: 'role-control',
+  rig: 'commander',
+  main: {
+    name: 'Shield bash',
+    mode: 'aim',
+    text: 'A short arc in front of you that knocks enemies back. Drag to aim.',
+  },
+  super: {
+    name: 'Reinforcements',
+    mode: 'tap',
+    text: 'Calls one more soldier to your squad.',
+  },
+  build: {
+    name: 'Rally flag',
+    mode: 'aim',
+    icon: 'act-flag',
+    text: 'Throw a flag your squad holds. Tap to recall it.',
+  },
+  passiveCard: 'morale',
+};
+
 export const CLASS_INFO: Record<ClassId, ClassInfo> = {
-  ranger: {
-    name: 'Ranger',
-    role: 'Marksman',
-    rig: 'ranger',
-    main: {
-      name: 'Rail-bow shot',
-      mode: 'aim',
-      text: 'The longest range in the game. Drag to aim.',
-    },
-    super: {
-      name: 'Pulse shot',
-      mode: 'tap',
-      text: 'A wide ring around you that hurts and knocks enemies back.',
-    },
-    passive: 'Steady Aim',
-    passiveText: 'Stand still, stick released, and your shots hit harder and reach farther.',
-    builds: 'Pulse turret, mortar',
-    kit: [
-      { name: 'Pulse turret', text: 'Long range, one target, can hit Flyers.' },
-      { name: 'Mortar', text: 'Short range, area damage.' },
-    ],
-  },
-  warden: {
-    name: 'Warden',
-    role: 'Tank',
-    rig: 'warden',
-    main: {
-      name: 'Ground slam',
-      mode: 'aim',
-      text: 'A short arc that hits several enemies. Drag to aim.',
-    },
-    super: {
-      name: 'Stomp',
-      mode: 'aim',
-      text: 'A longer arc that damages and briefly stuns. Drag to aim.',
-    },
-    passive: 'Mason',
-    passiveText: 'Walls near you slowly repair themselves. Off during the build phase.',
-    builds: 'Wall, shock net, fortify',
-    kit: [
-      { name: 'Wall', text: 'Reroutes enemies.' },
-      { name: 'Shock net', text: 'A cheap trap that slows enemies, then wears out.' },
-      { name: 'Fortify', text: 'Gives a tower a defense bonus.' },
-    ],
-  },
-  artificer: {
-    name: 'Artificer',
-    role: 'Support',
-    rig: 'artificer',
-    main: {
-      name: 'Nanite bolts',
-      mode: 'aim',
-      text: '3-4 bolts in a narrow cone, medium-long range. Walls and towers block them.',
-    },
-    super: {
-      name: 'Nanite cone',
-      mode: 'aim',
-      text: 'A very wide, long cone that heals players and shields towers. Passes through walls.',
-    },
-    passive: 'Field Medic',
-    passiveText: 'A small healing aura for nearby players. Off during the build phase.',
-    builds: 'Nothing, supplies the team',
-    kit: [
-      { name: 'Supplies', text: 'Builds nothing. Carries and throws power cells to the team.' },
-    ],
-  },
-  commander: {
-    name: 'Commander',
-    role: 'Squad leader',
-    rig: 'commander',
-    main: { name: 'Sword slash', mode: 'aim', text: 'A short arc in front of you. Drag to aim.' },
-    super: {
-      name: 'Rally',
-      mode: 'tap',
-      text: 'Your squad and you attack faster and harder, and you run faster.',
-    },
-    passive: 'Lead from the Front',
-    passiveText: 'Your squad deals more damage while near you.',
-    builds: 'Rally flag',
-    kit: [{ name: 'Rally flag', text: 'Your squad holds the flag when it is not following you.' }],
-  },
+  ranger: RANGER,
+  warden: WARDEN,
+  artificer: ARTIFICER,
+  commander: COMMANDER,
 };
 
 export const SHOP_INFO: Record<ShopItemId, { name: string; icon: string }> = {

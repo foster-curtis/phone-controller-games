@@ -153,7 +153,11 @@ const buildBtn = (over: Partial<NonNullable<MeView['build']>>): MeView['build'] 
   active: 0,
   ...over,
 });
-const BUILD_RANGER_OFF = buildBtn({});
+const BUILD_RANGER_OFF = buildBtn({
+  id: 'mine',
+  input: 'tap',
+  icon: 'act-mine',
+});
 const OFFER: CardId[] = ['piercing_shot', 'haste', 'deadeye'];
 
 const SUMMARY: TeamView['summary'] = {
@@ -234,6 +238,11 @@ export const SAMPLES: Record<string, () => Sample> = {
     team: sampleTeam({ leaderId: 'p2' }),
     me: sampleMe({ screen: 'lobby', isLeader: false }),
   }),
+  // A solo leader: Start is there (one Ready player is enough to force-start, #100).
+  'lobby-solo': () => ({
+    team: sampleTeam({ roster: roster({ ...q, classId: 'ranger' }).slice(0, 1) }),
+    me: sampleMe({ screen: 'lobby' }),
+  }),
   waiting: () => ({ team: sampleTeam({ phase: 'combat' }), me: sampleMe({ screen: 'waiting' }) }),
   full: () => ({
     team: sampleTeam(),
@@ -259,22 +268,45 @@ export const SAMPLES: Record<string, () => Sample> = {
     team: sampleTeam({ phase: 'combat' }),
     me: sampleMe({ superCharge: 1, superReady: true }),
   }),
+  // The build button's states (SPEC §10.1): empty (dimmed), filling (dimmed, ring partly lit), full
+  // (lit, steady amber ring), recall (lit), and the aimed throw with the joystick floating.
+  'combat-build-empty': () => ({
+    team: sampleTeam({ phase: 'combat' }),
+    me: sampleMe({ build: BUILD_RANGER_OFF }),
+  }),
+  'combat-build-charging': () => ({
+    team: sampleTeam({ phase: 'combat' }),
+    me: sampleMe({ build: buildBtn({ ...BUILD_RANGER_OFF, meter: 0.45 }) }),
+  }),
   'combat-build-ready': () => ({
     team: sampleTeam({ phase: 'combat' }),
-    me: sampleMe({ build: buildBtn({ meter: 1, full: true, mode: 'place' }) }),
+    me: sampleMe({ build: buildBtn({ ...BUILD_RANGER_OFF, meter: 1, full: true, mode: 'place' }) }),
   }),
   'combat-warden': () => ({
     team: sampleTeam({ phase: 'combat' }),
     me: sampleMe({
       classId: 'warden',
-      build: buildBtn({ id: 'mine', icon: 'act-mine', meter: 0.5, mode: 'none' }),
+      build: buildBtn({ id: 'shield_gen', icon: 'act-shield', meter: 0.5, mode: 'none' }),
+    }),
+  }),
+  'combat-warden-ready': () => ({
+    team: sampleTeam({ phase: 'combat' }),
+    me: sampleMe({
+      classId: 'warden',
+      build: buildBtn({
+        id: 'shield_gen',
+        icon: 'act-shield',
+        meter: 1,
+        full: true,
+        mode: 'place',
+      }),
     }),
   }),
   'combat-artificer': () => ({
     team: sampleTeam({ phase: 'combat' }),
     me: sampleMe({
       classId: 'artificer',
-      build: buildBtn({ id: 'beacon', input: 'tap', icon: 'act-beacon', mode: 'place' }),
+      build: buildBtn({ id: 'beacon', icon: 'act-beacon', meter: 1, full: true, mode: 'place' }),
     }),
   }),
   'combat-commander': () => ({
@@ -285,11 +317,47 @@ export const SAMPLES: Record<string, () => Sample> = {
         id: 'rally_flag',
         input: 'tap',
         icon: 'act-recall',
-        full: true,
+        meter: 0.3,
         mode: 'recall',
         active: 1,
       }),
     }),
+  }),
+  'combat-commander-throw': () => ({
+    team: sampleTeam({ phase: 'combat' }),
+    me: sampleMe({
+      classId: 'commander',
+      build: buildBtn({ id: 'rally_flag', icon: 'act-flag', meter: 1, full: true, mode: 'place' }),
+    }),
+  }),
+  // A finger down on the build button, dragged out: the aimed throw's joystick floats to the touch.
+  'combat-build-aiming': () => ({
+    team: sampleTeam({ phase: 'combat' }),
+    me: sampleMe({
+      classId: 'warden',
+      build: buildBtn({
+        id: 'shield_gen',
+        icon: 'act-shield',
+        meter: 1,
+        full: true,
+        mode: 'place',
+      }),
+    }),
+    after: (stage) => {
+      const zone = stage.querySelector<HTMLElement>('.attack-zone');
+      const btn = stage.querySelector<HTMLElement>('.round-btn.action');
+      if (!zone || !btn) return;
+      const r = btn.getBoundingClientRect();
+      const fire = (type: string, x: number, y: number) => {
+        const e = new MouseEvent(type, { clientX: x, clientY: y, bubbles: true, cancelable: true });
+        Object.defineProperty(e, 'pointerId', { value: 92 });
+        zone.dispatchEvent(e);
+      };
+      const x = r.left + r.width / 2;
+      const y = r.top + r.height / 2;
+      fire('pointerdown', x, y);
+      fire('pointermove', x - 40, y - 12);
+    },
   }),
   // A finger down on the main button, dragged left: the joystick floats to the touch (aimed attacks).
   'combat-aiming': () => ({
@@ -311,14 +379,54 @@ export const SAMPLES: Record<string, () => Sample> = {
       fire('pointermove', x - 44, y - 14);
     },
   }),
-  shop: () => ({
+  // Card pop-up (SPEC §10.2): the growth header, three cards, Confirm; wave 0 has no header.
+  cards: () => ({
     team: sampleTeam({ phase: 'build' }),
     me: sampleMe({
       screen: 'build',
-      cards: { offer: OFFER, picked: null, owned: [{ id: 'haste', n: 2 }], growth: null },
+      cards: {
+        offer: OFFER,
+        picked: null,
+        owned: [{ id: 'haste', n: 2 }],
+        growth: { wave: 4, boss: false, stats: ['maxHp', 'damage'] },
+      },
     }),
   }),
-  'shop-picked': () => ({
+  'cards-first': () => ({
+    team: sampleTeam({ phase: 'build', wave: 0 }),
+    me: sampleMe({
+      screen: 'build',
+      cards: { offer: OFFER, picked: null, owned: [], growth: null },
+    }),
+  }),
+  'cards-boss': () => ({
+    team: sampleTeam({ phase: 'build' }),
+    me: sampleMe({
+      screen: 'build',
+      classId: 'artificer',
+      cards: {
+        offer: ['overflow', 'wide_aura', 'vitality'],
+        picked: null,
+        owned: [],
+        growth: { wave: 5, boss: true, stats: ['maxHp', 'damage', 'healing'] },
+      },
+    }),
+  }),
+  'cards-selected': () => ({
+    team: sampleTeam({ phase: 'build' }),
+    me: sampleMe({
+      screen: 'build',
+      cards: {
+        offer: OFFER,
+        picked: null,
+        owned: [],
+        growth: { wave: 4, boss: false, stats: ['maxHp', 'damage'] },
+      },
+    }),
+    after: (stage) => stage.querySelector<HTMLElement>('.upgrade-card:nth-child(2)')?.click(),
+  }),
+  // Shop (SPEC §10.3): after the pick; the stick on the left third, rows on the right 2/3.
+  shop: () => ({
     team: sampleTeam({ phase: 'build' }),
     me: sampleMe({
       screen: 'build',

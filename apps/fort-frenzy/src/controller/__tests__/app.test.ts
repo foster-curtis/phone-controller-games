@@ -99,12 +99,20 @@ describe('screens follow me.screen', () => {
     expect(app!.group()).toBe('combat');
   });
 
-  it('build phase is the shop view: no tabs, coins, card with rarity and mark, every visible row', () => {
+  it('build phase: the card pop-up (rarity frames and marks) until a pick, then the shop', () => {
+    const { client } = mount();
+    emitSample(client, 'cards', 1);
+    expect(root.querySelectorAll('.upgrade-card')).toHaveLength(3);
+    expect(root.querySelectorAll('.upgrade-card.rare')).toHaveLength(2);
+    expect(root.querySelectorAll('.upgrade-card .badge')).toHaveLength(3);
+    emitSample(client, 'shop', 2);
+    expect(root.querySelector('.upgrade-card')).toBeNull();
+  });
+
+  it('build phase shop: no tabs, coins, every visible row', () => {
     const { client } = mount();
     emitSample(client, 'shop', 1).after?.(root);
     expect(root.querySelector('.coins')!.textContent).toBe('1,240');
-    expect(root.querySelectorAll('.upgrade-card')).toHaveLength(3);
-    expect(root.querySelectorAll('.upgrade-card.rare')).toHaveLength(2);
     expect(root.querySelector('.tabs, .kit-tile, .give, [data-tab]')).toBeNull();
     expect(root.querySelector('[data-item="base_armor"]')).not.toBeNull();
     expect(root.querySelector('[data-item="repair"]')).not.toBeNull();

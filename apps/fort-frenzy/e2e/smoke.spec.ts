@@ -57,12 +57,17 @@ test('lobby → class select → start → shop → combat to wave 2', async ({ 
   await expect(bob.page.locator('.screen.build')).toBeVisible();
   await expect(ann.page.locator('.screen.build [data-tab], .screen.build .tabs')).toHaveCount(0);
   await expect(ann.page.locator('.kit-tile, .give')).toHaveCount(0);
+
+  // The card pop-up first (when a hand is dealt): tap a card, Confirm; then the shop.
+  const card = ann.page.locator('.screen.build .upgrade-card').first();
+  if (await card.isVisible()) {
+    await card.click();
+    await ann.page.locator('.screen.build .confirm').click();
+  }
   await expect(ann.page.locator('.shop-row[data-item=repair]')).toBeVisible();
   await expect(ann.page.locator('.shop-row[data-item=base_hp]')).toBeVisible();
 
-  // A card from the offer, then the cheapest buy the starting coins allow (base max HP, 6).
-  const card = ann.page.locator('.upgrade-card .take').first();
-  if (await card.isVisible()) await card.click();
+  // The cheapest buy the starting coins allow (base max HP, 6).
   const coins0 = (await stats(host)).coins;
   await ann.page.locator('.shop-row[data-item=base_hp] .price').click();
   await expect.poll(stepped(host, async () => (await stats(host)).coins)).toBe(coins0 - 6);
