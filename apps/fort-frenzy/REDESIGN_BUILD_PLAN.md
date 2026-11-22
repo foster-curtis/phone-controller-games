@@ -829,7 +829,7 @@ Rules:
   - [x] Merged
 - RD6 Slice wiring
   - [x] Views, input routing, debug panel, `__pcg`, e2e specs
-  - [ ] Merged; e2e green
+  - [x] Merged; e2e green
 - [ ] **User approved RC1** (slice on phones and TV)
 - RD7 Ranger
   - [ ] Mines + shockwave + cards + views; merged
