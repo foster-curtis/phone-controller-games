@@ -826,7 +826,7 @@ Rules:
 - RD5 TV slice
   - [x] Build-view API + life cycle + shield generator; portal flare; HP bars; throw preview; HUD
   - [x] Warden slam group swap, jump slam, cracks, dust
-  - [ ] Merged
+  - [x] Merged
 - RD6 Slice wiring
   - [ ] Views, input routing, debug panel, `__pcg`, e2e specs
   - [ ] Merged; e2e green
