@@ -1799,12 +1799,21 @@ interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: num
   (back view `legs.bl`/`legs.br`), so clips move each leg on its own (§15.11 #37). A clip may be solved
   per view as `<clip>@<view>` (the down pile); the rig plays the variant for its current view. The
   Warden's smash and jump slam switch the `slam` group on at impact and hide `hammer`/`hammer-glow`
-  (front and back views; the side view turns `hammer` to rot 64), per the art README.
+  (front and back views; the side view turns `hammer` to rot 64), per the art README. A clip does the
+  switch with `Keyframe.groups` (`{ slam: true }` from that key on; a group no key names follows
+  `setGroup`), and hides the upright hammer with `alpha` keys until the recover (#113).
 - **Renderer API** (`src/host/render/types.ts`): the FF3-fix-1 and FF8 additions stay
   (`RigInstance.clipMs`, `clipDone`, `EffectSpawner.burst`, `bodyBurst`, `scrap`, `arcWave`). RD5 adds
   the **build-view API** (a view per `BuildId` under `src/host/scene/builds/<build>.ts`, found with
   `import.meta.glob`: create, update from the sim's `BuildEnt` each frame, destroy), which freezes after
-  RD6.
+  RD6. A view exports `view: BuildViewFactory` (`id`, `create(ctx): BuildView`); the scene
+  (`scene/buildsView.ts`) fills a `BuildViewState` (phase, ground point, throw height and progress, HP
+  fraction, effect radius, clock) from each `BuildEnt` and holds a destroyed build's wreck 600 ms
+  before the `scrap-ours` pile. `render/buildKit.ts`'s `LifecycleBuild` is the shared life cycle
+  (flight spin and shadow, `landed` → `active`, `damaged` below 50% HP, the dotted effect ellipse, the
+  amber bar once damaged, an optional footprint and cycling dome), so a build's view only names its
+  frames. `EffectSpawner.mark(kind, sx, sy, ms, scale)` places the fading ground and effect frames
+  (`slam-cracks`, `slam-cracks-wide`, `landing-dust`, `portal-flare`).
 - **Pooling:** render-side only. Phaser objects for projectiles, effects, damage numbers, HP bars and
   Swarm units come from per-kind pools; sim entities are plain objects, not pooled.
 - **Interpolation:** the renderer draws positions lerped between the last two sim steps (as in Sunny
@@ -3089,3 +3098,4 @@ states, then RD0's own.
 | 110 | 2026-11-20 | Stats banners (v2) | v2 note: the end-of-run screen shows every stat for each player in per-player banners, like a fighting-game results screen; v1's summary and award cards are unchanged (§13) | v2 polish; v1 scope stays (user, RC0, 2026-11-20) |
 | 111 | 2026-11-21 | RD2 contract fixes | `SNAPSHOT_VERSION` 3 (RD1 used 2); `Content` keeps arrays and nullable singletons; transitional Commander and passive fields until their kit milestones; the Colossus's Citadel multiplier is a boss param (§15.4, §15.8) | The code's catalog already looks content up by id; the old Commander super and passives keep working until they're replaced (RD2) |
 | 112 | 2026-11-21 | RD3 sim slice | A spawn pulse is up to `players + 1` groups at one time, and "per spawn group" hot sides roll per pulse; the hot/other split is chosen over the whole wave (share closest to 0.55, never under half, a group elsewhere per pulse where the costs allow); the boss spawns on the first pulse's hot side; a thrown build lands at aim × throw range; a card not confirmed when the build phase ends (deadline or everyone Ready) is picked at random; super damage charges the meter (§7.2), never the super; a build without a behavior can't be placed yet; the harness runs every knight (§7.3, §9.3, §9.4, §10.2, §15.3, §15.9) | Simplest readings that meet §9.3's share and cap together; the plan's "super damage charges neither" contradicts §7.2, §8.3 and REDESIGN B2 (RD3) |
+| 113 | 2026-11-21 | TV slice (RD5) | A clip switches optional groups with `Keyframe.groups` (the Warden's `slam` swap); the build-view API and `EffectSpawner.mark` are additive (§15.2); HP bars (violet enemies, amber builds) are two pre-made images moved and scaled, never drawn per frame; the jump slam keeps the clip name `super` and the impact `JUMP_IMPACT_MS` (= `STOMP_IMPACT_MS`, content `warden.super.windupMs`); the thrown-build preview lands at the aim's pull × the throw range until the sim's own `throwShape` replaces the math (§2.4, §2.6, §7.5, §10.1, §15.2) | RD5 plan: new art, no per-frame rebuilds (FF7-fix-1, FF8, FF9 lessons); SPEC and REDESIGN agree otherwise |

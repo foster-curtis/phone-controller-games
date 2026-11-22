@@ -21,6 +21,8 @@ export interface ClipSample {
   parts: Map<string, PartPose>;
   /** The latest `order` key at or before t (Colossus legs), or null. */
   order: string[] | null;
+  /** Optional groups the clip switches at or before t (`Keyframe.groups`), or absent. */
+  groups?: Record<string, boolean>;
 }
 
 /** Clip-local time for a playhead (loops wrap, one-shots clamp). */
@@ -51,6 +53,8 @@ export function sampleClip(clip: Clip, playheadMs: number): ClipSample {
   const parts = new Map<string, PartPose>();
   let order: string[] | null = null;
   let orderT = -Infinity;
+  let groups: Record<string, boolean> | undefined;
+  const groupT: Record<string, number> = {};
   for (const [part, keys] of Object.entries(clip.tracks)) {
     const pose = { ...REST };
     for (const f of FIELDS) pose[f] = sampleField(keys, f, t);
@@ -60,9 +64,16 @@ export function sampleClip(clip: Clip, playheadMs: number): ClipSample {
         order = k.order;
         orderT = k.t;
       }
+      if (k.groups && k.t <= t) {
+        for (const [g, on] of Object.entries(k.groups)) {
+          if (k.t < (groupT[g] ?? -Infinity)) continue;
+          groupT[g] = k.t;
+          (groups ??= {})[g] = on;
+        }
+      }
     }
   }
-  return { parts, order };
+  return groups ? { parts, order, groups } : { parts, order };
 }
 
 /** Blends b over a with weight w (0 = a, 1 = b). Parts missing from one side blend with REST. */
@@ -77,7 +88,9 @@ export function blendSamples(a: ClipSample, b: ClipSample, w: number): ClipSampl
     for (const f of FIELDS) out[f] = pa[f] + (pb[f] - pa[f]) * w;
     parts.set(name, out);
   }
-  return { parts, order: w < 0.5 ? a.order : b.order };
+  const order = w < 0.5 ? a.order : b.order;
+  const groups = w < 0.5 ? a.groups : b.groups;
+  return groups ? { parts, order, groups } : { parts, order };
 }
 
 /**

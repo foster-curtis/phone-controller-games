@@ -7,7 +7,7 @@ import type { Clip, Keyframe, RigDef, ViewId } from '../../presentation/types';
 import { collapseTracks, landedAt, type CollapseOpts } from './fall';
 import { half, splitPartNames } from './split';
 
-export type KeyValues = Omit<Keyframe, 't' | 'order'>;
+export type KeyValues = Omit<Keyframe, 't' | 'order' | 'groups'>;
 export type Tracks = Record<string, Keyframe[]>;
 
 const TAU = Math.PI * 2;

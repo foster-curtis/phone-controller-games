@@ -4,10 +4,11 @@
 // lightens the tiles, edges and decor at draw time (C3 floor contrast, BUILD_PLAN §8 FF3-fix-2).
 import type * as Phaser from 'phaser';
 import { mapV1 } from '../../content/map';
-import type { SideId } from '../../shared/ids';
+import type { PortalId, SideId } from '../../shared/ids';
 import type { PresentationHost } from '../../presentation/types';
 import type { ArtImage } from './atlas';
 import { placeFrame, type RenderContext } from './context';
+import type { EffectSpawner } from './types';
 
 /** `Phaser.TintModes.ADD`, as a literal so node tests that import `tileHash` don't load Phaser. */
 const TINT_ADD = 2 as Phaser.TintModes;
@@ -20,14 +21,20 @@ export const MAP_ROWS = 24;
  * between its two entry tiles (§15.2). Every bottom portal uses the bottom frames, side portals their
  * side's.
  */
-export const PORTALS: { side: SideId; tiles: [number, number][]; anchor: [number, number] }[] =
-  Object.values(mapV1.portals).map(({ side, entry }) => {
+export const PORTALS: {
+  id: PortalId;
+  side: SideId;
+  tiles: [number, number][];
+  anchor: [number, number];
+}[] = (Object.entries(mapV1.portals) as [PortalId, (typeof mapV1.portals)[PortalId]][]).map(
+  ([id, { side, entry }]) => {
     const tiles = entry.map(([c, r]) => [c, r] as [number, number]);
     const mid = (i: 0 | 1) => tiles.reduce((a, t) => a + t[i] + 0.5, 0) / tiles.length;
     const anchor: [number, number] =
       side === 'bottom' ? [mid(0), tiles[0]![1] + 1] : [tiles[0]![0] + 0.5, mid(1)];
-    return { side, tiles, anchor };
-  });
+    return { id, side, tiles, anchor };
+  },
+);
 
 /** A stable 32-bit hash of a tile and a salt (render variety without randomness). */
 export function tileHash(c: number, r: number, salt = 0): number {
@@ -68,9 +75,16 @@ const isPortalTile = (c: number, r: number) =>
 
 export class MapView {
   private images: ArtImage[] = [];
+  /** Each portal's frame image and its screen anchor, for the flare (§3.1, RD5). */
+  private readonly portals = new Map<
+    PortalId,
+    { art: ArtImage; side: SideId; sx: number; sy: number }
+  >();
+  private readonly flaring = new Set<PortalId>();
 
   constructor(
-    ctx: RenderContext,
+    private readonly ctx: RenderContext & { fx?: EffectSpawner },
+
     private readonly map: PresentationHost['map'],
     /** Draw only this tile window (the gallery's map sample); default the whole map. */
     readonly window: { c0: number; r0: number; c1: number; r1: number } = {
@@ -110,13 +124,40 @@ export class MapView {
           at(this.map.edges[e as keyof PresentationHost['map']['edges']], c, r, 2);
       }
     }
-    for (const { side, anchor } of PORTALS) {
+    for (const { id, side, anchor } of PORTALS) {
       const [x, y] = anchor;
       if (x < c0 || x > c1 + 1 || y < r0 || y > r1 + 1) continue;
       const { sx, sy } = ctx.camera.worldToScreen(x, y);
-      this.images.push(
-        placeFrame(ctx, this.map.portals[side].idle, 'ground', sx, sy, { sortY: 3 }),
-      );
+      const art = placeFrame(ctx, this.map.portals[side].idle, 'ground', sx, sy, { sortY: 3 });
+      this.images.push(art);
+      this.portals.set(id, { art, side, sx, sy });
     }
+  }
+
+  /**
+   * A portal flares (SPEC §3.1, §9.4): its `flare` frame (vortex lit, light column) and the
+   * `portal-flare` sparks at the frame's `center` attach point for `ms`; `idle()` swaps it back.
+   * One frame swap each way, not per frame.
+   */
+  flare(id: PortalId, ms: number) {
+    const p = this.portals.get(id);
+    if (!p) return;
+    const frame = this.map.portals[p.side].flare;
+    if (!this.flaring.has(id)) {
+      this.flaring.add(id);
+      this.ctx.lib.setFrame(p.art, frame);
+      this.ctx.lib.setUnitScale(p.art, this.ctx.unitPx);
+    }
+    const c = this.ctx.lib.frames[frame]?.attach?.center ?? [0, 0];
+    const k = this.ctx.unitPx;
+    this.ctx.fx?.mark?.('portal-flare', p.sx + c[0] * k, p.sy + c[1] * k, ms);
+  }
+
+  /** Back to the idle swirl. */
+  idle(id: PortalId) {
+    const p = this.portals.get(id);
+    if (!p || !this.flaring.delete(id)) return;
+    this.ctx.lib.setFrame(p.art, this.map.portals[p.side].idle);
+    this.ctx.lib.setUnitScale(p.art, this.ctx.unitPx);
   }
 }

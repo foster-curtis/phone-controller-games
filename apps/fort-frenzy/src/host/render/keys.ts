@@ -2,7 +2,7 @@
 // one of these builders, whose template types are checked against the generated FrameName union;
 // asset-keys.test.ts also checks every literal and every builder output against the manifest.
 import { ICON_FRAME_PREFIX, type FrameName } from '../../../generated/keys';
-import type { FrameKey, IconKey, SentryAim, SentryLoadout } from './types';
+import type { BuildPhase, FrameKey, IconKey, MarkKind, SentryAim, SentryLoadout } from './types';
 
 export const fk = <K extends FrameName>(k: K): K => k;
 
@@ -55,3 +55,37 @@ export const STATUS_FRAMES = {
 
 /** An icon's atlas frame (world UI: the build arc, the super-ready badge; §15.4). */
 export const iconFrame = (id: IconKey) => `${ICON_FRAME_PREFIX}${id}` as const;
+
+/** The HP builds' five states, one frame each (art README "Builds (redesign)"; RD5). */
+export const BUILD_FRAMES = {
+  shield_gen: {
+    flight: fk('shield-gen/flight'),
+    landed: fk('shield-gen/landed'),
+    active: fk('shield-gen/active'),
+    damaged: fk('shield-gen/damaged'),
+    destroyed: fk('shield-gen/destroyed'),
+  },
+  beacon: {
+    flight: fk('beacon/flight'),
+    landed: fk('beacon/landed'),
+    active: fk('beacon/active'),
+    damaged: fk('beacon/damaged'),
+    destroyed: fk('beacon/destroyed'),
+  },
+} as const satisfies Record<string, Record<BuildPhase, FrameName>>;
+
+/** The generator's footprint (ground) and its field dome's three shimmer frames (effects). */
+export const SHIELD_BASE = fk('shield-base');
+export const SHIELD_SHIMMER = [
+  fk('shield-shimmer-1'),
+  fk('shield-shimmer-2'),
+  fk('shield-shimmer-3'),
+] as const;
+
+/** Ground and effect frames the effect spawner's `mark` places (RD5). */
+export const MARK_FRAMES = {
+  'slam-cracks': fk('slam-cracks'),
+  'slam-cracks-wide': fk('slam-cracks-wide'),
+  'landing-dust': fk('landing-dust'),
+  'portal-flare': fk('portal-flare'),
+} as const satisfies Record<MarkKind, FrameName>;

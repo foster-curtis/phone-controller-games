@@ -74,6 +74,9 @@ describe('asset keys', () => {
       ...Object.values(keys.CITADEL),
     );
     out.push(...Object.values(keys.STATUS_FRAMES).flat());
+    // RD5: the builds' five states, the shield generator's footprint and dome, the marks.
+    for (const states of Object.values(keys.BUILD_FRAMES)) out.push(...Object.values(states));
+    out.push(keys.SHIELD_BASE, ...keys.SHIELD_SHIMMER, ...Object.values(keys.MARK_FRAMES));
     for (const f of out) expect(frames.has(f), f).toBe(true);
     expect(keys.iconFrame('coins')).toBe('icons/coins');
   });

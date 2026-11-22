@@ -11,14 +11,16 @@
 import { lerp } from '@pcg/game-kit';
 import type * as Phaser from 'phaser';
 import type { Content } from '../../content';
-import type { ClassId, EffectId } from '../../shared/ids';
+import type { BuildId, ClassId, EffectId } from '../../shared/ids';
 import { theme } from '../../shared/theme';
 import type { ArtImage } from '../render/atlas';
 import { drawBowString } from '../render/bowString';
 import { pickFacing, enemyMirror, type Facing } from '../render/aim';
 import { KNIGHT_DOWN } from '../render/clipKit';
 import { ATTACK_MS } from '../render/clips/ranger';
+import { enemyBarWidth, enemyHasHpBar, hpBarShown } from '../render/buildLook';
 import { clipLandedMs, spawnPile } from '../render/fall';
+import { HpBar } from '../render/hpBar';
 import { RIG_INFO, type RigInfo } from '../render/gallery/rigInfo';
 import { iconFrame } from '../render/keys';
 import { TILE_W } from '../render/camera';
@@ -31,6 +33,7 @@ import { Citadel, type SentryId } from '../render/structures';
 import type { IconKey, ProjectileKind, ProjectileSprite, StatusLook } from '../render/types';
 import type { RenderWorld } from '../render/world';
 import { aimPreview, groundBody, shieldOf, type GroundBody } from '../sim';
+import { BuildsView } from './buildsView';
 import {
   BASE_ID,
   STEP_MS,
@@ -50,7 +53,7 @@ import {
   TELL_GLOW,
   type EnemyShot,
 } from './enemyFx';
-import { drawAimPreview, type GroundFrame } from './aimPreview';
+import { drawAimPreview, drawThrowPreview, throwPreview, type GroundFrame } from './aimPreview';
 import { ColossusView } from './colossusView';
 import { lerpGround, lerpPos } from './interp';
 import { anchorToWorld, shotPos, shotTiming, type Launch, type Pos } from './shot';
@@ -140,6 +143,8 @@ interface Enemy {
   pulse: number;
   /** Locomotion playback rate (each mite its own). */
   clipSpeed: number;
+  /** Violet HP bar, made on the first hit and shown only while damaged (§2.6); none for mites. */
+  bar: HpBar | null;
 }
 
 interface Timer {
@@ -151,6 +156,10 @@ export class WorldView {
   /** The Artificer, the Commander and his squad (FF9). */
   private readonly support: SupportView;
   private readonly citadel: Citadel;
+  /** The map's portals flare ahead of a spawn (§3.1). */
+  private readonly map: MapView;
+  /** Builds: flight, active, damaged, wreck and scrap (§7.5, RD5). */
+  private readonly builds: BuildsView;
   private readonly knights = new Map<number, Knight>();
   private readonly enemies = new Map<EntityId, Enemy>();
   /** The Colossus's tiers, attack clips, tells, core and shockwaves (FF11). */
@@ -178,7 +187,8 @@ export class WorldView {
     this.bodies = new Map(
       content.enemies.flatMap((e) => (e.body ? [[e.id, groundBody(e.body)] as const] : [])),
     );
-    new MapView(w, w.theme.map);
+    this.map = new MapView(w, w.theme.map);
+    this.builds = new BuildsView(w, content);
     this.citadel = new Citadel(w, CITADEL_AT.x, CITADEL_AT.y);
     this.support = new SupportView(w, content, (slot) => this.knights.get(slot) ?? null);
     this.boss = new ColossusView(w);
@@ -233,6 +243,7 @@ export class WorldView {
     this.w.marks.begin();
     this.drawCitadel(w, f.dtMs);
     this.drawKnights(w, f);
+    this.builds.update(w, w.tick - 1 + f.alpha, f.dtMs);
     this.support.update(f);
     this.boss.begin(f.dtMs);
     this.drawEnemies(w, f);
@@ -325,6 +336,7 @@ export class WorldView {
         tell: null,
         pulse: 0,
         clipSpeed: mite?.speed ?? 1,
+        bar: null,
       });
     }
     // Gone without a death event (a debug wave jump): remove at once.
@@ -336,6 +348,7 @@ export class WorldView {
 
   private dropEnemy(id: EntityId, en: Enemy) {
     en.rig.destroy();
+    en.bar?.destroy();
     en.status?.destroy();
     this.enemies.delete(id);
   }
@@ -349,7 +362,14 @@ export class WorldView {
 
   private event(e: SimEvent, w: World) {
     this.support.event(e, w);
+    this.builds.event(e);
     switch (e.e) {
+      case 'portalFlare': {
+        const ms = this.content.rules?.flareMs ?? 1000;
+        this.map.flare(e.portal, ms);
+        this.later(ms, () => this.map.idle(e.portal));
+        return;
+      }
       case 'attack':
         return this.attack(e, w);
       case 'damage': {
@@ -658,6 +678,7 @@ export class WorldView {
     if (p.respawnAt !== null) return;
     const def = this.content.knights.find((c) => c.id === p.classId);
     if (!def) return;
+    this.drawThrowAim(p, at, def.build);
     for (const slot of ['main', 'super'] as const) {
       const aim = slot === 'main' ? p.mainAim : p.superAim;
       if (!aim || (aim.x === 0 && aim.y === 0)) continue;
@@ -682,11 +703,34 @@ export class WorldView {
     }
   }
 
+  /**
+   * A thrown build's landing preview (§7.3, §10.1; RD5): its 0.6 ground ellipse at the build's real
+   * effect radius plus the throw range around the knight, only while the button can place (meter full).
+   */
+  private drawThrowAim(p: PlayerEnt, at: { x: number; y: number }, build: BuildId) {
+    const aim = p.buildAim;
+    if (!aim || p.meter < 1) return;
+    const bd = this.content.builds.find((b) => b.id === build);
+    const map = this.content.map;
+    if (!bd || !map) return;
+    const pv = throwPreview(at, aim, bd, map);
+    if (!pv) return;
+    const f = this.aimFrame;
+    const s = this.w.camera.worldToScreen(at.x, at.y);
+    const e = this.w.camera.groundEllipse(1);
+    f.sx = s.sx;
+    f.sy = s.sy;
+    f.kx = e.rx;
+    f.ky = e.ry;
+    drawThrowPreview(this.ground, pv, f, theme.color.amber.num);
+  }
+
   private drawEnemies(w: World, f: FrameInput) {
     const byId = new Map<EntityId, EnemyEnt>(w.enemies.map((e) => [e.id, e]));
     for (const [id, en] of this.enemies) {
       const e = byId.get(id);
       if (en.dying) {
+        en.bar?.hide();
         en.dying.t += f.dtMs;
         if (!en.dying.piled && en.dying.t >= en.dying.landed) {
           en.dying.piled = true;
@@ -730,7 +774,27 @@ export class WorldView {
       const k = fly > 0 ? 0.75 : 1; // the shadow far below reads smaller
       this.w.marks.shadow(at.sx, at.sy, en.info.shadow[0] * 2 * k, en.info.shadow[1] * 2 * k);
       if (!stunned) this.drawEnemyLooks(w, e, en, f.dtMs);
+      this.drawEnemyBar(e, en, fly);
     }
+  }
+
+  /**
+   * The violet HP bar above a damaged enemy (§2.6, RD5): hidden at full HP, none for Scrap mites, the
+   * Colossus keeps its bottom-edge bar. Width follows the enemy's size; made once, moved and scaled.
+   */
+  private drawEnemyBar(e: EnemyEnt, en: Enemy, fly: number) {
+    if (!enemyHasHpBar(en.rig.rigId, !!e.boss) || !hpBarShown(e.hp, e.maxHp)) {
+      en.bar?.hide();
+      return;
+    }
+    en.bar ??= new HpBar(
+      this.w,
+      theme.color.hostile.num,
+      enemyBarWidth(en.info.hitbox, TILE_W * this.w.camera.scale),
+    );
+    const top = en.rig.attach('top');
+    const y = (top?.sy ?? en.sy - fly - en.info.bodyH * this.w.unitPx) - 10;
+    en.bar.set(top?.sx ?? en.sx, y, e.hp / e.maxHp);
   }
 
   /** Tell glows, the Skitter's core throb and the Stalker's target flash (FF10, C3, §9.6). */
@@ -941,6 +1005,7 @@ export class WorldView {
     for (const [id, en] of this.enemies) this.dropEnemy(id, en);
     for (const s of this.shots.values()) s.release();
     this.support.destroy();
+    this.builds.destroy();
     this.boss.destroy();
     this.knights.clear();
     this.shots.clear();

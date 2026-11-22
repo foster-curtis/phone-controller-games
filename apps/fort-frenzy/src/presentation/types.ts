@@ -90,6 +90,11 @@ export interface Keyframe {
   glow?: number;
   /** Per-key draw-order swap (Colossus legs). */
   order?: string[];
+  /**
+   * Per-key optional-group switch (RD5, the Warden's `slam`): from this key on, each named group is
+   * on or off, whatever `RigInstance.setGroup` set; a group no key names follows `setGroup`.
+   */
+  groups?: Record<string, boolean>;
 }
 
 export interface Clip {

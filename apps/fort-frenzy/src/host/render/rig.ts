@@ -395,7 +395,9 @@ export class RigSprite implements RigInstance {
     set.mats = composeView(set.rv, sample.parts);
     const [fx, fy] = set.rv.foot;
     for (const n of set.nodes.values()) {
-      const visible = n.groups.length === 0 || n.groups.some((g) => this.groupsOn.has(g));
+      // A clip's per-key group switch beats `setGroup` (the Warden's slam hammer, RD5).
+      const visible =
+        n.groups.length === 0 || n.groups.some((g) => sample.groups?.[g] ?? this.groupsOn.has(g));
       n.art.img.setVisible(visible);
       if (!visible) {
         n.boost?.img.setVisible(false);

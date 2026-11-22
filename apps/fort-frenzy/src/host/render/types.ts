@@ -4,6 +4,7 @@
 // Frozen at FF3 (BUILD_PLAN §3): additive changes only.
 import type { FrameName, IconName } from '../../../generated/keys';
 import type { ViewId } from '../../presentation/types';
+import type { RenderContext } from './context';
 
 /** A frame name from the generated atlas keys (`pnpm assets`); code never names frames otherwise. */
 export type FrameKey = FrameName;
@@ -156,6 +157,12 @@ export interface EffectSpawner {
    * Ground shockwave in a sector (FF8: the Warden's slam and stomp): a 0.6 band rolling out from
    * (x, y) to `r` tiles across `arcDeg` around the world-ground angle `angleRad`, fading.
    */
+  /**
+   * A ground or effect frame at a screen point that holds, then fades over `ms` (RD5): the Warden's
+   * slam cracks (about 1 s), the jump slam's landing dust and wide cracks, the portal flare sparks.
+   * `scale` multiplies the frame's unit scale.
+   */
+  mark?(kind: MarkKind, sx: number, sy: number, ms?: number, scale?: number): void;
   arcWave?(
     side: ScrapSide,
     x: number,
@@ -174,3 +181,46 @@ export interface ProjectileSprite {
   set(x: number, y: number, z: number, headingRad: number): void;
   release(): void;
 }
+
+// ---- builds (RD5, SPEC §7.5, §15.2) -----------------------------------------------------------------
+
+/** A build's look: `flight` while thrown, `landed` until it switches on, then `active`; `damaged` below half HP. */
+export const BUILD_PHASES = ['flight', 'landed', 'active', 'damaged', 'destroyed'] as const;
+export type BuildPhase = (typeof BUILD_PHASES)[number];
+
+/** What a build view draws each frame, from the sim's `BuildEnt` (the scene fills it in place). */
+export interface BuildViewState {
+  phase: BuildPhase;
+  /** Ground point in world tiles (along the throw while in flight, lerped otherwise). */
+  x: number;
+  y: number;
+  /** Ground point in screen px (the camera's projection of x, y). */
+  sx: number;
+  sy: number;
+  /** Throw height in tiles (0 landed); the shadow stays at the ground point. */
+  z: number;
+  /** Progress along the throw, 0..1 (1 once landed). */
+  flightU: number;
+  /** HP fraction 0..1; builds without HP report 1. */
+  hpFrac: number;
+  /** Effect radius in tiles (the dotted ground ellipse). */
+  radius: number;
+  /** Time since the view was made, ms (cycles: the shimmer, the damaged flicker). */
+  clockMs: number;
+}
+
+/** One build's drawing; the scene makes one per `BuildEnt` of its kind and calls `update` each frame. */
+export interface BuildView {
+  update(state: Readonly<BuildViewState>, dtMs: number): void;
+  destroy(): void;
+}
+
+/** What `scene/builds/<build>.ts` exports as `view` (found with `import.meta.glob`); freezes after RD6. */
+export interface BuildViewFactory {
+  /** The `BuildId` it draws. */
+  readonly id: string;
+  create(ctx: RenderContext): BuildView;
+}
+
+/** Ground and effect frames dropped at a screen point and faded (`EffectSpawner.mark`). */
+export type MarkKind = 'slam-cracks' | 'slam-cracks-wide' | 'landing-dust' | 'portal-flare';

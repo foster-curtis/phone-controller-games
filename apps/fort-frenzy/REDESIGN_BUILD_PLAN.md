@@ -824,8 +824,8 @@ Rules:
   - [x] 68 px build button + ring + gestures; card pop-up; shop + stick; class select; dev samples
   - [x] Merged
 - RD5 TV slice
-  - [ ] Build-view API + life cycle + shield generator; portal flare; HP bars; throw preview; HUD
-  - [ ] Warden slam group swap, jump slam, cracks, dust
+  - [x] Build-view API + life cycle + shield generator; portal flare; HP bars; throw preview; HUD
+  - [x] Warden slam group swap, jump slam, cracks, dust
   - [ ] Merged
 - RD6 Slice wiring
   - [ ] Views, input routing, debug panel, `__pcg`, e2e specs
@@ -1058,6 +1058,12 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD3] decision: the balance harness runs every knight in content (the plan said "each knight in the policy registry", which is only the Warden until RD7–RD9 and would make a one-row report); knights without a policy fight without builds and the report marks them. The harness wave is a one-wave content override with every group pinned to `harness.portal`, spread over `harness.durationMs`.
 - [RD3] decision: the party's default `minPlayers` is 1 (and `game.meta.ts` says 1), so one Ready player auto-starts and the leader can force-start with one Ready player; the option still allows a larger minimum.
 - [RD3] decision: `portalFlare` is sent once per portal per step (a pulse may put two groups on one portal).
+- [RD5] contract+: `Keyframe.groups` (`src/presentation/types.ts`: a clip switches optional rig groups per key; `ClipSample.groups`), `EffectSpawner.mark?` and `MarkKind`, `BuildPhase`/`BuildViewState`/`BuildView`/`BuildViewFactory` (`render/types.ts`, the build-view API; SPEC §15.2).
+- [RD5] decision: the build-view API is a `view: BuildViewFactory` export per `scene/builds/<build>.ts`; `render/buildKit.ts` `LifecycleBuild` is the generic life cycle (RD7–RD9 name their frames only), and `scene/buildsView.ts` drives it from `world.builds` (flight along the sim's `Flight`, wreck 600 ms then `scrap-ours` 3).
+- [RD5] decision: HP bars (enemy violet, build amber) are two images of Phaser's white texture made once and only moved and scaled; the dotted effect ellipse is one generated texture scaled to the radius; the shimmer cycles by alpha over three pre-made images (frame-cost rule, tested in `scene/__tests__/builds.test.ts`).
+- [RD5] decision: the jump slam stays the `super` clip and lands at `JUMP_IMPACT_MS` (`STOMP_IMPACT_MS` is an alias, 320 = content `warden.super.windupMs`, `speeds.test` pins it); if RD3 changes the windup, change that one constant. Gallery pages still import the alias (RD12).
+- [RD5] decision: the throw preview computes the landing as the aim's pull × `BuildDef.throw.range` (clamped to the playfield) in `scene/aimPreview.ts` `throwPreview` because RD3's sim `throwShape` isn't merged; swap its body for the sim's call when RD3 lands. It shows only with `meter` = 1 and a held build aim.
+- [RD5] decision: the HUD already met the preview rule after RD2 (types and counts, no hot side, no lane bands); RD5 pinned it with `ui/__tests__/hud-preview.test.ts`.
 
 ## 9. Final handoff
 

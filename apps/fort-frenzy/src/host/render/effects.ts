@@ -7,11 +7,13 @@ import type { ArtImage } from './atlas';
 import { GROUND_SQUASH } from './camera';
 import { placeFrame, type RenderContext } from './context';
 import { bodyBurstPoints } from './effectsMath';
-import { fk, scrapFrame } from './keys';
+import { fk, MARK_FRAMES, scrapFrame } from './keys';
 import { Pool } from './pool';
+import { SHADOW_TEXTURE } from './textures';
 import type {
   BurstKind,
   EffectSpawner,
+  MarkKind,
   ProjectileKind,
   ProjectileSprite,
   ScrapSide,
@@ -38,6 +40,22 @@ const PROJECTILE_FRAMES = {
 /** Tumbling projectiles don't point along their heading. */
 const TUMBLES = new Set<ProjectileKind>(['boulder', 'bombard-shell']);
 
+/**
+ * How each mark plays (RD5): its layer, the fraction of its time spent fading in, the fraction held
+ * at full alpha before the fade out, and how much it grows (1 = none).
+ */
+const MARK_LOOK = {
+  'slam-cracks': { layer: 'groundOverlay', fadeIn: 0, hold: 0.15, grow: 1 },
+  'slam-cracks-wide': { layer: 'groundOverlay', fadeIn: 0, hold: 0.15, grow: 1 },
+  'landing-dust': { layer: 'groundOverlay', fadeIn: 0, hold: 0.1, grow: 1.35 },
+  'portal-flare': { layer: 'effects', fadeIn: 0.2, hold: 0.4, grow: 1 },
+} as const satisfies Record<
+  MarkKind,
+  { layer: string; fadeIn: number; hold: number; grow: number }
+>;
+/** Marks lie over the map and under shadows, rings and units (layer 2). */
+const MARK_DEPTH = -3e5;
+
 /** Scrap shows this long before fading (default) and fades over this long. */
 const SCRAP_SHOW_MS = 960;
 const SCRAP_FADE_MS = 640;
@@ -52,7 +70,7 @@ interface Live {
   delay?: number;
 }
 
-export const SHADOW_TEXTURE = '__ff-shadow';
+export { SHADOW_TEXTURE };
 
 /** A soft ink ellipse texture (64 × 38, 0.6 ratio) for shadows. */
 export function ensureShadowTexture(scene: Phaser.Scene) {
@@ -96,7 +114,7 @@ export class Effects implements EffectSpawner {
   }
 
   /** Pool of images of one frame on one layer. */
-  private pool(name: string, layer: 'effects' | 'world'): Pool<ArtImage> {
+  private pool(name: string, layer: 'effects' | 'world' | 'groundOverlay'): Pool<ArtImage> {
     const key = `${layer}:${name}`;
     let p = this.pools.get(key);
     if (!p) {
@@ -134,6 +152,24 @@ export class Effects implements EffectSpawner {
   bodyBurst(kind: 'heal-glint' | 'nanite-mote', footSx: number, footSy: number, heightPx: number) {
     for (const p of bodyBurstPoints(this.seq++))
       this.burst(kind, footSx + p.x * heightPx, footSy - p.y * heightPx, 0, p.delayMs);
+  }
+
+  mark(kind: MarkKind, sx: number, sy: number, ms = 1000, scale = 1) {
+    const look = MARK_LOOK[kind];
+    const pool = this.pool(MARK_FRAMES[kind], look.layer);
+    const a = pool.get();
+    a.img.setPosition(sx, sy).setDepth(look.layer === 'effects' ? sy : MARK_DEPTH);
+    this.add(
+      a.img,
+      ms,
+      () => pool.release(a),
+      (u) => {
+        const fadeOut =
+          1 - Math.max(0, (u - look.hold - look.fadeIn) / (1 - look.hold - look.fadeIn));
+        a.img.setAlpha(look.fadeIn > 0 ? Math.min(1, u / look.fadeIn) * fadeOut : fadeOut);
+        this.ctx.lib.setUnitScale(a, this.ctx.unitPx, scale * (1 + (look.grow - 1) * u));
+      },
+    );
   }
 
   tracer(side: ScrapSide, from: ScreenPoint, to: ScreenPoint, ms = 120) {

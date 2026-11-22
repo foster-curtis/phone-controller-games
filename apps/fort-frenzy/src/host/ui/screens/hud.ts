@@ -1,5 +1,7 @@
 // Combat and build HUD (SPEC §2.6 TV HUD, §3.3 feedback, §9.2 boss bar, §15.2 bands). Each piece is
-// its own section so a coin tick doesn't restart another piece's animation.
+// its own section so a coin tick doesn't restart another piece's animation. The next-wave preview
+// lists enemy types and counts only, never the hot side (§9.4: it is never announced), and there are
+// no lane bands: the portals flare in the World scene (RD5).
 import type { Section, RenderCtx } from '../render';
 import { enemyArt, esc, icon, panel } from '../html';
 import { COLOR_VAR, ENEMY_NAME, SHOP_ICON, SHOP_NAME, fmtInt, roman } from '../labels';
