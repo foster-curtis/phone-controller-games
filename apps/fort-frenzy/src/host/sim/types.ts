@@ -565,8 +565,13 @@ export type SimCommand = (
   | { c: 'debug'; slot: number; action: 'spawn'; enemy: EnemyId; portal: PortalId }
   | { c: 'debug'; slot: number; action: 'invincible'; on: boolean }
   | { c: 'debug'; slot: number; action: 'coins'; amount: number }
-  /** Fill every knight's build meter. */
-  | { c: 'debug'; slot: number; action: 'meter' }
+  /** Fill every knight's build meter, or only `target`'s (a run slot; RD6). */
+  | { c: 'debug'; slot: number; action: 'meter'; target?: number }
+  /**
+   * Force the hot side (RD6): the unflared spawn plan's hot-side groups move to `side`'s portals, and
+   * every later wave's plan too, until `side` null clears it.
+   */
+  | { c: 'debug'; slot: number; action: 'hot'; side: SideId | null }
 ) & { ref?: number };
 
 export type SimCommandKind = SimCommand['c'];

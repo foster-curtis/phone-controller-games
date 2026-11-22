@@ -1,9 +1,10 @@
 // Step 1 (SPEC §15.3): commands in logged order. Each answers with a `command` event when it carries
 // a `ref` (the intent ack, BUILD_PLAN §8 FF1).
+import { SIDE_IDS } from '../../shared/ids';
 import type { AckReason } from '../../shared/messages';
 import { offerFor, pickCard } from './cards';
 import { buy, request } from './shop';
-import { spawnGroup, startBuild } from './lifecycle';
+import { forceHot, spawnGroup, startBuild } from './lifecycle';
 import { releaseAll } from './players';
 import { fillSquads } from './squad';
 import type { FullState } from './state';
@@ -74,8 +75,18 @@ function debug(s: FullState, cmd: Extract<SimCommand, { c: 'debug' }>): AckReaso
     case 'coins':
       w.team.coins = Math.max(0, w.team.coins + cmd.amount);
       return null;
-    case 'meter':
-      for (const p of w.players) p.meter = 1;
+    case 'meter': {
+      // Every knight, or one run slot (RD6).
+      const t = cmd.target;
+      if (t !== undefined && !s.player(t)) return 'invalid';
+      for (const p of w.players) if (t === undefined || p.slot === t) p.meter = 1;
+      return null;
+    }
+    case 'hot':
+      // Forced until cleared: the pending plan now, and every later wave's at its combat start.
+      if (cmd.side !== null && !SIDE_IDS.includes(cmd.side)) return 'invalid';
+      s.debugHot = cmd.side;
+      if (cmd.side) forceHot(s, cmd.side);
       return null;
     case 'spawn':
       // One group: a Swarm spawns its whole pack (§9.1). The Colossus has no content until FF11.

@@ -1102,11 +1102,19 @@ Enabled on the TV build with a URL flag and never shown to players. It can:
 - spawn any enemy type at any portal
 - make players invincible
 - add coins
-- fill every knight's build meter
+- fill every knight's build meter, or one player's (RD6)
+- force the hot side: this wave's spawn groups that haven't flared and every later wave's move to the
+  forced side's portals until it's cleared (RD6, §15.11 #114)
 - run the simulation at 2× speed
 - show and set the run seed
-- show hitboxes, ranges, flow-field arrows and the current hot side
+- show hitboxes, ranges, flow-field arrows, the current hot side, portal activity (groups queued per
+  portal, flaring now, time to the next group) and each knight's build meter (RD6)
 - download a replay of the current run (§15.9)
+
+The TV's `window.__pcg` hooks (dev or `?debug=1`, e2e) read the same: `builds()` (kind, owner,
+position, HP, flight state), `meters()` (each knight's meter, aim held, builds out), `preview(slot)`
+(the sim's `buildPreview`), `portals()` (activity and the hot side, forced or not), and drive
+`fillMeter(slot?)` and `forceHot(side)` as logged debug commands (RD6).
 
 ### 9.6 Enemy art (neon knights, settled)
 
@@ -1999,9 +2007,11 @@ export type SimCommand = (
   | { c: 'debug'; slot: number; action: 'spawn'; enemy: EnemyId; portal: PortalId }
   | { c: 'debug'; slot: number; action: 'invincible'; on: boolean }
   | { c: 'debug'; slot: number; action: 'coins'; amount: number }
-  | { c: 'debug'; slot: number; action: 'meter' }            // fill every knight's build meter
+  | { c: 'debug'; slot: number; action: 'meter'; target?: number } // every knight's meter, or `target`'s (RD6)
+  | { c: 'debug'; slot: number; action: 'hot'; side: SideId | null } // force the hot side; null clears (RD6)
 ) & { ref?: number };
 // Removed: build (select/place/cancel), give.
+// `Sim.debugHot` reads the forced side (the debug panel's readout); the sim keeps it outside `World`.
 ```
 
 - **Step order** (v2):
@@ -2920,9 +2930,11 @@ export interface RunSnapshot {
     squads)
   - protocol guards (tuple v2, intents, views), the combat layout rules and the gesture state machines
   - asset license coverage (§15.10)
-- **E2E (Playwright, as in Sunny Side):** smoke (lobby, knight select, start, card pop-up and shop,
-  combat with a build), solo start, phone reconnect, host reload and resume, expired room resumed by
-  device ID, controller layout screenshots. E2E drives time with `__pcg.speed(0)` + `advance` and
+- **E2E (Playwright, as in Sunny Side):** smoke (RD6: a solo Warden starts alone, the wave 1 pop-up
+  ends with the phase's random pick, combat with portal flares, a thrown shield generator with the TV's
+  preview, wave 2's card Confirm and the shop, on to wave 2), phone reconnect (the same pop-up and
+  meter), late join (a full meter and a card offer), team pause (also in combat), host reload and
+  resume, expired room resumed by device ID, controller layout screenshots. E2E drives time with `__pcg.speed(0)` + `advance` and
   `?bloom=0&fps=15`, never sleeps.
 
 ### 15.10 Hosting, assets and licensing
@@ -3099,3 +3111,4 @@ states, then RD0's own.
 | 111 | 2026-11-21 | RD2 contract fixes | `SNAPSHOT_VERSION` 3 (RD1 used 2); `Content` keeps arrays and nullable singletons; transitional Commander and passive fields until their kit milestones; the Colossus's Citadel multiplier is a boss param (§15.4, §15.8) | The code's catalog already looks content up by id; the old Commander super and passives keep working until they're replaced (RD2) |
 | 112 | 2026-11-21 | RD3 sim slice | A spawn pulse is up to `players + 1` groups at one time, and "per spawn group" hot sides roll per pulse; the hot/other split is chosen over the whole wave (share closest to 0.55, never under half, a group elsewhere per pulse where the costs allow); the boss spawns on the first pulse's hot side; a thrown build lands at aim × throw range; a card not confirmed when the build phase ends (deadline or everyone Ready) is picked at random; super damage charges the meter (§7.2), never the super; a build without a behavior can't be placed yet; the harness runs every knight (§7.3, §9.3, §9.4, §10.2, §15.3, §15.9) | Simplest readings that meet §9.3's share and cap together; the plan's "super damage charges neither" contradicts §7.2, §8.3 and REDESIGN B2 (RD3) |
 | 113 | 2026-11-21 | TV slice (RD5) | A clip switches optional groups with `Keyframe.groups` (the Warden's `slam` swap); the build-view API and `EffectSpawner.mark` are additive (§15.2); HP bars (violet enemies, amber builds) are two pre-made images moved and scaled, never drawn per frame; the jump slam keeps the clip name `super` and the impact `JUMP_IMPACT_MS` (= `STOMP_IMPACT_MS`, content `warden.super.windupMs`); the thrown-build preview draws the sim's `buildPreview` (§7.3) (§2.4, §2.6, §7.5, §10.1, §15.2) | RD5 plan: new art, no per-frame rebuilds (FF7-fix-1, FF8, FF9 lessons); SPEC and REDESIGN agree otherwise |
+| 114 | 2026-11-21 | Slice wiring (RD6) | Debug commands: `meter` takes an optional `target` slot (none = every knight); `hot` forces the hot side: the spawn groups not yet flared that sit on their pulse's hot side move to the forced side's portals in turn (the others stay), every pulse is tagged with it, and every later wave's plan is forced at its combat start until `side: null` clears it; the forced side lives outside `World` (`Sim.debugHot`). The pop-up's growth header is the class's growth list for the wave just cleared (a boss wave's `boss` list) once the knight has a bump, null otherwise; the bumps and lists are RD11's. The e2e smoke is the solo Warden slice (§9.5, §10.2, §15.3, §15.9) | Simplest debug tools that keep replays exact (logged commands); a flared portal keeps its group because its flare was already shown (RD6) |

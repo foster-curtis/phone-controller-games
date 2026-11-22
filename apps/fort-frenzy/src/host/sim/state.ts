@@ -2,7 +2,13 @@
 // creation and removal, the damage pipeline wiring, heals, effects, seeded streams.
 import { rngStream, type Rng } from '@pcg/game-kit';
 import type { StatId, TileKind } from '../../content/types';
-import { SHOP_ITEM_IDS, type BuildId, type EnemyId, type ShopItemId } from '../../shared/ids';
+import {
+  SHOP_ITEM_IDS,
+  type BuildId,
+  type EnemyId,
+  type ShopItemId,
+  type SideId,
+} from '../../shared/ids';
 import type { RunStats } from '../../shared/messages';
 import { applyDamage, hpStage, reduceBy } from '../systems/damage';
 import { applyEffect as applyEffectTo } from '../systems/effects';
@@ -113,6 +119,8 @@ export interface StateExtras {
   readonly addBuild: (kind: BuildId, x: number, y: number, owner: number) => BuildEnt;
   /** A player at their respawn point (run start, a late join, FF14). */
   readonly addPlayer: (slot: RunSlot) => PlayerEnt;
+  /** The debug panel's forced hot side (RD6; the `hot` debug command), or null. */
+  debugHot: SideId | null;
 }
 
 export type FullState = SimState & StateExtras;
@@ -355,6 +363,7 @@ export function createState(start: RunStart, cat: Catalog): FullState {
     repriceHunters,
     respawnPoint,
     addPlayer,
+    debugHot: null,
     tick: () => world.tick,
     rng(label) {
       let r = streams.get(label);

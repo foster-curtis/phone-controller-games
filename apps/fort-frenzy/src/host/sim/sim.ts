@@ -2,7 +2,7 @@
 // that changes run state enters as an input sample or a command at the start of a step; the step runs
 // its systems in the fixed order below.
 import { content as defaultContent, type Content } from '../../content';
-import type { BuildId, EnemyId } from '../../shared/ids';
+import type { BuildId, EnemyId, SideId } from '../../shared/ids';
 import { createCatalog } from './catalog';
 import { stepSquads } from './squad';
 import { stepBuilds } from './builds/core';
@@ -58,6 +58,8 @@ export interface Sim {
   /** A build at (x, y) for `slot` (the bench's placeholder builds until RD3 places real ones). */
   addBuild(kind: BuildId, x: number, y: number, slot: number): BuildEnt;
   addSoldier(owner: number, x: number, y: number): SoldierEnt;
+  /** The debug panel's forced hot side (the `hot` debug command, RD6), or null. */
+  readonly debugHot: SideId | null;
 }
 
 const neutral = neutralInput();
@@ -165,5 +167,8 @@ export function createSim(start: RunStart, opts: SimOptions = {}): Sim {
     spawnEnemy: (kind, x, y) => s.spawnEnemy(kind, x, y, null),
     addBuild: (kind, x, y, slot) => s.addBuild(kind, x, y, slot),
     addSoldier: (owner, x, y) => s.addSoldier(owner, x, y),
+    get debugHot() {
+      return s.debugHot;
+    },
   };
 }

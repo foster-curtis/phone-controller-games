@@ -3,8 +3,10 @@
 import type { Content } from '../../content';
 import type { ActIconId, BuildId, CardId, ClassId, EnemyId, PlayerColorId } from '../../shared/ids';
 import {
+  GROWTH_STATS,
   RUN_STAT_KEYS,
   type MeBuild,
+  type MeGrowth,
   type MeView,
   type RunStats,
   type RunSummary,
@@ -152,6 +154,26 @@ export function buildFor(content: Content, w: World, p: PlayerEnt): MeBuild {
   };
 }
 
+/**
+ * The card pop-up's class growth header (§6.1, §10.2): "Wave 4 cleared: +HP +DMG", the stats the
+ * knight's class grew for the wave just cleared (a boss wave's `boss` list, else `regular`). Null
+ * before wave 1, for a knight with no bump yet (a late joiner, §15.11 #99), or when the class grows
+ * none of the header's stats. The sim's bumps (`PlayerEnt.growth`) and the content lists are RD11's.
+ */
+export function growthFor(content: Content, w: World, p: PlayerEnt): MeGrowth | null {
+  if (w.wave <= 1 || p.growth.regular + p.growth.boss === 0) return null;
+  const role = content.knights.find((k) => k.id === p.classId)?.role;
+  const cls = content.classes.find((c) => c.id === role);
+  if (!cls) return null;
+  const boss =
+    content.waves.find((x) => x.n === w.wave - 1)?.boss !== undefined && p.growth.boss > 0;
+  const mods = boss ? cls.growth.boss : cls.growth.regular;
+  const stats = GROWTH_STATS.filter((st) =>
+    mods.some((m) => m.stat === st && ((m.addPct ?? 0) > 0 || (m.add ?? 0) > 0)),
+  );
+  return stats.length > 0 ? { wave: w.wave - 1, boss, stats: [...stats] } : null;
+}
+
 const NO_CARDS: MeView['cards'] = { offer: null, picked: null, owned: [], growth: null };
 
 export function blankMe(screen: MeView['screen']): MeView {
@@ -238,8 +260,8 @@ export function meView(ctx: ViewCtx, m: FfMember | null, full = false): MeView {
       owned: (Object.keys(p.cards) as CardId[])
         .filter((id) => (p.cards[id] ?? 0) > 0)
         .map((id) => ({ id, n: p.cards[id]! })),
-      // Class growth header (RD11).
-      growth: null,
+      // Class growth header (§6.1, §10.2): the build phase only.
+      growth: w.phase === 'build' ? growthFor(content, w, p) : null,
     },
   };
 }

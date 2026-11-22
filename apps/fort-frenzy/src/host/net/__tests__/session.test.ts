@@ -5,6 +5,7 @@ import {
   isMeView,
   PROTOCOL_VERSION,
   type HostMsg,
+  type InputTuple,
   type MeView,
   type TeamView,
 } from '../../../shared/messages';
@@ -214,5 +215,91 @@ describe('session: run', () => {
     if (!missing) return;
     s.handleMessage('a', { t: 'intent', seq: 901, intent: { k: 'class', classId: missing } });
     expect(ackOf(sent, 901)).toMatchObject({ ok: false, reason: 'invalid' });
+  });
+});
+
+describe('session: the build button (RD6, §15.3 #97)', () => {
+  const tuple = (flags: number, bx: number, by: number, builds: number): InputTuple => [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    bx,
+    by,
+    flags,
+    0,
+    0,
+    builds,
+  ];
+
+  /** A solo Warden in combat on an empty field; his phone has sent only zero counters. */
+  function wardenInCombat() {
+    const env = setup();
+    const { s } = env;
+    s.handlePeer({ event: 'joined', playerId: 'a', playerKey: 'key-a' });
+    s.handleMessage('a', { t: 'hello', proto: PROTOCOL_VERSION, deviceId: 'dev-a' });
+    s.handleMessage('a', { t: 'intent', seq: 1001, intent: { k: 'name', name: 'Ann' } });
+    s.handleMessage('a', { t: 'intent', seq: 1002, intent: { k: 'class', classId: 'warden' } });
+    s.handleMessage('a', { t: 'intent', seq: 1003, intent: { k: 'ready', ready: true } });
+    const sim = s.sim!;
+    /** The phone sends `t`, then the host runs one step. */
+    const step = (t: InputTuple = tuple(0, 0, 0, 0)) => {
+      s.handleMessage('a', t);
+      sim.step();
+      s.afterStep();
+    };
+    const phase = () => sim.world.phase;
+    while (phase() !== 'build') step();
+    s.handleMessage('a', { t: 'intent', seq: 1004, intent: { k: 'ready', ready: true } });
+    while (phase() !== 'combat') step();
+    for (const g of sim.world.spawns) g.atTick += 1e7;
+    return { ...env, sim, step };
+  }
+
+  it('a `buildFires` edge throws a shield generator toward the build aim and acks nothing', () => {
+    const { s, sim, sent, step, clock } = wardenInCombat();
+    const p = sim.world.players[0]!;
+    expect(p.meter).toBe(1);
+    expect(sim.world.builds).toHaveLength(0);
+    const acks = sent.filter((x) => x.msg.t === 'ack').length;
+
+    // Held aim (flag 4): the sim keeps the live build aim for the TV's preview; nothing is placed.
+    step(tuple(4, -100, 0, 0));
+    expect(p.buildAim).toEqual({ x: -1, y: 0 });
+    expect(sim.world.builds).toHaveLength(0);
+
+    // Release: the counter grows, with the release aim.
+    step(tuple(0, -100, 0, 1));
+    expect(sim.world.builds).toHaveLength(1);
+    const b = sim.world.builds[0]!;
+    expect(b.kind).toBe('shield_gen');
+    expect(b.owner).toBe(0);
+    expect(b.flight!.to.x).toBeLessThan(p.x);
+    expect(p.meter).toBe(0);
+    expect(p.run.buildsPlaced).toBe(1);
+
+    // The same counter resent (30 Hz) places nothing more, and no ack ever went out.
+    for (let i = 0; i < 5; i++) step(tuple(0, -100, 0, 1));
+    expect(sim.world.builds).toHaveLength(1);
+    expect(sent.filter((x) => x.msg.t === 'ack').length).toBe(acks);
+    clock.advance(500);
+    s.flush();
+    expect(lastMe(sent, 'a').build).toMatchObject({
+      id: 'shield_gen',
+      full: false,
+      mode: 'none',
+      active: 1,
+    });
+  });
+
+  it('a press with the meter not full does nothing', () => {
+    const { sim, step } = wardenInCombat();
+    const p = sim.world.players[0]!;
+    p.meter = 0.5;
+    step(tuple(0, 0, 0, 1));
+    expect(sim.world.builds).toHaveLength(0);
+    expect(p.meter).toBeGreaterThanOrEqual(0.5);
   });
 });

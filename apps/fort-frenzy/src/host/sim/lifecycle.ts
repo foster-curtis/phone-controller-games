@@ -327,9 +327,28 @@ export function startCombat(s: FullState): void {
       }
     }
   }
+  // The debug panel's forced hot side holds for every wave until cleared (RD6).
+  if (s.debugHot) forceHot(s, s.debugHot);
   // The Hunters' sentry threat picks up range upgrades bought in the build (FF10-fix-1).
   s.repriceHunters();
   setPhase(s, 'combat', null);
+}
+
+/**
+ * Debug (§9.5, RD6): the unflared spawn plan's hot side becomes `side`. Groups on their pulse's hot
+ * side move to `side`'s portals in turn (a flared portal keeps its group: the flare was shown); the
+ * rest stay where they are.
+ */
+export function forceHot(s: FullState, side: SideId): void {
+  const portals = s.cat.map.portals;
+  const onSide = PORTAL_IDS.filter((id) => portals[id].side === side);
+  if (onSide.length === 0) return;
+  let k = 0;
+  for (const g of s.world.spawns) {
+    if (g.flared) continue;
+    if (g.hot === null || portals[g.portal].side === g.hot) g.portal = onSide[k++ % onSide.length]!;
+    g.hot = side;
+  }
 }
 
 function endRun(s: FullState, result: 'victory' | 'defeat') {

@@ -828,7 +828,7 @@ Rules:
   - [x] Warden slam group swap, jump slam, cracks, dust
   - [x] Merged
 - RD6 Slice wiring
-  - [ ] Views, input routing, debug panel, `__pcg`, e2e specs
+  - [x] Views, input routing, debug panel, `__pcg`, e2e specs
   - [ ] Merged; e2e green
 - [ ] **User approved RC1** (slice on phones and TV)
 - RD7 Ranger
@@ -1064,6 +1064,13 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD5] decision: the jump slam stays the `super` clip and lands at `JUMP_IMPACT_MS` (`STOMP_IMPACT_MS` is an alias, 320 = content `warden.super.windupMs`, `speeds.test` pins it); if RD3 changes the windup, change that one constant. Gallery pages still import the alias (RD12).
 - [RD5] decision: the XX
 - [RD5] decision: the HUD already met the preview rule after RD2 (types and counts, no hot side, no lane bands); RD5 pinned it with `ui/__tests__/hud-preview.test.ts`.
+- [RD6] contract+: `SimCommand` debug `meter` takes `target?: number` (a run slot; none = every knight) and a new debug `hot { side: SideId | null }` (`src/host/sim/types.ts`); `Sim.debugHot` and `StateExtras.debugHot` read it (outside `World`, so state hashes and snapshots don't change); SPEC §9.5, §15.3 and #114 updated.
+- [RD6] decision: most of the wiring was already in place from RD2–RD4 (`MeView.build`, `cards.offer`/`picked`, `TeamView` without the hot side, `buildFires`/`buildAim` through `PhoneInputSource` into the sim's build press); RD6 adds the growth header, the debug tools, the `__pcg` hooks and tests that pin the routing (session: a `buildFires` edge places one build and acks nothing; `PhoneInputSource` staleness with flag 4 and the build counter).
+- [RD6] decision: forcing a hot side moves only spawn groups that haven't flared (a flare already shown keeps its group) and only those on their pulse's hot side (the rest stay put), then holds for every later wave until cleared: the simplest tool that shows "enemies pour from the hot side" on demand while keeping replays exact (a logged command).
+- [RD6] decision: the growth header is the class's growth list for the wave just cleared (the `boss` list after a boss wave), shown once the knight has a bump (`PlayerEnt.growth`), null before wave 1, for a late joiner and when the list grows none of HP / DMG / healing; today's content grows nothing and the sim never bumps (RD11), so it stays null until then.
+- [RD6] decision: the debug panel's readout (hot side, portal activity, meters) and `__pcg.portals()` / `meters()` share one pure module, `src/host/debugInfo.ts`; the panel refreshes it every 500 ms with the seed.
+- [RD6] decision: the smoke spec is one solo Warden (start alone, Ready on the wave 1 pop-up so the phase's end picks the card, a thrown shield generator, wave 2's card Confirm and a purchase); two-phone flows stay in reconnect, late-join and pause. `e2e/helpers.ts` gains `pickKnight` (one swipe per card), `joinPhone(…, knight)`, `confirmCard` and `holdBuildAim`.
+- [RD6] decision: `render/types.ts`, `sim/builds/index.ts` and `scene/builds/<build>.ts` freeze as RD5 and RD3 left them (no changes needed): RD7–RD9 register a `BuildBehavior` and add a `scene/builds/<build>.ts` exporting `view: BuildViewFactory`.
 
 ## 9. Final handoff
 

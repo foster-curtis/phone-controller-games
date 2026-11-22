@@ -68,3 +68,35 @@ describe('PhoneInputSource (§11.4 staleness by receive time)', () => {
     expect(src.sample(0).mainFires).toBe(0);
   });
 });
+
+describe('PhoneInputSource with tuple v2 builds (RD6)', () => {
+  it('a held build aim (flag 4) goes neutral after 250 ms; the build counter still applies', () => {
+    let t = 0;
+    const src = new PhoneInputSource(() => t);
+    src.push(tuple({ 6: -60, 7: 80, 8: 4, 11: 5 }));
+    t = 250;
+    const fresh = src.sample(0);
+    expect(fresh.buildAiming).toBe(true);
+    expect(fresh.buildAim).toEqual({ x: -0.6, y: 0.8 });
+    t = 251;
+    const stale = src.sample(0);
+    expect(stale.buildAiming).toBe(false);
+    expect(stale.buildAim).toEqual({ x: 0, y: 0 });
+    expect(stale.move).toEqual({ x: 0, y: 0 });
+    expect(stale.buildFires).toBe(5);
+    // A late release still lands: the counter grows with its aim.
+    src.push(tuple({ 6: -60, 7: 80, 8: 0, 11: 6 }));
+    expect(src.sample(0)).toMatchObject({ buildFires: 6, buildAiming: false });
+  });
+
+  it('build presses made during a team pause are swallowed', () => {
+    const src = new PhoneInputSource(() => 0);
+    src.push(tuple({ 11: 2 }));
+    src.hold();
+    src.push(tuple({ 11: 4 }));
+    src.release();
+    expect(src.sample(0).buildFires).toBe(2);
+    src.push(tuple({ 11: 5 }));
+    expect(src.sample(0).buildFires).toBe(3);
+  });
+});

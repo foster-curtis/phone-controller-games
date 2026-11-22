@@ -1,21 +1,27 @@
 // Developer tools on the TV (SPEC §9.5, §15.9), dev or `?debug=1` only: the debug panel (jump to a
-// wave, spawn any enemy at any portal, invincible, add coins, 2× speed, show / set the seed, hitbox /
-// range / flow-field overlays, download a replay; an uncaught error offers the download), and the
-// `window.__pcg` hooks the e2e suite drives. Never shown to players.
+// wave, spawn any enemy at any portal, invincible, add coins, fill one or every build meter, force a
+// hot side, portal activity and the hot side, 2× speed, show / set the seed, hitbox / range /
+// flow-field overlays, download a replay; an uncaught error offers the download), and the
+// `window.__pcg` hooks the e2e suite drives (builds, meters, the throw preview, portals). Never shown
+// to players.
 import { installDebug } from '@pcg/game-kit';
 import {
   ENEMY_IDS,
   PORTAL_IDS,
+  SIDE_IDS,
   type BuildId,
   type CardId,
   type ClassId,
   type PlayerColorId,
+  type SideId,
 } from '../shared/ids';
 import type { TeamView } from '../shared/messages';
+import { hotLine, hotState, meterStates, type HotState, type MeterState } from './debugInfo';
 import type { Runtime } from './game';
 import { localSnapshotStore } from './net/resume';
+import { buildPreview, type BuildPreview } from './sim/preview';
 import type { RunSnapshot } from './sim/snapshot';
-import type { Phase, SimCommand } from './sim/types';
+import type { BuildEnt, Phase, SimCommand } from './sim/types';
 import type { TvScreen, TvView } from './ui/types';
 
 export interface FfDebugPlayer {
@@ -73,7 +79,26 @@ export interface FfDebugApi {
   /** A build at (x, y) for `slot`, outside the rules (e2e resume checks; RD3 places real ones). */
   addBuild(kind: BuildId, x: number, y: number, slot: number): void;
   /** The builds on the map. */
-  builds(): { kind: BuildId; x: number; y: number; hp: number; owner: number }[];
+  builds(): {
+    id: number;
+    kind: BuildId;
+    x: number;
+    y: number;
+    hp: number;
+    maxHp: number;
+    owner: number;
+    state: BuildEnt['state'];
+  }[];
+  /** Each run knight's build meter, aim and builds out (RD6). */
+  meters(): MeterState[];
+  /** Fills one run slot's build meter, or every knight's (a logged debug command). */
+  fillMeter(slot?: number): void;
+  /** The TV's throw preview for a run slot (the sim's `buildPreview`), or null when not aiming. */
+  preview(slot: number): BuildPreview | null;
+  /** Portal activity and the hot side (from the spawn plan; never on the phones). */
+  portals(): HotState;
+  /** Forces the hot side (null clears it; a logged debug command). */
+  forceHot(side: SideId | null): void;
   /** Each run slot's cards and private offer (FF14 resume checks). */
   cards(): { slot: number; cards: Partial<Record<CardId, number>>; offer: CardId[] | null }[];
   /** The resume snapshot in storage, or null (§15.8). */
@@ -141,12 +166,29 @@ export function installFfDebug(rt: Runtime, fallbacks: () => number): void {
     addBuild: (kind, x, y, slot) => void rt.session.sim?.addBuild(kind, x, y, slot),
     builds: () =>
       (rt.world?.builds ?? []).map((b) => ({
+        id: b.id,
         kind: b.kind,
         x: b.x,
         y: b.y,
         hp: b.hp,
+        maxHp: b.maxHp,
         owner: b.owner,
+        state: b.state,
       })),
+    meters: () => meterStates(rt.world, rt.session.content),
+    fillMeter: (slot) =>
+      rt.session.command({
+        c: 'debug',
+        slot: -1,
+        action: 'meter',
+        ...(slot === undefined ? {} : { target: slot }),
+      }),
+    preview: (slot) => {
+      const p = rt.world?.players.find((x) => x.slot === slot);
+      return p ? buildPreview(p, rt.session.content) : null;
+    },
+    portals: () => hotState(rt.world, rt.session.content, rt.session.sim?.debugHot ?? null),
+    forceHot: (side) => rt.session.command({ c: 'debug', slot: -1, action: 'hot', side }),
     cards: () =>
       (rt.world?.players ?? []).map((p) => ({
         slot: p.slot,
@@ -288,6 +330,57 @@ export function mountDebugPanel(rt: Runtime): DebugPanel {
       cmd({ c: 'debug', slot: -1, action: 'coins', amount: Number(coins.value) || 0 }),
     ),
   );
+  // Build meters (§7.2): every knight's, or one run slot's.
+  const meterWho = h('select', { 'data-debug': 'meter-slot' }) as HTMLSelectElement;
+  let meterSlots = '';
+  const syncMeterSlots = () => {
+    const ps = rt.world?.players ?? [];
+    const key = ps.map((p) => `${p.slot}:${p.name}`).join(',');
+    if (key === meterSlots) return;
+    meterSlots = key;
+    const keep = meterWho.value;
+    meterWho.replaceChildren(new Option('every knight', 'all'));
+    for (const p of ps) meterWho.add(new Option(`${p.slot}: ${p.name}`, String(p.slot)));
+    meterWho.value = [...meterWho.options].some((o) => o.value === keep) ? keep : 'all';
+  };
+  syncMeterSlots();
+  row(
+    meterWho,
+    button(
+      'Fill meter',
+      () =>
+        cmd({
+          c: 'debug',
+          slot: -1,
+          action: 'meter',
+          ...(meterWho.value === 'all' ? {} : { target: Number(meterWho.value) }),
+        }),
+      'meter',
+    ),
+  );
+  // The hot side (§9.4): force one (this wave's unflared plan and every later wave) or clear it.
+  const hotSide = h('select', { 'data-debug': 'hot-side' }) as HTMLSelectElement;
+  hotSide.add(new Option('not forced', ''));
+  for (const id of SIDE_IDS) hotSide.add(new Option(id, id));
+  row(
+    h('span', {}, 'Hot'),
+    hotSide,
+    button(
+      'Force',
+      () =>
+        cmd({
+          c: 'debug',
+          slot: -1,
+          action: 'hot',
+          side: (hotSide.value || null) as SideId | null,
+        }),
+      'hot',
+    ),
+  );
+  // Portal activity and the hot side, from the spawn plan.
+  const portalShow = h('div', { 'data-debug': 'portals' });
+  portalShow.style.whiteSpace = 'pre-wrap';
+  el.append(portalShow);
   const seedShow = h('span', { 'data-debug': 'seed' });
   const seedIn = h('input', { type: 'number', placeholder: 'next seed' }) as HTMLInputElement;
   row(h('span', {}, 'Seed'), seedShow);
@@ -321,6 +414,16 @@ export function mountDebugPanel(rt: Runtime): DebugPanel {
   const tick = setInterval(() => {
     const s = rt.session.start?.seed;
     seedShow.textContent = `${s ?? '—'}${rt.nextSeed !== null ? ` (next ${rt.nextSeed})` : ''}`;
+    syncMeterSlots();
+    const w = rt.world;
+    portalShow.textContent = w
+      ? `${hotLine(hotState(w, rt.session.content, rt.session.sim?.debugHot ?? null))}\nmeters ${meterStates(
+          w,
+          rt.session.content,
+        )
+          .map((m) => `${m.slot}:${Math.round(m.meter * 100)}%`)
+          .join(' ')}`
+      : '';
   }, 500);
 
   let offer: HTMLElement | null = null;
