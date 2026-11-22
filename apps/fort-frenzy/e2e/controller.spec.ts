@@ -161,7 +161,9 @@ for (const vp of VIEWPORTS) {
       });
     });
 
-    test('knight cards show role, main, super, build and passive, inside the card', async ({ page }) => {
+    test('knight cards show role, main, super, build and passive, inside the card', async ({
+      page,
+    }) => {
       await open(page, 'classSelect');
       const card = page.locator('.class-card').first();
       await expect(card.locator('.class-role .role-glyph')).toBeVisible();
