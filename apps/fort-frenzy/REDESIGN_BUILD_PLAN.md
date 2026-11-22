@@ -819,7 +819,7 @@ Rules:
   - [x] Classes vs knights; build system core + meter; Warden shield generator + jump slam
   - [x] Regen; player-count table; hot side + cap + flares; 20 s build phase + random pick
   - [x] Solo lobby; autopilot builds; balance harness
-  - [ ] Merged
+  - [x] Merged
 - RD4 Controller slice
   - [x] 68 px build button + ring + gestures; card pop-up; shop + stick; class select; dev samples
   - [x] Merged
