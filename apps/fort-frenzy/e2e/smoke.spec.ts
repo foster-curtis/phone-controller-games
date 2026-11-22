@@ -68,13 +68,15 @@ test('solo Warden: start alone → wave 1 → shield generator → card → shop
 
   // Combat: portals flare ahead of their groups (the hot side never reaches the phones).
   await expect(ann.page.locator('.screen.combat')).toBeVisible();
-  await expect
-    .poll(
-      stepped(host, () =>
-        host.page.evaluate(() => window.__pcg!.portals().portals.some((p) => p.flaring)),
-      ),
-    )
-    .toBe(true);
+  // The first pulse lands somewhere in its slice of the wave (seconds in), so step inside the page
+  // until a portal flares (one round trip), not a few steps per poll.
+  const flared = await host.page.evaluate(() => {
+    const api = window.__pcg!;
+    const lit = () => api.portals().portals.some((p) => p.flaring);
+    for (let ran = 0; !lit() && ran < 60 * 60; ran += 5) api.advance(5);
+    return lit();
+  });
+  expect(flared).toBe(true);
   expect(await host.page.evaluate(() => window.__pcg!.portals().hot)).not.toBeNull();
   await host.page.evaluate(() =>
     window.__pcg!.command({ c: 'debug', slot: -1, action: 'invincible', on: true }),
