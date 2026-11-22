@@ -257,11 +257,11 @@ for (const vp of VIEWPORTS) {
       await page.mouse.move(x - 50, y, { steps: 4 });
       await expect
         .poll(async () => (await page.locator('.dev-readout').textContent()) ?? '')
-        .toMatch(/^[0, 0, 0, 0, 0, 0, -d+, 0, 4, 0, 0, 0/);
+        .toMatch(/^\[0, 0, 0, 0, 0, 0, -\d+, 0, 4, 0, 0, 0/);
       await page.mouse.up();
       await expect
         .poll(async () => (await page.locator('.dev-readout').textContent()) ?? '')
-        .toMatch(/^[0, 0, 0, 0, 0, 0, -d+, 0, 0, 0, 0, 1/);
+        .toMatch(/^\[0, 0, 0, 0, 0, 0, -\d+, 0, 0, 0, 0, 1/);
     });
   });
 }
