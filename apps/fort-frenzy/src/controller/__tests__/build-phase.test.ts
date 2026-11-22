@@ -90,6 +90,8 @@ describe('card pop-up', () => {
     confirm.click();
     confirm.click();
     expect(cardIntents()).toEqual([{ k: 'card', card: SAMPLES.cards!().me.cards.offer![1] }]);
+    // The phone moves on to the shop at once, without waiting for the host.
+    expect(root.matches('.shop-open')).toBe(true);
   });
 
   it('selecting another card moves the selection', () => {

@@ -120,11 +120,14 @@ export function createBuild(ctx: ScreenCtx): View {
   let locked = false;
   let lockTimer: ReturnType<typeof setTimeout> | null = null;
   let wasPopup = false;
+  // The hand Confirm was sent for: the phone moves on to the shop at once (SPEC §10.2), not on the host's ack.
+  let confirmedKey: string | null = null;
 
   ready.addEventListener('click', () => last && ctx.intent({ k: 'ready', ready: !last.me.ready }));
   confirm.addEventListener('click', () => {
     if (!selected || locked) return;
     ctx.intent({ k: 'card', card: selected });
+    confirmedKey = offerKey;
     // One intent per confirm; unlocks after a while in case the host refused it (the ack toasts).
     locked = true;
     confirm.disabled = true;
@@ -132,6 +135,7 @@ export function createBuild(ctx: ScreenCtx): View {
       locked = false;
       if (last) render(last);
     }, CONFIRM_LOCK_MS);
+    render(last!);
   });
 
   const renderCards = (offer: readonly CardId[]) => {
@@ -167,7 +171,7 @@ export function createBuild(ctx: ScreenCtx): View {
     );
     ready.classList.toggle('on', me.ready);
 
-    const inPopup = showsPopup(me);
+    const inPopup = showsPopup(me) && confirmedKey !== (me.cards.offer ?? []).join(',');
     root.classList.toggle('popup-open', inPopup);
     root.classList.toggle('shop-open', !inPopup);
     popup.hidden = !inPopup;
