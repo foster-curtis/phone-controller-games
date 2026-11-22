@@ -1,13 +1,14 @@
 // Step 5 (SPEC §15.3): integrate movement and knockback, soft separation between units (they never
 // hard-block each other, §15.5), then structure collision: the Citadel, blocked tiles, towers and walls
 // are solid squares. Players stay on the map; enemies may stand outside it until they walk in.
+import { buildTargetable } from './builds/core';
 import type { FullState } from './state';
 import type { Unit } from './types';
 
 const DT = 1 / 60;
 const KNOCK_STOP = 0.05;
 
-/** Rebuilds the spatial hash: living, present players; soldiers; enemies. */
+/** Rebuilds the spatial hash: living, present players; soldiers; enemies; targetable builds. */
 export function rebuildSpatial(s: FullState): void {
   const w = s.world;
   const h = w.spatial;
@@ -15,6 +16,8 @@ export function rebuildSpatial(s: FullState): void {
   for (const p of w.players) if (p.respawnAt === null && p.connected) h.insert(p.id, p.x, p.y, p.r);
   for (const u of w.soldiers) if (u.hp > 0) h.insert(u.id, u.x, u.y, u.r);
   for (const e of w.enemies) if (e.hp > 0) h.insert(e.id, e.x, e.y, e.r);
+  // Enemy shots hit HP builds (§7.3); our attacks filter to enemies.
+  for (const b of w.builds) if (buildTargetable(b)) h.insert(b.id, b.x, b.y, b.r);
 }
 
 // Reused per-step buffers.

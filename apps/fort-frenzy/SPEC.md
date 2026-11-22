@@ -765,8 +765,10 @@ These apply to every build unless its entry in §7.3 lists an exception.
   - **Thrown builds** are aimed sticks: drag to aim, release to throw; a quick tap auto-targets (the
     nearest enemy group in range for offensive builds, the knight's own feet for the rest; v1 has no
     offensive thrown build, so every quick-tapped thrown build lands at the knight's feet); slide back
-    into the dead zone to cancel. While aiming, the TV shows the landing spot as a 0.6 ground ellipse
-    at the build's real effect radius, plus its maximum throw range.
+    into the dead zone to cancel. The stick's length sets the distance: the build lands at the knight's
+    position + aim × his throw range, so it never passes the range (RD3, §15.11 #112). While aiming,
+    the TV shows the landing spot as a 0.6 ground ellipse at the build's real effect radius, plus its
+    maximum throw range (`sim/preview.ts` `buildPreview`, the same landing the sim uses).
 - **Builds as targets:** enemies target an HP build exactly as they target a knight, with the same
   aggro radius and leash; when a knight and a build are both in range, the enemy picks the **nearest**
   (the same tie-break used between knights). **Only builds with HP are targetable.** Charge builds
@@ -905,7 +907,11 @@ the baseline knight HP, and the damage band multiplies the damage of the knight'
 - Passive cards, card behaviors and build behaviors are self-contained modules with hooks (for example
   `onTick`, `onDamageDealt`, `onHeal`), attached by config (§15.3).
 - Build behaviors are registered by `BuildId` (`src/host/sim/builds/index.ts`), so a new build from the
-  idea pool (§13) is a new module plus content, not a change to the knights.
+  idea pool (§13) is a new module plus content, not a change to the knights. The shared pipeline
+  (`builds/core.ts`) does the meter, placement, flight, landing, switch-on, HP and targeting; a
+  behavior adds `check(def)` (reads its content params), an optional `maxActive` hook (the mines'
+  exception) and `combat(b)` (its effect, each combat step while active). A build without a behavior
+  can't be placed yet: its button stays dimmed and its meter full (RD3).
 
 ## 9. Enemies
 
@@ -1028,12 +1034,17 @@ walker mech with a glowing core in its chest (§2.1); its art is in §9.6.
     growth can be tuned without code changes
 - A generator spends the budget on allowed enemy types, using their budget costs, and spreads the groups
   across the wave's duration in **spawn pulses** and across the portals:
+  - **Spawn pulse** (RD3, §15.11 #112): up to `players + 1` groups that spawn at the same moment, each
+    pulse in its own equal slice of the wave's duration.
   - **Active portal cap:** each pulse uses at most **`players + 1`** portals (capped at 6: 2 in solo, 6
     with 5 or 6 players, so a full team sees every portal). The active portals are chosen per pulse.
   - While a side is hot, every pulse includes at least one hot-side portal, and the hot side receives
     the **hot share** of the budget (starting value 0.55, from the 50–60% range); the rest is spread
-    over the other active portals. Solo: one hot-side portal and one other.
-  - The boss spawns at a seeded portal on the hot side.
+    over the other active portals. Solo: one hot-side portal and one other. The split is chosen over
+    the whole wave: the hot share of its cost closest to the content share and never under half,
+    with a group elsewhere in every pulse of two or more where the costs allow it (a lumpy solo wave
+    may put both groups of a pulse on the hot side).
+  - The boss spawns at a seeded portal on the side hot when the wave starts (the first pulse's).
 - **Seeded:** each run has a random seed, so runs vary but any run can be reproduced exactly for
   debugging: the seed reproduces the waves (portals and hot sides included) and card offers, and the
   seed plus a recorded input log replays the whole run (§15.3, §15.9).
@@ -1063,8 +1074,8 @@ walker mech with a glowing core in its chest (§2.1); its art is in §9.6.
     enemies coming at them.
   - **Mid-wave shifts** happen at 1/2 of the wave's duration (one shift) or at 1/3 and 2/3 (two
     shifts), always to a different side, seeded (`waves:<n>`).
-  - **Per spawn group** (waves 12–15): each group rolls its own hot side, never the same side twice in
-    a row, so attacks come from every side, each one focused.
+  - **Per spawn group** (waves 12–15): each spawn pulse (§9.3) rolls its own hot side, never the same
+    side twice in a row, so attacks come from every side, each one focused.
   - Boss waves 5 and 10: the boss's side is the hot side for the whole wave.
 - **Portal flare:** a portal flares for about 1 s just before it spawns a group (§3.1). It shows where
   something is about to appear, never the wave's pattern.
@@ -1308,7 +1319,9 @@ The build phase has two phone screens in order, then Ready:
 - **No builds are placed in the build phase.** The build phase is cards, shopping and moving.
 - **Timer:** a **20 s cap,** ending early when every connected player is Ready. A card not confirmed by
   the deadline is picked at random for that player (seeded, §15.3).
-- A player can tap Ready before confirming a card; the pick is still made at the deadline.
+- A player can tap Ready before confirming a card; the pick is still made at the deadline. The phase's
+  end is the deadline either way: when everyone is Ready early, cards not confirmed are picked then
+  (RD3, §15.11 #112).
 
 ### 10.3 Shop screen (build phase)
 
@@ -2093,7 +2106,11 @@ interface BossBehavior {
   `buildHit { build }`, `buildGone { build; kind; destroyed: boolean }`, `mineTrigger { build }`,
   `mineBurst { build }`, `recall { slot }`, `portalFlare { portal }`, `bruteTarget { enemy; build }`,
   `huntLock { enemy; slot }`, `reinforce { slot; count }` (count 2 = the "×2"), `growth { slot; boss }`
-  and `cardAuto { slot; card }` (a deadline pick). Later milestones append.
+  and `cardAuto { slot; card }` (a deadline pick). Later milestones append. RD3 appends
+  `buildHp { build; kind; owner; hp; maxHp }`: an HP build's bar data, sent when it lands and with
+  every `buildHit` (mines and the flag never send it). The thrown-build aim preview is
+  `buildPreview(p, content, aim = p.buildAim)` in `sim/preview.ts`: `{ kind, from, landing, radius,
+  range }` (tiles), null when not aiming or for at-feet builds.
 
 ### 15.4 Data and config
 
@@ -2367,6 +2384,8 @@ export interface HarnessDef {
   difficulty: DifficultyId;                         // 'normal'
   seeds: number[];                                  // 5 seeds
   bands: [number, number];                          // ±0.20 and ±0.25 of the mean clear time
+  durationMs?: number;                              // RD3: the groups spread over this long (30 000)
+  capMs?: number;                                   // RD3: longer than this = not cleared (300 000)
 }
 
 export interface Content {
@@ -2406,8 +2425,9 @@ function generateWave<E extends string>(input: {
 }): { atMs: number; lane: string; id: E; count: number; hot?: string }[];
 // Rules with `hot` set (RD3): every pulse uses ≤ activeCap lanes and at least one hot-side lane;
 // the hot side gets `hotShare` of the budget; shifts at 1/2 or 1/3 and 2/3 of `durationMs` to a
-// different side; 'group' rolls a side per group, never the same twice in a row; a guaranteed spawn
-// without `lane` (the boss) goes to a hot-side lane.
+// different side; 'group' rolls a side per pulse, never the same twice in a row. A pulse is up to
+// activeCap groups at one time; a pinned guaranteed spawn keeps its lane. Fort Frenzy spawns the
+// boss itself, at a seeded portal on the first pulse's hot side (§9.3; RD3, #112).
 // systems/cards: one pure function, so a v2 reroll is just another call (§13)
 function pickOffer<C extends { id: string }>(input: {
   pool: readonly C[]; eligible: (c: C) => boolean; isRare: (c: C) => boolean;
@@ -2860,9 +2880,11 @@ export interface RunSnapshot {
 - **Balance harness** (§2's balance rule; a report, never a gate, §15.11 #72):
   `pnpm --filter @pcg/fort-frenzy balance` runs each knight alone (autopilot with its build policy) on
   the `balance.harness` content: the standard wave of 12 Grunts, 4 Runners, 1 Swarm group and 1 Brute
-  from `bottom-w`, solo scaling, Normal, 5 seeds, no cards, meter full. It prints each knight's mean
-  clear time and flags knights outside ±20% and ±25% of the mean of all four. The user sets the values
-  at RC2.
+  from `bottom-w`, solo scaling, Normal, 5 seeds, no cards, meter full. It prints each knight's median,
+  min and max clear time and its median's distance from the mean of all four medians, and flags
+  knights outside ±20% and ±25%. Every knight runs; one without a build policy yet fights without
+  builds (marked in the report). `--quick` runs the first seed only (`src/host/sim/balance/harness.ts`,
+  `scripts/balance.ts`). The user sets the values at RC2.
 - **Unit tests:**
   - wave generator: spends within ±1 of the budget, allowed types only, guaranteed spawns present,
     Flyer substitution, spread across the duration, same seed same wave, scaling; portals: every group
@@ -3066,3 +3088,4 @@ states, then RD0's own.
 | 109 | 2026-11-20 | Respawn at 5–6 players | Base respawn is **15 s** for 5 and 6 players (6 s solo, 10 s for 2–4); the difficulty multiplier and Quick Recovery's floor are unchanged (§5, §9.4) | RC0 checkpoint note (user, RC0, 2026-11-20) |
 | 110 | 2026-11-20 | Stats banners (v2) | v2 note: the end-of-run screen shows every stat for each player in per-player banners, like a fighting-game results screen; v1's summary and award cards are unchanged (§13) | v2 polish; v1 scope stays (user, RC0, 2026-11-20) |
 | 111 | 2026-11-21 | RD2 contract fixes | `SNAPSHOT_VERSION` 3 (RD1 used 2); `Content` keeps arrays and nullable singletons; transitional Commander and passive fields until their kit milestones; the Colossus's Citadel multiplier is a boss param (§15.4, §15.8) | The code's catalog already looks content up by id; the old Commander super and passives keep working until they're replaced (RD2) |
+| 112 | 2026-11-21 | RD3 sim slice | A spawn pulse is up to `players + 1` groups at one time, and "per spawn group" hot sides roll per pulse; the hot/other split is chosen over the whole wave (share closest to 0.55, never under half, a group elsewhere per pulse where the costs allow); the boss spawns on the first pulse's hot side; a thrown build lands at aim × throw range; a card not confirmed when the build phase ends (deadline or everyone Ready) is picked at random; super damage charges the meter (§7.2), never the super; a build without a behavior can't be placed yet; the harness runs every knight (§7.3, §9.3, §9.4, §10.2, §15.3, §15.9) | Simplest readings that meet §9.3's share and cap together; the plan's "super damage charges neither" contradicts §7.2, §8.3 and REDESIGN B2 (RD3) |

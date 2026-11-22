@@ -6,6 +6,7 @@
 // team, cards for classes not on it). A pick adds a stack (×N) and rebuilds that card's modifier:
 // the card's stats (and the commons' per-class numbers) times the stacks, plus its module built with
 // `stacks`. Stats add, never multiply, and caps come from the rules (§6.1 stat math).
+import { rngStream } from '@pcg/game-kit';
 import type { CardDef } from '../../../content/types';
 import type { CardId, EnemyId } from '../../../shared/ids';
 import type { AckReason } from '../../../shared/messages';
@@ -118,6 +119,19 @@ function attachCard(s: FullState, p: PlayerEnt, id: CardId) {
 export function attachAllCards(s: FullState, p: PlayerEnt): void {
   for (const id of Object.keys(p.cards) as CardId[])
     if ((p.cards[id] ?? 0) > 0) attachCard(s, p, id);
+}
+
+/**
+ * The build phase's end (§10.2): every offer not confirmed is picked at random from the seeded
+ * stream `cardPick:<wave>:<slot>`, so the same seed picks the same card (event `cardAuto`).
+ */
+export function autoPickCards(s: FullState): void {
+  const w = s.world;
+  for (const p of w.players) {
+    if (!p.offer || p.offer.length === 0 || p.picked !== null) continue;
+    const card = rngStream(w.seed, `cardPick:${w.wave}:${p.slot}`).pick(p.offer);
+    if (pickCard(s, p, card) === null) s.emit({ e: 'cardAuto', slot: p.slot, card });
+  }
 }
 
 /** The `card` command: a private pick of one card from the player's offer (build phase). */

@@ -1,10 +1,13 @@
 // Step 3 (SPEC §15.3): players — respawn, movement, attacks and supers (fire on
-// release, a release during the cooldown fires when it ends) and build presses (§10.1).
+// release, a release during the cooldown fires when it ends), build presses (§10.1), the meter's
+// passive fill (combat) and delayed regen (§5: combat and build phase).
 import type { AttackDef, EffectApply, Vec2 } from '../../content/types';
 import { AIM_DEAD_ZONE } from '../../shared/messages';
 import { bodyAimY, circleHitsBody } from './body';
 import { landArc, windupSteps } from './classes/warden';
 import { recallFlag } from './classes/commander';
+import { placeBuild } from './builds/core';
+import { fillMeter } from './builds/meter';
 import { attackShapes } from './classes/shapes';
 import { cleanVec } from './geometry';
 import type { SlotInput } from './internal';
@@ -79,9 +82,26 @@ export function stepPlayers(s: FullState): void {
 
     if (fighting) {
       attacks(s, p, inp);
-      if (inp.build) buildPress(s, p);
+      fillMeter(s, p);
+      if (inp.build) buildPress(s, p, inp);
     } else releaseAttacks(p);
+    if (acting) regen(s, p);
   }
+}
+
+/**
+ * Delayed regen (§5): from `regen.quietUntil` (4 s after the last damage taken) the knight heals
+ * `regen.pct` of max HP every `regen.everyMs` until full. Not a heal: HP is set directly, with no
+ * hooks, charge, stats or event (§15.11 #98). Down or dazed knights don't get here.
+ */
+function regen(s: FullState, p: PlayerEnt) {
+  if (p.hp <= 0 || p.hp >= p.maxHp) return;
+  const t = s.world.tick;
+  const r = p.regen;
+  if (t < r.quietUntil || t < r.nextRegen) return;
+  const rule = s.cat.rules.regen;
+  p.hp = Math.min(p.maxHp, p.hp + p.maxHp * rule.pct);
+  r.nextRegen = t + s.cat.steps(rule.everyMs);
 }
 
 function move(p: PlayerEnt, inp: SlotInput, acting: boolean) {
@@ -193,7 +213,9 @@ function fire(
   for (const f of s.hooks(p, 'onAttack')) f(s, p, atk);
   p.facing = Math.atan2(dy, dx);
   if (!landing) s.emit({ e: 'attack', source: p.id, slot, x: p.x, y: p.y, angle: p.facing });
-  const damage = s.attackStat(p, a.damage, 'damage', slot);
+  // The class's damage band multiplies the knight's main and super (§8.1), under the cards.
+  const band = s.cat.role(s.cat.knight(p.classId).role).damage;
+  const damage = s.attackStat(p, a.damage * band, 'damage', slot);
 
   if (a.shape === 'circle') {
     circle(s, p, a, slot, damage, atk);
@@ -295,9 +317,10 @@ function circle(
 
 /**
  * A build press (§15.3, §15.11 #97), resolved from the state at this step: with the meter full the
- * knight places or throws its build (RD3); else a Commander with a flag out recalls it; else nothing.
+ * knight places or throws its build toward the build aim (0,0 = at his feet; builds/core.ts); else a
+ * Commander with a flag out recalls it; else nothing.
  */
-function buildPress(s: FullState, p: PlayerEnt) {
-  if (p.meter >= 1) return; // RD3: place or throw the knight's build
-  if (p.classId === 'commander' && p.flag !== null) recallFlag(s, p);
+function buildPress(s: FullState, p: PlayerEnt, inp: SlotInput) {
+  if (p.meter >= 1 && placeBuild(s, p, inp.input.buildAim)) return;
+  if (p.classId === 'commander' && p.flag !== null && p.meter < 1) recallFlag(s, p);
 }

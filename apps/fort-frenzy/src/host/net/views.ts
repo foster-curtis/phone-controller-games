@@ -13,7 +13,7 @@ import {
   type TeamView,
 } from '../../shared/messages';
 import type { Member, Party } from '../party';
-import { itemState } from '../sim';
+import { canPlace, itemState } from '../sim';
 import { STEP_MS, type PlayerEnt, type RunSettings, type World } from '../sim/types';
 
 export type FfParty = Party<PlayerColorId, ClassId>;
@@ -137,7 +137,9 @@ export function buildFor(content: Content, w: World, p: PlayerEnt): MeBuild {
   const id: BuildId = knight?.build ?? 'shield_gen';
   const b = { id, input: knight?.input.build ?? 'tap', icon: BUILD_ICON[id] };
   const full = p.meter >= 1;
+  // A build without a behavior yet can't be placed (sim/builds; its kit milestone adds it).
   const able = w.phase === 'combat' && p.respawnAt === null && p.connected;
+  const placeable = full && canPlace(id);
   const recall = !full && p.classId === 'commander' && p.flag !== null;
   return {
     id: b.id,
@@ -145,7 +147,7 @@ export function buildFor(content: Content, w: World, p: PlayerEnt): MeBuild {
     icon: recall ? 'act-recall' : b.icon,
     meter: Math.min(1, Math.max(0, Math.round(p.meter * 100) / 100)),
     full,
-    mode: !able ? 'none' : full ? 'place' : recall ? 'recall' : 'none',
+    mode: !able ? 'none' : placeable ? 'place' : recall ? 'recall' : 'none',
     active: w.builds.filter((x) => x.owner === p.slot).length,
   };
 }

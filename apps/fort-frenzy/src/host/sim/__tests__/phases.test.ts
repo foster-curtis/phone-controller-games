@@ -1,5 +1,7 @@
-// Run phases (SPEC §4, §9.3, §9.4, §10.2, §15.3 step 10): countdown, build (ready + 45 s cap), combat
+// Run phases (SPEC §4, §9.3, §9.4, §10.2, §15.3 step 10): countdown, build (ready + 20 s cap, the
+// random card pick at its end), combat
 // (spawner, warnings, scaling), wave clear, victory, defeat, summary.
+import { rngStream } from '@pcg/game-kit';
 import { describe, expect, it } from 'vitest';
 import { rules, waves } from '../../../content/balance';
 import { PORTAL_IDS } from '../../../shared/ids';
@@ -47,13 +49,56 @@ describe('countdown and build', () => {
     expect(h.events('command')[0]).toMatchObject({ ok: false, reason: 'phase' });
   });
 
-  it('the 45 s cap starts the wave without everyone ready', () => {
+  it('the 20 s cap starts the wave without everyone ready', () => {
+    expect(rules.buildCapMs).toBe(20_000);
     const h = harness(2);
     h.toBuild();
     const start = h.sim.world.tick;
     h.sim.command({ c: 'ready', slot: 0, ready: true });
     h.until(() => h.sim.world.phase === 'combat', steps(rules.buildCapMs) + 5);
     expect(h.sim.world.tick - 1 - start).toBe(steps(rules.buildCapMs) - 1);
+  });
+
+  it('at the deadline a card not confirmed is picked from cardPick:<wave>:<slot> (§10.2)', () => {
+    const run = (seed: number) => {
+      const h = harness(3, seed);
+      h.toBuild();
+      const offers = h.sim.world.players.map((p) => [...p.offer!]);
+      // Slot 0 confirms; slot 1 is Ready without a card; slot 2 does nothing.
+      h.sim.command({ c: 'card', slot: 0, card: offers[0]![2]! });
+      h.sim.command({ c: 'ready', slot: 1, ready: true });
+      const autos: { slot: number; card: string }[] = [];
+      for (let i = 0; i < steps(rules.buildCapMs) + 5 && h.sim.world.phase === 'build'; i++) {
+        h.sim.step();
+        for (const e of h.events('cardAuto')) autos.push({ slot: e.slot, card: e.card });
+      }
+      expect(h.sim.world.phase).toBe('combat');
+      return { h, offers, autos, cards: h.sim.world.players.map((p) => ({ ...p.cards })) };
+    };
+    const a = run(4);
+    expect(a.autos.map((x) => x.slot)).toEqual([1, 2]);
+    for (const x of a.autos) {
+      const want = rngStream(4, `cardPick:1:${x.slot}`).pick(a.offers[x.slot]!);
+      expect(x.card).toBe(want);
+      expect(a.cards[x.slot]).toEqual({ [want]: 1 });
+    }
+    expect(a.cards[0]).toEqual({ [a.offers[0]![2]!]: 1 });
+    // The same seed picks the same cards.
+    const b = run(4);
+    expect(b.autos).toEqual(a.autos);
+    expect(b.cards).toEqual(a.cards);
+  });
+
+  it('everyone Ready ends the phase early; unconfirmed cards are still picked', () => {
+    const h = harness(2, 6);
+    h.toBuild();
+    const start = h.sim.world.tick;
+    for (const p of h.sim.world.players) h.sim.command({ c: 'ready', slot: p.slot, ready: true });
+    const autos = h.collect('cardAuto', 2);
+    expect(h.sim.world.phase).toBe('combat');
+    expect(h.sim.world.tick - start).toBeLessThan(5);
+    expect(autos.map((e) => e.slot)).toEqual([0, 1]);
+    for (const p of h.sim.world.players) expect(Object.keys(p.cards)).toHaveLength(1);
   });
 });
 
@@ -77,7 +122,7 @@ describe('combat: spawner, warnings, scaling', () => {
       expect(spawns.some((x) => x.portal === fl.portal && x.at === fl.at + lead)).toBe(true);
     }
     for (const x of spawns) expect(PORTAL_IDS).toContain(x.portal);
-    // Round-robin over every portal (wave 1 has more groups than portals).
+    // Spawn pulses spread over every portal (each pulse up to players + 1 of them, §9.3).
     expect(new Set(spawns.map((x) => x.portal)).size).toBe(PORTAL_IDS.length);
   });
 

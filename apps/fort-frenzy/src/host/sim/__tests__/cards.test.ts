@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   cards as cardDefs,
+  classes,
   ranger,
   flyer,
   artificer,
@@ -18,6 +19,8 @@ import type { PlayerEnt } from '../types';
 
 const steps = (ms: number) => Math.max(1, Math.round((ms * 60) / 1000));
 const COOLDOWN = steps(ranger.main.cooldownMs) + 2;
+/** The Ranger's longbow after the marksman's damage band (§8.1). */
+const RANGER_MAIN = ranger.main.damage * classes.find((c) => c.id === 'marksman')!.damage;
 
 type Pick = [slot: number, card: CardId, n?: number];
 
@@ -160,14 +163,12 @@ describe('shared commons (numbers per class)', () => {
     expect(h.p(0).stats.damageReduction).toBeCloseTo(0.4, 6);
   });
 
-  it('quick_recovery takes at most 5 s off the respawn', () => {
+  it('quick_recovery takes 2 s a stack off the respawn stat (the floors: scaling.test)', () => {
     const h = harness(1, 1, { classes: ['ranger'] });
     h.toBuild();
     const base = h.p(0).stats.respawnMs;
     h.give(0, 'quick_recovery', 2);
     expect(h.p(0).stats.respawnMs).toBe(base - 4000);
-    h.give(0, 'quick_recovery', 6);
-    expect(h.p(0).stats.respawnMs).toBe(base - 5000);
   });
 });
 
@@ -207,7 +208,7 @@ describe('ranger cards', () => {
     h.run(30);
     expect(effectOf(e, 'burn')).toBeDefined();
     const afterHit = e.hp;
-    expect(afterHit).toBe(e.maxHp - ranger.main.damage);
+    expect(afterHit).toBe(e.maxHp - RANGER_MAIN);
     h.run(90);
     expect(e.hp).toBeLessThan(afterHit);
   });
@@ -240,7 +241,7 @@ describe('ranger cards', () => {
       return f.maxHp - f.hp;
     };
     const base = dealt([]);
-    expect(base).toBe(ranger.main.damage);
+    expect(base).toBe(RANGER_MAIN);
     expect(dealt([[0, 'skyhunter']])).toBeCloseTo(base * 1.5, 6);
   });
 
@@ -260,8 +261,8 @@ describe('ranger cards', () => {
       h.run(30);
       return e.maxHp - e.hp;
     };
-    expect(dealt([])).toBe(ranger.main.damage);
-    expect(dealt([[0, 'deadeye']])).toBeCloseTo(ranger.main.damage * 1.25, 6);
+    expect(dealt([])).toBe(RANGER_MAIN);
+    expect(dealt([[0, 'deadeye']])).toBeCloseTo(RANGER_MAIN * 1.25, 6);
   });
 
   it('volley: every 4th main shot fires 3 bolts', () => {
@@ -424,6 +425,7 @@ describe('artificer cards', () => {
       h.put(0, 10, 16);
       h.put(1, 13.1, 16);
       h.p(1).hp = 50;
+      h.p(1).regen.quietUntil = 1e9; // only Field Medic heals (no delayed regen, §5)
       h.run(MEDIC);
       return h.p(1).hp - 50;
     };
@@ -441,6 +443,7 @@ describe('artificer cards', () => {
       h.put(0, 10, 16);
       h.put(1, 11, 16);
       h.p(1).hp = hp;
+      h.p(1).regen.quietUntil = 1e9; // only Field Medic heals (no delayed regen, §5)
       h.run(MEDIC);
       return h.p(1).hp - hp;
     };

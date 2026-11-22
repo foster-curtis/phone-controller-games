@@ -258,7 +258,10 @@ describe('Colossus stagger', () => {
     const h = waveCombat(5, { classes: ['warden'], invincible: true });
     h.sim.world.spawns.length = 0;
     const b = h.sim.spawnEnemy('colossus', 18, 12);
-    const stomp = content.knights.find((c) => c.id === 'warden')!.super.damage;
+    // The jump slam after the tank's damage band (§8.1).
+    const stomp =
+      content.knights.find((c) => c.id === 'warden')!.super.damage *
+      content.classes.find((c) => c.id === 'tank')!.damage;
     const on: boolean[] = [];
     const hits = { staggered: new Set<number>(), standing: new Set<number>() };
     for (let i = 0; i < 60 * 60; i++) {
@@ -294,7 +297,10 @@ describe('Colossus stagger', () => {
 
   it('just back on its feet it ignores stuns for stunImmuneMs, then counts them again', () => {
     const { h, b } = lone(5, 18, 12, { classes: ['warden'], invincible: true });
-    const stomp = content.knights.find((c) => c.id === 'warden')!.super.damage;
+    // The jump slam after the tank's damage band (§8.1).
+    const stomp =
+      content.knights.find((c) => c.id === 'warden')!.super.damage *
+      content.classes.find((c) => c.id === 'tank')!.damage;
     /** One stomp from beside it; returns how much the stun (not the damage) filled the meter. */
     const stompOnce = (): number => {
       const before = b.boss!.stagger;

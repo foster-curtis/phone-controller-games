@@ -2,10 +2,10 @@
 // wave spawner with portal flares `rules.flareMs` ahead, and the phase checks: wave cleared, base
 // destroyed, build timer and ready-up. Also the phase transitions the commands reuse.
 import { tickEffects } from '../systems/effects';
-import { PORTAL_IDS, type PortalId } from '../../shared/ids';
+import { PORTAL_IDS, SIDE_IDS, type PortalId, type SideId } from '../../shared/ids';
 import { generateWave, waveRng } from '../systems/waves';
 import { bossSpawn, collapseAfterBoss } from './boss';
-import { closeOffers, dealOffers } from './cards';
+import { autoPickCards, closeOffers, dealOffers } from './cards';
 import { clearWishlist } from './shop';
 import { releaseAll, respawn } from './players';
 import { effects as effectDefs } from './registry';
@@ -107,7 +107,7 @@ export function stepDeaths(s: FullState): void {
     const killerId = s.killers.get(p.id) ?? null;
     s.killers.delete(p.id);
     p.hp = 0;
-    p.respawnAt = t + s.cat.steps(p.stats.respawnMs);
+    p.respawnAt = t + s.cat.steps(respawnMs(s, p));
     p.run.deaths++;
     releaseAll(p);
     p.push = null;
@@ -144,6 +144,18 @@ export function stepDeaths(s: FullState): void {
   w.soldiers.length = write;
 }
 
+/**
+ * A knight's respawn time (§5): the player-count table × difficulty (its base stat, set at each wave
+ * start), less Quick Recovery's −2 s a stack, but never under 4 s solo / 5 s otherwise
+ * (`rules.respawnFloorMs`); the floor never raises a respawn that is already shorter.
+ */
+export function respawnMs(s: FullState, p: PlayerEnt): number {
+  const base = s.baseStats.get(p.id)?.respawnMs ?? p.stats.respawnMs;
+  const floors = s.cat.rules.respawnFloorMs;
+  const floor = s.world.team.scaling.players <= 1 ? floors.solo : floors.team;
+  return Math.max(p.stats.respawnMs, Math.min(base, floor));
+}
+
 // ---- step 9: spawner ------------------------------------------------------------------------------
 
 export function stepSpawner(s: FullState): void {
@@ -152,11 +164,15 @@ export function stepSpawner(s: FullState): void {
   const t = w.tick;
   const flare = s.cat.steps(s.cat.rules.flareMs);
   let write = 0;
+  const flared: PortalId[] = [];
   for (const g of w.spawns) {
-    // The portal flares about 1 s before it spawns a group (§3.1, §9.4).
+    // The portal flares about 1 s before it spawns a group (§3.1, §9.4); once per portal a step.
     if (!g.flared && t >= g.atTick - flare) {
       g.flared = true;
-      s.emit({ e: 'portalFlare', portal: g.portal });
+      if (!flared.includes(g.portal)) {
+        flared.push(g.portal);
+        s.emit({ e: 'portalFlare', portal: g.portal });
+      }
     }
     if (t < g.atTick) {
       w.spawns[write++] = g;
@@ -215,7 +231,7 @@ function setPhase(s: FullState, phase: Phase, endsIn: number | null) {
   s.emit({ e: 'phase', phase, wave: w.wave });
 }
 
-/** The build phase before wave `n`: the dead respawn at once (§5), 45 s cap (§10.2). */
+/** The build phase before wave `n`: the dead respawn at once (§5), the 20 s cap (§10.2). */
 export function startBuild(s: FullState, n: number): void {
   const w = s.world;
   w.wave = n;
@@ -269,8 +285,11 @@ export function startCombat(s: FullState): void {
     });
     const ground = def.allowed.filter((id) => !cat.enemy(id).flying);
     const rng = waveRng(w.seed, w.wave);
-    // Every portal is live from wave 1; groups are dealt round-robin over all six (RD3 adds the hot
-    // side, the active-portal cap and the hot share).
+    // Every portal is live from wave 1; groups spawn in pulses over at most `players + 1` portals,
+    // each pulse with a hot side that gets the hot share (§9.3, §9.4; systems/waves `hotPulses`).
+    const portals = cat.map.portals;
+    const sides: Record<string, string> = {};
+    for (const id of PORTAL_IDS) sides[id] = portals[id].side;
     const groups = generateWave({
       budget: def.budget * w.team.scaling.budget * cat.difficulty.budget,
       pool,
@@ -279,6 +298,10 @@ export function startCombat(s: FullState): void {
       durationMs: def.durationMs,
       substitute: ranged ? undefined : { flyer: ground },
       rng,
+      sides,
+      hot: def.hot,
+      hotShare: cat.rules.hot.share,
+      activeCap: w.team.scaling.activeCap,
     });
     // Every group spawns after its portal has flared (§9.4).
     const lead = cat.steps(cat.rules.flareMs);
@@ -288,13 +311,21 @@ export function startCombat(s: FullState): void {
         portal: g.lane as PortalId,
         enemy: g.id,
         count: g.count,
-        hot: null,
+        hot: (g.hot as SideId | undefined) ?? null,
         flared: false,
       });
     }
-    // A boss wave's boss walks in first, from a seeded portal (§9.2, §9.3).
-    const boss = bossSpawn(def, w.tick + lead, rng.pick(PORTAL_IDS));
-    if (boss) w.spawns.push(boss);
+    // A boss wave's boss walks in first, from a seeded portal on the side hot at the start (§9.2,
+    // §9.3: on boss waves 5 and 10 the boss's side is hot for the whole wave).
+    if (def.boss) {
+      const side = (groups[0]?.hot as SideId | undefined) ?? rng.pick(SIDE_IDS);
+      const onSide = PORTAL_IDS.filter((id) => portals[id].side === side);
+      const boss = bossSpawn(def, w.tick + lead, rng.pick(onSide.length > 0 ? onSide : PORTAL_IDS));
+      if (boss) {
+        boss.hot = side;
+        w.spawns.push(boss);
+      }
+    }
   }
   // The Hunters' sentry threat picks up range upgrades bought in the build (FF10-fix-1).
   s.repriceHunters();
@@ -336,7 +367,11 @@ export function stepPhases(s: FullState): void {
     case 'build': {
       const present = w.players.filter((p) => p.connected);
       const allReady = present.length > 0 && present.every((p) => p.ready);
-      if (allReady || (w.phaseEndsAt !== null && t >= w.phaseEndsAt)) startCombat(s);
+      if (allReady || (w.phaseEndsAt !== null && t >= w.phaseEndsAt)) {
+        // A card not confirmed when the phase ends is picked at random (§10.2).
+        autoPickCards(s);
+        startCombat(s);
+      }
       return;
     }
     case 'combat':

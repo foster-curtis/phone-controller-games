@@ -5,6 +5,7 @@ import { content as defaultContent, type Content } from '../../content';
 import type { BuildId, EnemyId } from '../../shared/ids';
 import { createCatalog } from './catalog';
 import { stepSquads } from './squad';
+import { stepBuilds } from './builds/core';
 import { stepArchers, stepMarkers, stepProjectiles } from './combat';
 import { applyCommands } from './commands';
 import { stepDeaths, stepEffects, stepPhases, stepSpawner } from './lifecycle';
@@ -125,6 +126,8 @@ export function createSim(start: RunStart, opts: SimOptions = {}): Sim {
     // 3. players: movement, attacks and supers, build presses
     rebuildSpatial(s);
     stepPlayers(s);
+    // Builds: flights land, switch-on, effects in combat (the shield generator's guard)
+    stepBuilds(s);
     // 4. AI: enemies (the boss module included), then the sentries
     if (w.phase === 'combat') {
       stepEnemies(s);

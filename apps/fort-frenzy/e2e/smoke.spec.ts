@@ -77,7 +77,7 @@ test('lobby → class select → start → shop → combat to wave 2', async ({ 
   for (const p of [ann, bob]) await p.page.locator('.screen.build .ready').click();
   await stepUntil(host, { phase: 'combat', wave: 1 }, 1);
   await expect(ann.page.locator('.screen.combat')).toBeVisible();
-  // The old action button is the build button now: there, dimmed (meters stay empty until RD3).
+  // The build button: there, dimmed (the Ranger's mines can't be placed until RD7).
   await expect(ann.page.locator('.screen.combat .round-btn.action')).toBeVisible();
   const combatCoins = (await stats(host)).coins;
 

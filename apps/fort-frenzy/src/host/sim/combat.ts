@@ -2,6 +2,7 @@
 // Every hit goes through `applyDamage`. Our shots hit enemy bodies (body.ts, C4); theirs hit feet
 // circles. Nothing blocks shots (§15.3).
 import { bodyAimY, segmentHitsBody } from './body';
+import { buildTargetable } from './builds/core';
 import { rectDist } from './geometry';
 import type { FullState } from './state';
 import {
@@ -11,6 +12,7 @@ import {
   type EntityId,
   type PlayerEnt,
   type ProjectileEnt,
+  type BuildEnt,
   type Unit,
 } from './types';
 
@@ -77,6 +79,8 @@ function hittable(s: FullState, p: ProjectileEnt, id: number): Unit | null {
     return u;
   }
   if (kind === 'player') return s.targetable(u as PlayerEnt) ? u : null;
+  // HP builds take enemy shots like a knight (§7.3).
+  if (kind === 'build') return buildTargetable(u as BuildEnt) ? u : null;
   return kind === 'soldier' ? u : null;
 }
 

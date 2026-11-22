@@ -3,6 +3,7 @@
 // more slowly than damage does; the super's own healing never charges it (only this module charges
 // from heals). Ticks on whole-second step multiples, so it needs no state.
 import { dist } from '../geometry';
+import { chargeMeter } from '../builds/meter';
 import { num } from '../cards/common';
 import { state } from '../internal';
 import type { ModuleDef, PlayerEnt } from '../types';
@@ -33,6 +34,8 @@ export const fieldMedic: ModuleDef = {
             if (dist(p.x, p.y, q.x, q.y) > r + q.r) continue;
             healed += ctx.heal(q.id, amount, p.id).healed;
           }
+          // Healing outside his super and build charges the meter too (§7.2, RD3).
+          chargeMeter(s, p, healed, 'healing');
           if (healed > 0 && p.superCharge < 1) {
             p.superCharge = Math.min(1, p.superCharge + healed * chargeRate);
             if (p.superCharge >= 1) ctx.emit({ e: 'superReady', slot: p.slot });

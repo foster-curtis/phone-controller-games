@@ -124,7 +124,7 @@ describe('ready and start', () => {
     expect(p.member('p1')!.ready).toBe(true);
   });
 
-  it('auto-starts when every connected player is ready (at least 2)', () => {
+  it('auto-starts when every connected player is ready', () => {
     const p = filled(3);
     expect(p.canAutoStart()).toBe(false);
     p.setReady('p1', true);
@@ -135,17 +135,35 @@ describe('ready and start', () => {
     p.setReady('p3', false);
     p.disconnect('p3'); // a dropped phone doesn't hold the lobby
     expect(p.canAutoStart()).toBe(true);
-    const solo = filled(1, { ready: true });
-    expect(solo.canAutoStart()).toBe(false);
   });
 
-  it('the leader can force-start once 2 players are ready', () => {
+  it('solo (§11.1, RD3): one Ready player auto-starts; the leader starts alone', () => {
+    const solo = filled(1);
+    expect(solo.canAutoStart()).toBe(false);
+    expect(solo.canForceStart('p1')).toEqual({ ok: false, reason: 'invalid' });
+    solo.setReady('p1', true);
+    expect(solo.canAutoStart()).toBe(true);
+    expect(solo.canForceStart('p1')).toEqual({ ok: true });
+    const r = solo.startRun();
+    expect(r.ok && r.slots).toHaveLength(1);
+  });
+
+  it('the leader can force-start once one player is ready (himself or another)', () => {
     const p = filled(4);
-    p.setReady('p2', true);
     expect(p.canForceStart('p1')).toEqual({ ok: false, reason: 'invalid' });
-    p.setReady('p3', true);
+    p.setReady('p2', true);
     expect(p.canForceStart('p1')).toEqual({ ok: true });
     expect(p.canForceStart('p2')).toEqual({ ok: false, reason: 'notLeader' });
+  });
+
+  it('a game may still ask for more players (minPlayers option)', () => {
+    const p = createParty<Color, Cls>({ colors: COLORS, maxPlayers: 6, minPlayers: 2 });
+    p.connect({ playerId: 'p1' });
+    p.setName('p1', 'A');
+    p.setClass('p1', 'ranger');
+    p.setReady('p1', true);
+    expect(p.canAutoStart()).toBe(false);
+    expect(p.canForceStart('p1')).toEqual({ ok: false, reason: 'invalid' });
   });
 
   it('starts a run with a slot per named player with a class, in join order', () => {

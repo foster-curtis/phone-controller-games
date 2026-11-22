@@ -53,8 +53,8 @@ export const rules = {
   startCoins: 6,
   coinRate: 1,
   countdownMs: 3000,
-  // RD3 sets the redesign's 20 s cap with the random card pick.
-  buildCapMs: 45_000,
+  // 20 s; a card not confirmed by then is picked at random (§10.2).
+  buildCapMs: 20_000,
   victoryMs: 5000,
   defeatMs: 4000,
   flareMs: 1000,
@@ -62,6 +62,7 @@ export const rules = {
   // HP tiers multiply it (classes): tank 176, marksman 88, support 99, control 110.
   knightHp: 110,
   regen: { delayMs: 4000, pct: 0.08, everyMs: 1000 },
+  // Quick Recovery's −2 s a stack never takes a respawn below these (§5).
   respawnFloorMs: { solo: 4000, team: 5000 },
   hot: { share: 0.55 },
   // In front of the gate.
@@ -77,8 +78,6 @@ export const rules = {
     range: { pctMax: 0.4 },
     moveSpeed: { pctMax: 0.4 },
     damageReduction: { addMax: 0.4 },
-    // Quick Recovery: −2 s a stack, at most −5 s (RD3 adds the 4 s / 5 s floors, §5).
-    respawnMs: { addMin: -5000 },
     // Deadeye's shorter Steady Aim wait never drops below a fifth of it.
     durationMs: { pctMin: -0.8 },
   },
@@ -133,8 +132,8 @@ export const scaling: PlayerCountRow[] = [
 ];
 
 // ==== Classes ====================================================================================
-// The classes (SPEC §8.1): HP tier (× rules.knightHp) and damage band (RD3 applies it); class growth
-// per wave cleared comes with RD11.
+// The classes (SPEC §8.1): HP tier (× rules.knightHp) and damage band (× the knight's main and super
+// damage, applied when they fire); class growth per wave cleared comes with RD11.
 
 export const classes: ClassDef[] = [
   { id: 'tank', hp: 1.6, damage: 0.9, growth: { regular: [], boss: [] } },
@@ -144,8 +143,9 @@ export const classes: ClassDef[] = [
 ];
 
 // ==== Knights =====================================================================================
-// The knights (SPEC §8.2, §10.1 input table). Starting values for playtesting (§14). Meters stay empty
-// until RD3 fills them (`meter`); each knight's kit milestone retunes its own section.
+// The knights (SPEC §8.2, §10.1 input table). Starting values for playtesting (§14). Meters start the
+// run full (§7.2); the Warden's fill rates are set (RD3), the others' with their builds (RD7–RD9).
+// Each knight's kit milestone retunes its own section.
 
 export const ranger = {
   id: 'ranger',
@@ -301,11 +301,13 @@ export const warden = {
     knockback: 0.5,
     hitsFlyers: false,
   },
+  // Jump slam (§8.2, RD3): an airborne wind-up, then an arc as wide as the slam's but longer, with
+  // less damage, that stuns.
   super: {
     shape: 'arc',
     damage: 25,
     range: 4.7,
-    arcDeg: 85,
+    arcDeg: 102,
     cooldownMs: 600,
     windupMs: 320,
     hitsFlyers: false,
@@ -316,7 +318,8 @@ export const warden = {
   hitsFlyers: false,
   /** ~185 damage fills it (160 before FF11-fix-1): the slam hits groups, so the stomp comes round often. */
   superCharge: { perDamage: 0.0054 },
-  meter: { perSec: 0, perPoint: 0, sources: ['damage'] },
+  // A full meter in 45 s alone, or from about 500 damage (RD3 starting values).
+  meter: { perSec: 1 / 45, perPoint: 0.002, sources: ['damage'] },
   passiveCard: 'challenger',
 } satisfies KnightDef;
 
@@ -336,6 +339,8 @@ export const shieldGen = {
   traits: { targetable: true, dealsDamage: false, hidden: false },
   armMs: 400,
   guard: 0.3,
+  // The guard aura lasts this long past each combat step's re-application (§7.4).
+  module: { module: 'shield_gen', params: { auraMs: 100 } },
 } satisfies BuildDef;
 
 export const mine = {
@@ -1164,4 +1169,8 @@ export const harness = {
   difficulty: 'normal',
   seeds: [1, 2, 3, 4, 5],
   bands: [0.2, 0.25],
+  // The wave's groups spread over this long (as wave 1); a knight that hasn't cleared it in
+  // `capMs` is reported as not clearing.
+  durationMs: 30_000,
+  capMs: 300_000,
 } satisfies HarnessDef;

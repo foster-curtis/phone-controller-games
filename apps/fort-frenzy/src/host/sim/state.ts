@@ -10,6 +10,9 @@ import { buildField, IMPASSABLE } from '../systems/flowfield';
 import { hookList } from '../systems/modifiers';
 import type { Catalog } from './catalog';
 import { absorbShield } from './cards/effects';
+import { buildDamaged } from './builds/core';
+import { chargeMeter } from './builds/meter';
+import { guardOf } from './builds/shieldGen';
 import type { FireSpec, Rect, SimState, SlotInput, UnitKind } from './internal';
 import { bossMk } from './boss';
 import { bosses, effects as effectDefs, modules } from './registry';
@@ -265,7 +268,8 @@ export function createState(start: RunStart, cat: Catalog): FullState {
   function addPlayer(slot: RunSlot): PlayerEnt {
     const def = cat.knight(slot.classId);
     const at = respawnPoint(slot.slot);
-    // HP tier × the baseline knight HP (§8.1); the damage band comes with RD3.
+    // HP tier × the baseline knight HP (§8.1); the damage band multiplies the main and super when
+    // they fire (players.ts `fire`).
     const hp = rules.knightHp * cat.role(def.role).hp;
     // The player-count table's respawn × difficulty (§5), refreshed at every wave start.
     const respawnMs =
@@ -302,8 +306,8 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       connected: slot.connected,
       respawnAt: null,
       superCharge: 0,
-      // Meters exist and stay empty until RD3 fills them (§7.2 starts the run full then).
-      meter: 0,
+      // The meter starts the run full (§7.2), late joiners too (plan §8).
+      meter: 1,
       main: newAttack(),
       super: newAttack(),
       build: newAttack(),
@@ -592,6 +596,11 @@ export function createState(start: RunStart, cat: Catalog): FullState {
           for (const f of ctx.hooks(target, 'modifyIncoming')) f(ctx, target, c as DamageCalc);
           const dr = target.stats.damageReduction;
           if (dr > 0) c.amount = reduceBy(c.amount, dr);
+          // The shield generator's `guard` (strongest wins), after and outside the card cap (§7.4).
+          if (target.effects.length > 0) {
+            const g = guardOf(target.effects);
+            if (g > 0) c.amount = reduceBy(c.amount, g);
+          }
         },
         // Stage 5: the Overflow shield (FF12).
         absorb: (_c, amount) => (target.effects.length > 0 ? absorbShield(target, amount) : 0),
@@ -684,8 +693,19 @@ export function createState(start: RunStart, cat: Catalog): FullState {
         p.superCharge = Math.min(1, p.superCharge + r.dealt * p.stats.superCharge);
         if (p.superCharge >= 1) ctx.emit({ e: 'superReady', slot: p.slot });
       }
+      // The build meter (§7.2): the knight's own main and super damage, never his build's.
+      if (!r.tags.includes('build')) chargeMeter(ctx, p, r.dealt, 'damage');
     }
-    if (tkind === 'player') (target as PlayerEnt).run.damageTaken += r.dealt;
+    if (tkind === 'player') {
+      const p = target as PlayerEnt;
+      p.run.damageTaken += r.dealt;
+      // Regen waits `regen.delayMs` after any damage taken (§5), its first tick then.
+      if (r.dealt > 0 || r.absorbed > 0) {
+        p.regen.quietUntil = world.tick + cat.steps(rules.regen.delayMs);
+        p.regen.nextRegen = p.regen.quietUntil;
+      }
+    }
+    if (tkind === 'build' && r.dealt > 0) buildDamaged(ctx, target as BuildEnt);
     // The boss's stagger meter (§9.2, pipeline stage 7) and the summary's boss damage (FF11).
     const boss = tkind === 'enemy' ? (target as EnemyEnt) : null;
     if (boss?.boss) {

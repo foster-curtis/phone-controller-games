@@ -431,4 +431,8 @@ export interface HarnessDef {
   seeds: number[];
   /** ±0.20 and ±0.25 of the mean clear time. */
   bands: [number, number];
+  /** RD3: the wave's groups spread over this long (ms). */
+  durationMs?: number;
+  /** RD3: a run longer than this (ms of combat) is reported as not clearing. */
+  capMs?: number;
 }

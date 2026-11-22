@@ -2,6 +2,7 @@
 // fresh-or-neutral (latest phone sample with the §11.4 staleness rule), replay (recorded samples) and
 // autopilot (soak, benchmark, the seed of v2 solo bots).
 import { content as defaultContent, type Content } from '../../content';
+import { buildPolicies } from './autopilot/builds';
 import { dist } from './geometry';
 import { neutralInput } from './state';
 import type { InputSource, PlayerEnt, PlayerInput, World } from './types';
@@ -102,7 +103,7 @@ export class ReplayInputSource implements InputSource {
 /**
  * Plays a knight headless (§15.9): walk toward the nearest enemy, fire on cooldown, fall back toward
  * the base when hurt, wait near the base in the build phase. Deterministic: reads only the world and
- * its own counters. RD3 adds the per-knight build policy (`autopilot/builds.ts`).
+ * its own counters. Builds follow the knight's policy (`autopilot/builds.ts`; none = no builds).
  */
 export class AutopilotInputSource implements InputSource {
   private counters = { mainFires: 0, superFires: 0, buildFires: 0 };
@@ -168,6 +169,15 @@ export class AutopilotInputSource implements InputSource {
       tap('mainFires');
     }
     if (p.superCharge >= 1 && nd < 2.5) tap('superFires');
+    const policy = buildPolicies[def.id];
+    const build = this.content.builds.find((b) => b.id === def.build);
+    if (policy && build) {
+      const press = policy({ world: w, self: p, knight: def, build, nearest, nearestDist: nd });
+      if (press) {
+        out.buildAim = press.aim;
+        tap('buildFires');
+      }
+    }
     return out;
   }
 }

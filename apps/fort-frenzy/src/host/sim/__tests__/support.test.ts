@@ -66,8 +66,10 @@ function mixed(classes: ClassId[], content: Content = baseContent) {
   return h;
 }
 
+/** Sets HP as if just hit, with delayed regen (§5) held off, so only the heals under test count. */
 const hurt = (p: PlayerEnt, hp: number) => {
   p.hp = hp;
+  p.regen.quietUntil = p.regen.nextRegen = 1e9;
 };
 
 describe('Field Medic (§8)', () => {

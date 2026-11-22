@@ -2,9 +2,11 @@
 // wind-up), the aimed stomp (longer arc, damage and a brief stun), and Mason (walls near him repair in
 // combat only, §5).
 import { describe, expect, it } from 'vitest';
-import { warden } from '../../../content/balance';
+import { classes, warden } from '../../../content/balance';
 import { harness } from './harness';
 
+// The tank's damage band multiplies the slam and the jump slam (§8.1).
+const TANK = classes.find((c) => c.id === 'tank')!.damage;
 const steps = (ms: number) => Math.max(1, Math.round((ms * 60) / 1000));
 
 function combat() {
@@ -36,10 +38,10 @@ describe('Warden slam', () => {
     for (const e of front) expect(e.hp).toBe(e.maxHp);
     expect(h.p(0).x).toBeCloseTo(10, 1);
     h.run(1);
-    for (const e of front) expect(e.maxHp - e.hp).toBe(warden.main.damage);
+    for (const e of front) expect(e.maxHp - e.hp).toBe(warden.main.damage * TANK);
     expect(behind.hp).toBe(behind.maxHp);
     expect(h.p(0).superCharge).toBeCloseTo(
-      3 * warden.main.damage * warden.superCharge.perDamage,
+      3 * (warden.main.damage * TANK) * warden.superCharge.perDamage,
       6,
     );
   });
@@ -63,7 +65,7 @@ describe('Warden stomp', () => {
     // Plain Grunts: a stun refreshes stats, which resets an inflated max HP.
     const near = h.sim.spawnEnemy('grunt', 12.5, 12);
     // Outside the arc (down, not right); FF7-fix-2's longer stomp reached the old (12.5, 15).
-    const far = h.sim.spawnEnemy('grunt', 12, 16.5);
+    const far = h.sim.spawnEnemy('grunt', 10.5, 17); // RD3: the jump slam is as wide as the slam
     h.pads[0]!.tap('superFires', { superAim: { x: 1, y: 0 } });
     h.run(5);
     expect(near.hp).toBe(near.maxHp);
@@ -73,7 +75,7 @@ describe('Warden stomp', () => {
     expect(h.events('attack')).toEqual([expect.objectContaining({ slot: 'super' })]);
     expect(h.p(0).superCharge).toBe(0);
     h.run(steps(warden.super.windupMs));
-    expect(near.maxHp - near.hp).toBe(warden.super.damage);
+    expect(near.maxHp - near.hp).toBe(warden.super.damage * TANK);
     expect(far.hp).toBe(far.maxHp);
     expect(near.effects.map((e) => e.def)).toContain('stun');
     // Stunned: no walking and no swings.

@@ -1,10 +1,12 @@
 // Combat scenarios: the Ranger's kit (SPEC §8, §10.1), the sentries (§3.5), the
 // Grunt (§9, aggro leash), dazed (§11.3), death and respawn (§5), danger markers, invincible (§9.5).
 import { describe, expect, it } from 'vitest';
-import { base as baseDef, ranger, grunt } from '../../../content/balance';
+import { base as baseDef, classes, ranger, grunt } from '../../../content/balance';
 import { harness } from './harness';
 
-const MAIN = ranger.main.damage;
+// The marksman's damage band multiplies the main and super (§8.1).
+const BAND = classes.find((c) => c.id === 'marksman')!.damage;
+const MAIN = ranger.main.damage * BAND;
 
 function combat(players = 1) {
   const h = harness(players);
@@ -86,8 +88,8 @@ describe('Ranger super', () => {
     const ax = a.x;
     h.pads[0]!.tap('superFires');
     h.run(1);
-    expect(a.hp).toBe(a.maxHp - ranger.super.damage);
-    expect(b.hp).toBe(b.maxHp - ranger.super.damage);
+    expect(a.hp).toBe(a.maxHp - ranger.super.damage * BAND);
+    expect(b.hp).toBe(b.maxHp - ranger.super.damage * BAND);
     expect(out.hp).toBe(out.maxHp);
     expect(h.p(0).superCharge).toBe(0);
     h.run(30);

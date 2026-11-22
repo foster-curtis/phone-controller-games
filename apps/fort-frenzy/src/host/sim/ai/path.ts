@@ -1,12 +1,22 @@
 // `path` AI (SPEC §9 Grunt, §15.5): follow the ground field to the base and attack it; aggro-leash
-// enemies leave the path for a
-// targetable player in the aggro radius, chase up to the leash, then walk back (§9, §11.3).
+// enemies leave the path for a targetable player or HP build (§7.3, RD3: exactly like a knight, the
+// nearest wins, a knight on a tie) in the aggro radius, chase up to the leash, then walk back (§9,
+// §11.3).
 // Melee swings wind up, root the enemy, and land if the target is still in reach.
 import type { EnemyDef } from '../../../content/types';
+import { buildTargetable } from '../builds/core';
 import { dist, rectDist, rectNearest } from '../geometry';
 import { state, type SimState } from '../internal';
 import { steerTile } from '../../systems/flowfield';
-import { BASE_ID, type EnemyEnt, type FlowField, type PlayerEnt, type SimCtx } from '../types';
+import {
+  BASE_ID,
+  type BuildEnt,
+  type EnemyEnt,
+  type FlowField,
+  type PlayerEnt,
+  type SimCtx,
+  type Unit,
+} from '../types';
 
 /** A knockback faster than this (tiles/s) overrides walking. */
 export const KNOCKED = 1;
@@ -37,7 +47,7 @@ export function pathAi(ctx: SimCtx, e: EnemyEnt): void {
   if (def.aggro) leash(s, e, def.aggro);
 
   if (e.ai === 'aggro') {
-    const p = s.units.get(e.target!) as PlayerEnt;
+    const p = s.units.get(e.target!)!;
     const reach = dist(e.x, e.y, p.x, p.y) - e.r - p.r;
     if (reach <= def.attack.range) swing(s, e, def, p.id, p.x, p.y);
     else walkTo(e, p.x, p.y, e.stats.moveSpeed);
@@ -50,11 +60,21 @@ export function pathAi(ctx: SimCtx, e: EnemyEnt): void {
   followPath(s, e, def);
 }
 
+/** A unit an aggro-leash enemy may chase: a targetable knight or HP build (§7.3), else null. */
+export function aggroTarget(s: SimState, id: number | null): Unit | null {
+  if (id === null) return null;
+  const u = s.units.get(id);
+  if (!u) return null;
+  const kind = s.kinds.get(id);
+  if (kind === 'player') return s.targetable(u as PlayerEnt) ? u : null;
+  if (kind === 'build') return buildTargetable(u as BuildEnt) ? u : null;
+  return null;
+}
+
 /** Aggro and leash transitions. */
 export function leash(s: SimState, e: EnemyEnt, a: { radius: number; leash: number }) {
   if (e.ai === 'aggro') {
-    const p = e.target === null ? undefined : (s.units.get(e.target) as PlayerEnt | undefined);
-    const ok = p !== undefined && s.kinds.get(p.id) === 'player' && s.targetable(p);
+    const ok = aggroTarget(s, e.target) !== null;
     const from = e.leashFrom!;
     if (!ok || dist(e.x, e.y, from.x, from.y) > a.leash) {
       e.ai = 'return';
@@ -70,13 +90,22 @@ export function leash(s: SimState, e: EnemyEnt, a: { radius: number; leash: numb
     }
     return;
   }
-  let best: PlayerEnt | null = null;
+  // Knights first, so a knight wins an exact tie with a build.
+  let best: Unit | null = null;
   let bestD = Infinity;
   for (const p of s.world.players) {
     if (!s.targetable(p)) continue;
     const d = dist(e.x, e.y, p.x, p.y) - p.r;
     if (d <= a.radius && d < bestD) {
       best = p;
+      bestD = d;
+    }
+  }
+  for (const b of s.world.builds) {
+    if (!buildTargetable(b)) continue;
+    const d = dist(e.x, e.y, b.x, b.y) - b.r;
+    if (d <= a.radius && d < bestD) {
+      best = b;
       bestD = d;
     }
   }

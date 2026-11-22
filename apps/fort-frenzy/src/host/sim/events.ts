@@ -71,6 +71,19 @@ export type SimEvent =
   | { e: 'reinforce'; slot: number; count: number }
   | { e: 'growth'; slot: number; boss: boolean }
   /** The build-phase deadline picked a card for a player (§10.2). */
-  | { e: 'cardAuto'; slot: number; card: CardId };
+  | { e: 'cardAuto'; slot: number; card: CardId }
+  // ---- RD3 ----
+  /**
+   * A build's HP bar (§7.5): sent when an HP build lands and whenever it takes damage (with
+   * `buildHit`). Mines and the flag have no HP and never send it.
+   */
+  | {
+      e: 'buildHp';
+      build: EntityId;
+      kind: BuildId;
+      owner: number;
+      hp: number;
+      maxHp: number;
+    };
 
 export type SimEventKind = SimEvent['e'];

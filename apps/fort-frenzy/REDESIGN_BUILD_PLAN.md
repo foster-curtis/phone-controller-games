@@ -816,9 +816,9 @@ Rules:
   - [x] Lanes → 6 live portals
   - [x] Tests, soak, bench, autopilot, e2e updated; merged; e2e green
 - RD3 Sim slice
-  - [ ] Classes vs knights; build system core + meter; Warden shield generator + jump slam
-  - [ ] Regen; player-count table; hot side + cap + flares; 20 s build phase + random pick
-  - [ ] Solo lobby; autopilot builds; balance harness
+  - [x] Classes vs knights; build system core + meter; Warden shield generator + jump slam
+  - [x] Regen; player-count table; hot side + cap + flares; 20 s build phase + random pick
+  - [x] Solo lobby; autopilot builds; balance harness
   - [ ] Merged
 - RD4 Controller slice
   - [x] 68 px build button + ring + gestures; card pop-up; shop + stick; class select; dev samples
@@ -1042,6 +1042,22 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD4] decision: the build view is one view with two states by `me.cards`: pop-up while `offer` is non-empty and `picked` is null, the shop otherwise; the one Ready button sits in the top bar (left of the pause button) on both, coins only in the shop; the combat status strip is not shown in the build phase. Confirm locks for 1.5 s after it sends so a double tap makes one `card` intent.
 - [RD4] decision: knight select copy comes from `CLASS_INFO` (role + `role-*` icon, main, super, build with tap/aim, passive card); the build input type shown is a copy field (`build.mode`) like main and super; the Commander's super stays tap as in content (SPEC §8.2's table says aimed; RD9 settles it). Start's minimum ready count is 1 (#100); end-of-run option reads CHANGE KNIGHT (#107).
 - [RD4] decision: host-side view fields needed later: none; `MeBuild` carries everything the button uses. RD6 note: the host must deal `me.cards.offer` and set `picked` for the pop-up to leave; `smoke.spec.ts` now picks a card through the pop-up (select, Confirm) before the shop rows exist.
+- [RD3] contract+: `SimEvent` `buildHp { build; kind; owner; hp; maxHp }` (HP bar data, on landing and with every `buildHit`); `HarnessDef.durationMs?` and `capMs?` (the harness wave's spawn window and the not-cleared cap); SPEC §15.3, §15.4 and #112 updated.
+- [RD3] decision: a spawn pulse is up to `activeCap` groups at one time, each pulse in its own slice of the duration; "per spawn group" hot sides (waves 12–15) roll per pulse. The hot/other split is chosen over the whole wave (an exact small knapsack: share closest to 0.55, never under half, a group elsewhere per pulse of two or more where the costs allow), because a pulse-by-pulse greedy left lumpy solo waves (one Brute) at 67% hot.
+- [RD3] decision: the boss spawns at a seeded portal on the first pulse's hot side (boss waves 5 and 10 hold it all wave); unpinned guaranteed spawns are dealt like any group (SPEC's "guaranteed spawn without lane goes hot" comment rewritten: the boss is the caller's).
+- [RD3] decision: SPEC §7.2/§8.3 and REDESIGN B2 say main _and super_ damage charge the meter; this plan's RD3 acceptance line "super damage charges neither" contradicts them, so the code follows SPEC: super damage charges the meter, never the super; super healing charges neither (the heal path never charges the meter; only Field Medic healing does).
+- [RD3] decision: a thrown build lands at the knight + aim × throw range (the stick's length sets the distance, so it never passes the range), clamped to the field and pushed out of the Citadel by its body radius (`builds/landing.ts`, shared with `buildPreview`). Flight = max(minFlightMs, distance / throw speed); `armMs` after landing it switches on.
+- [RD3] decision: builds with no registered behavior (mine, beacon, rally flag until RD7–RD9) can't be placed: the press does nothing, the meter stays full, and `MeView.build.mode` stays `none` (`canPlace` in views). Placing on the Commander's full meter therefore never recalls; recall needs the meter not full, as SPEC says.
+- [RD3] decision: the build meter starts full for every knight; only the Warden's fill rates are set (1/45 per s, 0.002 per damage point); the others' stay 0 until their kits. Passive fill runs before the build press in a step, so a placed build leaves the meter at exactly 0.
+- [RD3] decision: the random card pick happens whenever the build phase ends with an offer unconfirmed (the 20 s deadline or everyone Ready), stream `cardPick:<wave>:<slot>`, event `cardAuto`. Test harness `toCombat` drops unpicked offers first, so existing tests get no random cards; the balance harness does the same (no cards).
+- [RD3] decision: regen's first tick lands exactly `delayMs` after the last damage taken (dealt or absorbed), then every `everyMs`; HP is set directly (no event). Tests that check heals hold regen off with `regen.quietUntil`.
+- [RD3] decision: the class damage band multiplies the main and super's base damage when they fire (`fire` in players.ts: base × band, then the cards), read from the knight's class each time (the knight can't change mid-run), so tests pinning Ranger/Warden damage now include the band.
+- [RD3] decision: the jump slam is the Warden's existing wound-up super arc, widened to the slam's 102°; the sim keeps no airborne state (the TV's clip draws the jump), so the Warden stays targetable throughout (tested). `windupMs` stays 320 (the clip's impact, speeds.test).
+- [RD3] decision: Quick Recovery's old −5 s stat cap (`statCaps.respawnMs`) is gone; the respawn is max(stat, min(base, floor)) with floor 4 s when the wave started with one player, 5 s otherwise (`lifecycle.ts` `respawnMs`).
+- [RD3] decision: HP builds join the spatial hash so enemy shots (the Wasp) hit them; aggro-leash AIs (`path`, `swarm`, `flyer`) consider landed HP builds after knights (a knight wins an exact tie). Brute, Siege, Hunter and boss targeting stay as RD2 left them (RD10).
+- [RD3] decision: the balance harness runs every knight in content (the plan said "each knight in the policy registry", which is only the Warden until RD7–RD9 and would make a one-row report); knights without a policy fight without builds and the report marks them. The harness wave is a one-wave content override with every group pinned to `harness.portal`, spread over `harness.durationMs`.
+- [RD3] decision: the party's default `minPlayers` is 1 (and `game.meta.ts` says 1), so one Ready player auto-starts and the leader can force-start with one Ready player; the option still allows a larger minimum.
+- [RD3] decision: `portalFlare` is sent once per portal per step (a pulse may put two groups on one portal).
 
 ## 9. Final handoff
 

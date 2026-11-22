@@ -3,6 +3,7 @@
 // count, and the balance sheet carries every number the sim reads.
 import { describe, expect, it } from 'vitest';
 import { CARD_INFO } from '../../controller/copy';
+import { buildBehaviors } from '../../host/sim/builds';
 import { aiKinds, bosses, modules } from '../../host/sim/registry';
 import { generateWave, groupsCost, waveRng } from '../../host/systems/waves';
 import {
@@ -253,6 +254,18 @@ describe('content rules', () => {
     for (const d of c.difficulties) expect(d.respawn).toBeGreaterThan(0);
     expect(PORTAL_IDS).toContain(c.harness!.portal);
     expect(c.harness!.seeds).toHaveLength(5);
+    // RD3: the harness's spawn window and cap, and the 20 s build phase (§10.2).
+    expect(c.harness!.durationMs).toBeGreaterThan(0);
+    expect(c.harness!.capMs).toBeGreaterThan(c.harness!.durationMs!);
+    expect(c.rules!.buildCapMs).toBe(20_000);
+  });
+
+  it('every build behavior reads its content params (RD3)', () => {
+    for (const [id, beh] of Object.entries(buildBehaviors)) {
+      const def = c.builds.find((b) => b.id === id)!;
+      expect(() => beh!.check(def), id).not.toThrow();
+    }
+    expect(Object.keys(buildBehaviors)).toContain('shield_gen');
   });
 
   it('classes: §8.1’s HP tiers and damage bands', () => {

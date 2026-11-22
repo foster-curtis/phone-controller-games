@@ -70,7 +70,7 @@ export interface PartyOptions<Color extends string> {
   colors: readonly Color[];
   /** Game cap (6); the next new phone gets `full`. */
   maxPlayers: number;
-  /** Ready players needed to start (2). */
+  /** Ready players needed to start (default 1: solo play, §11.1; RD3). */
   minPlayers?: number;
   /** Name length in characters (10). */
   nameMax?: number;
@@ -154,7 +154,7 @@ const no = (reason: PartyRefusal) => ({ ok: false as const, reason });
 export function createParty<Color extends string, Cls extends string>(
   opts: PartyOptions<Color>,
 ): Party<Color, Cls> {
-  const { colors, maxPlayers, minPlayers = 2, nameMax = 10 } = opts;
+  const { colors, maxPlayers, minPlayers = 1, nameMax = 10 } = opts;
   if (colors.length < maxPlayers) throw new Error('createParty: fewer colors than players');
   type M = Member<Color, Cls>;
   const members: M[] = [];

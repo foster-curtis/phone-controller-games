@@ -60,6 +60,32 @@ describe('determinism', () => {
     expect(b.hashes).toEqual(a.hashes);
   });
 
+  it('two Wardens on autopilot with builds (RD3): identical hashes over 2 waves', () => {
+    const run = () => {
+      const start = startOf(2, 13, 'warden');
+      const sim = createSim(start, { content: { ...content, waves: content.waves.slice(0, 2) } });
+      for (const s of start.slots)
+        sim.setSource(s.slot, new AutopilotInputSource(() => sim.world, s.slot));
+      sim.command({ c: 'debug', slot: -1, action: 'invincible', on: true });
+      const hashes: number[] = [];
+      let placed = 0;
+      for (let i = 0; i < 60 * 60 * 6 && sim.world.phase !== 'summary'; i++) {
+        if (sim.world.phase === 'build' && sim.world.tick % 600 === 300) {
+          for (const p of sim.world.players) sim.command({ c: 'ready', slot: p.slot, ready: true });
+        }
+        sim.step();
+        placed += sim.world.events.filter((e) => e.e === 'buildPlaced').length;
+        if (sim.world.tick % 60 === 0) hashes.push(stateHash(sim.world));
+      }
+      return { hashes, placed, phase: sim.world.phase };
+    };
+    const a = run();
+    const b = run();
+    expect(a.phase).toBe('summary');
+    expect(a.placed).toBeGreaterThan(1);
+    expect(b.hashes).toEqual(a.hashes);
+  });
+
   it('the whole roster (wave 14: every AI, shells, packs, hunted fields) replays identically', () => {
     const run = () => {
       const start = startOf(3, 9);

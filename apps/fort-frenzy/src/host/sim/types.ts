@@ -110,7 +110,7 @@ export interface PlayerEnt extends Unit {
   superCharge: number;
   main: AttackState;
   super: AttackState;
-  /** Build meter 0..1 (§7.2); filled by RD3 (stays 0 until then). */
+  /** Build meter 0..1 (§7.2); starts the run full (RD3). */
   meter: number;
   /** The build button: queued press, aim, held (§10.1). */
   build: AttackState;
