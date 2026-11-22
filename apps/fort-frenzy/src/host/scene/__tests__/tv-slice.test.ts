@@ -5,42 +5,26 @@ import { theme } from '../../../shared/theme';
 import { presentationHost } from '../../../presentation/host';
 import { MapView, PORTALS } from '../../render/map';
 import type { MarkKind } from '../../render/types';
-import { drawThrowPreview, throwPreview, THROW_RANGE_ALPHA } from '../aimPreview';
+import type { BuildPreview } from '../../sim';
+import { drawThrowPreview, THROW_RANGE_ALPHA } from '../aimPreview';
 import { CRACKS_MS, wardenAttack } from '../wardenFx';
 import { fakeRender } from './fakeRender';
 
-const bounds = { cols: 36, rows: 24 };
+describe('drawThrowPreview (SPEC §7.3, §10.1; the buildPreview from the sim is the data)', () => {
+  const pv: BuildPreview = {
+    kind: 'shield_gen',
+    from: { x: 10, y: 10 },
+    landing: { x: 10 + shieldGen.throw.range, y: 10 },
+    radius: shieldGen.radius,
+    range: shieldGen.throw.range,
+  };
 
-describe('throwPreview (SPEC §7.3, §10.1)', () => {
-  it('lands along the aim at the pull times the range, at the build radius', () => {
-    const pv = throwPreview({ x: 10, y: 10 }, { x: 1, y: 0 }, shieldGen, bounds)!;
-    expect(pv.x).toBeCloseTo(10 + shieldGen.throw.range);
-    expect(pv.radius).toBe(shieldGen.radius);
-    expect(pv.range).toBe(shieldGen.throw.range);
-    const half = throwPreview({ x: 10, y: 10 }, { x: 0, y: 0.5 }, shieldGen, bounds)!;
-    expect(half.dy).toBeCloseTo(shieldGen.throw.range / 2);
-  });
-
-  it('is null in the dead zone and for an at-feet build', () => {
-    expect(throwPreview({ x: 5, y: 5 }, { x: 0, y: 0 }, shieldGen, bounds)).toBeNull();
-    expect(
-      throwPreview({ x: 5, y: 5 }, { x: 1, y: 0 }, { input: 'tap', radius: 2 }, bounds),
-    ).toBeNull();
-  });
-
-  it('clamps the landing inside the playfield', () => {
-    const pv = throwPreview({ x: 34, y: 1 }, { x: 1, y: -1 }, shieldGen, bounds)!;
-    expect(pv.x).toBeLessThanOrEqual(35.5);
-    expect(pv.y).toBeGreaterThanOrEqual(0.5);
-  });
-
-  it('draws a filled ellipse at the radius plus a fainter range ring', () => {
+  it('draws a filled ellipse at the radius, at the landing, plus a fainter range ring', () => {
     const calls: [string, ...number[]][] = [];
     const g: Record<string, (...a: number[]) => unknown> = {};
     for (const k of ['fillStyle', 'lineStyle', 'fillEllipse', 'strokeEllipse'])
       g[k] = (...a: number[]) => (calls.push([k, ...a]), g);
     const f = { sx: 500, sy: 400, kx: 48, ky: 28.8 };
-    const pv = throwPreview({ x: 10, y: 10 }, { x: 1, y: 0 }, shieldGen, bounds)!;
     drawThrowPreview(g as never, pv, f, theme.color.amber.num);
     const fills = calls.filter((c) => c[0] === 'fillEllipse');
     expect(fills).toHaveLength(1);
@@ -48,6 +32,8 @@ describe('throwPreview (SPEC §7.3, §10.1)', () => {
     expect(fills[0]![1]).toBeCloseTo(500 + shieldGen.throw.range * 48);
     const alphas = calls.filter((c) => c[0] === 'lineStyle').map((c) => c[3]);
     expect(alphas).toContain(THROW_RANGE_ALPHA);
+    const rings = calls.filter((c) => c[0] === 'strokeEllipse').map((c) => c[3]);
+    expect(rings).toContain(shieldGen.throw.range * 48 * 2);
   });
 });
 

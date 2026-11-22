@@ -6,7 +6,7 @@
 // per-vertex allocation: the §2.5 projection is linear on the ground, so vertices are the center
 // plus scaled offsets.
 import type * as Phaser from 'phaser';
-import type { HitShape } from '../sim';
+import type { BuildPreview, HitShape } from '../sim';
 
 /** Fill and edge alpha: amber over the dark floor stays below the bloom's brightness cut (§15.2). */
 export const AIM_FILL_ALPHA = 0.16;
@@ -85,58 +85,20 @@ export function drawAimPreview(
 
 /** The throw-range ring's edge alpha: fainter than the landing spot, it only frames the reach. */
 export const THROW_RANGE_ALPHA = 0.28;
-/** Playfield margin a landing is clamped inside, tiles (§7.1: builds land inside the playfield). */
-const LANDING_MARGIN = 0.5;
-
-export interface ThrowPreview {
-  /** Landing point, world tiles, and its offset from the knight. */
-  x: number;
-  y: number;
-  dx: number;
-  dy: number;
-  /** The build's real effect radius, tiles (the landing ellipse). */
-  radius: number;
-  /** Maximum throw range, tiles (the ring around the knight). */
-  range: number;
-}
-
 /**
- * Where a held build aim would land (draws from the sim's throw data: `BuildDef.throw.range`, the
- * aim's pull scaling the distance up to it) and how big its field is. Null while the aim is in the
- * dead zone (0, 0) or the build isn't thrown. RD3's sim `throwShape` replaces the landing math here
- * when it merges; the drawn shapes stay the same.
- */
-export function throwPreview(
-  from: { x: number; y: number },
-  aim: { x: number; y: number },
-  def: { input: string; radius: number; throw?: { range: number } },
-  bounds: { cols: number; rows: number },
-): ThrowPreview | null {
-  const pull = Math.hypot(aim.x, aim.y);
-  if (def.input !== 'aimed' || !def.throw || pull === 0) return null;
-  const { range } = def.throw;
-  const dist = range * Math.min(1, pull);
-  const clamp = (v: number, max: number) =>
-    Math.max(LANDING_MARGIN, Math.min(max - LANDING_MARGIN, v));
-  const x = clamp(from.x + (aim.x / pull) * dist, bounds.cols);
-  const y = clamp(from.y + (aim.y / pull) * dist, bounds.rows);
-  return { x, y, dx: x - from.x, dy: y - from.y, radius: def.radius, range };
-}
-
-/**
- * The landing spot as a filled 0.6 ellipse at the build's effect radius, plus the throw range as a
+ * The landing spot (the sim's `buildPreview`: one source for the sim and the TV) as a filled 0.6 ellipse at the build's effect radius, plus the throw range as a
  * faint ring around the knight (`f` is the knight's ground frame). Ground overlay, under the units.
  */
 export function drawThrowPreview(
   ground: Phaser.GameObjects.Graphics,
-  pv: ThrowPreview,
+  pv: BuildPreview,
   f: GroundFrame,
   color: number,
 ): void {
   const rr = { rx: pv.range * f.kx, ry: pv.range * f.ky };
   ground.lineStyle(1.5, color, THROW_RANGE_ALPHA).strokeEllipse(f.sx, f.sy, rr.rx * 2, rr.ry * 2);
-  const lx = f.sx + pv.dx * f.kx;
-  const ly = f.sy + pv.dy * f.ky;
+  const lx = f.sx + (pv.landing.x - pv.from.x) * f.kx;
+  const ly = f.sy + (pv.landing.y - pv.from.y) * f.ky;
   const rx = pv.radius * f.kx;
   const ry = pv.radius * f.ky;
   ground.fillStyle(color, AIM_FILL_ALPHA).fillEllipse(lx, ly, rx * 2, ry * 2);

@@ -11,7 +11,7 @@
 import { lerp } from '@pcg/game-kit';
 import type * as Phaser from 'phaser';
 import type { Content } from '../../content';
-import type { BuildId, ClassId, EffectId } from '../../shared/ids';
+import type { ClassId, EffectId } from '../../shared/ids';
 import { theme } from '../../shared/theme';
 import type { ArtImage } from '../render/atlas';
 import { drawBowString } from '../render/bowString';
@@ -32,7 +32,7 @@ import { locomotionClip, locomotionSpeed, StatusSprites } from '../render/status
 import { Citadel, type SentryId } from '../render/structures';
 import type { IconKey, ProjectileKind, ProjectileSprite, StatusLook } from '../render/types';
 import type { RenderWorld } from '../render/world';
-import { aimPreview, groundBody, shieldOf, type GroundBody } from '../sim';
+import { aimPreview, buildPreview, groundBody, shieldOf, type GroundBody } from '../sim';
 import { BuildsView } from './buildsView';
 import {
   BASE_ID,
@@ -53,7 +53,7 @@ import {
   TELL_GLOW,
   type EnemyShot,
 } from './enemyFx';
-import { drawAimPreview, drawThrowPreview, throwPreview, type GroundFrame } from './aimPreview';
+import { drawAimPreview, drawThrowPreview, type GroundFrame } from './aimPreview';
 import { ColossusView } from './colossusView';
 import { lerpGround, lerpPos } from './interp';
 import { anchorToWorld, shotPos, shotTiming, type Launch, type Pos } from './shot';
@@ -678,7 +678,7 @@ export class WorldView {
     if (p.respawnAt !== null) return;
     const def = this.content.knights.find((c) => c.id === p.classId);
     if (!def) return;
-    this.drawThrowAim(p, at, def.build);
+    this.drawThrowAim(p, at);
     for (const slot of ['main', 'super'] as const) {
       const aim = slot === 'main' ? p.mainAim : p.superAim;
       if (!aim || (aim.x === 0 && aim.y === 0)) continue;
@@ -707,13 +707,9 @@ export class WorldView {
    * A thrown build's landing preview (§7.3, §10.1; RD5): its 0.6 ground ellipse at the build's real
    * effect radius plus the throw range around the knight, only while the button can place (meter full).
    */
-  private drawThrowAim(p: PlayerEnt, at: { x: number; y: number }, build: BuildId) {
-    const aim = p.buildAim;
-    if (!aim || p.meter < 1) return;
-    const bd = this.content.builds.find((b) => b.id === build);
-    const map = this.content.map;
-    if (!bd || !map) return;
-    const pv = throwPreview(at, aim, bd, map);
+  private drawThrowAim(p: PlayerEnt, at: { x: number; y: number }) {
+    if (!p.buildAim || p.meter < 1) return;
+    const pv = buildPreview(p, this.content);
     if (!pv) return;
     const f = this.aimFrame;
     const s = this.w.camera.worldToScreen(at.x, at.y);

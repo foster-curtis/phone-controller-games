@@ -1062,7 +1062,7 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD5] decision: the build-view API is a `view: BuildViewFactory` export per `scene/builds/<build>.ts`; `render/buildKit.ts` `LifecycleBuild` is the generic life cycle (RD7–RD9 name their frames only), and `scene/buildsView.ts` drives it from `world.builds` (flight along the sim's `Flight`, wreck 600 ms then `scrap-ours` 3).
 - [RD5] decision: HP bars (enemy violet, build amber) are two images of Phaser's white texture made once and only moved and scaled; the dotted effect ellipse is one generated texture scaled to the radius; the shimmer cycles by alpha over three pre-made images (frame-cost rule, tested in `scene/__tests__/builds.test.ts`).
 - [RD5] decision: the jump slam stays the `super` clip and lands at `JUMP_IMPACT_MS` (`STOMP_IMPACT_MS` is an alias, 320 = content `warden.super.windupMs`, `speeds.test` pins it); if RD3 changes the windup, change that one constant. Gallery pages still import the alias (RD12).
-- [RD5] decision: the throw preview computes the landing as the aim's pull × `BuildDef.throw.range` (clamped to the playfield) in `scene/aimPreview.ts` `throwPreview` because RD3's sim `throwShape` isn't merged; swap its body for the sim's call when RD3 lands. It shows only with `meter` = 1 and a held build aim.
+- [RD5] decision: the XX
 - [RD5] decision: the HUD already met the preview rule after RD2 (types and counts, no hot side, no lane bands); RD5 pinned it with `ui/__tests__/hud-preview.test.ts`.
 
 ## 9. Final handoff
