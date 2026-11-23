@@ -6,6 +6,7 @@ import { content } from '../../../content';
 import { beacon, classes, grunt, rallyFlag, shieldGen, warden } from '../../../content/balance';
 import type { Content } from '../../../content';
 import type { ClassId } from '../../../shared/ids';
+import { buildBehaviors } from '../builds';
 import { buildPreview } from '../preview';
 import { AutopilotInputSource } from '../sources';
 import type { ProjectileEnt } from '../types';
@@ -278,11 +279,17 @@ describe('placing a build (§7.1, §7.3)', () => {
   });
 
   it('a build with no behavior yet does nothing (the meter stays full)', () => {
-    const h = combat(['ranger']);
-    h.pads[0]!.tap('buildFires');
-    h.run(2);
-    expect(h.sim.world.builds).toHaveLength(0);
-    expect(h.p(0).meter).toBe(1);
+    const saved = buildBehaviors.mine;
+    delete buildBehaviors.mine;
+    try {
+      const h = combat(['ranger']);
+      h.pads[0]!.tap('buildFires');
+      h.run(2);
+      expect(h.sim.world.builds).toHaveLength(0);
+      expect(h.p(0).meter).toBe(1);
+    } finally {
+      buildBehaviors.mine = saved;
+    }
   });
 });
 

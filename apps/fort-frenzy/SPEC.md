@@ -551,7 +551,8 @@ hits; feet circles still walk, collide and take enemy attacks.
 - **Stat math:** stacks add percentages of the base value (three +10% cards give +30%), never
   multiplicatively. Range, movement speed and damage reduction have caps (starting value: +40% total).
 - **Passive cards:** each knight has one **rare, unique passive card** (§8). Cards that improve a
-  passive appear only once the player owns it, through the same prerequisite check as combos.
+  passive appear only once the player owns it, through the same prerequisite check as combos; unlike
+  combos they stack unless marked unique (#122).
 - **Build cards:** each knight has two cards that upgrade its build.
 - **Combo cards** appear only once the player owns both of the combo's prerequisite cards. Combo cards
   are unique.
@@ -799,7 +800,9 @@ These apply to every build unless its entry in §7.3 lists an exception.
   +1); placing one more removes the oldest. A mine arms about 1 s after it's placed, then turns
   translucent to players (40%). A ground enemy entering its trigger radius starts a short trigger delay,
   then it bursts: area damage to ground enemies, and the mine is gone. Runners and the Colossus's
-  Charge set mines off like any ground enemy; Flyers never do. Shrapnel Charge improves them.
+  Charge set mines off like any ground enemy; Flyers never do. Shrapnel Charge improves them (its
+  shorter delay has a floor, `minTriggerMs`). A delay cut off by the end of the wave doesn't burst: the
+  mine re-arms and keeps its charge (§7.1, build effects run in combat only; #121).
 - **Healing beacon:** heals allied knights (not soldiers, not builds) in its radius every pulse. Its
   healing charges the Artificer's super, never his meter. Booster Beacon and Strong Arm improve it.
 - **Rally flag** (exception to the HP-or-charges rule): the flag can't be attacked and stays until it
@@ -1831,7 +1834,10 @@ interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: num
   (flight spin and shadow, `landed` → `active`, `damaged` below 50% HP, the dotted effect ellipse, the
   amber bar once damaged, an optional footprint and cycling dome), so a build's view only names its
   frames. `EffectSpawner.mark(kind, sx, sy, ms, scale)` places the fading ground and effect frames
-  (`slam-cracks`, `slam-cracks-wide`, `landing-dust`, `portal-flare`).
+  (`slam-cracks`, `slam-cracks-wide`, `landing-dust`, `portal-flare`; RD7 adds `shockwave`,
+  `mine-blast-ring`, `mine-blast`). RD7 also adds `BuildViewState.triggered?` (a mine in its delay) and
+  `LifecycleBuild`'s `liveAlpha` and `trigger` look fields, so the mine's view still only names its
+  frames (#123).
 - **Pooling:** render-side only. Phaser objects for projectiles, effects, damage numbers, HP bars and
   Swarm units come from per-kind pools; sim entities are plain objects, not pooled.
 - **Interpolation:** the renderer draws positions lerped between the last two sim steps (as in Sunny
@@ -3130,3 +3136,6 @@ states, then RD0's own.
 | 118 | 2026-11-23 | Aftershock | Moves from the main to the super: every enemy the jump slam hits is slowed for 5 s (`slowMs`), at the card's strength; the old slam zone is gone. RD11 keeps this behavior (§6.1) | User, RC1: "add it to his super ... ~5 seconds"; a hit-applied slow shows on the enemy (`shock-crawl`), and Fault Line stays the ground fissure (RD3-fix-1) |
 | 119 | 2026-11-23 | Shield generator throw | Throw speed 12 → 6 tiles/s: 1 s at full range (was 0.5 s). `minFlightMs` stays 300, so a quick tap at his feet is still quick; the beacon and flag keep their own values (§7.4) | User, RC1: "throw animation/flight time should be longer" (RD3-fix-1) |
 | 120 | 2026-11-23 | Regen wait | 5 s (was 4 s), restarted by damage taken and by every main attack or super, for every knight; placing a build doesn't restart it (§5) | User, RC1 (RD3-fix-1) |
+| 121 | 2026-11-23 | Mine delay at a wave's end | A mine whose trigger delay is cut off by the end of the wave doesn't burst: it re-arms with its charge. Shrapnel Charge's shorter delay stops at `minTriggerMs` (120 ms) (§7.4) | Build effects run in combat only (§7.1); a burst in an empty build phase would waste the charge (RD7) |
+| 122 | 2026-11-23 | One-card prerequisites | A card with one prerequisite (Deadeye, Wide Aura) is gated by it but stacks like any other card unless marked unique; only two-card combos are implicitly unique (§6.1) | §6.1 marks only combos and named cards unique; the picker treated every `requires` as a combo (RD7) |
+| 123 | 2026-11-23 | Ranger kit on the TV | The `shockwave` frame replaces the Ranger's code-drawn ring and rolls out to his effective hit radius; the mine uses the shared life cycle with `liveAlpha` 0.4 and a `trigger` frame, its shadow fading with it; his Steady Aim pose shows only with the card (§2.4, §7.5, §15.2) | RD7 |

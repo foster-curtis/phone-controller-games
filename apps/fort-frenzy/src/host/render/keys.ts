@@ -72,7 +72,18 @@ export const BUILD_FRAMES = {
     damaged: fk('beacon/damaged'),
     destroyed: fk('beacon/destroyed'),
   },
+  // A mine has two frames (art README): `armed` for every state, `trigger` during its delay.
+  mine: {
+    flight: fk('mine/armed'),
+    landed: fk('mine/armed'),
+    active: fk('mine/armed'),
+    damaged: fk('mine/armed'),
+    destroyed: fk('mine/armed'),
+  },
 } as const satisfies Record<string, Record<BuildPhase, FrameName>>;
+
+/** A mine in its trigger delay (RD7). */
+export const MINE_TRIGGER = fk('mine/trigger');
 
 /** The generator's footprint (ground) and its field dome's three shimmer frames (effects). */
 export const SHIELD_BASE = fk('shield-base');
@@ -88,4 +99,13 @@ export const MARK_FRAMES = {
   'slam-cracks-wide': fk('slam-cracks-wide'),
   'landing-dust': fk('landing-dust'),
   'portal-flare': fk('portal-flare'),
+  shockwave: fk('shockwave'),
+  'mine-blast-ring': fk('mine-blast-ring'),
+  'mine-blast': fk('mine-blast'),
 } as const satisfies Record<MarkKind, FrameName>;
+
+/** The frames' own radii in sprite units (art README), to scale them to a hit radius. */
+export const SHOCKWAVE_R = 60;
+/** The shockwave starts at 1 / this of its size and ends exactly on the hit circle (§2.4). */
+export const SHOCKWAVE_GROW = 4;
+export const MINE_BLAST_RING_R = 34;

@@ -14,9 +14,14 @@ import {
   hpFraction,
   throwHeight,
 } from '../render/buildLook';
+import { MINE_BLAST_RING_R } from '../render/keys';
 import type { BuildView, BuildViewFactory, BuildViewState } from '../render/types';
 import type { RenderWorld } from '../render/world';
+import { buildEffectRadius } from '../sim';
 import type { BuildEnt, EntityId, SimEvent, World } from '../sim/types';
+
+/** How long a mine's blast ring and burst show, ms. */
+const MINE_BLAST_MS = 420;
 
 const modules = import.meta.glob<{ view?: BuildViewFactory }>('./builds/*.ts', { eager: true });
 
@@ -27,6 +32,7 @@ export const BUILD_VIEWS: ReadonlyMap<string, BuildViewFactory> = new Map(
 
 interface Entry {
   kind: BuildId;
+  owner: number;
   view: BuildView;
   state: BuildViewState;
   /** Ms since the wreck started showing; null while the build stands. */
@@ -39,7 +45,7 @@ export class BuildsView {
 
   constructor(
     private readonly w: RenderWorld,
-    content: Content,
+    private readonly content: Content,
   ) {
     for (const d of content.builds) this.defs.set(d.id, d);
   }
@@ -49,8 +55,11 @@ export class BuildsView {
     return this.entries.size;
   }
 
-  event(e: SimEvent) {
-    if (e.e === 'buildGone') {
+  event(e: SimEvent, world: World) {
+    if (e.e === 'mineBurst') {
+      const en = this.entries.get(e.build);
+      if (en) this.mineBlast(en, world);
+    } else if (e.e === 'buildGone') {
       const en = this.entries.get(e.build);
       if (!en) return;
       // Destroyed: the wreck shows briefly, then scrap. Replaced or used up: gone at once.
@@ -61,6 +70,18 @@ export class BuildsView {
       if (en && en.dying === null && en.state.phase !== 'flight')
         this.w.fx.burst('spark-ours', en.state.sx, en.state.sy - 20 * this.w.unitPx);
     }
+  }
+
+  /** The blast ring on the ground at the real blast radius, the burst over the mine (§7.5). */
+  private mineBlast(en: Entry, world: World) {
+    const { fx, camera, unitPx } = this.w;
+    const def = this.defs.get(en.kind);
+    if (!def) return;
+    const owner = world.players.find((p) => p.slot === en.owner);
+    const radius = buildEffectRadius(owner, def, this.content);
+    const scale = camera.groundEllipse(radius).rx / (MINE_BLAST_RING_R * unitPx);
+    fx.mark?.('mine-blast-ring', en.state.sx, en.state.sy, MINE_BLAST_MS, scale);
+    fx.mark?.('mine-blast', en.state.sx, en.state.sy, MINE_BLAST_MS);
   }
 
   /** `tickF` is the fractional sim tick being drawn (the lerp point between the last two steps). */
@@ -74,6 +95,7 @@ export class BuildsView {
       if (!en) {
         en = {
           kind: b.kind,
+          owner: b.owner,
           view: factory.create(this.w),
           state: {
             phase: 'landed',
@@ -133,6 +155,7 @@ export class BuildsView {
     s.sy = p.sy;
     s.hpFrac = hpFraction(b.hp, hp);
     s.phase = buildPhase({ state: b.state, hp: b.hp, maxHp: hp });
+    s.triggered = b.triggerAt !== null;
   }
 
   private drop(id: EntityId, en: Entry) {

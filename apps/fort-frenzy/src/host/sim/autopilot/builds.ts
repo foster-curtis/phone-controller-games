@@ -31,6 +31,23 @@ const warden: BuildPolicy = ({ world, self, build, nearestDist }) => {
   return { aim: { x: 0, y: 0 } };
 };
 
+/**
+ * Ranger: with a full meter and a ground enemy closing in, drop a mine at his feet, unless one of his
+ * own already covers the spot (so the three spread out along his retreat).
+ */
+const ranger: BuildPolicy = ({ world, self, build }) => {
+  if (self.meter < 1) return null;
+  const closing = world.enemies.some(
+    (e) => e.hp > 0 && !e.flying && dist(e.x, e.y, self.x, self.y) <= build.radius * 3,
+  );
+  if (!closing) return null;
+  const covered = world.builds.some(
+    (b) => b.owner === self.slot && dist(b.x, b.y, self.x, self.y) <= build.radius,
+  );
+  return covered ? null : { aim: { x: 0, y: 0 } };
+};
+
 export const buildPolicies: Partial<Record<KnightId, BuildPolicy>> = {
   warden, // RD3
+  ranger, // RD7
 };

@@ -55,7 +55,7 @@ const RANGER: ClassInfo = {
     name: 'Mines',
     mode: 'tap',
     icon: 'act-mine',
-    text: 'Drops a mine at your feet.',
+    text: 'Drops a mine at your feet. Up to 3 at once; a new one replaces the oldest.',
   },
   passiveCard: 'steady_aim',
 };
@@ -183,7 +183,7 @@ export const CARD_INFO: Record<CardId, CardInfo> = {
   quick_recovery: c('Quick Recovery', 'card-recovery', 'Respawn 2 s faster.'),
   tinkerer: c('Tinkerer', 'card-tinkerer', 'Your build meter fills faster.'),
   quick_draw: c('Quick Draw', 'card-attack', 'Faster arrows.'),
-  blast_radius: c('Blast Radius', 'card-super', 'Larger super radius.'),
+  blast_radius: c('Blast Radius', 'card-super', 'Larger shockwave.'),
   shrapnel_charge: c('Shrapnel Charge', 'card-build', 'Mines trigger faster and hit wider.'),
   fire_arrows: c('Fire Arrows', 'card-effect', 'Arrows apply burn.', true),
   piercing_shot: c('Piercing Shot', 'card-attack', 'Pierces the first enemy.', true),

@@ -207,6 +207,8 @@ export interface BuildViewState {
   radius: number;
   /** Time since the view was made, ms (cycles: the shimmer, the damaged flicker). */
   clockMs: number;
+  /** A mine in its trigger delay (RD7): it shows its `trigger` frame at full opacity. */
+  triggered?: boolean;
 }
 
 /** One build's drawing; the scene makes one per `BuildEnt` of its kind and calls `update` each frame. */
@@ -223,4 +225,12 @@ export interface BuildViewFactory {
 }
 
 /** Ground and effect frames dropped at a screen point and faded (`EffectSpawner.mark`). */
-export type MarkKind = 'slam-cracks' | 'slam-cracks-wide' | 'landing-dust' | 'portal-flare';
+export type MarkKind =
+  | 'slam-cracks'
+  | 'slam-cracks-wide'
+  | 'landing-dust'
+  | 'portal-flare'
+  // RD7: the Ranger's super and a mine going off.
+  | 'shockwave'
+  | 'mine-blast-ring'
+  | 'mine-blast';

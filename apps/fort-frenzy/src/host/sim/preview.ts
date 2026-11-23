@@ -4,7 +4,7 @@
 // RD3: the thrown-build preview (§7.3): the landing point the sim would use (builds/landing.ts, one
 // source for both), the build's effect radius and the knight's throw range.
 import type { Content } from '../../content';
-import type { KnightDef, MapDef, RulesDef, Vec2 } from '../../content/types';
+import type { BuildDef, KnightDef, MapDef, RulesDef, Vec2 } from '../../content/types';
 import type { BuildId } from '../../shared/ids';
 import { throwLanding, type LandingArea } from './builds/landing';
 import { hitShape, type HitShape } from './classes/hitShape';
@@ -21,6 +21,17 @@ export function aimPreview(
 ): HitShape {
   const caps = (rules?.statCaps ?? {}) as Caps;
   return hitShape(def[slot], (b, st) => attackStat(p, b, st, slot, effects, caps));
+}
+
+/** A build's effect radius through its owner's cards (a mine's blast on the TV, RD7). */
+export function buildEffectRadius(
+  owner: PlayerEnt | undefined,
+  def: BuildDef,
+  content: Pick<Content, 'rules'>,
+): number {
+  if (!owner) return def.radius;
+  const caps = (content.rules?.statCaps ?? {}) as Caps;
+  return attackStat(owner, def.radius, 'buildRadius', 'build', effects, caps);
 }
 
 /** A thrown build's aim preview (§7.3, §10.1): drawn as 0.6 ground ellipses on the TV. */

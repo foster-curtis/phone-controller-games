@@ -44,6 +44,10 @@ export interface BuildLook {
   barPx: number;
   /** Draw the dotted effect-radius ellipse (a build with an effect radius). */
   radiusRing: boolean;
+  /** Opacity while `active` (a mine once live: 0.4, translucent to players; default 1). */
+  liveAlpha?: number;
+  /** The frame during a trigger delay, at full opacity (`BuildViewState.triggered`, mines). */
+  trigger?: FrameKey;
 }
 
 const WORKING = new Set<BuildPhase>(['active', 'damaged']);
@@ -57,6 +61,7 @@ export class LifecycleBuild implements BuildView {
   private readonly cycle: ArtImage[];
   private readonly bar: HpBar;
   private phase: BuildPhase | null = null;
+  private triggered = false;
   private cycleAt = -1;
   private alpha = 1;
   private ringRx = -1;
@@ -92,7 +97,8 @@ export class LifecycleBuild implements BuildView {
 
   update(s: Readonly<BuildViewState>, _dtMs: number) {
     const { ctx, look } = this;
-    if (s.phase !== this.phase) this.setPhase(s.phase);
+    const triggered = look.trigger !== undefined && s.triggered === true;
+    if (s.phase !== this.phase || triggered !== this.triggered) this.setPhase(s.phase, triggered);
     const flying = s.phase === 'flight';
     const lift = s.z * TILE_W * ctx.camera.scale;
 
@@ -105,10 +111,18 @@ export class LifecycleBuild implements BuildView {
       img.setRotation(throwSpin(s.flightU));
     } else {
       img.setPosition(s.sx, s.sy);
-      const a = s.phase === 'damaged' ? this.flicker(s.clockMs) : 1;
+      const a = triggered
+        ? 1
+        : s.phase === 'damaged'
+          ? this.flicker(s.clockMs)
+          : s.phase === 'active'
+            ? (look.liveAlpha ?? 1)
+            : 1;
       if (a !== this.alpha) {
         this.alpha = a;
         img.setAlpha(a);
+        // A translucent build's shadow fades with it, or the shadow would give a hidden mine away.
+        if (look.liveAlpha !== undefined) this.shadow.setAlpha(a);
       }
     }
 
@@ -153,22 +167,25 @@ export class LifecycleBuild implements BuildView {
     return 1 - FLICKER_DEPTH * (0.5 + 0.5 * Math.sin((clockMs / 1000) * FLICKER_HZ * Math.PI * 2));
   }
 
-  private setPhase(next: BuildPhase) {
+  private setPhase(next: BuildPhase, triggered = false) {
     const { lib, unitPx } = this.ctx;
     const prev = this.phase;
     this.phase = next;
-    lib.setFrame(this.body, this.look.frames[next]);
+    this.triggered = triggered;
+    const frame = triggered ? this.look.trigger! : this.look.frames[next];
+    lib.setFrame(this.body, frame);
     // Thrown, it turns about its center; landed, it stands on its anchor.
     if (next === 'flight') {
       const vb = this.body.vb;
       lib.setOrigin(this.body, [vb[0] + vb[2] / 2, vb[1] + vb[3] / 2]);
     } else {
-      lib.setOrigin(this.body, lib.anchor(this.look.frames[next]));
+      lib.setOrigin(this.body, lib.anchor(frame));
       if (prev === 'flight' || prev === null) this.body.img.setRotation(0);
     }
     lib.setUnitScale(this.body, unitPx);
     this.alpha = 1;
     this.body.img.setAlpha(1);
+    if (this.look.liveAlpha !== undefined) this.shadow.setAlpha(1);
     this.ring?.setVisible(STANDING.has(next));
     this.base?.img.setVisible(WORKING.has(next));
     for (const c of this.cycle) c.img.setVisible(WORKING.has(next));

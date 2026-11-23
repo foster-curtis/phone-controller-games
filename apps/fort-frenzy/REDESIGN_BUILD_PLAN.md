@@ -1083,6 +1083,12 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD3-fix-1] decision: left for RD12, which owns `render/gallery/pages.ts`: `ONE_SHOTS.super` (1600 ms) is shorter than the Warden's 2200 ms clip, so the gallery replays his jump before it lands; it needs a period of at least 2600 ms for him.
 - [RD3-fix-1] decision: `src/controller/copy.ts` line 199 is outside this fix; its Aftershock text should become `'Jump slam slows enemies for 5 s.'`.
 - [RD3-fix-1] note for RD12: `ONE_SHOTS.super` in `render/gallery/pages.ts` (1600 ms) restarts the Warden's 2.2 s jump slam before it lands; set it to at least 2600 ms.
+- [RD7] contract+: `BuildViewState.triggered?`, `MarkKind` `shockwave` / `mine-blast-ring` / `mine-blast`, `BuildLook.liveAlpha?` / `trigger?`, `BUILD_FRAMES.mine`, sim exports `steadyOn` and `buildEffectRadius`; SPEC §15.2 and #123 updated.
+- [RD7] decision: a mine delay cut off by the wave's end re-arms with its charge (`stepBuilds` clears `triggerAt` outside combat); Shrapnel Charge's delay floor is the mine's `minTriggerMs` 120 ms, in the Builds section, because `statCaps` is the run rules' section (#121).
+- [RD7] decision: `cardEligible` treats only two-card `requires` as unique combos, so Deadeye (and RD8's Wide Aura) stack once their passive is owned, as §6.1 says (#122).
+- [RD7] decision: Ranger meter starts at 0.025/s + 0.0015 per damage point (about one mine per 9–10 s of steady fire); balance report: Ranger −13%, Warden +28% (a report for RC2, not tuned here).
+- [RD7] decision: a used-up charge build leaves after `stepBuilds`' loop (`charges === 0`), so a burst never skips the next build in the array.
+- [RD7] decision: left for RD13: §2.4's bolt and rails brightening in steps while Steady Aim builds isn't in the renderer (the rig has only a whole-body `setGlow`); RD7 gates the existing `ready` pose on the card.
 
 ## 9. Final handoff
 

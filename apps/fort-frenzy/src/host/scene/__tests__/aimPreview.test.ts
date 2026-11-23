@@ -196,7 +196,7 @@ describe('Ranger main preview (C4)', () => {
     const us = uv.map(([u]) => u);
     const vs = uv.map(([, v]) => v);
     expect(Math.min(...us)).toBeCloseTo(0, 9);
-    // The sim's effective range (standing still, Steady Aim's +20% is on: sim aimPreview tests).
+    // The sim's effective range (the preview reads the same stats: sim aimPreview tests).
     expect(Math.max(...us)).toBeCloseTo((shape as { range: number }).range, 9);
     expect(Math.max(...vs) - Math.min(...vs)).toBeCloseTo(2 * rules.projectileRadius, 9);
 

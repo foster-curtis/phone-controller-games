@@ -7,7 +7,7 @@ import type { ArtImage } from './atlas';
 import { GROUND_SQUASH } from './camera';
 import { placeFrame, type RenderContext } from './context';
 import { bodyBurstPoints } from './effectsMath';
-import { fk, MARK_FRAMES, scrapFrame } from './keys';
+import { fk, MARK_FRAMES, scrapFrame, SHOCKWAVE_GROW } from './keys';
 import { Pool } from './pool';
 import { SHADOW_TEXTURE } from './textures';
 import type {
@@ -49,6 +49,10 @@ const MARK_LOOK = {
   'slam-cracks-wide': { layer: 'groundOverlay', fadeIn: 0, hold: 0.15, grow: 1 },
   'landing-dust': { layer: 'groundOverlay', fadeIn: 0, hold: 0.1, grow: 1.35 },
   'portal-flare': { layer: 'effects', fadeIn: 0.2, hold: 0.4, grow: 1 },
+  // Rolls out to `scale` × `grow` (worldView passes the hit radius ÷ `SHOCKWAVE_GROW`).
+  shockwave: { layer: 'groundOverlay', fadeIn: 0, hold: 0.55, grow: SHOCKWAVE_GROW },
+  'mine-blast-ring': { layer: 'groundOverlay', fadeIn: 0, hold: 0.25, grow: 1 },
+  'mine-blast': { layer: 'effects', fadeIn: 0, hold: 0.2, grow: 1.2 },
 } as const satisfies Record<
   MarkKind,
   { layer: string; fadeIn: number; hold: number; grow: number }

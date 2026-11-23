@@ -119,6 +119,14 @@ export function stepBuilds(s: FullState): void {
     }
     if (b.state === 'landed' && t >= b.liveAt) b.state = 'active';
     if (b.state === 'active' && combat) buildBehaviors[b.kind]?.combat?.(s, b, s.cat.build(b.kind));
+    // A mine's delay cut off by the wave's end: it re-arms with its charge (§7.1, combat only).
+    else if (!combat) b.triggerAt = null;
+  }
+  // Charge builds used up this step (a mine's burst) leave after the loop, which they'd otherwise skip.
+  for (let i = 0; i < w.builds.length;) {
+    const b = w.builds[i]!;
+    if (b.charges === 0) removeBuild(s, b, false);
+    else i++;
   }
 }
 

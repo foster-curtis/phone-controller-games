@@ -28,9 +28,6 @@ const knightIds = new Set(c.knights.map((x) => x.id));
 /** Card ids whose defs arrive with their milestone (each knight's kit, RD11's commons). */
 const PENDING_CARDS: CardId[] = [
   'tinkerer',
-  'shrapnel_charge',
-  'steady_aim',
-  'minefield',
   'wide_field',
   'challenger',
   'reinforced_generator',

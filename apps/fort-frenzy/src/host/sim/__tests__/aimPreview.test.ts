@@ -5,7 +5,7 @@
 // body.test.ts covers how a drawn body reaches into the same shapes (C4).
 import { describe, expect, it } from 'vitest';
 import { content as baseContent, type Content } from '../../../content';
-import { commander, ranger, grunt, artificer, warden } from '../../../content/balance';
+import { artificer, commander, grunt, ranger, rangerCards, warden } from '../../../content/balance';
 import type { KnightDef } from '../../../content/types';
 import type { CardId, ClassId } from '../../../shared/ids';
 import { windupSteps } from '../classes/warden';
@@ -34,6 +34,8 @@ const BOOST: Modifier = {
     { stat: 'radius', addPct: 0.25 },
   ],
 };
+
+const steadyParams = rangerCards.find((c) => c.id === 'steady_aim')!.module!.params!;
 
 /** `true` adds `BOOST`; a card id picks that real card (FF12) before combat. */
 type Boost = boolean | CardId;
@@ -165,18 +167,18 @@ describe('preview geometry is the content through modifiers', () => {
     }
   });
 
-  it('moves with a mod (and with Steady Aim, the Ranger passive)', () => {
+  it('moves with a mod (and with Steady Aim, the Ranger passive card)', () => {
     const h = setup('warden', true);
     const s = cone(shapeOf(h, 'super'));
     expect(s.range).toBeCloseTo(warden.super.range * 1.3, 9);
     expect(s.half).toBeCloseTo(((warden.super.arcDeg + 12) / 2) * DEG, 9);
-    const r = setup('ranger', false);
+    const r = setup('ranger', 'steady_aim');
     expect(shapeOf(r, 'main')).toEqual({ kind: 'line', range: ranger.main.range });
     r.pads[0]!.set({ move: { x: 0, y: 0 } });
     r.run(40); // past Steady Aim's 600 ms
     const steady = shapeOf(r, 'main');
     expect(steady.kind === 'line' && steady.range).toBeCloseTo(
-      ranger.main.range * (1 + (ranger.passive.params.rangePct as number)),
+      ranger.main.range * (1 + (steadyParams.rangePct as number)),
       9,
     );
   });

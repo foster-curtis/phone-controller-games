@@ -178,9 +178,9 @@ export const ranger = {
   hitsFlyers: true,
   /** Super charge per point of damage dealt (200 damage fills it). */
   superCharge: { perDamage: 0.005 },
-  meter: { perSec: 0, perPoint: 0, sources: ['damage'] },
+  // A mine about every 9–10 s of steady shooting; 40 s with no damage dealt (RD7, a starting value).
+  meter: { perSec: 0.025, perPoint: 0.0015, sources: ['damage'] },
   passiveCard: 'steady_aim',
-  passive: { module: 'steady_aim', params: { stillMs: 600, damagePct: 0.25, rangePct: 0.2 } },
 } satisfies KnightDef;
 
 // Artificer (support, §6, §8): neon knights' Artificer.
@@ -358,6 +358,8 @@ export const mine = {
   armMs: 1000,
   damage: 60,
   knockback: 1,
+  // Shrapnel Charge shortens the trigger delay, never below this.
+  module: { module: 'mine', params: { minTriggerMs: 120 } },
 } satisfies BuildDef;
 
 export const beacon = {
@@ -901,6 +903,15 @@ export const rangerCards: CardDef[] = [
     stats: [{ stat: 'radius', addPct: 0.2, scope: 'super' }],
   },
   {
+    id: 'shrapnel_charge',
+    owner: 'ranger',
+    tier: 'common',
+    stats: [
+      { stat: 'buildTriggerMs', addPct: -0.2, scope: 'build' },
+      { stat: 'buildRadius', addPct: 0.2, scope: 'build' },
+    ],
+  },
+  {
     id: 'fire_arrows',
     owner: 'ranger',
     tier: 'rare',
@@ -919,12 +930,28 @@ export const rangerCards: CardDef[] = [
     favoredEnemy: 'flyer',
     module: { module: 'skyhunter', params: { enemies: 'flyer', pct: 0.5 } },
   },
+  // The Ranger's passive card (§6.1, §8.2): standing still boosts his main's damage and range.
+  {
+    id: 'steady_aim',
+    owner: 'ranger',
+    tier: 'rare',
+    unique: true,
+    module: { module: 'steady_aim', params: { stillMs: 600, damagePct: 0.25, rangePct: 0.2 } },
+  },
   // Steady Aim's activation time is its passive's duration (600 ms → 360 ms).
   {
     id: 'deadeye',
     owner: 'ranger',
     tier: 'rare',
+    requires: ['steady_aim'],
     stats: [{ stat: 'durationMs', addPct: -0.4 }],
+  },
+  {
+    id: 'minefield',
+    owner: 'ranger',
+    tier: 'rare',
+    unique: true,
+    stats: [{ stat: 'buildMax', add: 1, scope: 'build' }],
   },
   {
     id: 'volley',

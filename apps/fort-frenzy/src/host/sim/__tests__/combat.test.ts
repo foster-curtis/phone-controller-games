@@ -2,6 +2,7 @@
 // Grunt (§9, aggro leash), dazed (§11.3), death and respawn (§5), danger markers, invincible (§9.5).
 import { describe, expect, it } from 'vitest';
 import { base as baseDef, classes, ranger, grunt } from '../../../content/balance';
+import { steadyOn } from '../modules/steadyAim';
 import { harness } from './harness';
 
 // The marksman's damage band multiplies the main and super (§8.1).
@@ -107,14 +108,35 @@ describe('Ranger super', () => {
   });
 });
 
-describe('Steady Aim', () => {
+describe('Steady Aim (his passive card, §6.1)', () => {
   const still = Math.round((600 / 1000) * 60) + 2;
 
-  it('standing still boosts damage', () => {
+  function combatWithCard() {
+    const h = harness(1);
+    h.toBuild();
+    h.give(0, 'steady_aim');
+    h.toCombat();
+    h.holdSpawns();
+    return h;
+  }
+
+  it('does nothing without the card', () => {
     const h = combat();
     h.put(0, 10, 16);
     const g = h.sim.spawnEnemy('grunt', 14, 16);
     h.run(still);
+    expect(steadyOn(h.p(0))).toBe(false);
+    h.pads[0]!.tap('mainFires');
+    h.run(30);
+    expect(g.maxHp - g.hp).toBeCloseTo(MAIN, 6);
+  });
+
+  it('standing still boosts damage', () => {
+    const h = combatWithCard();
+    h.put(0, 10, 16);
+    const g = h.sim.spawnEnemy('grunt', 14, 16);
+    h.run(still);
+    expect(steadyOn(h.p(0))).toBe(true);
     h.pads[0]!.tap('mainFires');
     h.run(30);
     expect(g.maxHp - g.hp).toBeCloseTo(MAIN * 1.25, 6);
@@ -123,7 +145,7 @@ describe('Steady Aim', () => {
   it('standing still boosts range (auto-aim reaches further)', () => {
     const range = ranger.main.range;
     for (const moving of [false, true]) {
-      const h = combat();
+      const h = combatWithCard();
       h.put(0, 10, 18);
       const g = h.sim.spawnEnemy('grunt', 10, 18 - range - 1);
       g.stats.moveSpeed = 0;

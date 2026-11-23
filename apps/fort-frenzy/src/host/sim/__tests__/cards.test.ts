@@ -64,9 +64,6 @@ describe('card coverage', () => {
   it('has a def for every card id, once, except the ones their milestones add (RD7–RD11)', () => {
     const pending = [
       'tinkerer',
-      'shrapnel_charge',
-      'steady_aim',
-      'minefield',
       'wide_field',
       'challenger',
       'reinforced_generator',
@@ -246,10 +243,11 @@ describe('ranger cards', () => {
   });
 
   it('deadeye: Steady Aim kicks in after 360 ms instead of 600 ms', () => {
-    expect(atk(game(['ranger'], [[0, 'deadeye']]).p(0), 600, 'durationMs', 'passive')).toBeCloseTo(
-      360,
-      6,
-    );
+    const both: Pick[] = [
+      [0, 'steady_aim'],
+      [0, 'deadeye'],
+    ];
+    expect(atk(game(['ranger'], both).p(0), 600, 'durationMs', 'passive')).toBeCloseTo(360, 6);
     const dealt = (picks: Pick[]) => {
       const h = game(['ranger'], picks);
       h.put(0, 10, 16);
@@ -261,8 +259,8 @@ describe('ranger cards', () => {
       h.run(30);
       return e.maxHp - e.hp;
     };
-    expect(dealt([])).toBe(RANGER_MAIN);
-    expect(dealt([[0, 'deadeye']])).toBeCloseTo(RANGER_MAIN * 1.25, 6);
+    expect(dealt([[0, 'steady_aim']])).toBe(RANGER_MAIN);
+    expect(dealt(both)).toBeCloseTo(RANGER_MAIN * 1.25, 6);
   });
 
   it('volley: every 4th main shot fires 3 bolts', () => {

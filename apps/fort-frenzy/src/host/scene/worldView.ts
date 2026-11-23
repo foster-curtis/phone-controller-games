@@ -22,7 +22,7 @@ import { enemyBarWidth, enemyHasHpBar, hpBarShown } from '../render/buildLook';
 import { clipLandedMs, spawnPile } from '../render/fall';
 import { HpBar } from '../render/hpBar';
 import { RIG_INFO, type RigInfo } from '../render/gallery/rigInfo';
-import { iconFrame } from '../render/keys';
+import { iconFrame, SHOCKWAVE_GROW, SHOCKWAVE_R } from '../render/keys';
 import { TILE_W } from '../render/camera';
 import { DANGER_EDGE } from '../render/legibility';
 import { MapView } from '../render/map';
@@ -32,7 +32,7 @@ import { locomotionClip, locomotionSpeed, StatusSprites } from '../render/status
 import { Citadel, type SentryId } from '../render/structures';
 import type { IconKey, ProjectileKind, ProjectileSprite, StatusLook } from '../render/types';
 import type { RenderWorld } from '../render/world';
-import { aimPreview, buildPreview, groundBody, shieldOf, type GroundBody } from '../sim';
+import { aimPreview, buildPreview, groundBody, shieldOf, steadyOn, type GroundBody } from '../sim';
 import { BuildsView } from './buildsView';
 import {
   BASE_ID,
@@ -89,8 +89,6 @@ const FLIP_BELOW_Y = 4;
 const ONE_SHOTS = new Set(['attack', 'super', 'build', 'hit', 'respawn', 'throw', 'plant']);
 /** How long a shot keeps the Ranger facing and in his `ready` pose, ms: the whole attack clip. */
 const SHOT_HOLD_MS = ATTACK_MS + 20;
-/** Steady Aim turns on after 600 ms with the stick released (content passive, FF6). */
-const STEADY_TICKS = 36;
 
 const LOOK_OF: Partial<Record<EffectId, StatusLook>> = {
   burn: 'burn',
@@ -364,8 +362,14 @@ export class WorldView {
 
   private event(e: SimEvent, w: World) {
     this.support.event(e, w);
-    this.builds.event(e);
+    this.builds.event(e, w);
     switch (e.e) {
+      case 'buildPlaced': {
+        // He kneels and sets the mine (§2.4); the mine's own view does the rest.
+        const k = this.knights.get(e.slot);
+        if (e.kind === 'mine' && k && !k.down) k.rig.play('build', { restart: true, fadeMs: 40 });
+        return;
+      }
       case 'portalFlare': {
         const ms = this.content.rules?.flareMs ?? 1000;
         this.map.flare(e.portal, ms);
@@ -539,9 +543,16 @@ export class WorldView {
       k.shotDelay = 0;
       k.rig.setPose('ready', 0);
       k.rig.play('super', { restart: true, fadeMs: 40 });
-      // The pulse ring is sized exactly to the hit circle (§2.4).
       const def = this.content.knights.find((c) => c.id === p.classId);
-      fx.ring('ours', e.x, e.y, def?.super.radius ?? def?.super.range ?? 3, 520);
+      const shape = def ? aimPreview(p, def, 'super', this.content.rules) : null;
+      if (p.classId === 'ranger' && shape?.kind === 'circle') {
+        // The `shockwave` frame rolls out and ends exactly on the hit circle, cards included (§2.4).
+        const at = this.w.camera.worldToScreen(e.x, e.y);
+        const full = this.w.camera.groundEllipse(shape.radius).rx / (SHOCKWAVE_R * this.w.unitPx);
+        fx.mark?.('shockwave', at.sx, at.sy, 520, full / SHOCKWAVE_GROW);
+      } else {
+        fx.ring('ours', e.x, e.y, def?.super.radius ?? def?.super.range ?? 3, 520);
+      }
     }
   }
 
@@ -608,8 +619,8 @@ export class WorldView {
               : { x: 0, y: 0 };
         k.facing = pickFacing(dir.x, dir.y, k.facing);
         rig.setView(k.facing.view, k.facing.mirror);
-        // Steady Aim blends into `ready`; a shot snaps to it (§15.2 poses).
-        const steady = w.phase === 'combat' && p.stillTicks >= STEADY_TICKS;
+        // Steady Aim (only with the card, RD7) blends into `ready`; a shot snaps to it (§15.2 poses).
+        const steady = w.phase === 'combat' && steadyOn(p);
         if (aim !== null || this.t < k.shotUntil) rig.setPose('ready', 0);
         else rig.setPose(steady ? 'ready' : 'stand', steady ? 300 : 160);
         if (!playing(rig)) {
