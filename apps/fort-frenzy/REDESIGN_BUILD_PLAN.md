@@ -834,12 +834,12 @@ Rules:
 - RD7 Ranger
   - [x] Mines + shockwave + cards + views; merged
 - RD8 Artificer
-  - [ ] Nanite blast + heal cone + beacon + gauge + cards; merged
+  - [x] Nanite blast + heal cone + beacon + gauge + cards; merged
 - RD9 Commander
-  - [ ] Shield bash + Reinforcements + flag + squad + cards; morale visuals removed; merged
+  - [x] Shield bash + Reinforcements + flag + squad + cards; morale visuals removed; merged
 - RD10 Enemies
-  - [ ] Brute, Siege, Flyer, Hunter, `hitsFlyers`, wave multiplier
-  - [ ] Colossus Mk I–III + Charge + tells; merged
+  - [x] Brute, Siege, Flyer, Hunter, `hitsFlyers`, wave multiplier
+  - [x] Colossus Mk I–III + Charge + tells; merged
 - [ ] **User approved RC2** (kits, enemies, balance report)
 - RD11 Economy
   - [ ] Commons + card rules + marks; Warden cards; class growth; shop + pricing + coins; merged
