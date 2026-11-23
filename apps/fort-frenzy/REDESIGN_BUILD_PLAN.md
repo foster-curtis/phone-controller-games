@@ -832,7 +832,7 @@ Rules:
   - [x] Merged; e2e green
 - [x] **User approved RC1** (slice on phones and TV)
 - RD7 Ranger
-  - [ ] Mines + shockwave + cards + views; merged
+  - [x] Mines + shockwave + cards + views; merged
 - RD8 Artificer
   - [ ] Nanite blast + heal cone + beacon + gauge + cards; merged
 - RD9 Commander
