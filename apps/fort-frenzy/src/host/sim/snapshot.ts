@@ -25,7 +25,7 @@ import { attachAllCards } from './cards';
 import { refitBase } from './shop';
 import { fillSquads } from './squad';
 import { newAttack, zeroRunStats, type FullState } from './state';
-import type { RunStart, World } from './types';
+import type { BuildEnt, RunStart, World } from './types';
 
 export const SNAPSHOT_VERSION = 3; // 3: RD2's shape (builds, meters, run stats); old saves are dropped
 /** localStorage key (survives a browser crash, unlike sessionStorage). */
@@ -319,7 +319,8 @@ export function restoreSnapshot(s: FullState, snap: RunSnapshot): void {
   refitBase(s);
   w.base.hp = Math.min(w.base.maxHp, Math.max(0, snap.base.hp));
 
-  // Builds, in their saved order (the flag back on its Commander).
+  // Builds, in their saved order (the flag back on its Commander). Their HP waits for the cards below.
+  const savedHp: [BuildEnt, number][] = [];
   for (const x of snap.builds) {
     if (x.kind === 'rally_flag') {
       const c = s.player(x.owner);
@@ -329,8 +330,8 @@ export function restoreSnapshot(s: FullState, snap: RunSnapshot): void {
     if (!s.player(x.owner)) continue;
     const b = s.addBuild(x.kind, x.x, x.y, x.owner);
     b.seq = x.seq;
-    if (b.targetable && x.hp !== null) b.hp = Math.min(b.maxHp, Math.max(1, x.hp));
     if (b.charges !== null && x.charges !== null) b.charges = x.charges;
+    if (b.targetable && x.hp !== null) savedHp.push([b, x.hp]);
   }
 
   // Players: cards first (a Vitality stack raises max HP), then the saved HP.
@@ -345,6 +346,14 @@ export function restoreSnapshot(s: FullState, snap: RunSnapshot): void {
     p.offer = sl.offer ? [...sl.offer] : null;
     p.picked = sl.picked;
     p.run = { ...zeroRunStats(), ...sl.stats };
+  }
+  // A build's max HP follows its owner's cards (Booster Beacon), as it did when placed.
+  for (const [b, hp] of savedHp) {
+    const base = cat.build(b.kind).hp ?? b.maxHp;
+    const max = s.attackStat(s.player(b.owner)!, base, 'buildHp', 'build');
+    b.maxHp = b.stats.maxHp = max;
+    s.baseStats.get(b.id)!.maxHp = max;
+    b.hp = Math.min(max, Math.max(1, hp));
   }
   w.team.wishlist = snap.wishlist
     .filter((x) => s.player(x.slot))

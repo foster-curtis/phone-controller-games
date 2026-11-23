@@ -1829,7 +1829,7 @@ interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: num
   `import.meta.glob`: create, update from the sim's `BuildEnt` each frame, destroy), which freezes after
   RD6. A view exports `view: BuildViewFactory` (`id`, `create(ctx): BuildView`); the scene
   (`scene/buildsView.ts`) fills a `BuildViewState` (phase, ground point, throw height and progress, HP
-  fraction, effect radius, clock) from each `BuildEnt` and holds a destroyed build's wreck 600 ms
+  fraction, effect radius, clock, the beacon's `nextPulse`) from each `BuildEnt` and holds a destroyed build's wreck 600 ms
   before the `scrap-ours` pile. `render/buildKit.ts`'s `LifecycleBuild` is the shared life cycle
   (flight spin and shadow, `landed` → `active`, `damaged` below 50% HP, the dotted effect ellipse, the
   amber bar once damaged, an optional footprint and cycling dome), so a build's view only names its
@@ -1896,6 +1896,7 @@ export interface PlayerEnt extends Unit {
   superCharge: number;                        // 0..1
   meter: number;                              // build meter 0..1 (§7.2); starts the run at 1
   main: AttackState; super: AttackState;
+  burst: NaniteBurst | null;                  // the Artificer's blast still firing; never saved (RD8)
   build: AttackState;                         // the build button: queued press, aim, held (§10.1)
   mainAim: Vec2 | null; superAim: Vec2 | null;
   buildAim: Vec2 | null;                      // live aim while a thrown build is held (TV preview)
@@ -2258,6 +2259,7 @@ export interface AttackDef {
   damage: number; range: number; cooldownMs: number; windupMs?: number;
   arcDeg?: number; count?: number; spreadDeg?: number;
   burstMs?: number;                                 // nanite blast: `count` shots over this long
+  burstMinReach?: number;                           // nanite blast: nearest spot, fraction of range
   speed?: number; hitsFlyers: boolean; knockback?: number;
   radius?: number; minFlightMs?: number;
 }
@@ -3139,3 +3141,6 @@ states, then RD0's own.
 | 121 | 2026-11-23 | Mine delay at a wave's end | A mine whose trigger delay is cut off by the end of the wave doesn't burst: it re-arms with its charge. Shrapnel Charge's shorter delay stops at `minTriggerMs` (120 ms) (§7.4) | Build effects run in combat only (§7.1); a burst in an empty build phase would waste the charge (RD7) |
 | 122 | 2026-11-23 | One-card prerequisites | A card with one prerequisite (Deadeye, Wide Aura) is gated by it but stacks like any other card unless marked unique; only two-card combos are implicitly unique (§6.1) | §6.1 marks only combos and named cards unique; the picker treated every `requires` as a combo (RD7) |
 | 123 | 2026-11-23 | Ranger kit on the TV | The `shockwave` frame replaces the Ranger's code-drawn ring and rolls out to his effective hit radius; the mine uses the shared life cycle with `liveAlpha` 0.4 and a `trigger` frame, its shadow fading with it; his Steady Aim pose shows only with the card (§2.4, §7.5, §15.2) | RD7 |
+| 130 | 2026-11-23 | Nanite blast | 5 nanites, evenly over 0.8 s from the press, each to a random spot in the cone at 60–100% of the range (`combat:<wave>` stream), along the aim he released with. Each nanite restarts regen; going down, dazed or a phase end drops the rest. The cooldown never goes under `burstMs`, whatever his attack speed (§8.2) | One burst per release, and RC1's regen rule on the blast's own firing path (RD8) |
+| 131 | 2026-11-23 | Artificer healing | Field Medic and beacon healing charge the super at `superCharge.perHeal`, through Focus (Field Medic's own `chargeRate` is gone); only Field Medic charges the meter. The beacon pulses at once when it switches on, then every `heal.everyMs`, and keeps working while he is down; Booster Beacon raises heal per pulse (`buildPower`) and HP (§7.4, §8.3) | One charge rule for both heals; `buildPower` is the contract's heal-per-pulse stat (RD8) |
+| 132 | 2026-11-23 | Build HP on resume | A restored build's max HP is recomputed from its owner's cards before its saved HP is applied (§15.8) | Otherwise a resume clips a Booster Beacon back to base HP (RD8) |

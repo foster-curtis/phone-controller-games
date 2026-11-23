@@ -156,6 +156,7 @@ export class BuildsView {
     s.hpFrac = hpFraction(b.hp, hp);
     s.phase = buildPhase({ state: b.state, hp: b.hp, maxHp: hp });
     s.triggered = b.triggerAt !== null;
+    s.nextPulse = b.nextPulse;
   }
 
   private drop(id: EntityId, en: Entry) {

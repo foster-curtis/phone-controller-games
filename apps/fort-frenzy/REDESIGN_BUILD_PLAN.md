@@ -1089,6 +1089,12 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD7] decision: Ranger meter starts at 0.025/s + 0.0015 per damage point (about one mine per 9–10 s of steady fire); balance report: Ranger −13%, Warden +28% (a report for RC2, not tuned here).
 - [RD7] decision: a used-up charge build leaves after `stepBuilds`' loop (`charges === 0`), so a burst never skips the next build in the array.
 - [RD7] decision: left for RD13: §2.4's bolt and rails brightening in steps while Steady Aim builds isn't in the renderer (the rig has only a whole-body `setGlow`); RD7 gates the existing `ready` pose on the card.
+- [RD8] contract+: `AttackDef.burstMinReach`, `PlayerEnt.burst` + `NaniteBurst` (`sim/types.ts`), `BuildViewState.nextPulse?` (`render/types.ts`); SPEC §15.2–§15.4 and #130 updated.
+- [RD8] decision: each nanite restarts regen (`sim/regen.ts`, shared with `fire`), so the 5 s runs from the blast's last shot; the heal cone goes through `fire` (#130).
+- [RD8] decision: Field Medic and beacon healing share `superCharge.perHeal` through Focus; the beacon's first pulse is at switch-on and it works while its owner is down (#131).
+- [RD8] decision: a resume recomputes a build's max HP from its owner's cards, or a boosted beacon would be clipped to base HP (#132).
+- [RD8] decision: Wide Aura stacks under RD7's one-prerequisite rule (#122); RD8 doesn't touch `cardEligible` or pin that behavior.
+- [RD8] decision: the beacon's flight still starts at his ground point (RD5's shared flight view); the throw clip and a nanite puff at `pack` mark the release.
 
 ## 9. Final handoff
 

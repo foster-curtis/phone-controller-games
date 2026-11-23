@@ -1,15 +1,7 @@
 // Upgrade card scenarios (SPEC §6.1): one test per card, picked through the real `card` command
 // (harness `give`), plus stacking (×N) and the stat caps.
 import { describe, expect, it } from 'vitest';
-import {
-  cards as cardDefs,
-  classes,
-  ranger,
-  flyer,
-  artificer,
-  rules,
-  warden,
-} from '../../../content/balance';
+import { cards as cardDefs, classes, ranger, flyer, rules, warden } from '../../../content/balance';
 import type { RulesDef, StatId } from '../../../content/types';
 import { CARD_IDS, type CardId, type ClassId } from '../../../shared/ids';
 import { collectStatMods, statValue } from '../../systems/modifiers';
@@ -68,9 +60,6 @@ describe('card coverage', () => {
       'challenger',
       'reinforced_generator',
       'fault_line',
-      'strong_arm',
-      'booster_beacon',
-      'field_medic',
       'heavy_bash',
       'drillmaster',
       'morale',
@@ -416,10 +405,13 @@ describe('artificer cards', () => {
       h.run(MEDIC);
       return h;
     };
-    expect(effectOf(run([]).p(1), 'shield')).toBeUndefined();
-    const h = run([[0, 'overflow']]);
+    expect(effectOf(run([[0, 'field_medic']]).p(1), 'shield')).toBeUndefined();
+    const h = run([
+      [0, 'field_medic'],
+      [0, 'overflow'],
+    ]);
     const shield = effectOf(h.p(1), 'shield')!;
-    expect(shield.strength).toBeCloseTo(artificer.passive.params.heal, 6);
+    expect(shield.strength).toBeCloseTo(3, 6);
     // A hit eats the shield, not the HP.
     shield.strength = 40;
     h.sim.command({ c: 'debug', slot: 1, action: 'invincible', on: false });
@@ -439,8 +431,13 @@ describe('artificer cards', () => {
       h.run(MEDIC);
       return h.p(1).hp - 50;
     };
-    expect(healed([])).toBe(0);
-    expect(healed([[0, 'wide_aura']])).toBe(3);
+    expect(healed([[0, 'field_medic']])).toBe(0);
+    expect(
+      healed([
+        [0, 'field_medic'],
+        [0, 'wide_aura'],
+      ]),
+    ).toBe(3);
     expect(atk(game(['artificer'], [[0, 'wide_aura']]).p(0), 2.5, 'auraRadius')).toBeCloseTo(
       3.25,
       6,
@@ -457,9 +454,10 @@ describe('artificer cards', () => {
       h.run(MEDIC);
       return h.p(1).hp - hp;
     };
-    expect(healed([], 20)).toBe(3);
-    expect(healed([[0, 'triage']], 20)).toBe(6);
-    expect(healed([[0, 'triage']], 50)).toBe(3);
+    const medic: Pick = [0, 'field_medic'];
+    expect(healed([medic], 20)).toBe(3);
+    expect(healed([medic, [0, 'triage']], 20)).toBe(6);
+    expect(healed([medic, [0, 'triage']], 50)).toBe(3);
   });
 
   it('plague: a poisoned enemy that dies passes poison to a neighbor', () => {

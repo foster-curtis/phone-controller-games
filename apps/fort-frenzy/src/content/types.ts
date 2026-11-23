@@ -112,6 +112,8 @@ export interface AttackDef {
   spreadDeg?: number;
   /** Nanite blast: `count` shots over this long (RD8). */
   burstMs?: number;
+  /** Nanite blast: each shot's spot is this fraction of the range, up to the full range. */
+  burstMinReach?: number;
   speed?: number;
   hitsFlyers: boolean;
   knockback?: number;

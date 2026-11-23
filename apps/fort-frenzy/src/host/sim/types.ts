@@ -98,6 +98,25 @@ export interface AttackState {
   held?: 'out' | 'cancelled' | null;
 }
 
+/** A nanite blast in progress (§8.2, RD8): what one release's remaining shots need. */
+export interface NaniteBurst {
+  /** The aim he released with, radians: the blast doesn't follow a later turn. */
+  angle: number;
+  startedAt: number;
+  fired: number;
+  count: number;
+  /** Steps from the first shot to the last. */
+  steps: number;
+  halfSpread: number;
+  minReach: number;
+  damage: number;
+  range: number;
+  speed: number;
+  pierce: number;
+  tags: string[];
+  effects: EffectApply[];
+}
+
 export interface PlayerEnt extends Unit {
   slot: number;
   classId: ClassId;
@@ -110,6 +129,8 @@ export interface PlayerEnt extends Unit {
   superCharge: number;
   main: AttackState;
   super: AttackState;
+  /** The Artificer's blast still firing (null otherwise); never outlives combat, so never saved. */
+  burst: NaniteBurst | null;
   /** Build meter 0..1 (§7.2); starts the run full (RD3). */
   meter: number;
   /** The build button: queued press, aim, held (§10.1). */

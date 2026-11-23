@@ -5,10 +5,15 @@ export { stateHash } from './hash';
 export { inSector, type Sector } from './classes/sector';
 export { hitShape, type HitShape } from './classes/hitShape';
 export { groundBody, type GroundBody } from './body';
-export { aimPreview, buildEffectRadius, buildPreview, type BuildPreview } from './preview';
+export {
+  aimPreview,
+  buildEffectRadius,
+  buildPreview,
+  fieldMedicRadius,
+  type BuildPreview,
+} from './preview';
 export { canPlace } from './builds';
 export { squadSize } from './squad';
-export { fieldMedicRadius } from './modules/fieldMedic';
 export { steadyOn } from './modules/steadyAim';
 export {
   AutopilotInputSource,

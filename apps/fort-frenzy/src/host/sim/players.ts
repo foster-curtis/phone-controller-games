@@ -5,12 +5,14 @@ import type { AttackDef, EffectApply, Vec2 } from '../../content/types';
 import { AIM_DEAD_ZONE } from '../../shared/messages';
 import { bodyAimY, circleHitsBody } from './body';
 import { landArc, windupSteps } from './classes/warden';
+import { startBlast, stepBlast } from './classes/artificer';
 import { recallFlag } from './classes/commander';
 import { placeBuild } from './builds/core';
 import { fillMeter } from './builds/meter';
 import { attackShapes } from './classes/shapes';
 import { cleanVec } from './geometry';
 import type { SimState, SlotInput } from './internal';
+import { holdRegen } from './regen';
 import type { FullState } from './state';
 import type { AttackEvent, AttackState, EnemyEnt, PlayerEnt } from './types';
 
@@ -31,6 +33,7 @@ const ATTACK_SLOTS = ['main', 'super'] as const;
 /** Drops queued shots and wind-ups: one cut short never lands, and the TV calls off its impact. */
 function releaseAttacks(s: Pick<SimState, 'emit'>, p: PlayerEnt): void {
   p.main.queued = p.super.queued = false;
+  p.burst = null;
   for (const slot of ATTACK_SLOTS) {
     const st = p[slot];
     if (st.windupEndsAt !== null) s.emit({ e: 'windupCancelled', source: p.id, slot });
@@ -139,11 +142,13 @@ function attacks(s: FullState, p: PlayerEnt, inp: SlotInput) {
     p.vx = p.vy = 0;
     return;
   }
+  stepBlast(s, p);
   if (p.main.queued && t >= p.main.readyAt) {
     p.main.queued = false;
     fire(s, p, 'main', def.main, p.main.aim);
     const as = Math.max(0.05, s.attackStat(p, 1, 'attackSpeed', 'main'));
-    p.main.readyAt = t + s.cat.steps(def.main.cooldownMs / as);
+    // A blast never overlaps the next one, however fast he attacks (§8.2).
+    p.main.readyAt = t + s.cat.steps(Math.max(def.main.burstMs ?? 0, def.main.cooldownMs / as));
   }
   // Supers fire on release when full; a release while charging does nothing.
   // Not on the step a main wind-up starts: he can't slam and leave the ground at once.
@@ -184,8 +189,7 @@ function fire(
   landing = false,
 ) {
   // Attacking holds regen off like damage does (§5, RC1): at the press and when a wind-up lands.
-  p.regen.quietUntil = s.world.tick + s.cat.steps(s.cat.rules.regen.delayMs);
-  p.regen.nextRegen = p.regen.quietUntil;
+  holdRegen(s, p);
   const range = s.attackStat(p, a.range, 'range', slot);
   let dx = aim.x;
   let dy = aim.y;
@@ -263,6 +267,10 @@ function fire(
     return;
   }
   const speed = s.attackStat(p, a.speed!, 'projectileSpeed', slot);
+  if (a.burstMs) {
+    startBlast(s, p, a, damage, range, speed, atk);
+    return;
+  }
   const spread = (atk.spreadDeg * Math.PI) / 180;
   for (let i = 0; i < atk.count; i++) {
     const off = atk.count > 1 ? spread * (i / (atk.count - 1) - 0.5) : 0;

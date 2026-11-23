@@ -15,7 +15,7 @@ import { pickFacing, type Facing } from '../render/aim';
 import { SLASH_CUT } from '../render/clips/commander';
 import { placeFrame } from '../render/context';
 import { clipLandedMs } from '../render/fall';
-import { GAUGE_GROUPS, gaugeGroups } from '../render/gauge';
+import { GAUGE_GROUPS, gaugeGroups, gaugeSteps } from '../render/gauge';
 import { RIG_INFO, type RigInfo } from '../render/gallery/rigInfo';
 import { fk } from '../render/keys';
 import { Pool } from '../render/pool';
@@ -84,8 +84,6 @@ const MOTE_EVERY_MS = 380;
 const CONE_MS = 520;
 const SLASH_TRAIL_MS = 220;
 const FIELD_DOTS = 28;
-/** Gauge steps: three cores, two halves each. */
-const GAUGE_MAX = 6;
 
 const playing = (rig: RigSprite) =>
   rig.clip !== null && rig.clip !== 'idle' && rig.clip !== 'walk' && !rig.clipDone;
@@ -173,6 +171,16 @@ export class SupportView {
         if (k && !k.down) k.rig.play('plant', { restart: true, fadeMs: 40 });
         return;
       }
+      case 'buildPlaced': {
+        // The Artificer's throw: a puff of nanites at the pack it leaves from (§2.4).
+        if (e.kind !== 'beacon') return;
+        const k = this.knight(e.slot);
+        if (!k || k.down) return;
+        k.rig.play('throw', { restart: true, fadeMs: 40 });
+        const pack = k.rig.attach('pack');
+        if (pack) fx.burst('nanite-mote', pack.sx, pack.sy);
+        return;
+      }
       default:
         return;
     }
@@ -199,15 +207,16 @@ export class SupportView {
         ttl,
       });
     if (p.classId === 'artificer') {
-      const lens = k.rig.attach('lens');
-      if (lens)
-        fx.burst(
-          'muzzle-ours',
-          lens.sx,
-          lens.sy,
-          Math.atan2(Math.sin(e.angle) * 0.6, Math.cos(e.angle)),
-        );
+      // The blast's muzzle flashes come one per nanite (WorldView's `drawProjectiles`).
       if (e.slot === 'super') {
+        const lens = k.rig.attach('lens');
+        if (lens)
+          fx.burst(
+            'muzzle-ours',
+            lens.sx,
+            lens.sy,
+            Math.atan2(Math.sin(e.angle) * 0.6, Math.cos(e.angle)),
+          );
         // The wide cone.
         sweep('cone', 0, CONE_MS);
         for (const g of [0.35, 0.6, 0.85]) {
@@ -269,7 +278,7 @@ export class SupportView {
 
   private drawArtificer(w: World, p: PlayerEnt, k: KnightRef) {
     // Backpack gauge shows the build meter (0..1), bottom cell first (render/gauge.ts).
-    const cores = Math.round(Math.min(1, Math.max(0, p.meter)) * GAUGE_MAX);
+    const cores = gaugeSteps(p.meter);
     if (this.gauges.get(p.slot) !== cores) {
       this.gauges.set(p.slot, cores);
       const on = new Set(gaugeGroups(cores));
@@ -289,10 +298,9 @@ export class SupportView {
         this.w.fx.burst('nanite-mote', lens.sx + jx, lens.sy + jy);
       }
     }
-    // Field Medic (combat only): a faint dotted amber ground circle, never filled.
-    if (w.phase === 'combat') {
-      const def = this.def(p);
-      const r = fieldMedicRadius(def?.passive?.params);
+    // Field Medic (his card, combat only): a faint dotted amber ground circle, never filled.
+    const r = w.phase === 'combat' ? fieldMedicRadius(p, this.content) : null;
+    if (r !== null) {
       const { rx, ry } = this.w.camera.groundEllipse(r);
       const g = this.ground.draw();
       g.fillStyle(theme.color.amber.num, 0.35);

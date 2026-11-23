@@ -261,8 +261,6 @@ describe('the sim hits exactly the previewed area', () => {
   for (const [cls, boosted] of [
     ['ranger', false],
     ['ranger', true],
-    ['artificer', false],
-    ['artificer', true],
   ] as const) {
     it(`${cls} main${boosted ? ' (with a mod)' : ''}: bolts fly the preview's reach and fan`, () => {
       const h = setup(cls, boosted);
@@ -280,6 +278,32 @@ describe('the sim hits exactly the previewed area', () => {
         // Bolts expire on the first step at or past the reach (state.ts `fire`).
         expect((b.expiresAt - t0) * perStep).toBeGreaterThanOrEqual(reach - 1e-9);
         expect((b.expiresAt - t0 - 2) * perStep).toBeLessThan(reach);
+      }
+    });
+  }
+
+  for (const boosted of [false, true]) {
+    it(`artificer main${boosted ? ' (with a mod)' : ''}: every nanite stays inside the preview`, () => {
+      const h = setup('artificer', boosted);
+      const s = shapeOf(h, 'main');
+      if (s.kind !== 'cone') throw new Error('the nanite blast previews as a cone');
+      const seen = new Map<number, { angle: number; flight: number }>();
+      h.pads[0]!.tap('mainFires', { mainAim: AIM });
+      for (let i = 0; i < 60; i++) {
+        h.run(1);
+        for (const b of h.sim.world.projectiles) {
+          if (b.source !== h.p(0).id || seen.has(b.id)) continue;
+          const flight = ((b.expiresAt - h.sim.world.tick) * Math.hypot(b.vx, b.vy)) / 60;
+          seen.set(b.id, { angle: Math.abs(Math.atan2(b.vy, b.vx)), flight });
+        }
+      }
+      expect(seen.size).toBe(artificer.main.count);
+      for (const b of seen.values()) {
+        expect(b.angle).toBeLessThanOrEqual(s.half + 1e-9);
+        // Its random spot: within the preview's reach, never short of the minimum (a step's slack).
+        const step = artificer.main.speed / 60;
+        expect(b.flight).toBeLessThanOrEqual(s.range + step);
+        expect(b.flight).toBeGreaterThanOrEqual(s.range * artificer.main.burstMinReach - 2 * step);
       }
     });
   }

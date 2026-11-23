@@ -34,6 +34,14 @@ export function buildEffectRadius(
   return attackStat(owner, def.radius, 'buildRadius', 'build', effects, caps);
 }
 
+/** The Field Medic circle's radius with his cards (Wide Aura); null when he doesn't own the card. */
+export function fieldMedicRadius(p: PlayerEnt, content: Content): number | null {
+  if ((p.cards.field_medic ?? 0) <= 0 || !content.rules) return null;
+  const base = content.cards.find((c) => c.id === 'field_medic')?.module?.params?.radius;
+  if (typeof base !== 'number') return null;
+  return attackStat(p, base, 'auraRadius', undefined, effects, content.rules.statCaps as Caps);
+}
+
 /** A thrown build's aim preview (§7.3, §10.1): drawn as 0.6 ground ellipses on the TV. */
 export interface BuildPreview {
   kind: BuildId;

@@ -9,6 +9,7 @@ import type { BuildDef } from '../../../content/types';
 import type { BuildId } from '../../../shared/ids';
 import type { SimState } from '../internal';
 import type { BuildEnt, PlayerEnt } from '../types';
+import { beacon } from './beacon';
 import { mine } from './mine';
 import { shieldGen } from './shieldGen';
 
@@ -28,6 +29,7 @@ export interface BuildBehavior {
 export const buildBehaviors: Partial<Record<BuildId, BuildBehavior>> = {
   shield_gen: shieldGen, // RD3
   mine, // RD7
+  beacon, // RD8
 };
 
 /** Can this build be placed (has it a behavior)? The phone's build button reads the same. */

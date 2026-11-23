@@ -209,7 +209,7 @@ export const CARD_INFO: Record<CardId, CardInfo> = {
   fault_line: c('Fault Line', 'card-combo', 'Jump slam leaves a slowing fissure.', true),
   strong_arm: c('Strong Arm', 'card-build', 'Longer, faster build throws.'),
   booster_beacon: c('Booster Beacon', 'card-build', 'Beacon heals faster, has more HP.'),
-  venom_bolts: c('Venom Bolts', 'card-effect', 'Bolts apply poison.', true),
+  venom_bolts: c('Venom Bolts', 'card-effect', 'Nanites apply poison.', true),
   overflow: c('Overflow', 'card-ally', 'Extra healing becomes a shield.', true),
   wide_aura: c('Wide Aura', 'card-passive', 'Larger Field Medic radius.', true),
   triage: c('Triage', 'card-ally', 'Double healing under 30% HP.', true),

@@ -189,19 +189,22 @@ export const artificer = {
   role: 'support',
   moveSpeed: 4.6,
   radius: 0.32,
-  // 3–4 nanite bolts in a narrow cone, medium-long range (§8). Bolts fly
-  // at render PROJECTILE_SPEEDS['nanite-bolt'] (20 t/s, FF3-fix-1).
+  // Nanite blast (§8.2, RD8): one release sends `count` nanites over `burstMs`, each to a seeded
+  // random spot in the narrow cone, `burstMinReach`–100% of the range. The cooldown never drops under
+  // `burstMs`. Bolts fly at render PROJECTILE_SPEEDS['nanite-bolt'] (20 t/s, FF3-fix-1).
   main: {
     shape: 'projectile',
     damage: 12,
     range: 6.5,
-    cooldownMs: 700,
-    count: 4,
+    cooldownMs: 900,
+    count: 5,
     spreadDeg: 16,
+    burstMs: 800,
+    burstMinReach: 0.6,
     speed: 20,
     hitsFlyers: true,
   },
-  // A very wide, long cone: heals the knights it reaches (not himself); it hurts no one (§8).
+  // A very wide, long cone: heals him and the knights it reaches, never builds; it hurts no one (§8).
   super: {
     shape: 'cone',
     damage: 0,
@@ -214,15 +217,11 @@ export const artificer = {
   build: 'beacon',
   input: { main: 'aimed', super: 'aimed', build: 'aimed' },
   hitsFlyers: true,
+  // Field Medic and beacon healing charge the super at `perHeal`, slower than damage does (§8.3).
   superCharge: { perDamage: 0.005, perHeal: 0.002 },
-  meter: { perSec: 0, perPoint: 0, sources: ['damage', 'healing'] },
+  // A full meter in 40 s alone, or from about 400 damage or Field Medic healing (RD8 starting values).
+  meter: { perSec: 1 / 40, perPoint: 0.0025, sources: ['damage', 'healing'] },
   passiveCard: 'field_medic',
-  // Field Medic heals nearby players every second in combat; its healing charges the super at
-  // `chargeRate` per HP healed, slower than damage does (§8).
-  passive: {
-    module: 'field_medic',
-    params: { radius: 2.5, heal: 3, everyMs: 1000, chargeRate: 0.002 },
-  },
 } satisfies KnightDef;
 
 // Commander (squad leader, §8).
@@ -1015,6 +1014,32 @@ export const wardenCards: CardDef[] = [
 
 export const artificerCards: CardDef[] = [
   {
+    id: 'strong_arm',
+    owner: 'artificer',
+    tier: 'common',
+    stats: [
+      { stat: 'throwRange', addPct: 0.25, scope: 'build' },
+      { stat: 'throwSpeed', addPct: 0.25, scope: 'build' },
+    ],
+  },
+  {
+    id: 'booster_beacon',
+    owner: 'artificer',
+    tier: 'common',
+    stats: [
+      { stat: 'buildPower', addPct: 0.3, scope: 'build' },
+      { stat: 'buildHp', addPct: 0.3, scope: 'build' },
+    ],
+  },
+  // His passive card (§8.2): heals nearby knights every second in combat.
+  {
+    id: 'field_medic',
+    owner: 'artificer',
+    tier: 'rare',
+    unique: true,
+    module: { module: 'field_medic', params: { radius: 2.5, heal: 3, everyMs: 1000 } },
+  },
+  {
     id: 'venom_bolts',
     owner: 'artificer',
     tier: 'rare',
@@ -1032,6 +1057,7 @@ export const artificerCards: CardDef[] = [
     id: 'wide_aura',
     owner: 'artificer',
     tier: 'rare',
+    requires: ['field_medic'],
     stats: [{ stat: 'auraRadius', addPct: 0.3 }],
   },
   {
@@ -1045,7 +1071,7 @@ export const artificerCards: CardDef[] = [
     id: 'plague',
     owner: 'artificer',
     tier: 'combo',
-    requires: ['venom_bolts', 'wide_aura'],
+    requires: ['venom_bolts', 'field_medic'],
     module: { module: 'plague' },
   },
 ];

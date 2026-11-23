@@ -318,6 +318,7 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       meter: 1,
       main: newAttack(),
       super: newAttack(),
+      burst: null,
       build: newAttack(),
       mainAim: null,
       superAim: null,

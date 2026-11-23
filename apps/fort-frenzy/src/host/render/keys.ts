@@ -93,6 +93,10 @@ export const SHIELD_SHIMMER = [
   fk('shield-shimmer-3'),
 ] as const;
 
+/** The healing beacon's pulse ring (ground, r 40 sprite units; RD8). */
+export const BEACON_PULSE = fk('beacon-pulse');
+export const BEACON_PULSE_R = 40;
+
 /** Ground and effect frames the effect spawner's `mark` places (RD5). */
 export const MARK_FRAMES = {
   'slam-cracks': fk('slam-cracks'),

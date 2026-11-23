@@ -892,7 +892,12 @@ export class WorldView {
       if (k) {
         this.launchers.delete(pr.id);
         const m = k.down ? null : k.rig.attach(shotAnchor(k.rig.rigId));
-        if (m) launch.origin = anchorToWorld(m, { x: k.wx, y: k.wy }, this.w.camera);
+        if (m) {
+          launch.origin = anchorToWorld(m, { x: k.wx, y: k.wy }, this.w.camera);
+          // The nanite blast flashes at the lens with each nanite (§2.4).
+          if (pr.from === 'artificer')
+            this.w.fx.burst('muzzle-ours', m.sx, m.sy, screenRot(Math.atan2(pr.vy, pr.vx)));
+        }
       }
       const at = this.screen(pr.id, pr.x, pr.y, pr.z ?? 0, f);
       const pos = pr.side === 'theirs' ? this.enemyShot(pr, w, at) : shotPos(launch, this.t, at);

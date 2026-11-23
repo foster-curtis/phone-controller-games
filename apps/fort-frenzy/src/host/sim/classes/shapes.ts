@@ -1,6 +1,6 @@
 // Player attack shapes beyond projectiles and circles (SPEC §8): the Commander's sword `arc`, the
-// Artificer's super `cone` (heals knights; RD8 replaces it with the heal cone) and the Commander's
-// morale `buff` (until RD9). Players' `fire` dispatches here by `AttackDef.shape`.
+// Artificer's super `cone` (his heal cone, RD8) and the Commander's morale `buff` (until RD9).
+// Players' `fire` dispatches here by `AttackDef.shape`.
 import type { AttackDef, EffectApply, KnightDef } from '../../../content/types';
 import type { FullState } from '../state';
 import type { AttackEvent, PlayerEnt } from '../types';
@@ -51,8 +51,9 @@ const arc: ShapeFire = (s, p, a, slot, damage, atk) => {
 };
 
 /**
- * Nanite cone (Artificer super): heals the knights it reaches (not himself, not builds, §8.2);
- * damages enemies only if it has damage. Nothing blocks it.
+ * Heal cone (Artificer super): heals him and the knights it reaches (not soldiers, not builds,
+ * §8.2); damages enemies only if it has damage. Nothing blocks it. Its healing charges neither his
+ * super nor his meter (§7.2). Regen restarts in `fire`, like any super.
  */
 const cone: ShapeFire = (s, p, a, slot, damage, atk) => {
   const sup = a as SuperDef;
@@ -61,7 +62,7 @@ const cone: ShapeFire = (s, p, a, slot, damage, atk) => {
   const heal = sup.heal ? s.attackStat(p, sup.heal, 'healing', slot) : 0;
   if (heal > 0) {
     for (const q of s.world.players) {
-      if (q === p || !s.targetable(q) || !inSector(sec, q.x, q.y, q.r)) continue;
+      if (!s.targetable(q) || !inSector(sec, q.x, q.y, q.r)) continue;
       s.heal(q.id, heal, p.id);
     }
   }

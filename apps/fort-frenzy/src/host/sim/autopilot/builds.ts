@@ -47,7 +47,11 @@ const ranger: BuildPolicy = ({ world, self, build }) => {
   return covered ? null : { aim: { x: 0, y: 0 } };
 };
 
+/** Artificer: the same rule with the beacon, so its healing covers him where he fights. */
+const artificer: BuildPolicy = (input) => warden(input);
+
 export const buildPolicies: Partial<Record<KnightId, BuildPolicy>> = {
   warden, // RD3
   ranger, // RD7
+  artificer, // RD8
 };

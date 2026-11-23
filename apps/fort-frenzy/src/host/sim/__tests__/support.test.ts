@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { content as baseContent, type Content } from '../../../content';
 import { commander, artificer } from '../../../content/balance';
-import type { ClassId, PlayerColorId } from '../../../shared/ids';
+import type { CardId, ClassId, PlayerColorId } from '../../../shared/ids';
 import { PLAYER_COLOR_IDS } from '../../../shared/ids';
 import { createSim, ScriptedInputSource, squadSize, type Sim } from '../index';
 import type { PlayerEnt, SimEvent, SoldierEnt } from '../types';
@@ -62,6 +62,14 @@ function mixed(classes: ClassId[], content: Content = baseContent) {
       return out as never;
     },
     squad: (slot: number): SoldierEnt[] => sim.world.soldiers.filter((u) => u.owner === slot),
+    /** Build phase: gives `slot` a card through the real pick command. */
+    give(slot: number, card: CardId) {
+      const p = h.p(slot);
+      p.offer = [card];
+      p.picked = null;
+      sim.command({ c: 'card', slot, card });
+      sim.step();
+    },
   };
   return h;
 }
@@ -72,10 +80,27 @@ const hurt = (p: PlayerEnt, hp: number) => {
   p.regen.quietUntil = p.regen.nextRegen = 1e9;
 };
 
-describe('Field Medic (§8)', () => {
-  it('is off in the build phase', () => {
+describe('Field Medic (§8, his passive card)', () => {
+  /** An Artificer with Field Medic and a Ranger, in the build phase. */
+  const medic = () => {
     const h = mixed(['artificer', 'ranger']);
     h.toBuild();
+    h.give(0, 'field_medic');
+    return h;
+  };
+
+  it('does nothing until he owns the card', () => {
+    const h = mixed(['artificer', 'ranger']);
+    h.toCombat();
+    h.put(0, 10, 10);
+    h.put(1, 11, 10);
+    hurt(h.p(1), 50);
+    h.run(180);
+    expect(h.p(1).hp).toBe(50);
+  });
+
+  it('is off in the build phase', () => {
+    const h = medic();
     h.put(0, 10, 10);
     h.put(1, 11, 10);
     hurt(h.p(1), 50);
@@ -84,7 +109,7 @@ describe('Field Medic (§8)', () => {
   });
 
   it('heals nearby players in combat and charges the super slowly', () => {
-    const h = mixed(['artificer', 'ranger']);
+    const h = medic();
     h.toCombat();
     h.put(0, 10, 10);
     h.put(1, 11, 10);
@@ -92,13 +117,12 @@ describe('Field Medic (§8)', () => {
     const heals = h.collect('heal', 181);
     expect(h.p(1).hp).toBe(50 + 3 * 3);
     expect(heals.every((e) => e.source === h.p(0).id)).toBe(true);
-    const params = artificer.passive!.params;
-    expect(h.p(0).superCharge).toBeCloseTo(9 * params.chargeRate, 9);
-    expect(params.chargeRate).toBeLessThan(artificer.superCharge.perDamage);
+    expect(h.p(0).superCharge).toBeCloseTo(9 * artificer.superCharge.perHeal, 9);
+    expect(artificer.superCharge.perHeal).toBeLessThan(artificer.superCharge.perDamage);
   });
 
   it('leaves players out of its radius alone', () => {
-    const h = mixed(['artificer', 'ranger']);
+    const h = medic();
     h.toCombat();
     h.put(0, 10, 10);
     h.put(1, 16, 10);
@@ -109,7 +133,7 @@ describe('Field Medic (§8)', () => {
 });
 
 describe('Artificer attacks (§8)', () => {
-  it('main bolts fan out and hit; the super cone heals knights only (§8.2)', () => {
+  it('the main blast hits; the super cone heals knights only (§8.2)', () => {
     const h = mixed(['artificer', 'ranger']);
     h.toCombat();
     h.sim.world.spawns.length = 0;
@@ -118,11 +142,7 @@ describe('Artificer attacks (§8)', () => {
     const enemy = h.sim.spawnEnemy('grunt', 13.5, 10.5);
     enemy.stats.moveSpeed = 0;
     h.pads[0]!.tap('mainFires', { mainAim: { x: 1, y: 0 } });
-    h.run(1);
-    const bolts = h.sim.world.projectiles.filter((p) => p.from === 'artificer');
-    expect(bolts).toHaveLength(artificer.main.count);
-    expect(new Set(bolts.map((b) => Math.round(Math.atan2(b.vy, b.vx) * 100))).size).toBe(4);
-    const hits = h.collect('damage', 40).filter((d) => d.target === enemy.id);
+    const hits = h.collect('damage', 70).filter((d) => d.target === enemy.id);
     expect(hits.some((d) => d.source === h.p(0).id)).toBe(true);
 
     hurt(h.p(1), 30);

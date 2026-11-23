@@ -1,7 +1,7 @@
 // Artificer clips (SPEC §2.4). The backpack gauge is optional groups (`core<N>-full|half`), switched
-// by code from the cells carried (render/gauge.ts). Main: the projector arm kicks as the nanite bolts
-// leave the lens (the shot origin is the `lens` attach point); super: he braces and every seam flares
-// with the wide cone; throw: the arm swings back and lobs a cell from the hand (FF9).
+// by code from his build meter (render/gauge.ts). Main: the projector arm kicks with each nanite that
+// leaves the lens (the shot origin is the `lens` attach point); super: he braces and every seam flares
+// with the wide cone; throw: the arm swings back and lobs the beacon (RD8).
 import rig from '../../../../art/neon-knights/rigs/artificer.json';
 import type { Clip, Keyframe, RigDef } from '../../../presentation/types';
 import { each, knightClips, once, type KnightParts } from '../clipKit';
@@ -36,28 +36,30 @@ const pulse = (peakAt: number, peak: number, end: number): Keyframe[] => [
   { t: end, glow: 1 },
 ];
 
-/** Main: the arm recoils as the bolts leave the lens, the lens flares. */
-export const ATTACK_MS = 300;
+/** Main (nanite blast, RD8): the gap between nanites; content's `burstMs` = 4 gaps (speeds test). */
+export const BLAST_SHOT_MS = 200;
+const BLAST_SHOTS = [0, 1, 2, 3, 4].map((i) => i * BLAST_SHOT_MS);
+const KICK_MS = 40;
+export const ATTACK_MS = BLAST_SHOTS[4]! + 160;
+
+/** One key track that kicks to `peak` at every nanite and eases back to `rest` before the next. */
+const kicks = (rest: Partial<Keyframe>, peak: Partial<Keyframe>): Keyframe[] => [
+  ...BLAST_SHOTS.flatMap((t) => [
+    { t, ...rest },
+    { t: t + KICK_MS, ...peak },
+  ]),
+  { t: ATTACK_MS, ...rest },
+];
+
+/** Main: the arm recoils and the lens flares with each of the five nanites. */
 const attack: Clip = once(
   ATTACK_MS,
   {
-    torso: [
-      { t: 0, dx: 0 },
-      { t: 40, dx: -1.5 },
-      { t: ATTACK_MS, dx: 0 },
-    ],
-    frontarm: [
-      { t: 0, rot: 0 },
-      { t: 40, rot: -9 },
-      { t: ATTACK_MS, rot: 0 },
-    ],
-    arms: [
-      { t: 0, dy: 0 },
-      { t: 40, dy: -2 },
-      { t: ATTACK_MS, dy: 0 },
-    ],
+    torso: kicks({ dx: 0 }, { dx: -1.5 }),
+    frontarm: kicks({ rot: 0 }, { rot: -9 }),
+    arms: kicks({ dy: 0 }, { dy: -2 }),
   },
-  each(['frontarm-glow', 'arms-glow'], pulse(40, 2.6, ATTACK_MS)),
+  each(['frontarm-glow', 'arms-glow'], kicks({ glow: 1 }, { glow: 2.6 })),
 );
 
 /** Super: a brace, the projector raised, every seam flaring with the cone. */

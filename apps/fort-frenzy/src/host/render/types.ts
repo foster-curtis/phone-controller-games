@@ -209,6 +209,8 @@ export interface BuildViewState {
   clockMs: number;
   /** A mine in its trigger delay (RD7): it shows its `trigger` frame at full opacity. */
   triggered?: boolean;
+  /** The sim's next pulse tick (the beacon, RD8): a change means a pulse just went off. */
+  nextPulse?: number | null;
 }
 
 /** One build's drawing; the scene makes one per `BuildEnt` of its kind and calls `update` each frame. */
