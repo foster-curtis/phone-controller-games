@@ -11,6 +11,7 @@ import type { SimState } from '../internal';
 import type { BuildEnt, PlayerEnt } from '../types';
 import { beacon } from './beacon';
 import { mine } from './mine';
+import { rallyFlag } from './rallyFlag';
 import { shieldGen } from './shieldGen';
 
 export interface BuildBehavior {
@@ -24,12 +25,15 @@ export interface BuildBehavior {
   maxActive?(s: SimState, owner: PlayerEnt, def: BuildDef): number;
   /** Each combat step while the build is active (§7.1: effects run in combat only). */
   combat?(s: SimState, b: BuildEnt, def: BuildDef): void;
+  /** Right after the build leaves the knight's hands (the rally flag's squad order, RD9). */
+  placed?(s: SimState, owner: PlayerEnt, b: BuildEnt): void;
 }
 
 export const buildBehaviors: Partial<Record<BuildId, BuildBehavior>> = {
   shield_gen: shieldGen, // RD3
   mine, // RD7
   beacon, // RD8
+  rally_flag: rallyFlag, // RD9
 };
 
 /** Can this build be placed (has it a behavior)? The phone's build button reads the same. */

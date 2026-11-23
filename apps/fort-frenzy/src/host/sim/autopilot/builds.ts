@@ -50,8 +50,26 @@ const ranger: BuildPolicy = ({ world, self, build }) => {
 /** Artificer: the same rule with the beacon, so its healing covers him where he fights. */
 const artificer: BuildPolicy = (input) => warden(input);
 
+/**
+ * Commander: with a full meter and a fight in throw range, plant the flag at it (again once the fight
+ * has moved past the squad's leash); recall a flag the fight has left far behind, so the squad comes
+ * back to him. Throws land on the enemy, stopping at the range.
+ */
+const commander: BuildPolicy = ({ self, knight, build, nearest, nearestDist }) => {
+  if (!nearest || !build.throw || !knight.squad) return null;
+  const leash = knight.squad.aggro.leash;
+  const off = self.flag ? dist(self.flag.x, self.flag.y, nearest.x, nearest.y) : Infinity;
+  if (self.meter >= 1) {
+    if (off <= leash || nearestDist > build.throw.range) return null;
+    const k = 1 / build.throw.range;
+    return { aim: { x: (nearest.x - self.x) * k, y: (nearest.y - self.y) * k } };
+  }
+  return self.flag && off > leash * 2 ? { aim: { x: 0, y: 0 } } : null;
+};
+
 export const buildPolicies: Partial<Record<KnightId, BuildPolicy>> = {
   warden, // RD3
   ranger, // RD7
   artificer, // RD8
+  commander, // RD9
 };

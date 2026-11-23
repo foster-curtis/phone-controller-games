@@ -214,7 +214,7 @@ export function stepMarkers(s: FullState): void {
       });
     const victims: Unit[] = [];
     for (const p of w.players) if (s.targetable(p) && insideMarker(m, p)) victims.push(p);
-    for (const u of w.soldiers) if (u.hp > 0 && insideMarker(m, u)) victims.push(u);
+    for (const u of w.soldiers) if (u.hp > 0 && !u.flight && insideMarker(m, u)) victims.push(u);
     if (m.payload.hitsBuilds) {
       for (const b of w.builds)
         if (b.targetable && b.state !== 'flight' && b.hp > 0 && insideMarker(m, b)) victims.push(b);

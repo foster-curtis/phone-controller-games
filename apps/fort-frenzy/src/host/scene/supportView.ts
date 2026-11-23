@@ -1,48 +1,28 @@
-// The support classes on the TV (SPEC §2.4; BUILD_PLAN FF9), driven by WorldView: the Artificer's
-// backpack gauge, nanite cloud, nanite cone and Field Medic circle (faint amber dots, never filled),
-// the
-// Commander's banner on his back or the planted flag (tinted cloth, amber ring), slash trail along
-// the exact hit arc, morale pulse and aura (a soft amber glow under him and his squad that fades as
-// the buff runs out; C3: their amber parts and aura flash on and off while it runs), and Lead from
-// the Front's amber motes drifting to the soldiers it reaches; footmen (march, stab, collapse into scrap);
-// heal glints. Ring-adjacent marks stay unlike the super-ready pulse (a stroked amber ring): the
-// aura is a soft fill, the Field Medic circle dots, the flag ring is art. Reads the sim, never writes.
+// The support classes on the TV (SPEC §2.4; BUILD_PLAN FF9, RD9), driven by WorldView: the Artificer's
+// backpack gauge, nanite cloud, nanite cone and Field Medic circle (faint amber dots, never filled);
+// the Commander's banner on his back while the flag isn't out (the flag itself is a build view,
+// scene/builds/rallyFlag.ts), the shield bash's sparks at the `shield` point (the slash trail only
+// while the optional `sword` group is on), Warcry's flash (amber parts and a soft aura on the knights
+// it reached) and the "×2" of a Rally Cry double spawn (commanderFx.ts); footmen (march, stab, thrown
+// in an arc, collapse into scrap); heal glints. Ring-adjacent marks stay unlike the super-ready pulse
+// (a stroked amber ring): the aura is a soft fill, the Field Medic circle dots. Reads the sim, never
+// writes.
 import type * as Phaser from 'phaser';
 import type { Content } from '../../content';
 import { theme } from '../../shared/theme';
-import type { ArtImage } from '../render/atlas';
 import { pickFacing, type Facing } from '../render/aim';
-import { SLASH_CUT } from '../render/clips/commander';
-import { placeFrame } from '../render/context';
+import { flightProgress, throwHeight } from '../render/buildLook';
+import { TILE_W } from '../render/camera';
+import { BASH_IMPACT_MS, SLASH_CUT } from '../render/clips/commander';
 import { clipLandedMs } from '../render/fall';
 import { GAUGE_GROUPS, gaugeGroups, gaugeSteps } from '../render/gauge';
 import { RIG_INFO, type RigInfo } from '../render/gallery/rigInfo';
-import { fk } from '../render/keys';
-import { Pool } from '../render/pool';
 import type { RigSprite } from '../render/rig';
 import type { RenderWorld } from '../render/world';
 import { fieldMedicRadius } from '../sim';
-import {
-  STEP_MS,
-  type EntityId,
-  type PlayerEnt,
-  type SimEvent,
-  type SoldierEnt,
-  type StatusEffect,
-  type World,
-} from '../sim/types';
-import {
-  dottedAngles,
-  LEAD_MOTE,
-  leadTargets,
-  Scratch,
-  moraleAlpha,
-  moteDrift,
-  MoteStream,
-  SUPER_FLASH,
-  superFlashOn,
-  type LeadMote,
-} from './support';
+import type { EntityId, PlayerEnt, SimEvent, SoldierEnt, World } from '../sim/types';
+import { DoublePops, thrownCenter } from './commanderFx';
+import { dottedAngles, moraleAlpha, Scratch, SUPER_FLASH, warcryFlashOn } from './support';
 import type { FrameInput } from './worldView';
 
 /** What SupportView needs of a knight WorldView draws. */
@@ -62,9 +42,10 @@ interface Soldier {
   dying: { t: number; landed: number; piled: boolean } | null;
 }
 
-interface Flag {
-  at: { x: number; y: number };
-  parts: ArtImage[];
+/** A knight Warcry reached: how far into its flash he is. */
+interface WarcryFlash {
+  t: number;
+  totalMs: number;
 }
 
 interface Swipe {
@@ -93,15 +74,14 @@ export class SupportView {
   private readonly ground: Scratch<Phaser.GameObjects.Graphics>;
   private readonly lines: Scratch<Phaser.GameObjects.Graphics>;
   private readonly soldiers = new Map<EntityId, Soldier>();
-  private readonly flags = new Map<number, Flag>();
   private readonly gauges = new Map<number, number>();
   private readonly banners = new Map<number, boolean>();
   private readonly motes = new Map<number, number>();
-  /** Lead from the Front's drifting motes, per Commander slot (pooled nanite-mote frames). */
-  private readonly lead = new Map<number, MoteStream>();
-  private readonly leadImgs = new Map<LeadMote, ArtImage>();
-  private readonly leadMade: ArtImage[] = [];
-  private leadPool: Pool<ArtImage> | null = null;
+  /** Warcry's flash on the knights it reached, by entity id. */
+  private readonly flashes = new Map<EntityId, WarcryFlash>();
+  /** Shield bashes waiting for their clip's impact: sparks at the `shield` point then. */
+  private bashes: { at: number; k: KnightRef }[] = [];
+  private readonly pops: DoublePops;
   private swipes: Swipe[] = [];
   private t = 0;
   private readonly footInfo = RIG_INFO.footman!;
@@ -111,6 +91,7 @@ export class SupportView {
     private readonly content: Content,
     private readonly knight: (slot: number) => KnightRef | null,
   ) {
+    this.pops = new DoublePops(w);
     this.ground = new Scratch(() => {
       const g = w.scene.make.graphics({}, false).setDepth(-4e5);
       w.layers.groundOverlay.add(g);
@@ -166,7 +147,8 @@ export class SupportView {
         s.dying = { t: 0, landed: clip ? clipLandedMs(clip) : 500, piled: false };
         return;
       }
-      case 'flag': {
+      case 'flag':
+      case 'recall': {
         const k = this.knight(e.slot);
         if (k && !k.down) k.rig.play('plant', { restart: true, fadeMs: 40 });
         return;
@@ -181,6 +163,22 @@ export class SupportView {
         if (pack) fx.burst('nanite-mote', pack.sx, pack.sy);
         return;
       }
+      case 'buildLanded': {
+        const b = w.builds.find((x) => x.id === e.build);
+        if (b?.kind === 'rally_flag') fx.ring('ours', b.x, b.y, b.r + 0.5, 420);
+        return;
+      }
+      case 'reinforce': {
+        if (e.count < 2) return;
+        const at = thrownCenter(w, e.slot);
+        if (!at) return;
+        const s = this.w.camera.worldToScreen(at.x, at.y);
+        this.pops.show(s.sx, s.sy);
+        return;
+      }
+      case 'warcry':
+        for (const id of e.targets) this.flashes.set(id, { t: 0, totalMs: e.durationMs });
+        return;
       default:
         return;
     }
@@ -229,12 +227,11 @@ export class SupportView {
       }
       return true;
     }
-    if (e.slot === 'main')
-      sweep('slash', SLASH_CUT[0], SLASH_CUT[1] - SLASH_CUT[0] + SLASH_TRAIL_MS);
-    else {
-      // Morale: an amber pulse from him; the aura (update) fades with the buff.
-      fx.ring('ours', e.x, e.y, 1.1, 520);
-      fx.ring('ours', e.x, e.y, 2.2, 700);
+    if (e.slot === 'main') {
+      // The bash's sparks land on the clip's impact; the slash trail needs the drawn sword (art README).
+      this.bashes.push({ at: this.t + BASH_IMPACT_MS, k });
+      if (k.rig.isGroupOn('sword'))
+        sweep('slash', SLASH_CUT[0], SLASH_CUT[1] - SLASH_CUT[0] + SLASH_TRAIL_MS);
     }
     return true;
   }
@@ -247,22 +244,31 @@ export class SupportView {
     this.ground.begin();
     this.lines.begin();
     this.syncSoldiers(w, f);
-    const leading = new Set<number>();
     for (const p of w.players) {
       const k = this.knight(p.slot);
       if (!k) continue;
       if (p.classId === 'artificer') this.drawArtificer(w, p, k);
-      else if (p.classId === 'commander') {
-        leading.add(p.slot);
-        this.drawLead(w, p.slot, k, f.dtMs);
-        this.drawCommander(w, p, k);
-      }
+      else if (p.classId === 'commander') this.drawCommander(p, k);
+      this.drawWarcry(p, k, f.dtMs);
     }
-    // Commanders gone (left, changed class): their motes stop.
-    for (const slot of this.lead.keys())
-      if (!leading.has(slot)) this.drawLead(w, slot, null, f.dtMs);
-    this.syncFlags(w);
+    this.landBashes();
+    this.pops.update(f.dtMs);
     this.drawSwipes(f.dtMs);
+  }
+
+  /** Impact sparks at the shield boss when the bash clip lands. */
+  private landBashes() {
+    if (this.bashes.length === 0) return;
+    const keep: typeof this.bashes = [];
+    for (const b of this.bashes) {
+      if (this.t < b.at) {
+        keep.push(b);
+        continue;
+      }
+      const at = b.k.down ? null : b.k.rig.attach('shield');
+      if (at) this.w.fx.burst('spark-ours', at.sx, at.sy);
+    }
+    this.bashes = keep;
   }
 
   private screen(id: EntityId, x: number, y: number, f: FrameInput) {
@@ -309,103 +315,32 @@ export class SupportView {
     }
   }
 
-  private drawCommander(w: World, p: PlayerEnt, k: KnightRef) {
-    // The banner rides on his back while the flag is carried (§2.4).
+  private drawCommander(p: PlayerEnt, k: KnightRef) {
+    // The banner rides on his back while the flag isn't out (§2.4).
     const banner = p.flag === null;
     if (this.banners.get(p.slot) !== banner) {
       this.banners.set(p.slot, banner);
       k.rig.setGroup('banner', banner);
     }
-    if (k.down) return;
-    // Morale: on him and his squad, whoever carries the buff in the sim.
-    const total = this.def(p)?.super.effects?.find((x) => x.effect === 'morale')?.durationMs ?? 0;
-    const morale = (u: { effects: StatusEffect[] }) => u.effects.find((e) => e.def === 'morale');
-    this.moraleLook(k.rig, k.sx, k.sy, 0.75, morale(p), total);
-    for (const u of w.soldiers) {
-      if (u.owner !== p.slot || u.hp <= 0) continue;
-      const s = this.soldiers.get(u.id);
-      if (!s || s.dying) continue;
-      this.moraleLook(s.rig, s.sx, s.sy, 0.42, morale(u), total);
-    }
   }
 
   /**
-   * A unit under morale (C3 note): its amber parts and the aura under it flash on and off for the
-   * buff's duration (phase from the sim's ticks left); between flashes the aura fades with the buff
-   * (its timer). Normal again once the buff ends.
+   * Warcry's flash on a knight it reached: his amber parts and the aura under him flash on and off
+   * for its duration; between flashes the aura fades. Normal again once it ends.
    */
-  private moraleLook(
-    rig: RigSprite,
-    sx: number,
-    sy: number,
-    rTiles: number,
-    e: StatusEffect | undefined,
-    totalMs: number,
-  ) {
-    if (!e || e.remaining <= 0) {
-      rig.setGlow(1);
+  private drawWarcry(p: PlayerEnt, k: KnightRef, dtMs: number) {
+    const fl = this.flashes.get(p.id);
+    if (!fl) return;
+    fl.t += dtMs;
+    if (k.down || fl.t >= fl.totalMs) {
+      this.flashes.delete(p.id);
+      k.rig.setGlow(1);
       return;
     }
-    const on = superFlashOn(e, totalMs);
-    rig.setGlow(on ? SUPER_FLASH.glow : 1);
-    const a = on ? SUPER_FLASH.auraAlpha : moraleAlpha(e.remaining * STEP_MS, totalMs);
-    if (a > 0) this.aura(sx, sy, rTiles, a);
-  }
-
-  /**
-   * Lead from the Front (C3 note): small amber nanite motes drift slowly from the Commander to each
-   * soldier the sim's aura reaches now; none toward others, and in-flight ones to a soldier who left
-   * it are dropped. `k` null (Commander gone or down) stops them.
-   */
-  private drawLead(w: World, slot: number, k: KnightRef | null, dtMs: number) {
-    const targets = k && !k.down ? leadTargets(w, slot) : new Set<EntityId>();
-    for (const id of targets) {
-      const s = this.soldiers.get(id);
-      if (!s || s.dying) targets.delete(id);
-    }
-    let stream = this.lead.get(slot);
-    if (!stream) {
-      if (targets.size === 0) return;
-      stream = new MoteStream(slot);
-      this.lead.set(slot, stream);
-    }
-    const { spawned, removed } = stream.step(dtMs, targets);
-    for (const m of removed) {
-      const img = this.leadImgs.get(m);
-      if (img) this.leadPool!.release(img);
-      this.leadImgs.delete(m);
-    }
-    if (stream.motes.length === 0 && !k) {
-      this.lead.delete(slot);
-      return;
-    }
-    const pool = (this.leadPool ??= new Pool(
-      () => {
-        const a = placeFrame(this.w, fk('nanite-mote'), 'effects', -999, -999);
-        this.leadMade.push(a);
-        return a;
-      },
-      (a, on) => {
-        a.img.setVisible(on).setAlpha(0);
-      },
-    ));
-    for (const m of spawned) this.leadImgs.set(m, pool.get());
-    if (!k) return;
-    const from = k.rig.attach('carry') ?? { sx: k.sx, sy: k.sy - 60 };
-    const bodyPx = this.footInfo.bodyH * this.w.unitPx * 0.55;
-    for (const m of stream.motes) {
-      const s = this.soldiers.get(m.target);
-      const a = this.leadImgs.get(m);
-      if (!s || !a) continue;
-      const d = moteDrift(
-        from,
-        { sx: s.sx, sy: s.sy - bodyPx },
-        m.age / LEAD_MOTE.travelMs,
-        m.seed,
-      );
-      a.img.setPosition(d.sx, d.sy).setAlpha(d.alpha);
-      this.w.lib.setUnitScale(a, this.w.unitPx, d.scale);
-    }
+    const on = warcryFlashOn(fl.t, fl.totalMs);
+    k.rig.setGlow(on ? SUPER_FLASH.glow : 1);
+    const a = on ? SUPER_FLASH.auraAlpha : moraleAlpha(fl.totalMs - fl.t, fl.totalMs);
+    if (a > 0) this.aura(k.sx, k.sy, 0.75, a);
   }
 
   /** A soft amber glow on the ground (no stroke, so never read as the super-ready ring). */
@@ -452,7 +387,24 @@ export class SupportView {
       const at = this.screen(id, u.x, u.y, f);
       s.sx = at.sx;
       s.sy = at.sy;
+      const sh = this.footInfo.shadow;
+      // Thrown by Reinforcements: tucked, arcing over its shadow until it lands (§2.4).
+      if (u.flight) {
+        const fl = u.flight;
+        const k = flightProgress(w.tick - 1 + f.alpha, fl.launchedAt, fl.landsAt);
+        const fx = fl.from.x + (fl.to.x - fl.from.x) * k;
+        const fy = fl.from.y + (fl.to.y - fl.from.y) * k;
+        const g = this.w.camera.worldToScreen(fx, fy);
+        const z = throwHeight(k, Math.hypot(fl.to.x - fl.from.x, fl.to.y - fl.from.y));
+        s.sx = g.sx;
+        s.sy = g.sy;
+        s.rig.setPosition(g.sx, g.sy - z * TILE_W * this.w.camera.scale, g.sy);
+        if (s.rig.clip !== 'thrown') s.rig.play('thrown', { restart: true, fadeMs: 0 });
+        this.w.marks.shadow(g.sx, g.sy, sh[0] * 2, sh[1] * 2);
+        continue;
+      }
       s.rig.setPosition(at.sx, at.sy);
+      if (s.rig.clip === 'thrown') s.rig.play('idle', { fadeMs: 60 });
       const moving = Math.hypot(u.vx, u.vy) > 0.05;
       if (moving || !s.facing) {
         const dir = moving
@@ -462,38 +414,7 @@ export class SupportView {
         s.rig.setView(s.facing.view, s.facing.mirror);
       }
       if (!playing(s.rig)) s.rig.play(moving ? 'walk' : 'idle');
-      const sh = this.footInfo.shadow;
       this.w.marks.shadow(at.sx, at.sy, sh[0] * 2, sh[1] * 2);
-    }
-  }
-
-  private syncFlags(w: World) {
-    for (const p of w.players) {
-      const cur = this.flags.get(p.slot);
-      const at = p.flag;
-      if (cur && (!at || cur.at.x !== at.x || cur.at.y !== at.y)) {
-        for (const a of cur.parts) a.img.destroy();
-        this.flags.delete(p.slot);
-      }
-      if (!at || this.flags.has(p.slot)) continue;
-      // Planted: ring (ground), pole, cloth in his color, trim (§2.4).
-      const s = this.w.camera.worldToScreen(at.x, at.y);
-      const cloth = placeFrame(this.w, fk('rally-flag/cloth'), 'world', s.sx, s.sy, {
-        sortY: s.sy + 0.001,
-      });
-      cloth.img.setTint(theme.players[p.color].fill.num);
-      this.flags.set(p.slot, {
-        at: { ...at },
-        parts: [
-          placeFrame(this.w, fk('rally-flag/ring'), 'groundOverlay', s.sx, s.sy),
-          placeFrame(this.w, fk('rally-flag/pole'), 'world', s.sx, s.sy, { sortY: s.sy }),
-          cloth,
-          placeFrame(this.w, fk('rally-flag/cloth-trim'), 'world', s.sx, s.sy, {
-            sortY: s.sy + 0.002,
-          }),
-        ],
-      });
-      this.w.fx.ring('ours', at.x, at.y, 0.8, 420);
     }
   }
 
@@ -543,14 +464,10 @@ export class SupportView {
 
   destroy() {
     for (const s of this.soldiers.values()) s.rig.destroy();
-    for (const f of this.flags.values()) for (const a of f.parts) a.img.destroy();
-    for (const a of this.leadMade) a.img.destroy();
     this.soldiers.clear();
-    this.flags.clear();
-    this.lead.clear();
-    this.leadImgs.clear();
-    this.leadMade.length = 0;
-    this.leadPool = null;
+    this.flashes.clear();
+    this.bashes = [];
+    this.pops.destroy();
     this.ground.destroy();
     this.lines.destroy();
   }

@@ -101,8 +101,8 @@ export interface EffectApply {
 // ---- attacks and units --------------------------------------------------------------------------
 
 export interface AttackDef {
-  /** `buff` (until RD9): hits nothing; the super's `effects` go on the Commander and his squad. */
-  shape: 'projectile' | 'arc' | 'cone' | 'circle' | 'buff';
+  /** `spawn`: hits nothing; Reinforcements throws soldiers (`KnightDef.super.spawn`, RD9). */
+  shape: 'projectile' | 'arc' | 'cone' | 'circle' | 'spawn';
   damage: number;
   range: number;
   cooldownMs: number;
@@ -154,14 +154,19 @@ export interface KnightDef {
   main: AttackDef;
   /**
    * `heal`: heals allied knights in the cone (Artificer). `spawn`: Reinforcements throws `count`
-   * soldiers `throwRange` tiles (Commander, RD9; Rally Cry may double it). `selfEffects` (until RD9):
-   * the Commander's morale super's effects on himself only.
+   * soldiers `throwRange` tiles (Commander, RD9; Rally Cry may double it).
    */
   super: AttackDef & {
     effects?: EffectApply[];
     heal?: number;
-    spawn?: { count: number; throwRange: number; throwSpeed: number; minFlightMs: number };
-    selfEffects?: EffectApply[];
+    spawn?: {
+      count: number;
+      throwRange: number;
+      throwSpeed: number;
+      minFlightMs: number;
+      /** Soldiers thrown together land this far apart, across the throw (tiles). */
+      spread: number;
+    };
   };
   build: BuildId;
   /** `build` mirrors BuildDef.input. */
@@ -178,7 +183,7 @@ export interface KnightDef {
   passive?: ModuleRef;
   /** Commander only (§8.4). */
   squad?: {
-    /** 2 and 4 to start; the squad stays at `start` until Reinforcements (RD9). */
+    /** 2 and 4 to start: `start` soldiers once per run, then only Reinforcements adds (§8.4). */
     start: number;
     cap: number;
     soldier: UnitStats;

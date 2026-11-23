@@ -13,7 +13,7 @@ export type HitShape =
   | { kind: 'cone'; range: number; half: number }
   /** A circle of `radius` around the attacker. */
   | { kind: 'circle'; radius: number }
-  /** Hits nothing (the Commander's morale). */
+  /** Hits nothing (Reinforcements: its aim shows the landing spot, §10.1). */
   | { kind: 'none' };
 
 const RAD = Math.PI / 180;
@@ -33,7 +33,7 @@ export function hitShape(a: AttackDef, stat: AttackStatFn): HitShape {
       return { kind: 'cone', ...sectorGeometry(a, stat) };
     case 'circle':
       return { kind: 'circle', radius: stat(a.radius ?? a.range, 'radius') };
-    case 'buff':
+    case 'spawn':
       return { kind: 'none' };
   }
 }

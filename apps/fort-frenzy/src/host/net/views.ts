@@ -15,7 +15,7 @@ import {
   type TeamView,
 } from '../../shared/messages';
 import type { Member, Party } from '../party';
-import { canPlace, itemState } from '../sim';
+import { canPlace, itemState, superHeld } from '../sim';
 import { STEP_MS, type PlayerEnt, type RunSettings, type World } from '../sim/types';
 
 export type FfParty = Party<PlayerColorId, ClassId>;
@@ -248,9 +248,9 @@ export function meView(ctx: ViewCtx, m: FfMember | null, full = false): MeView {
     hp: Math.ceil(p.hp),
     maxHp: p.maxHp,
     superCharge: Math.min(1, Math.round(p.superCharge * 100) / 100),
-    superReady: p.superCharge >= 1,
-    // The Commander at his squad cap (RD9).
-    superBlocked: false,
+    // At his squad cap the Commander's button stays dimmed and the charge is held (§8.4).
+    superReady: p.superCharge >= 1 && !superHeld(w, p, content),
+    superBlocked: superHeld(w, p, content),
     build: buildFor(content, w, p),
     respawnMs: dead ? Math.max(0, Math.round((p.respawnAt! - w.tick) * STEP_MS)) : null,
     // Private card offer and owned stacks (§6.1, FF12).

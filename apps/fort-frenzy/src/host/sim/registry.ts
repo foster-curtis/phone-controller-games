@@ -15,8 +15,9 @@ import { runnerAi } from './ai/runner';
 import { siegeAi } from './ai/siege';
 import { swarmAi } from './ai/swarm';
 import {
-  forcedMarch,
   lastStand,
+  moraleCard,
+  rallyCry,
   siegeBreakers,
   vanguard,
   veterans,
@@ -35,15 +36,7 @@ import { aftershock, giantSlayer, unshakable } from './cards/warden';
 import { stunEffect } from './classes/warden';
 import { steadyAim } from './modules/steadyAim';
 import { fieldMedic } from './modules/fieldMedic';
-import { leadFromTheFront } from './modules/leadFromTheFront';
-import {
-  guardEffect,
-  haste,
-  leadAura,
-  morale,
-  slowEffect,
-  tauntEffect,
-} from './modules/supportEffects';
+import { guardEffect, morale, slowEffect, tauntEffect } from './modules/supportEffects';
 import type { BossBehavior, EffectDef, EnemyEnt, Modifier, ModuleDef, SimCtx } from './types';
 
 /** Defines a module built from config params. */
@@ -55,7 +48,6 @@ export function defineModule<P>(id: string, make: (params: P) => Modifier): Modu
 export const modules: Record<string, ModuleDef> = {
   steady_aim: steadyAim, // FF6
   field_medic: fieldMedic, // FF9
-  lead_from_the_front: leadFromTheFront, // FF9
   // FF12: card modules (§6.1)
   fire_arrows: fireArrows,
   piercing_shot: piercingShot,
@@ -69,19 +61,18 @@ export const modules: Record<string, ModuleDef> = {
   overflow: overflow,
   triage: triage,
   plague: plague,
-  forced_march: forcedMarch,
   siege_breakers: siegeBreakers,
   veterans: veterans,
   last_stand: lastStand,
   vanguard: vanguard,
   warcry: warcry,
+  rally_cry: rallyCry, // RD9
+  morale: moraleCard, // RD9
 };
 
 /** Status effect definitions (§15.3). */
 export const effects: Partial<Record<EffectId, EffectDef>> = {
   morale, // FF9
-  haste, // FF9
-  aura_lead_from_the_front: leadAura, // FF9
   slow: slowEffect, // FF8
   stun: stunEffect, // FF8
   // FF12: card effects (§6.1)

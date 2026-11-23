@@ -6,13 +6,14 @@ import { AIM_DEAD_ZONE } from '../../shared/messages';
 import { bodyAimY, circleHitsBody } from './body';
 import { landArc, windupSteps } from './classes/warden';
 import { startBlast, stepBlast } from './classes/artificer';
-import { recallFlag } from './classes/commander';
+import { recallFlag, reinforceAim } from './classes/commander';
 import { placeBuild } from './builds/core';
 import { fillMeter } from './builds/meter';
 import { attackShapes } from './classes/shapes';
 import { cleanVec } from './geometry';
 import type { SimState, SlotInput } from './internal';
 import { holdRegen } from './regen';
+import { superBlocked } from './squad';
 import type { FullState } from './state';
 import type { AttackEvent, AttackState, EnemyEnt, PlayerEnt } from './types';
 
@@ -152,8 +153,22 @@ function attacks(s: FullState, p: PlayerEnt, inp: SlotInput) {
   }
   // Supers fire on release when full; a release while charging does nothing.
   // Not on the step a main wind-up starts: he can't slam and leave the ground at once.
-  if (inp.super && p.superCharge >= 1 && t >= p.super.readyAt && p.main.windupEndsAt === null) {
-    fire(s, p, 'super', def.super, cleanVec(inp.input.superAim.x, inp.input.superAim.y));
+  // A Commander at his squad cap can't: the charge is held (§8.4).
+  if (
+    inp.super &&
+    p.superCharge >= 1 &&
+    t >= p.super.readyAt &&
+    p.main.windupEndsAt === null &&
+    !superBlocked(s, p)
+  ) {
+    let aim = cleanVec(inp.input.superAim.x, inp.input.superAim.y);
+    // Reinforcements' quick tap aims at his flag or straight ahead, never at an enemy (§10.1).
+    if (def.super.spawn) {
+      const range = s.attackStat(p, def.super.spawn.throwRange, 'throwRange', 'super');
+      aim = reinforceAim(p, aim, range);
+      p.super.aim = aim;
+    }
+    fire(s, p, 'super', def.super, aim);
     p.superCharge = 0;
     p.super.readyAt = t + s.cat.steps(def.super.cooldownMs);
     if (p.super.windupEndsAt !== null) p.main.queued = false;

@@ -1,10 +1,11 @@
-// Player attack shapes beyond projectiles and circles (SPEC §8): the Commander's sword `arc`, the
-// Artificer's super `cone` (his heal cone, RD8) and the Commander's morale `buff` (until RD9).
-// Players' `fire` dispatches here by `AttackDef.shape`.
-import type { AttackDef, EffectApply, KnightDef } from '../../../content/types';
+// Player attack shapes beyond projectiles and circles (SPEC §8): the Commander's shield bash `arc`,
+// the Artificer's super `cone` (his heal cone, RD8) and Reinforcements' `spawn` (RD9). Players'
+// `fire` dispatches here by `AttackDef.shape`.
+import type { AttackDef, KnightDef } from '../../../content/types';
 import type { FullState } from '../state';
-import type { AttackEvent, PlayerEnt } from '../types';
+import type { AttackEvent, EnemyEnt, PlayerEnt } from '../types';
 import { sectorHitsBody } from '../body';
+import { reinforce } from './commander';
 import { sectorGeometry } from './hitShape';
 import { inSector, type Sector } from './sector';
 
@@ -34,7 +35,8 @@ function hitEnemies(
   damage: number,
   kind: 'melee' | 'area',
   atk: AttackEvent,
-) {
+): EnemyEnt[] {
+  const hit: EnemyEnt[] = [];
   // A snapshot: hooks may spawn or kill while we hit.
   for (const e of s.world.enemies.slice()) {
     if (e.hp <= 0 || (e.flying && !a.hitsFlyers)) continue;
@@ -42,12 +44,29 @@ function hitEnemies(
     if (!sectorHitsBody(sec, e.x, e.y, s.cat.body(e.kind))) continue;
     s.damage({ source: p.id, target: e.id, amount: damage, kind, tags: [...atk.tags] });
     for (const fx of atk.effects) s.applyEffect(e.id, fx, p.id);
+    hit.push(e);
   }
+  return hit;
 }
 
-/** Sword slash (Commander main): every enemy in a short arc in front of him. */
+/**
+ * Shield bash (Commander main): every enemy in a short arc in front of him takes the hit and is
+ * knocked back (Heavy Bash: wider, further). No wind-up: the bash lands on the press.
+ */
 const arc: ShapeFire = (s, p, a, slot, damage, atk) => {
-  hitEnemies(s, p, a, sectorOf(s, p, a, slot), damage, 'melee', atk);
+  const hit = hitEnemies(s, p, a, sectorOf(s, p, a, slot), damage, 'melee', atk);
+  const knock = s.attackStat(p, a.knockback ?? 0, 'knockback', slot);
+  if (knock <= 0) return;
+  const v0 = knock * 60 * (1 - s.cat.rules.knockbackDecay);
+  for (const e of hit) {
+    if (e.hp <= 0) continue;
+    const dx = e.x - p.x;
+    const dy = e.y - p.y;
+    const d = Math.hypot(dx, dy);
+    const ux = d < 1e-6 ? Math.cos(p.facing) : dx / d;
+    const uy = d < 1e-6 ? Math.sin(p.facing) : dy / d;
+    e.push = { x: (e.push?.x ?? 0) + ux * v0, y: (e.push?.y ?? 0) + uy * v0 };
+  }
 };
 
 /**
@@ -68,19 +87,9 @@ const cone: ShapeFire = (s, p, a, slot, damage, atk) => {
   }
 };
 
-/** Morale (Commander super): `effects` on him and his living soldiers, `selfEffects` on him only. */
-const buff: ShapeFire = (s, p, a, slot) => {
-  const sup = a as SuperDef;
-  // Rally Cry (FF12) lengthens them through the `durationMs` stat.
-  const k = s.attackStat(p, 1, 'durationMs', slot);
-  const longer = (fx: EffectApply) => (k === 1 ? fx : { ...fx, durationMs: fx.durationMs * k });
-  for (const fx0 of sup.effects ?? []) {
-    const fx = longer(fx0);
-    s.applyEffect(p.id, fx, p.id);
-    for (const u of s.world.soldiers)
-      if (u.owner === p.slot && u.hp > 0) s.applyEffect(u.id, fx, p.id);
-  }
-  for (const fx of sup.selfEffects ?? []) s.applyEffect(p.id, longer(fx), p.id);
+/** Reinforcements (Commander super): throws soldiers; it hits nothing (classes/commander.ts). */
+const spawn: ShapeFire = (s, p, a, _slot, _damage, atk) => {
+  reinforce(s, p, a as SuperDef, atk);
 };
 
-export const attackShapes: Partial<Record<AttackDef['shape'], ShapeFire>> = { arc, cone, buff };
+export const attackShapes: Partial<Record<AttackDef['shape'], ShapeFire>> = { arc, cone, spawn };

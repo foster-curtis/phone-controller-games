@@ -23,7 +23,7 @@ import {
 import { RUN_STAT_KEYS, type RunStats } from '../../shared/messages';
 import { attachAllCards } from './cards';
 import { refitBase } from './shop';
-import { fillSquads } from './squad';
+import { postOf, refitSoldier, seedSquads } from './squad';
 import { newAttack, zeroRunStats, type FullState } from './state';
 import type { BuildEnt, RunStart, World } from './types';
 
@@ -125,7 +125,7 @@ export function takeSnapshot(world: World, content: Content, meta: SnapshotMeta)
         stats: { ...p.run },
       };
       if (content.knights.find((c) => c.id === p.classId)?.squad) {
-        // By index; a fallen soldier's slot keeps full HP (it returns at the build phase).
+        // By index; a fallen soldier's slot stays at 0 HP (no respawn, §8.4).
         const soldiers: { hp: number; veterans: number }[] = [];
         for (const u of world.soldiers) {
           if (u.owner !== p.slot) continue;
@@ -159,22 +159,6 @@ export function takeSnapshot(world: World, content: Content, meta: SnapshotMeta)
         hp: b.targetable ? b.hp : null,
         charges: b.charges,
       })),
-      // The Commander's planted flag (`PlayerEnt.flag` until RD9 makes it a BuildEnt).
-      ...world.players.flatMap((p) =>
-        p.flag
-          ? [
-              {
-                kind: 'rally_flag' as const,
-                owner: p.slot,
-                seq: 0,
-                x: p.flag.x,
-                y: p.flag.y,
-                hp: null,
-                charges: null,
-              },
-            ]
-          : [],
-      ),
     ],
     slots,
     leaderKey: meta.leaderKey,
@@ -322,14 +306,11 @@ export function restoreSnapshot(s: FullState, snap: RunSnapshot): void {
   // Builds, in their saved order (the flag back on its Commander). Their HP waits for the cards below.
   const savedHp: [BuildEnt, number][] = [];
   for (const x of snap.builds) {
-    if (x.kind === 'rally_flag') {
-      const c = s.player(x.owner);
-      if (c) c.flag = { x: x.x, y: x.y };
-      continue;
-    }
-    if (!s.player(x.owner)) continue;
+    const owner = s.player(x.owner);
+    if (!owner) continue;
     const b = s.addBuild(x.kind, x.x, x.y, x.owner);
     b.seq = x.seq;
+    if (x.kind === 'rally_flag') owner.flag = { x: x.x, y: x.y };
     if (b.charges !== null && x.charges !== null) b.charges = x.charges;
     if (b.targetable && x.hp !== null) savedHp.push([b, x.hp]);
   }
@@ -362,13 +343,28 @@ export function restoreSnapshot(s: FullState, snap: RunSnapshot): void {
   // The build phase of the saved wave, its timer from the start.
   w.phase = 'build';
   w.phaseEndsAt = w.tick + cat.steps(cat.rules.buildCapMs);
-  fillSquads(s);
-  // Soldiers keep their HP between waves (#103) and their Veterans gains.
-  for (const u of w.soldiers) {
-    const sl = snap.slots.find((x) => x.slot === u.owner);
-    const saved = sl?.squad?.soldiers[u.index];
-    if (!saved) continue;
-    u.veterans = saved.veterans;
-    if (saved.hp > 0) u.hp = Math.min(u.maxHp, saved.hp);
+  // Exactly the soldiers who were alive (no respawn, §8.4), with their HP (#103) and Veterans gains.
+  for (const sl of snap.slots) {
+    const p = s.player(sl.slot);
+    if (!p || !sl.squad) continue;
+    p.squadSeeded = true;
+    const def = cat.knight(p.classId).squad;
+    if (!def) continue;
+    const mode = p.flag ? 'rally' : 'follow';
+    const n = sl.squad.soldiers.filter((x) => x.hp > 0).length;
+    let k = 0;
+    sl.squad.soldiers.forEach((saved, i) => {
+      if (saved.hp <= 0) return;
+      // Back around him, or at his flag (§15.8).
+      const at = postOf(p, def, mode, k++, n) ?? p;
+      const u = s.addSoldier(p.slot, at.x, at.y, i);
+      u.mode = mode;
+      u.veterans = saved.veterans;
+      refitSoldier(s, p, u);
+      // Unclipped: a Veterans gain lands on the first step's stat refresh, which clamps to it.
+      u.hp = saved.hp;
+    });
   }
+  // A Commander saved before he got his start (a late join in the same step) gets it now.
+  seedSquads(s);
 }

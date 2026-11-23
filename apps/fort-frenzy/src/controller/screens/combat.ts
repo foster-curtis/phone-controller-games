@@ -151,8 +151,10 @@ export function createCombat(ctx: ScreenCtx): View {
     sender: ctx.sender,
     getLayout: () => layout,
     buttons: { main: main.el, super: sup.el, build: action.el },
-    // A dimmed build button takes no aimed touch (SPEC §10.1: a release before the meter is full does nothing).
-    enabled: (k) => k !== 'build' || buildEnabled(me?.build ?? null),
+    // A dimmed button takes no aimed touch (SPEC §10.1: a build before the meter is full; the
+    // Commander's super at his squad cap, §8.4).
+    enabled: (k) =>
+      k === 'build' ? buildEnabled(me?.build ?? null) : k !== 'super' || !me?.superBlocked,
   });
   // After the aim zones, so the top bar's pause button and the paused card sit above them.
   root.append(pause.button, pause.layer);
@@ -215,8 +217,9 @@ export function createCombat(ctx: ScreenCtx): View {
       bind(cls, buildInput);
       const info = CLASS_INFO[cls];
       main.setIcon(`main-${info.rig}`);
-      sup.setIcon(`super-${info.rig}`);
+      sup.setIcon(`super-${info.rig}`, m.superBlocked);
     }
+    sup.el.classList.toggle('dimmed', m.superBlocked);
     const isDead = m.screen === 'dead';
     root.classList.toggle('is-dead', isDead);
     if (isDead) {

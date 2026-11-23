@@ -146,8 +146,13 @@ export interface PlayerEnt extends Unit {
   growth: { regular: number; boss: number };
   /** Ticks the stick has been released (Steady Aim). */
   stillTicks: number;
-  /** Commander's rally flag; persists across phases (BUILD_PLAN §8). */
+  /**
+   * Commander's rally flag: where it stands or is landing (its `BuildEnt` draws and saves it, RD9);
+   * persists across phases until recalled or replaced (§7.4).
+   */
   flag: Vec2 | null;
+  /** Commander: his starting soldiers were given (once per run, §8.4; RD9). */
+  squadSeeded?: boolean;
   cards: Partial<Record<CardId, number>>;
   offer: CardId[] | null;
   picked: CardId | null;

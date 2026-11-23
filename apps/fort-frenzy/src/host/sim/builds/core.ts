@@ -87,6 +87,7 @@ export function placeBuild(s: FullState, p: PlayerEnt, aim: Vec2): BuildEnt | nu
   p.run.buildsPlaced++;
   s.emit({ e: 'buildPlaced', slot: p.slot, build: b.id, kind });
   if (!flying) land(s, b);
+  beh.placed?.(s, p, b);
   return b;
 }
 

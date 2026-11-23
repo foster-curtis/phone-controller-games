@@ -87,6 +87,9 @@ export type SimEvent =
     }
   // ---- RD3-fix-1 ----
   /** A knight's wound-up attack was cut short (down, dazed, phase end): it won't land (§8.2). */
-  | { e: 'windupCancelled'; source: EntityId; slot: 'main' | 'super' };
+  | { e: 'windupCancelled'; source: EntityId; slot: 'main' | 'super' }
+  // ---- RD9 ----
+  /** Warcry gave these knights morale for `durationMs`: the TV flashes them (§6.1). */
+  | { e: 'warcry'; slot: number; targets: EntityId[]; durationMs: number };
 
 export type SimEventKind = SimEvent['e'];

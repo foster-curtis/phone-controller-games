@@ -32,10 +32,6 @@ const PENDING_CARDS: CardId[] = [
   'challenger',
   'reinforced_generator',
   'fault_line',
-  'heavy_bash',
-  'drillmaster',
-  'morale',
-  'reinforced_ranks',
 ];
 
 function unique(ids: string[]) {

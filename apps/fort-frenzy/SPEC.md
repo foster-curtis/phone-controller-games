@@ -908,6 +908,9 @@ the baseline knight HP, and the damage band multiplies the damage of the knight'
   regen).
 - Squad damage charges his super at a reduced rate, never his build meter. His damage for the balance
   rule (§2) counts his own plus the squad's.
+- **Thrown soldiers** can't be hit or targeted in the air and take their formation slot on landing.
+  A double spawn never passes the cap. A new soldier takes the lowest free squad index.
+- **Last Stand** counts the soldiers short of the cap (RD9, §15.11 #142).
 - **Two Commanders** each keep their own squad and flag.
 - **Morale** (card): see §6.1. It needs no TV visual of its own; Warcry reuses the morale flash.
 - The squad has no bonus archers in v1.
@@ -919,7 +922,8 @@ the baseline knight HP, and the damage band multiplies the damage of the knight'
   idea pool (§13) is a new module plus content, not a change to the knights. The shared pipeline
   (`builds/core.ts`) does the meter, placement, flight, landing, switch-on, HP and targeting; a
   behavior adds `check(def)` (reads its content params), an optional `maxActive` hook (the mines'
-  exception) and `combat(b)` (its effect, each combat step while active). A build without a behavior
+  exception), `combat(b)` (its effect, each combat step while active) and `placed(owner, b)` (right
+  after it leaves his hands: the flag's squad order, RD9). A build without a behavior
   can't be placed yet: its button stays dimmed and its meter full (RD3).
 
 ## 9. Enemies
@@ -1903,7 +1907,8 @@ export interface PlayerEnt extends Unit {
   /** Regen (§5): no regen before `quietUntil` (5 s after the last damage, main or super); next tick at `nextRegen`. */
   regen: { quietUntil: number; nextRegen: number };
   stillTicks: number;                         // Steady Aim
-  flag: Vec2 | null;                          // Commander's planted rally flag (null = following)
+  flag: Vec2 | null;                          // Commander's rally flag, standing or landing (null = following)
+  squadSeeded?: boolean;                      // Commander: his starting soldiers were given (once a run)
   growth: { regular: number; boss: number };  // class growth bumps received (§6.1)
   cards: Partial<Record<CardId, number>>;
   offer: CardId[] | null; picked: CardId | null;
@@ -2146,9 +2151,13 @@ interface BossBehavior {
   `buildHp { build; kind; owner; hp; maxHp }`: an HP build's bar data, sent when it lands and with
   every `buildHit` (mines and the flag never send it). RD3-fix-1 appends
   `windupCancelled { source; slot }`: a knight's wound-up attack was cut short (down, dazed, phase
-  end), so the TV calls off its impact and leaves the clip. The thrown-build aim preview is
+  end), so the TV calls off its impact and leaves the clip. RD9 appends
+  `warcry { slot; targets; durationMs }`: the knights Warcry reached, which the TV flashes (the Morale
+  card has no visual, so the `morale` effect alone can't drive it). The thrown-build aim preview is
   `buildPreview(p, content, aim = p.buildAim)` in `sim/preview.ts`: `{ kind, from, landing, radius,
-  range }` (tiles), null when not aiming or for at-feet builds.
+  range }` (tiles), null when not aiming or for at-feet builds. `soldierPreview(p, content, aim =
+  p.superAim)` is the same for Reinforcements (radius: the soldier's body), and `superHeld(world, p,
+  content)` says the squad cap holds the super (the phone's `superBlocked`, no TV pulse).
 
 ### 15.4 Data and config
 
@@ -2255,7 +2264,7 @@ export type StatId = (typeof STAT_IDS)[number];
 // StatMod.scope: 'main' | 'super' | 'build' | 'squad' (was 'passive'; omitted = the whole knight).
 
 export interface AttackDef {
-  shape: 'projectile' | 'arc' | 'cone' | 'circle';  // 'buff' is gone with the morale super
+  shape: 'projectile' | 'arc' | 'cone' | 'circle' | 'spawn';  // 'spawn': Reinforcements (RD9)
   damage: number; range: number; cooldownMs: number; windupMs?: number;
   arcDeg?: number; count?: number; spreadDeg?: number;
   burstMs?: number;                                 // nanite blast: `count` shots over this long
@@ -2286,7 +2295,8 @@ export interface KnightDef {
    * throws `count` soldiers `throwRange` tiles (Commander; Rally Cry may double it).
    */
   super: AttackDef & { effects?: EffectApply[]; heal?: number;
-    spawn?: { count: number; throwRange: number; throwSpeed: number; minFlightMs: number } };
+    spawn?: { count: number; throwRange: number; throwSpeed: number; minFlightMs: number;
+      spread: number } };                           // soldiers thrown together land this far apart
   build: BuildId;
   input: { main: InputType; super: InputType; build: InputType };  // build mirrors BuildDef.input
   hitsFlyers: boolean;                              // §9 Flyer spawn rule
@@ -2442,9 +2452,8 @@ export interface Content {
   `waves`, `difficulties`, `scaling: PlayerCountRow[]`) and nullable singletons (`map`, `base`,
   `rules`, `harness`), not records. Transitional fields, each removed by the milestone named:
   `KnightDef.passive?: ModuleRef` (the always-on passive until the knight's kit milestone makes it the
-  passive card), `KnightDef.super.selfEffects`, `AttackDef.shape: 'buff'` and the effect ids
-  `aura_lead_from_the_front` and `haste` (the Commander's morale super and passive until RD9); the
-  squad stays at `squad.start` until Reinforcements (RD9). The Colossus's Citadel multiplier
+  passive card). RD9 removed the Commander's (`KnightDef.super.selfEffects`, `AttackDef.shape:
+  'buff'`, the effect ids `aura_lead_from_the_front` and `haste`). The Colossus's Citadel multiplier
   (`EnemyDef.vsStructure.base`, gone) is its boss param `baseMult` (1.5).
 - **Generic system signatures** (extraction-ready, §15.1; Fort Frenzy passes its content in). The
   wave generator takes the redesign's inputs **additively**: Fort Frenzy passes its portal ids as
@@ -3144,3 +3153,7 @@ states, then RD0's own.
 | 130 | 2026-11-23 | Nanite blast | 5 nanites, evenly over 0.8 s from the press, each to a random spot in the cone at 60–100% of the range (`combat:<wave>` stream), along the aim he released with. Each nanite restarts regen; going down, dazed or a phase end drops the rest. The cooldown never goes under `burstMs`, whatever his attack speed (§8.2) | One burst per release, and RC1's regen rule on the blast's own firing path (RD8) |
 | 131 | 2026-11-23 | Artificer healing | Field Medic and beacon healing charge the super at `superCharge.perHeal`, through Focus (Field Medic's own `chargeRate` is gone); only Field Medic charges the meter. The beacon pulses at once when it switches on, then every `heal.everyMs`, and keeps working while he is down; Booster Beacon raises heal per pulse (`buildPower`) and HP (§7.4, §8.3) | One charge rule for both heals; `buildPower` is the contract's heal-per-pulse stat (RD8) |
 | 132 | 2026-11-23 | Build HP on resume | A restored build's max HP is recomputed from its owner's cards before its saved HP is applied (§15.8) | Otherwise a resume clips a Booster Beacon back to base HP (RD8) |
+| 140 | 2026-11-23 | Commander main and super (RD9) | The shield bash is an arc with knockback and no wind-up (the hit lands on the press, the sparks on the clip's impact). Reinforcements is an aimed throw: the stick's length sets the distance like a thrown build, a quick tap goes toward the flag (stopping at it) or straight ahead. Both go through `fire()`, so both restart regen; placing or recalling the flag doesn't (#120) | RD9 entry settles §8.2 vs the old tap content; no wind-up keeps a short melee hit responsive |
+| 141 | 2026-11-23 | Rally flag as a build (RD9) | The flag is a `BuildEnt` (saved and drawn like any build; `PlayerEnt.flag` holds where it stands or will land, set at the throw, so the squad moves at once and the banner leaves his back). `BuildBehavior.placed` is the new optional hook. Its view takes the owner's color from `BuildViewState.ownerTint` | Replaces RD2's "until RD9" flag on the player; one pipeline for every build |
+| 142 | 2026-11-23 | Squad (RD9) | `start` soldiers once per run (`PlayerEnt.squadSeeded`), no respawn; a resume restores exactly the survivors around him or at his flag. Forced March, Drillmaster and Reinforced Ranks are the Commander's `squadSpeed`, `squadHp` + `squadDamage` and `squadCap` stats (Forced March capped at +40% like movement). Last Stand counts soldiers short of the cap, since the squad no longer has a fixed size. Squad damage counts in his `damageDealt` | §8.4; the stats were reserved in RD2; the cap is the only stable "full size" without respawn |
+| 143 | 2026-11-23 | Morale and Warcry (RD9) | Morale: `morale` re-applied from him and from the flag's build behavior, so the flag keeps working while he's down (§7.1), one effect through `refresh`. Warcry applies the same effect and sends `warcry` so the TV flashes only the knights it reached; the Morale card itself shows nothing. The Lead from the Front module, motes and aura are gone | §6.1 "no visual of its own" needs a signal apart from the effect |

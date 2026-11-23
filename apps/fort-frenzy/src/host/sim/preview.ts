@@ -2,7 +2,8 @@
 // effective stats the sim fires with (`attackStat` with the registry's effects and the run's stat
 // caps), so content tuning and cards move the preview with the hit area. Pure on the player.
 // RD3: the thrown-build preview (§7.3): the landing point the sim would use (builds/landing.ts, one
-// source for both), the build's effect radius and the knight's throw range.
+// source for both), the build's effect radius and the knight's throw range. RD9: the same for
+// Reinforcements' thrown soldier, and whether the squad cap holds the super.
 import type { Content } from '../../content';
 import type { BuildDef, KnightDef, MapDef, RulesDef, Vec2 } from '../../content/types';
 import type { BuildId } from '../../shared/ids';
@@ -10,8 +11,9 @@ import { throwLanding, type LandingArea } from './builds/landing';
 import { hitShape, type HitShape } from './classes/hitShape';
 import { cleanVec } from './geometry';
 import { effects } from './registry';
+import { squadCapOf, squadCount } from './squad';
 import { attackStat, type Caps } from './stats';
-import type { PlayerEnt } from './types';
+import type { PlayerEnt, World } from './types';
 
 export function aimPreview(
   p: PlayerEnt,
@@ -105,4 +107,35 @@ export function buildPreview(
     areaOf(content.map),
   );
   return { kind: def.id, from, landing, radius: stat(def.radius, 'buildRadius'), range };
+}
+
+/** A thrown soldier's aim preview (§10.1): the landing spot at his body radius, and the range. */
+export type SoldierPreview = Omit<BuildPreview, 'kind'>;
+
+/** Reinforcements' preview while it aims (`aim`, default the live `p.superAim`); null otherwise. */
+export function soldierPreview(
+  p: PlayerEnt,
+  content: Content,
+  aim: Vec2 | null = p.superAim,
+): SoldierPreview | null {
+  if (aim === null || !content.map || !content.rules) return null;
+  const knight = content.knights.find((k) => k.id === p.classId);
+  const spawn = knight?.super.spawn;
+  const squad = knight?.squad;
+  if (!spawn || !squad) return null;
+  const caps = content.rules.statCaps as Caps;
+  const range = attackStat(p, spawn.throwRange, 'throwRange', 'super', effects, caps);
+  const from = { x: p.x, y: p.y };
+  const r = squad.soldier.radius;
+  const landing = throwLanding(from, cleanVec(aim.x, aim.y), range, r, areaOf(content.map));
+  return { from, landing, radius: r, range };
+}
+
+/** Whether the squad cap holds this knight's super (§8.4): the phone dims it, the TV doesn't pulse. */
+export function superHeld(w: Pick<World, 'soldiers'>, p: PlayerEnt, content: Content): boolean {
+  const squad = content.knights.find((k) => k.id === p.classId)?.squad;
+  if (!squad) return false;
+  const caps = (content.rules?.statCaps ?? {}) as Caps;
+  const cap = squadCapOf(squad, (b) => attackStat(p, b, 'squadCap', 'squad', effects, caps));
+  return squadCount(w, p.slot) >= cap;
 }

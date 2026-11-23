@@ -6,7 +6,7 @@ import { offerFor, pickCard } from './cards';
 import { buy, request } from './shop';
 import { forceHot, spawnGroup, startBuild } from './lifecycle';
 import { releaseAll } from './players';
-import { fillSquads } from './squad';
+import { seedSquads } from './squad';
 import type { FullState } from './state';
 import type { SimCommand } from './types';
 
@@ -60,7 +60,7 @@ function join(s: FullState, cmd: Extract<SimCommand, { c: 'join' }>): AckReason 
   if (s.world.phase === 'build') {
     p.offer = offerFor(s.cat, s.world, p);
     p.picked = null;
-    fillSquads(s);
+    seedSquads(s);
   }
   s.emit({ e: 'lateJoin', slot: p.slot, classId: p.classId });
   return null;

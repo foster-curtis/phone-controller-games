@@ -6,7 +6,7 @@
 // per-vertex allocation: the §2.5 projection is linear on the ground, so vertices are the center
 // plus scaled offsets.
 import type * as Phaser from 'phaser';
-import type { BuildPreview, HitShape } from '../sim';
+import type { HitShape, SoldierPreview } from '../sim';
 
 /** Fill and edge alpha: amber over the dark floor stays below the bloom's brightness cut (§15.2). */
 export const AIM_FILL_ALPHA = 0.16;
@@ -86,12 +86,14 @@ export function drawAimPreview(
 /** The throw-range ring's edge alpha: fainter than the landing spot, it only frames the reach. */
 export const THROW_RANGE_ALPHA = 0.28;
 /**
- * The landing spot (the sim's `buildPreview`: one source for the sim and the TV) as a filled 0.6 ellipse at the build's effect radius, plus the throw range as a
- * faint ring around the knight (`f` is the knight's ground frame). Ground overlay, under the units.
+ * The landing spot (the sim's `buildPreview` or `soldierPreview`: one source for the sim and the TV)
+ * as a filled 0.6 ellipse at the build's effect radius (a thrown soldier: his body), plus the throw
+ * range as a faint ring around the knight (`f` is the knight's ground frame). Ground overlay, under
+ * the units.
  */
 export function drawThrowPreview(
   ground: Phaser.GameObjects.Graphics,
-  pv: BuildPreview,
+  pv: SoldierPreview,
   f: GroundFrame,
   color: number,
 ): void {

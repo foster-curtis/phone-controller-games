@@ -10,10 +10,13 @@ export {
   buildEffectRadius,
   buildPreview,
   fieldMedicRadius,
+  soldierPreview,
+  superHeld,
   type BuildPreview,
+  type SoldierPreview,
 } from './preview';
 export { canPlace } from './builds';
-export { squadSize } from './squad';
+export { squadCapOf } from './squad';
 export { steadyOn } from './modules/steadyAim';
 export {
   AutopilotInputSource,

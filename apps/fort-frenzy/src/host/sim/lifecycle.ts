@@ -9,7 +9,7 @@ import { autoPickCards, closeOffers, dealOffers } from './cards';
 import { clearWishlist } from './shop';
 import { releaseAll, respawn } from './players';
 import { effects as effectDefs } from './registry';
-import { fillSquads } from './squad';
+import { seedSquads } from './squad';
 import type { FullState } from './state';
 import { refreshStats } from './stats';
 import type { EnemyEnt, Phase, PlayerEnt, Unit } from './types';
@@ -128,7 +128,7 @@ export function stepDeaths(s: FullState): void {
   }
   w.builds.length = write;
 
-  // Soldiers (FF9): the fallen collapse and return at the next build phase (squad/fillSquads).
+  // Soldiers: the fallen collapse and don't come back; only Reinforcements adds more (§8.4).
   write = 0;
   for (const u of w.soldiers) {
     if (u.hp > 0) {
@@ -241,8 +241,8 @@ export function startBuild(s: FullState, n: number): void {
     p.ready = false;
     if (p.respawnAt !== null) respawn(s, p);
   }
-  // Dead soldiers return at the base, and squads grow after boss waves (§8, FF9).
-  fillSquads(s);
+  // A Commander's starting soldiers, once per run; the fallen don't come back (§8.4).
+  seedSquads(s);
   // Each player's private pick of 3 upgrade cards (§6.1, FF12).
   dealOffers(s);
   setPhase(s, 'build', s.cat.steps(s.cat.rules.buildCapMs));

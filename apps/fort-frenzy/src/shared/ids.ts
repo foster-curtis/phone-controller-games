@@ -122,8 +122,7 @@ export const CARD_IDS = [
 export type CardId = (typeof CARD_IDS)[number];
 
 /**
- * Timed status effects (SPEC §15.3), auras included (re-applied each step with `refresh`). `haste` and
- * `aura_lead_from_the_front` serve the old Commander super and passive until RD9 replaces them.
+ * Timed status effects (SPEC §15.3), auras included (re-applied each step with `refresh`).
  */
 export const EFFECT_IDS = [
   'burn',
@@ -136,8 +135,6 @@ export const EFFECT_IDS = [
   'aura_vanguard',
   'guard',
   'taunt',
-  'aura_lead_from_the_front',
-  'haste',
 ] as const;
 export type EffectId = (typeof EFFECT_IDS)[number];
 

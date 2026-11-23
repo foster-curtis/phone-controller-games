@@ -14,7 +14,8 @@ export function rebuildSpatial(s: FullState): void {
   const h = w.spatial;
   h.clear();
   for (const p of w.players) if (p.respawnAt === null && p.connected) h.insert(p.id, p.x, p.y, p.r);
-  for (const u of w.soldiers) if (u.hp > 0) h.insert(u.id, u.x, u.y, u.r);
+  // A thrown soldier is in the air (RD9): nothing can hit it until it lands.
+  for (const u of w.soldiers) if (u.hp > 0 && !u.flight) h.insert(u.id, u.x, u.y, u.r);
   for (const e of w.enemies) if (e.hp > 0) h.insert(e.id, e.x, e.y, e.r);
   // Enemy shots hit HP builds (§7.3); our attacks filter to enemies.
   for (const b of w.builds) if (buildTargetable(b)) h.insert(b.id, b.x, b.y, b.r);
@@ -60,7 +61,7 @@ export function stepMovement(s: FullState): void {
   }
   const players = bodies.length;
   for (const u of w.soldiers) {
-    if (u.hp <= 0) continue;
+    if (u.hp <= 0 || u.flight) continue;
     integrate(u, decay);
     bodies.push(u);
   }

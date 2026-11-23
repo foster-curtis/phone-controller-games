@@ -159,12 +159,14 @@ describe('C2 note 3: super ready pulses the ring amber, no head badge', () => {
     expect(peak.alpha).toBeGreaterThan(ready.alpha);
     expect(superPulse({ superCharge: 0.99, respawnAt: null }, 0)).toBeNull();
     expect(superPulse({ superCharge: 1, respawnAt: 120 }, 0)).toBeNull();
+    // The Commander at his squad cap holds the charge: no pulse (§8.4).
+    expect(superPulse({ superCharge: 1, respawnAt: null }, 0, true)).toBeNull();
   });
 
   it('draws the pulse on the ring and no badge over the head', () => {
     const src = readFileSync(join(import.meta.dirname, '..', 'worldView.ts'), 'utf8');
     expect(src).not.toMatch(/attach\('badge'\)|iconFor\.super|badgeTile/);
-    expect(src).toMatch(/superPulse\(p, this\.t\)/);
+    expect(src).toMatch(/superPulse\(p, this\.t, superHeld\(w, p, this\.content\)\)/);
     expect(src).toMatch(/marks\.superRing\(/);
     // The pulse goes under the colored ring.
     expect(src.indexOf('marks.superRing(')).toBeLessThan(src.indexOf('marks.ring('));

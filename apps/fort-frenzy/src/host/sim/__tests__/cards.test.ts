@@ -60,10 +60,6 @@ describe('card coverage', () => {
       'challenger',
       'reinforced_generator',
       'fault_line',
-      'heavy_bash',
-      'drillmaster',
-      'morale',
-      'reinforced_ranks',
     ];
     expect(cardDefs.map((c) => c.id).sort()).toEqual(
       CARD_IDS.filter((id) => !pending.includes(id)).sort(),
@@ -504,30 +500,18 @@ describe('commander cards', () => {
     return hits[0]!.amount;
   }
 
-  it('forced_march: his soldiers get haste', () => {
-    const run = (picks: Pick[]) => {
+  it('forced_march: his soldiers walk faster (the squad speed stat)', () => {
+    const walk = (picks: Pick[]) => {
       const h = game(['commander'], picks);
-      h.run(5);
-      return h.sim.world.soldiers.filter((u) => u.owner === 0);
+      const u = h.sim.world.soldiers.find((x) => x.owner === 0)!;
+      h.p(0).flag = { x: 30, y: 14 };
+      u.mode = 'rally';
+      u.x = 28;
+      u.y = 14;
+      h.run(1);
+      return Math.hypot(u.vx, u.vy);
     };
-    for (const u of run([])) expect(effectOf(u, 'haste')).toBeUndefined();
-    const on = run([[0, 'forced_march']]);
-    expect(on).toHaveLength(2);
-    for (const u of on) {
-      expect(effectOf(u, 'haste')!.strength).toBeCloseTo(0.2, 6);
-      expect(u.stats.moveSpeed).toBeGreaterThan(4.4 * 1.19);
-    }
-  });
-
-  it('rally_cry: his super effects last 30% longer', () => {
-    const morale = (picks: Pick[]) => {
-      const h = game(['commander'], picks);
-      h.p(0).superCharge = 1;
-      h.pads[0]!.tap('superFires');
-      h.run(2);
-      return effectOf(h.p(0), 'morale')!.remaining;
-    };
-    expect(morale([[0, 'rally_cry']]) / morale([])).toBeCloseTo(1.3, 1);
+    expect(walk([[0, 'forced_march']]) / walk([])).toBeCloseTo(1.2, 6);
   });
 
   it('siege_breakers: the squad deals +50% to Siege only', () => {
@@ -549,9 +533,12 @@ describe('commander cards', () => {
   });
 
   it('last_stand: the squad hits harder for each soldier lost', () => {
-    const full = soldierHit('grunt', [[0, 'last_stand']], 0);
-    expect(soldierHit('grunt', [[0, 'last_stand']], 1)).toBeCloseTo(full * 1.15, 6);
-    expect(soldierHit('grunt', [], 1)).toBeCloseTo(full, 6);
+    // Counted from the cap (4): the starting 2 are already 2 short.
+    const plain = soldierHit('grunt', [], 0);
+    const two = soldierHit('grunt', [[0, 'last_stand']], 0);
+    expect(two).toBeCloseTo(plain * 1.3, 6);
+    expect(soldierHit('grunt', [[0, 'last_stand']], 1)).toBeCloseTo(plain * 1.45, 6);
+    expect(soldierHit('grunt', [], 1)).toBeCloseTo(plain, 6);
   });
 
   it('vanguard: the Commander gets an aura while a soldier is near', () => {

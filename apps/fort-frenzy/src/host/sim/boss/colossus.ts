@@ -281,7 +281,7 @@ function slamTarget(s: SimState, e: EnemyEnt, T: ColossusTuning): Unit | null {
     }
   };
   for (const p of s.world.players) if (s.targetable(p)) consider(p);
-  for (const u of s.world.soldiers) if (u.hp > 0) consider(u);
+  for (const u of s.world.soldiers) if (u.hp > 0 && !u.flight) consider(u);
   return best;
 }
 

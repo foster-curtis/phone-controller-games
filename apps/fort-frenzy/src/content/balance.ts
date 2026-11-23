@@ -78,6 +78,7 @@ export const rules = {
   statCaps: {
     range: { pctMax: 0.4 },
     moveSpeed: { pctMax: 0.4 },
+    squadSpeed: { pctMax: 0.4 },
     damageReduction: { addMax: 0.4 },
     // Deadeye's shorter Steady Aim wait never drops below a fifth of it.
     durationMs: { pctMin: -0.8 },
@@ -230,38 +231,35 @@ export const commander = {
   role: 'control',
   moveSpeed: 4.3,
   radius: 0.34,
-  // Sword slash in a short arc in front of him; aimed, a quick tap auto-aims (FF7-fix-3, C3).
+  // Shield bash: a short aimed arc with knockback; a quick tap auto-aims (§8.2, RD9).
   main: {
     shape: 'arc',
     damage: 28,
     range: 1.6,
     arcDeg: 110,
     cooldownMs: 550,
+    knockback: 1.2,
     hitsFlyers: false,
   },
-  // Morale: his squad and he get attack speed and damage (`effects`); he also moves faster
-  // (`selfEffects`). The aura fades as it runs out (§2.4).
+  // Reinforcements: an aimed throw of one soldier; a quick tap throws toward the flag, or straight
+  // ahead with no flag out (§8.2, §15.11 #106). Held at the squad cap (§8.4).
   super: {
-    shape: 'buff',
+    shape: 'spawn',
     damage: 0,
     range: 0,
     cooldownMs: 500,
     hitsFlyers: false,
-    effects: [{ effect: 'morale', strength: 0.35, durationMs: 6000 }],
-    selfEffects: [{ effect: 'haste', strength: 0.25, durationMs: 6000 }],
+    spawn: { count: 1, throwRange: 4, throwSpeed: 10, minFlightMs: 300, spread: 0.7 },
   },
   build: 'rally_flag',
-  input: { main: 'aimed', super: 'tap', build: 'aimed' },
+  input: { main: 'aimed', super: 'aimed', build: 'aimed' },
   hitsFlyers: false,
+  // Squad damage charges the super at half his own rate, never the meter (§8.3).
   superCharge: { perDamage: 0.008, perSquadDamage: 0.004 },
-  meter: { perSec: 0, perPoint: 0, sources: ['damage'] },
+  // A full meter in 40 s alone, or from about 500 of his own damage (RD9 starting values).
+  meter: { perSec: 1 / 40, perPoint: 0.002, sources: ['damage'] },
   passiveCard: 'morale',
-  // Lead from the Front: his soldiers within `radius` deal +`damagePct` (a refreshed aura).
-  passive: {
-    module: 'lead_from_the_front',
-    params: { radius: 3, damagePct: 0.25, auraMs: 200 },
-  },
-  // 2 soldiers to start, up to 4 (RD9's Reinforcements fills it).
+  // 2 soldiers to start, up to 4; Reinforcements is the only way to add more (§8.4).
   squad: {
     start: 2,
     cap: 4,
@@ -378,7 +376,8 @@ export const rallyFlag = {
   id: 'rally_flag',
   input: 'aimed',
   throw: { range: 8, speed: 14, minFlightMs: 250 },
-  radius: 0.8,
+  // The squad's ring around the flag: also its aim preview's radius (§7.4).
+  radius: commander.squad.formation.flagRing,
   bodyRadius: 0.3,
   maxActive: 1,
   traits: { targetable: false, dealsDamage: false, hidden: false },
@@ -1080,17 +1079,53 @@ export const artificerCards: CardDef[] = [
 
 export const commanderCards: CardDef[] = [
   {
+    id: 'heavy_bash',
+    owner: 'commander',
+    tier: 'common',
+    stats: [
+      { stat: 'arcDeg', addPct: 0.2, scope: 'main' },
+      { stat: 'knockback', addPct: 0.4, scope: 'main' },
+    ],
+  },
+  {
     id: 'forced_march',
     owner: 'commander',
     tier: 'common',
-    module: { module: 'forced_march', params: { pct: 0.2, auraMs: 200 } },
+    stats: [{ stat: 'squadSpeed', addPct: 0.2, scope: 'squad' }],
   },
-  // Longer morale (the super's effect durations × `durationMs`).
+  {
+    id: 'drillmaster',
+    owner: 'commander',
+    tier: 'common',
+    stats: [
+      { stat: 'squadHp', addPct: 0.2, scope: 'squad' },
+      { stat: 'squadDamage', addPct: 0.2, scope: 'squad' },
+    ],
+  },
+  // A 50% chance of a second soldier, +25% per extra copy, up to 100% (§6.1).
   {
     id: 'rally_cry',
     owner: 'commander',
     tier: 'rare',
-    stats: [{ stat: 'durationMs', addPct: 0.3, scope: 'super' }],
+    module: { module: 'rally_cry', params: { chance: 0.5, perCopy: 0.25 } },
+  },
+  // One effect on anyone near him or his flag; the two areas don't stack (§6.1).
+  {
+    id: 'morale',
+    owner: 'commander',
+    tier: 'rare',
+    unique: true,
+    module: {
+      module: 'morale',
+      params: { radius: 3, flagRadius: 3, strength: 0.2, auraMs: 200 },
+    },
+  },
+  {
+    id: 'reinforced_ranks',
+    owner: 'commander',
+    tier: 'rare',
+    unique: true,
+    stats: [{ stat: 'squadCap', add: 1, scope: 'squad' }],
   },
   {
     id: 'siege_breakers',

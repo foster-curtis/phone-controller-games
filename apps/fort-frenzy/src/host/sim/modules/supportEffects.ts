@@ -1,6 +1,6 @@
-// Status effects of the support knights and the redesign (SPEC §8, §15.3): morale (attack speed and
-// damage), haste (movement) and the Lead from the Front aura (damage) until RD9; slow; the shield
-// generator's `guard` and Challenger's `taunt` (markers until RD3 and RD7 give them their rules).
+// Status effects of the support knights and the redesign (SPEC §6.1, §8, §15.3): morale (damage,
+// attack rate and movement); slow; the shield generator's `guard` and Challenger's `taunt` (markers
+// until RD3 and RD7 give them their rules).
 // Strength is the fraction added (+30% = 0.3).
 import type { EffectDef } from '../types';
 
@@ -12,22 +12,8 @@ export const morale: EffectDef = {
     stats: [
       { stat: 'damage', addPct: k },
       { stat: 'attackSpeed', addPct: k },
+      { stat: 'moveSpeed', addPct: k },
     ],
-  }),
-};
-
-export const haste: EffectDef = {
-  id: 'haste',
-  stacking: 'refresh',
-  modifier: (k) => ({ id: 'effect:haste', stats: [{ stat: 'moveSpeed', addPct: k }] }),
-};
-
-export const leadAura: EffectDef = {
-  id: 'aura_lead_from_the_front',
-  stacking: 'refresh',
-  modifier: (k) => ({
-    id: 'effect:aura_lead_from_the_front',
-    stats: [{ stat: 'damage', addPct: k }],
   }),
 };
 

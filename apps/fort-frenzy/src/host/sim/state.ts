@@ -19,12 +19,13 @@ import { absorbShield } from './cards/effects';
 import { buildDamaged } from './builds/core';
 import { chargeMeter } from './builds/meter';
 import { guardOf } from './builds/shieldGen';
+import { creditSquadDamage, superBlocked } from './squad';
 import type { FireSpec, Rect, SimState, SlotInput, UnitKind } from './internal';
 import { bossMk } from './boss';
 import { bosses, effects as effectDefs, modules } from './registry';
 import { threatMap, type Attacker } from './ai/threat';
 import { createSpatialHash } from './spatial';
-import { attackStat, modifiersOf, statBlock, type Caps } from './stats';
+import { attackStat, modifiersOf, refreshStats, statBlock, type Caps } from './stats';
 import {
   BASE_ID,
   type AttackState,
@@ -84,6 +85,14 @@ export function neutralInput(): PlayerInput {
   };
 }
 
+/** The lowest squad index this Commander isn't using (the fallen leave gaps; no respawn, §8.4). */
+function nextSoldierIndex(soldiers: readonly SoldierEnt[], owner: number): number {
+  const used = new Set(soldiers.filter((x) => x.owner === owner).map((x) => x.index));
+  let i = 0;
+  while (used.has(i)) i++;
+  return i;
+}
+
 /** Tiles enemies walk to: open neighbors of the Citadel (§15.5). */
 function citadelGoals(cols: number, rows: number, kinds: readonly TileKind[]): number[] {
   const goals: number[] = [];
@@ -115,6 +124,8 @@ export interface StateExtras {
   readonly respawnPoint: (slot: number) => { x: number; y: number };
   /** A Commander's soldier (his class's `squad.soldier` stats); `index` defaults to the next free. */
   readonly addSoldier: (owner: number, x: number, y: number, index?: number) => SoldierEnt;
+  /** Recomputes a unit's stats from its base block, mods and effects (a changed base, RD9). */
+  readonly refreshUnit: (u: Unit) => void;
   /** A build on the map (tooling: the bench's placeholder builds until RD3 places real ones). */
   readonly addBuild: (kind: BuildId, x: number, y: number, owner: number) => BuildEnt;
   /** A player at their respawn point (run start, a late join, FF14). */
@@ -568,7 +579,7 @@ export function createState(start: RunStart, cat: Catalog): FullState {
         stats: { ...stats },
         push: null,
         owner,
-        index: index ?? world.soldiers.filter((x) => x.owner === owner).length,
+        index: index ?? nextSoldierIndex(world.soldiers, owner),
         veterans: 0,
         mode: 'follow',
         target: null,
@@ -578,6 +589,9 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       world.soldiers.push(s);
       register(s, 'soldier', stats);
       return s;
+    },
+    refreshUnit(u) {
+      refreshStats(u, baseStats.get(u.id)!, effectDefs, caps);
     },
     removeUnit(id) {
       units.delete(id);
@@ -701,11 +715,15 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       // A super's own damage doesn't charge the super (BUILD_PLAN §8, FF6).
       if (p.superCharge < 1 && !r.tags.includes('super')) {
         p.superCharge = Math.min(1, p.superCharge + r.dealt * p.stats.superCharge);
-        if (p.superCharge >= 1) ctx.emit({ e: 'superReady', slot: p.slot });
+        // A Commander at his squad cap holds the charge; his super isn't ready (§8.4).
+        if (p.superCharge >= 1 && !superBlocked(ctx, p))
+          ctx.emit({ e: 'superReady', slot: p.slot });
       }
       // The build meter (§7.2): the knight's own main and super damage, never his build's.
       if (!r.tags.includes('build')) chargeMeter(ctx, p, r.dealt, 'damage');
     }
+    // Squad damage charges his super at a reduced rate, never his meter (§8.3).
+    if (src && unitKinds.get(src.id) === 'soldier') creditSquadDamage(ctx, src as SoldierEnt, r);
     if (tkind === 'player') {
       const p = target as PlayerEnt;
       p.run.damageTaken += r.dealt;

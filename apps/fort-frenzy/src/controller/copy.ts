@@ -123,8 +123,8 @@ const COMMANDER: ClassInfo = {
   },
   super: {
     name: 'Reinforcements',
-    mode: 'tap',
-    text: 'Calls one more soldier to your squad.',
+    mode: 'aim',
+    text: 'Throw a soldier into your squad. Drag to aim; a quick tap throws toward your flag.',
   },
   build: {
     name: 'Rally flag',
@@ -218,14 +218,14 @@ export const CARD_INFO: Record<CardId, CardInfo> = {
   heavy_bash: c('Heavy Bash', 'card-attack', 'Wider bash, stronger knockback.'),
   forced_march: c('Forced March', 'card-squad', 'Squad moves faster.'),
   drillmaster: c('Drillmaster', 'card-squad', 'Soldiers get more HP and damage.'),
-  rally_cry: c('Rally Cry', 'card-super', 'Longer super duration.', true),
+  rally_cry: c('Rally Cry', 'card-super', '50% chance to throw 2 soldiers.', true),
   siege_breakers: c('Siege Breakers', 'card-hunter', 'Squad deals +50% vs Bombards.', true),
   veterans: c('Veterans', 'card-squad', 'Soldiers who survive gain stats.', true),
   last_stand: c('Last Stand', 'card-squad', 'Squad hits harder as it thins.', true),
   vanguard: c('Vanguard', 'card-toughness', 'Take less damage near your squad.', true),
   morale: c('Morale', 'card-passive', 'Allies near you or your flag fight harder.', true),
   reinforced_ranks: c('Reinforced Ranks', 'card-squad', '+1 squad cap.', true),
-  warcry: c('Warcry', 'card-combo', 'Super also buffs nearby players.', true),
+  warcry: c('Warcry', 'card-combo', 'Reinforcements boosts nearby knights.', true),
 };
 
 /** Run-stat labels for the summary award cards (SPEC §4). */

@@ -32,7 +32,16 @@ import { locomotionClip, locomotionSpeed, StatusSprites } from '../render/status
 import { Citadel, type SentryId } from '../render/structures';
 import type { IconKey, ProjectileKind, ProjectileSprite, StatusLook } from '../render/types';
 import type { RenderWorld } from '../render/world';
-import { aimPreview, buildPreview, groundBody, shieldOf, steadyOn, type GroundBody } from '../sim';
+import {
+  aimPreview,
+  buildPreview,
+  groundBody,
+  shieldOf,
+  soldierPreview,
+  steadyOn,
+  superHeld,
+  type GroundBody,
+} from '../sim';
 import { BuildsView } from './buildsView';
 import {
   BASE_ID,
@@ -638,7 +647,7 @@ export class WorldView {
       const ring = k.info.ring ?? 0.68;
       marks.shadow(at.sx, at.sy, k.info.shadow[0] * 2, k.info.shadow[1] * 2);
       if (!k.down) {
-        const pulse = superPulse(p, this.t);
+        const pulse = superPulse(p, this.t, superHeld(w, p, this.content));
         if (pulse) marks.superRing(at.sx, at.sy, ring, pulse.color, pulse.scale, pulse.alpha);
         marks.ring(at.sx, at.sy, ring, color, this.aimOf(p, k) ?? p.facing);
       }
@@ -695,14 +704,14 @@ export class WorldView {
     const shielded = p.respawnAt === null && shieldOf(p) > 0;
     k.overflow.img.setVisible(shielded);
     if (shielded) k.overflow.img.setPosition(at.sx + 23 + 9, below ? tagY + 26 : tagY + 5);
-    this.drawAim(p, at);
+    this.drawAim(w, p, at);
   }
 
   /**
    * Aim previews while an aimed button is held (§10.1: drawn on the TV, not the phone; C3): the
    * attack's real hit area from the sim's effective stats. A super shows only once it can fire.
    */
-  private drawAim(p: PlayerEnt, at: { x: number; y: number }) {
+  private drawAim(w: World, p: PlayerEnt, at: { x: number; y: number }) {
     // Nothing can be aimed from the air (§8.2).
     if (p.respawnAt !== null || p.super.windupEndsAt !== null) return;
     const def = this.content.knights.find((c) => c.id === p.classId);
@@ -719,6 +728,12 @@ export class WorldView {
       f.sy = s.sy;
       f.kx = e.rx;
       f.ky = e.ry;
+      // Reinforcements shows where the soldier lands; at the squad cap it can't fire (§8.4, §10.1).
+      if (slot === 'super' && def.super.spawn) {
+        const pv = superHeld(w, p, this.content) ? null : soldierPreview(p, this.content);
+        if (pv) drawThrowPreview(this.ground, pv, f, theme.color.amber.num);
+        continue;
+      }
       const shape = aimPreview(p, def, slot, this.content.rules);
       // A single bolt's bar is its hitbox wide (C4): the sim's projectile radius, from content.
       drawAimPreview(

@@ -6,6 +6,7 @@ import { lerp } from '@pcg/game-kit';
 import type { Content } from '../../content';
 import type { BuildDef } from '../../content/types';
 import type { BuildId } from '../../shared/ids';
+import { theme } from '../../shared/theme';
 import {
   BUILD_SCRAP_SIZE,
   buildPhase,
@@ -114,6 +115,8 @@ export class BuildsView {
         this.entries.set(b.id, en);
       }
       this.fill(en.state, b, tickF);
+      const owner = world.players.find((p) => p.slot === b.owner);
+      if (owner) en.state.ownerTint = theme.players[owner.color].fill.num;
       en.state.clockMs += dtMs;
       en.view.update(en.state, dtMs);
     }

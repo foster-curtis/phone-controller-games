@@ -162,6 +162,8 @@ describe('preview geometry is the content through modifiers', () => {
       const h = setup(cls, false);
       for (const slot of ['main', 'super'] as const) {
         if (DEFS[cls].input[slot] !== 'aimed') continue;
+        // Reinforcements hits nothing: its aim shows the landing spot (`soldierPreview`, RD9).
+        if (DEFS[cls][slot].shape === 'spawn') continue;
         expect(shapeOf(h, slot).kind, `${cls} ${slot}`).not.toBe('none');
       }
     }

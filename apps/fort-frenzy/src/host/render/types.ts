@@ -211,6 +211,8 @@ export interface BuildViewState {
   triggered?: boolean;
   /** The sim's next pulse tick (the beacon, RD8): a change means a pulse just went off. */
   nextPulse?: number | null;
+  /** The owner's player color, for a tinted part (the rally flag's cloth, RD9). */
+  ownerTint?: number;
 }
 
 /** One build's drawing; the scene makes one per `BuildEnt` of its kind and calls `update` each frame. */

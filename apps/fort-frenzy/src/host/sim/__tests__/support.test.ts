@@ -1,11 +1,11 @@
 // Support knights (SPEC §8; BUILD_PLAN FF9): the Artificer's Field Medic and nanite cone; the
-// Commander's slash, morale, Lead from the Front, rally flag and squad.
+// Commander's bash and squad basics (his full kit: commander.test.ts).
 import { describe, expect, it } from 'vitest';
 import { content as baseContent, type Content } from '../../../content';
 import { commander, artificer } from '../../../content/balance';
 import type { CardId, ClassId, PlayerColorId } from '../../../shared/ids';
 import { PLAYER_COLOR_IDS } from '../../../shared/ids';
-import { createSim, ScriptedInputSource, squadSize, type Sim } from '../index';
+import { createSim, ScriptedInputSource, type Sim } from '../index';
 import type { PlayerEnt, SimEvent, SoldierEnt } from '../types';
 
 function mixed(classes: ClassId[], content: Content = baseContent) {
@@ -175,7 +175,7 @@ describe('Artificer attacks (§8)', () => {
 });
 
 describe('Commander (§8)', () => {
-  it('slashes every enemy in the arc in front of him, not behind', () => {
+  it('bashes every enemy in the arc in front of him, not behind', () => {
     const h = mixed(['commander']);
     h.toCombat();
     h.put(0, 10, 10);
@@ -212,7 +212,7 @@ describe('Commander (§8)', () => {
     expect(e.hp).toBeLessThan(hp0);
   });
 
-  it('dead soldiers collapse and return at the next build phase', () => {
+  it('a fallen soldier collapses and stays gone (§8.4)', () => {
     const h = mixed(['commander']);
     h.toCombat();
     const victim = h.squad(0)[1]!;
@@ -222,22 +222,13 @@ describe('Commander (§8)', () => {
       { e: 'death', id: victim.id, what: 'soldier', killer: null, x: victim.x, y: victim.y },
     ]);
     expect(h.squad(0).map((u) => u.index)).toEqual([0]);
-    // Clear the wave: back to build, the fallen soldier returns at the base.
     h.sim.world.spawns.length = 0;
     h.until(() => h.sim.world.phase === 'build', 10);
-    expect(
-      h
-        .squad(0)
-        .map((u) => u.index)
-        .sort(),
-    ).toEqual([0, 1]);
-    const back = h.squad(0).find((u) => u.index === 1)!;
-    expect(back.y).toBeLessThan(5);
-    expect(back.hp).toBe(commander.squad.soldier.hp);
+    expect(h.squad(0).map((u) => u.index)).toEqual([0]);
   });
 
-  it('the squad keeps its starting size through the run (RD9 adds Reinforcements)', () => {
-    expect(squadSize(commander.squad)).toBe(2);
+  it('the starting squad comes once, however the waves jump', () => {
+    expect(commander.squad.start).toBe(2);
     const h = mixed(['commander']);
     h.toBuild();
     expect(h.squad(0)).toHaveLength(2);
@@ -245,43 +236,5 @@ describe('Commander (§8)', () => {
     h.run(1);
     expect(h.squad(0)).toHaveLength(2);
     expect(h.squad(0).map((u) => u.index)).toEqual([0, 1]);
-  });
-
-  it('morale: squad and Commander hit harder and faster, he also runs faster', () => {
-    const h = mixed(['commander']);
-    h.toCombat();
-    h.put(0, 10, 12);
-    h.run(120);
-    const speed0 = h.p(0).stats.moveSpeed;
-    h.p(0).superCharge = 1;
-    h.pads[0]!.tap('superFires');
-    h.run(2);
-    expect(
-      h
-        .p(0)
-        .effects.map((e) => e.def)
-        .sort(),
-    ).toEqual(['haste', 'morale']);
-    for (const u of h.squad(0)) expect(u.effects.map((e) => e.def)).toContain('morale');
-    expect(h.p(0).stats.moveSpeed).toBeCloseTo(speed0 * 1.25, 6);
-    // Morale runs out.
-    h.run(Math.ceil((6000 / 1000) * 60) + 2);
-    expect(h.p(0).effects.some((e) => e.def === 'morale')).toBe(false);
-    expect(h.p(0).stats.moveSpeed).toBeCloseTo(speed0, 6);
-  });
-
-  it('Lead from the Front: soldiers near him deal more damage, far ones do not', () => {
-    const h = mixed(['commander']);
-    h.toCombat();
-    h.put(0, 10, 12);
-    h.run(120);
-    const near = h.squad(0)[0]!;
-    expect(near.effects.map((e) => e.def)).toContain('aura_lead_from_the_front');
-    // Walk far away; the aura lapses.
-    h.put(0, 30, 20);
-    h.p(0).flag = { x: 10, y: 12 };
-    for (const u of h.squad(0)) u.mode = 'rally';
-    h.run(30);
-    expect(near.effects.some((e) => e.def === 'aura_lead_from_the_front')).toBe(false);
   });
 });

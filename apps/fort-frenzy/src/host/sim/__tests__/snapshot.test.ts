@@ -58,6 +58,7 @@ function busyBuild() {
   // Things the commands can't easily reach in a test.
   w.base.hp -= 120;
   h.p(1).hp -= 30;
+  sim.addBuild('rally_flag', 20.5, 14.5, 3);
   h.p(3).flag = { x: 20.5, y: 14.5 };
   for (const u of w.soldiers) u.veterans = u.index;
   w.soldiers[0]!.hp -= 11;

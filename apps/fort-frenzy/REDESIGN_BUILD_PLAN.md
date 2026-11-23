@@ -1095,6 +1095,14 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD8] decision: a resume recomputes a build's max HP from its owner's cards, or a boosted beacon would be clipped to base HP (#132).
 - [RD8] decision: Wide Aura stacks under RD7's one-prerequisite rule (#122); RD8 doesn't touch `cardEligible` or pin that behavior.
 - [RD8] decision: the beacon's flight still starts at his ground point (RD5's shared flight view); the throw clip and a nanite puff at `pack` mark the release.
+- [RD9] contract+: `AttackDef.shape` gains `spawn` and drops `buff`; `super.spawn.spread`; `KnightDef.super.selfEffects` and the effect ids `haste`, `aura_lead_from_the_front` removed as RD2 scheduled; SPEC §15.4 updated.
+- [RD9] contract+: `BuildBehavior.placed?`, `BuildViewState.ownerTint?`, `PlayerEnt.squadSeeded?`, `StateExtras.refreshUnit`, SimEvent `warcry { slot; targets; durationMs }`; sim exports `soldierPreview`, `superHeld`, `squadCapOf` (replaces `squadSize`); SPEC §8.5, §15.3 updated.
+- [RD9] decision: the Commander's super is an aimed throw (settles §8.2 vs content, as the RD9 entry says); a quick tap goes toward the flag, stopping at it, or straight ahead (#106, #140).
+- [RD9] decision: the bash has no wind-up (the hit lands on the press, sparks on the clip's 110 ms impact), so it never roots him; `fire()` carries both his main and super, so regen needs no code path of its own (#140).
+- [RD9] decision: `PlayerEnt.flag` stays as the flag's position, set at the throw; the `BuildEnt` is what's drawn and saved (#141).
+- [RD9] decision: Last Stand counts soldiers short of the cap (#142); Morale's flag area lives in the flag's build behavior so it works while he's down (#143).
+- [RD9] decision: Warcry still skips the Commander himself (the kept card's behavior) and flashes through its own `warcry` event, because the Morale card uses the same effect with no visual (#143).
+- [RD9] note: balance report at RD9's starting values: Commander 35.0 s (-26%, outside ±25%), Warden 64.2 s (+36%); Ranger and Artificer have no build policy until RD7/RD8 merge, so the mean will move. Left for the RC2 tuning pass (a report, never a gate).
 
 ## 9. Final handoff
 
