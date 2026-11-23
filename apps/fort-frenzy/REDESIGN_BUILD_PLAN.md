@@ -1102,7 +1102,7 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD9] decision: `PlayerEnt.flag` stays as the flag's position, set at the throw; the `BuildEnt` is what's drawn and saved (#141).
 - [RD9] decision: Last Stand counts soldiers short of the cap (#142); Morale's flag area lives in the flag's build behavior so it works while he's down (#143).
 - [RD9] decision: Warcry still skips the Commander himself (the kept card's behavior) and flashes through its own `warcry` event, because the Morale card uses the same effect with no visual (#143).
-- [RD9] note: balance report at RD9's starting values: Commander 35.0 s (-26%, outside ±25%), Warden 64.2 s (+36%); Ranger and Artificer have no build policy until RD7/RD8 merge, so the mean will move. Left for the RC2 tuning pass (a report, never a gate).
+- [RD9] note: balance report after rebasing on RD7, at starting values: Commander 35.0 s (-27%, outside ±25%), Warden 64.2 s (+35%, outside ±25%), Ranger 43.5 s (-9%), Artificer 48.3 s (+1%, no build policy until RD8). Left for the RC2 tuning pass (a report, never a gate).
 
 ## 9. Final handoff
 
