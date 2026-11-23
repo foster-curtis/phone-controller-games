@@ -1108,6 +1108,7 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD10] decision: the Brute rechecks the nearest build every step (a nearer build is bait) (#150); "ignores ground builds" for Flyers means trap builds, so they still shoot HP builds (#151).
 - [RD10] decision: Charge starting values, soldiers hit like knights, one hit per run, lane width = hit width (#152); Mk III Runner calls run all fight (#153); Hunter stalk speed 1.3 per §9.1 (#154); boulder, rings and Charge take the wave multiplier (#155).
 - [RD10] decision: the peak bench's p99 swings around 2 ms under the parallel load on both this branch and its base (best runs 1.90 and 2.07 ms; means equal at 0.63 and 0.65 ms), so it's load, not this milestone.
+- [RD10] decision: the Charge skips soldiers in the air (RD9 Reinforcements), matching the slam and every marker.
 
 ## 9. Final handoff
 

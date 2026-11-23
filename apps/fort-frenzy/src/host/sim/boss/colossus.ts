@@ -558,7 +558,9 @@ function runStep(s: SimState, e: EnemyEnt, act: BossAct, T: ColossusTuning) {
     knockAside(s, e, u, act, T);
   };
   for (const p of s.world.players) if (s.targetable(p) && !hit.includes(p.id) && reach(p)) blow(p);
-  for (const u of s.world.soldiers) if (u.hp > 0 && !hit.includes(u.id) && reach(u)) blow(u);
+  // A soldier in the air (Reinforcements) flies over it, as over every ground attack.
+  for (const u of s.world.soldiers)
+    if (u.hp > 0 && !u.flight && !hit.includes(u.id) && reach(u)) blow(u);
   // HP builds it crosses are destroyed; mines and the flag aren't targetable (§9.2).
   for (const b of s.world.builds) {
     if (!buildTargetable(b) || !reach(b)) continue;

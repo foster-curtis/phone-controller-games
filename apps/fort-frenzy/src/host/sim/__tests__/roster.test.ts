@@ -15,7 +15,7 @@ import {
 } from '../../../content/balance';
 import type { ClassId } from '../../../shared/ids';
 import { tuning } from '../boss/colossus';
-import { BASE_ID, type BuildEnt, type EnemyEnt } from '../types';
+import { BASE_ID, type BuildEnt, type EnemyEnt, type SoldierEnt } from '../types';
 import { harness, type Harness, type HarnessOptions } from './harness';
 
 const T = tuning(colossusDef);
@@ -39,11 +39,13 @@ function park(h: Harness) {
 }
 
 /** A lone Colossus in wave `n`, its escorts removed, with its next attacks held off. */
-function lone(n: number, x: number, y: number, players = 2): { h: Harness; b: EnemyEnt } {
-  const h = arena(
-    Array.from({ length: players }, () => 'ranger'),
-    n,
-  );
+function lone(
+  n: number,
+  x: number,
+  y: number,
+  classes: ClassId[] = ['ranger', 'ranger'],
+): { h: Harness; b: EnemyEnt } {
+  const h = arena(classes, n);
   h.sim.command({ c: 'debug', slot: -1, action: 'invincible', on: true });
   h.run(1);
   park(h);
@@ -63,6 +65,17 @@ function placeMine(h: Harness, x: number, y: number): BuildEnt {
   const mine = h.sim.world.builds.find((b) => b.kind === 'mine')!;
   h.until(() => mine.state === 'active', 120);
   return mine;
+}
+
+/** The real rally flag (RD9) through slot 0's build press, landed at his feet at (x, y). */
+function placeFlag(h: Harness, x: number, y: number): BuildEnt {
+  h.put(0, x, y);
+  h.p(0).meter = 1;
+  h.pads[0]!.tap('buildFires');
+  h.run(1);
+  const flag = h.sim.world.builds.find((b) => b.kind === 'rally_flag')!;
+  h.until(() => flag.state !== 'flight', 120);
+  return flag;
 }
 
 describe('Brute (build hunter)', () => {
@@ -564,5 +577,119 @@ describe('answered-by spot checks (§9)', () => {
     h.run(90);
     expect(gen.hp).toBe(gen.maxHp);
     expect(r.target === null || r.target === BASE_ID).toBe(true);
+  });
+});
+
+describe('the real rally flag and soldiers (RD9)', () => {
+  it('the Charge leaves the flag alone, hits a grounded soldier once, misses one in the air', () => {
+    const { h, b } = lone(10, 18, 8, ['commander', 'ranger']);
+    const flag = placeFlag(h, 18, 13);
+    const at = { ...h.p(0).flag! };
+    b.x = 18;
+    b.y = 8;
+    h.put(0, 18, 16);
+    const [ground, air] = h.sim.world.soldiers as [SoldierEnt, SoldierEnt];
+    b.boss!.ready!.charge = 0;
+    h.until(() => b.boss!.act?.kind === 'chargeRun', 120);
+    ground.x = 18;
+    ground.y = 13;
+    const t = h.sim.world.tick;
+    air.x = 18;
+    air.y = 13.2;
+    air.flight = {
+      from: { x: 18, y: 13.2 },
+      to: { x: 18, y: 13.4 },
+      launchedAt: t,
+      landsAt: t + 600,
+    };
+    const hits = new Map<number, number>();
+    let gone = 0;
+    for (let i = 0; i < 200 && b.boss!.act; i++) {
+      h.run(1);
+      for (const d of h.events('damage'))
+        if (d.source === b.id) hits.set(d.target, (hits.get(d.target) ?? 0) + 1);
+      gone += h.events('buildGone').filter((x) => x.build === flag.id).length;
+    }
+    expect(gone).toBe(0);
+    expect(h.sim.world.builds).toContain(flag);
+    expect(flag.hp).toBe(flag.maxHp);
+    expect(h.p(0).flag).toEqual(at);
+    expect(hits.get(ground.id)).toBe(1);
+    expect(hits.get(air.id)).toBeUndefined();
+    expect(air.hp).toBe(air.maxHp);
+  });
+
+  it('Brutes and Siege never target the flag or stop for it', () => {
+    const h = arena(['commander']);
+    const flag = placeFlag(h, 18, 16);
+    h.put(0, 1, 1);
+    const brute = h.sim.spawnEnemy('brute', 15, 16);
+    const siege = h.sim.spawnEnemy('siege', 21, 18);
+    const y0 = siege.y;
+    for (let i = 0; i < 120; i++) {
+      h.run(1);
+      expect(brute.huntBuild).toBeUndefined();
+      expect(brute.target).not.toBe(flag.id);
+      expect(siege.target).not.toBe(flag.id);
+      expect(siege.ai).toBe('path');
+    }
+    expect(siege.y).toBeLessThan(y0);
+    expect(h.sim.world.builds).toContain(flag);
+  });
+
+  it('Siege shells knights, never picks a soldier, and its blast still hits one beside him', () => {
+    const h = arena(['commander']);
+    const s = h.sim.spawnEnemy('siege', 18, 16);
+    h.put(0, 14, 16);
+    const u = h.sim.world.soldiers[0]!;
+    h.until(() => h.sim.world.markers.some((m) => m.source === s.id), 180);
+    expect(s.target).toBe(h.p(0).id);
+    const m = h.sim.world.markers.find((x) => x.source === s.id)!;
+    let hits = 0;
+    while (h.sim.world.tick <= m.landsAt) {
+      u.x = m.x;
+      u.y = m.y;
+      h.run(1);
+      hits += h.events('damage').filter((d) => d.source === s.id && d.target === u.id).length;
+      expect(s.target).not.toBe(u.id);
+    }
+    expect(hits).toBe(1);
+  });
+
+  it('a Hunter keeps its knight as quarry while soldiers at the flag fight it', () => {
+    const h = arena(['commander']);
+    placeFlag(h, 14, 20);
+    h.run(60);
+    h.put(0, 30, 20);
+    const ids = new Set(h.sim.world.soldiers.map((u) => u.id));
+    const e = h.sim.spawnEnemy('hunter', 11, 20);
+    for (let i = 0; i < 240; i++) {
+      h.run(1);
+      expect(e.hunting).toBe(0);
+      expect(e.target === null || !ids.has(e.target)).toBe(true);
+    }
+    expect(e.hp).toBeLessThan(e.maxHp);
+  });
+
+  it('the Colossus slams a grounded soldier in reach, not one in the air', () => {
+    const { h, b } = lone(10, 18, 12, ['commander', 'ranger']);
+    const [u, other] = h.sim.world.soldiers as [SoldierEnt, SoldierEnt];
+    other.hp = 0;
+    h.run(1);
+    const t = h.sim.world.tick;
+    u.x = b.x;
+    u.y = b.y + 2;
+    u.flight = {
+      from: { x: b.x, y: b.y + 2 },
+      to: { x: b.x, y: b.y + 2 },
+      launchedAt: t,
+      landsAt: t + 30,
+    };
+    b.boss!.ready!.slam = 0;
+    h.run(5);
+    expect(b.boss!.act).toBeNull();
+    h.until(() => u.flight === null, 40);
+    h.until(() => b.boss!.act?.kind === 'slam', 5);
+    expect(b.boss!.act!.target).toBe(u.id);
   });
 });
