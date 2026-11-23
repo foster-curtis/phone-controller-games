@@ -196,7 +196,7 @@ export const CARD_INFO: Record<CardId, CardInfo> = {
   heavy_slam: c('Heavy Slam', 'card-attack', 'Wider slam arc.'),
   earthshaker: c('Earthshaker', 'card-super', 'Longer super stun.'),
   wide_field: c('Wide Field', 'card-build', 'Larger shield generator field.'),
-  aftershock: c('Aftershock', 'card-effect', 'Slam leaves a slowing zone.', true),
+  aftershock: c('Aftershock', 'card-effect', 'Jump slam slows enemies for 5 s.', true),
   giant_slayer: c('Giant Slayer', 'card-hunter', '+50% vs Brutes and the Colossus.', true),
   unshakable: c('Unshakable', 'card-toughness', 'Immune to slows and knockback.', true),
   challenger: c('Challenger', 'card-passive', 'Nearby enemies target you first.', true),
