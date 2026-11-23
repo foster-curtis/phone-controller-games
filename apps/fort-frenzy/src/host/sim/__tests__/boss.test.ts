@@ -314,7 +314,7 @@ describe('Colossus stagger', () => {
         const hits = h.events('damage').filter((d) => d.target === b.id);
         for (const d of hits) dealt += d.amount;
         return hits.some((d) => d.amount === stomp);
-      }, 60);
+      }, 150); // past the jump slam's wind-up (1.8 s = 108 steps)
       return b.boss!.stagger - before - (dealt / b.maxHp) * T.staggerPerHp;
     };
     // A stagger ending now.

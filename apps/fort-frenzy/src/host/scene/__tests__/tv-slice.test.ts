@@ -4,6 +4,7 @@ import { shieldGen } from '../../../content/balance';
 import { theme } from '../../../shared/theme';
 import { presentationHost } from '../../../presentation/host';
 import { MapView, PORTALS } from '../../render/map';
+import { JUMP_IMPACT_MS, SLAM_IMPACT_MS } from '../../render/clips/warden';
 import type { MarkKind } from '../../render/types';
 import type { BuildPreview } from '../../sim';
 import { drawThrowPreview, THROW_RANGE_ALPHA } from '../aimPreview';
@@ -38,7 +39,7 @@ describe('drawThrowPreview (SPEC §7.3, §10.1; the buildPreview from the sim is
 });
 
 describe('Warden cracks and dust (SPEC §2.4)', () => {
-  const run = (slot: 'main' | 'super') => {
+  const run = (slot: 'main' | 'super', cancelled = false) => {
     const marks: { kind: MarkKind; sx: number; sy: number; ms: number }[] = [];
     const fake = fakeRender();
     const w = {
@@ -56,28 +57,38 @@ describe('Warden cracks and dust (SPEC §2.4)', () => {
     };
     const timers: { ms: number; fn: () => void }[] = [];
     const def = { main: { range: 1.75, arcDeg: 102 }, super: { range: 4.7, arcDeg: 85 } };
-    wardenAttack(
+    const impact = wardenAttack(
       w as never,
       rig as never,
       { e: 'attack', source: 1, slot, x: 12, y: 10, angle: 0 } as never,
       def as never,
       (ms, fn) => timers.push({ ms, fn }),
     );
+    impact.cancelled = cancelled;
     for (const t of timers) t.fn();
     return { marks, timers };
   };
 
-  it('the slam leaves slam-cracks at the hammer-ground point for about a second', () => {
+  it('the slam leaves no ground cracks (RC1: only the super does)', () => {
     const { marks, timers } = run('main');
-    expect(timers[0]!.ms).toBe(200);
-    expect(marks).toEqual([{ kind: 'slam-cracks', sx: 111, sy: 222, ms: CRACKS_MS }]);
-    expect(CRACKS_MS).toBeGreaterThanOrEqual(900);
+    expect(timers[0]!.ms).toBe(SLAM_IMPACT_MS);
+    expect(marks).toEqual([]);
   });
 
   it('the jump slam lands with landing-dust at his feet and slam-cracks-wide at the hammer', () => {
-    const { marks } = run('super');
+    const { marks, timers } = run('super');
+    expect(timers[0]!.ms).toBe(JUMP_IMPACT_MS);
     expect(marks.map((m) => m.kind).sort()).toEqual(['landing-dust', 'slam-cracks-wide']);
-    expect(marks.find((m) => m.kind === 'slam-cracks-wide')).toMatchObject({ sx: 111, sy: 222 });
+    expect(marks.find((m) => m.kind === 'slam-cracks-wide')).toMatchObject({
+      sx: 111,
+      sy: 222,
+      ms: CRACKS_MS,
+    });
+    expect(CRACKS_MS).toBeGreaterThanOrEqual(900);
+  });
+
+  it('a jump slam the sim cut short shows no impact', () => {
+    expect(run('super', true).marks).toEqual([]);
   });
 });
 

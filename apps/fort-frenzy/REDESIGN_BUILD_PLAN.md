@@ -1073,6 +1073,15 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD6] decision: `render/types.ts`, `sim/builds/index.ts` and `scene/builds/<build>.ts` freeze as RD5 and RD3 left them (no changes needed): RD7–RD9 register a `BuildBehavior` and add a `scene/builds/<build>.ts` exporting `view: BuildViewFactory`.
 - [RD4-fix-1] decision: build button 60 px at (-134, +24) (pre-RD4 56, RD4 68), ring reach 11 px and caption top 14 px under the face; captions are proven clear of every button and label by `layoutCombat` rect tests (SPEC #115, revises #105).
 - [RD4-fix-1] decision: the shop 50/50 split was `.shop-body { flex-direction: row }` turning header, rows and hint into three columns; it is now one column with a one-line header (hint hidden under 400 px high), price min 96 px, no wrapping.
+- [RD3-fix-1] contract+: `SimEvent` `windupCancelled { source; slot }` (a knight's wound-up attack cut short: down, dazed or phase end), so the TV calls off the impact it scheduled at the press; SPEC §15.3 and #116 updated.
+- [RD3-fix-1] decision: the jump slam winds up 1.8 s inside a 2.2 s clip (RC1 "~2 s"; `windupMs` = `JUMP_IMPACT_MS`, `speeds.test`); damage, stun, `landing-dust` and `slam-cracks-wide` land together at the impact.
+- [RD3-fix-1] decision: from press to landing the Warden is committed (simplest rule for a long wind-up): rooted, aim and facing locked, main and build presses lost, no aim preview, still a target. Down, dazed or a phase end cancels the slam, and the charge stays spent (#116).
+- [RD3-fix-1] decision: Aftershock is now a 5 s slow (`slowMs`) on every enemy the jump slam hits, through the attack's own effects; the old slam zone and its params are gone, so Fault Line (RD11) stays the only ground fissure (#118). RD11 keeps this behavior.
+- [RD3-fix-1] decision: the main reads "already stunned" before its own effects and then skips only the knockback (#117).
+- [RD3-fix-1] decision: the shield generator's throw speed goes 12 → 6 (1 s at full range); `minFlightMs` stays 300 so a quick tap at his feet stays quick; the beacon and flag are untouched (#119).
+- [RD3-fix-1] decision: regen waits 5 s and `fire()` restarts it, so a wound-up attack restarts it at the press and at the landing; placing a build doesn't. This supersedes the 4 s in RD3's Deliverables and Acceptance (#120).
+- [RD3-fix-1] decision: left for RD12, which owns `render/gallery/pages.ts`: `ONE_SHOTS.super` (1600 ms) is shorter than the Warden's 2200 ms clip, so the gallery replays his jump before it lands; it needs a period of at least 2600 ms for him.
+- [RD3-fix-1] decision: `src/controller/copy.ts` line 199 is outside this fix; its Aftershock text should become `'Jump slam slows enemies for 5 s.'`.
 
 ## 9. Final handoff
 

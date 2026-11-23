@@ -84,6 +84,9 @@ export type SimEvent =
       owner: number;
       hp: number;
       maxHp: number;
-    };
+    }
+  // ---- RD3-fix-1 ----
+  /** A knight's wound-up attack was cut short (down, dazed, phase end): it won't land (§8.2). */
+  | { e: 'windupCancelled'; source: EntityId; slot: 'main' | 'super' };
 
 export type SimEventKind = SimEvent['e'];

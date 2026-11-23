@@ -61,7 +61,8 @@ export const rules = {
   inputStaleMs: 250,
   // HP tiers multiply it (classes): tank 176, marksman 88, support 99, control 110.
   knightHp: 110,
-  regen: { delayMs: 4000, pct: 0.08, everyMs: 1000 },
+  // Damage taken, a main attack or a super restarts the delay (§5, RC1).
+  regen: { delayMs: 5000, pct: 0.08, everyMs: 1000 },
   // Quick Recovery's −2 s a stack never takes a respawn below these (§5).
   respawnFloorMs: { solo: 4000, team: 5000 },
   hot: { share: 0.55 },
@@ -301,15 +302,15 @@ export const warden = {
     knockback: 0.5,
     hitsFlyers: false,
   },
-  // Jump slam (§8.2, RD3): an airborne wind-up, then an arc as wide as the slam's but longer, with
-  // less damage, that stuns.
+  // Jump slam (§8.2, RD3): a slow airborne wind-up (RC1: the clip reads about 2 s), then an arc as wide
+  // as the slam's but longer, with less damage, that stuns.
   super: {
     shape: 'arc',
     damage: 25,
     range: 4.7,
     arcDeg: 102,
     cooldownMs: 600,
-    windupMs: 320,
+    windupMs: 1800,
     hitsFlyers: false,
     effects: [{ effect: 'stun', strength: 1, durationMs: 1800 }],
   },
@@ -331,7 +332,8 @@ export const knights: KnightDef[] = [ranger, artificer, commander, warden];
 export const shieldGen = {
   id: 'shield_gen',
   input: 'aimed',
-  throw: { range: 6, speed: 12, minFlightMs: 300 },
+  // RC1: a slower lob, 1 s at full range (was 0.5 s). A quick tap at his feet keeps the short minimum.
+  throw: { range: 6, speed: 6, minFlightMs: 300 },
   hp: 300,
   radius: 2.5,
   bodyRadius: 0.4,
@@ -961,8 +963,8 @@ export const wardenCards: CardDef[] = [
     tier: 'rare',
     module: {
       module: 'aftershock',
-      // The zone drops `reachPct` of the slam's reach ahead; stacked slows cap at `maxSlow`.
-      params: { radius: 1.2, slow: 0.35, maxSlow: 0.9, slowMs: 800, zoneMs: 2000, reachPct: 0.6 },
+      // Enemies the jump slam hits are slowed for `slowMs` (RC1); stacked slows cap at `maxSlow`.
+      params: { slow: 0.35, maxSlow: 0.9, slowMs: 5000 },
     },
   },
   {

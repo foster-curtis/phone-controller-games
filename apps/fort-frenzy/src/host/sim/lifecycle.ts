@@ -109,7 +109,7 @@ export function stepDeaths(s: FullState): void {
     p.hp = 0;
     p.respawnAt = t + s.cat.steps(respawnMs(s, p));
     p.run.deaths++;
-    releaseAll(p);
+    releaseAll(s, p);
     p.push = null;
     s.emit({ e: 'death', id: p.id, what: 'player', killer: killerId, x: p.x, y: p.y });
     const killer = killerId === null ? null : (s.units.get(killerId) ?? null);

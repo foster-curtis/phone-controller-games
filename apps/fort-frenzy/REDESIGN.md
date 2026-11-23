@@ -152,9 +152,10 @@ Replaces the §2 "Core identity" bullets.
 
 ### A6. Death, respawn and regen → SPEC §5, §14.3
 
-- **Delayed regen** for every knight: after about **4 s without taking damage**, heal **8% of max HP
-  every 1 s** (in ticks, not a smooth trickle) until full or until the knight takes damage again.
-- **Regen runs in the build phase too.** HP still carries over between waves, but the 20 s build phase (about 13 s to refill from 1 HP) is always
+- **Delayed regen** for every knight: **5 s after the knight last took damage or used its main attack
+  or super** (RC1; placing a build doesn't restart it), heal **8% of max HP every 1 s** (in ticks, not
+  a smooth trickle) until full or until one of those happens again.
+- **Regen runs in the build phase too.** HP still carries over between waves, but the 20 s build phase (about 17 s to refill from 1 HP, the wait included) is always
   enough to refill, so no separate full-heal rule is needed.
 - **Respawn** at the base, per the scaling table (6 s solo, 10 s for 2–4 players, 15 s for 5–6;
   RC0, 2026-11-20). Quick Recovery's floor becomes 4 s in solo and stays 5 s otherwise.
@@ -307,8 +308,8 @@ button's new job is decided in group F).
 | | Warden | Ranger | Artificer | Commander |
 |---|---|---|---|---|
 | Class | Tank | Marksman | Support | Control |
-| Main | Hammer smash: damage in an arc spreading out in front of him | Long-range bow shot | Nanite blast: about 5 nanites fired at random spots in a narrow cone over about 0.8 s (one burst per release; cooldown ≥ 0.8 s; spread from the seeded RNG) | **Shield bash:** short-range hit with knockback (new art: the Commander holds a shield) |
-| Super | Jump and slam: short airborne wind-up, then damage and stun in an arc as wide as the main's but longer; less damage than the main. The airborne pause is a tell for players (enemy AI doesn't dodge) | Shockwave from the Ranger: knockback and light damage | Wide nanite cone that heals himself and allied knights it reaches (not builds) | **Reinforcements:** spawns one squad soldier, thrown a short distance (as the old super). Charged by his own damage plus squad damage at a reduced rate. At the squad cap the button stays dimmed and the charge is held |
+| Main | Hammer smash: damage in an arc spreading out in front of him, knocking back targets that aren't already stunned (RC1) | Long-range bow shot | Nanite blast: about 5 nanites fired at random spots in a narrow cone over about 0.8 s (one burst per release; cooldown ≥ 0.8 s; spread from the seeded RNG) | **Shield bash:** short-range hit with knockback (new art: the Commander holds a shield) |
+| Super | Jump and slam: slow airborne wind-up (the whole move about 2 s, RC1), then damage and stun in an arc as wide as the main's but longer; less damage than the main. The airborne pause is a tell for players (enemy AI doesn't dodge) | Shockwave from the Ranger: knockback and light damage | Wide nanite cone that heals himself and allied knights it reaches (not builds) | **Reinforcements:** spawns one squad soldier, thrown a short distance (as the old super). Charged by his own damage plus squad damage at a reduced rate. At the squad cap the button stays dimmed and the charge is held |
 | Build | **Shield generator** (thrown): knights and squad soldiers in range take less damage (builds aren't affected); range shown on the TV | **Mines** (at feet): one per full meter, **up to 3 active** (a 4th removes the oldest; an exception to the one-build rule); translucent to players; trigger after a short delay when a ground enemy comes close (Flyers pass over) | **Healing beacon** (thrown): heals allied knights in a small area around it | **Rally flag** (thrown): the squad goes to the flag and fights there. With the meter full, the build throws a new flag (the old one is removed); with the meter not full, the build recalls the flag and the squad follows him again. The flag can't be attacked and stays until recalled or replaced, including between waves (a declared exception to the HP-or-charges rule) |
 | Passive | None (cards can add one) | None | None | None |
 
@@ -458,7 +459,7 @@ Code IDs: Engineer = Ranger, Quartermaster = Artificer.
 |---|---|---|---|
 | Heavy Slam | Common | Wider slam arc | Kept |
 | Earthshaker | Common | Longer super stun (no extra boss stagger) | Kept |
-| Aftershock | Rare | Slam leaves a brief slowing zone | Kept |
+| Aftershock | Rare | The jump slam slows every enemy it hits for about 5 s (RC1: on his super, not his main) | Changed |
 | Giant Slayer | Rare | +50% damage vs Brutes and the Colossus | Kept |
 | Unshakable | Rare | Immune to slows and knockback | Kept |
 | **Challenger** | Rare, unique | Passive card: nearby enemies target the Warden first | New |
@@ -615,7 +616,7 @@ For the agent to turn into §15 updates and redesign milestones. Paths are indic
 | 1–6 players, lobby minimum 1 | §11.1, §12 | lobby / party logic, controller lobby screen |
 | Card pop-up → shop (2/3 width) with movement stick; Build tab removed | §10.2, §10.3 | `src/controller/screens/build.ts`, shop UI |
 | Build phase 45 s → 20 s; random card pick at timeout | §4, §10.2 | lifecycle, balance |
-| Delayed regen (4 s, 8%/s ticks), runs in the build phase | §5 | stats / effects, players |
+| Delayed regen (5 s after damage, main or super; 8%/s ticks), runs in the build phase | §5 | stats / effects, players |
 | Repair only from the shop (crate repair removed) | §3.4 | shop, crates (more in group B) |
 | Tower-targeting attacks retarget players | §3.3, §9.2 | `src/host/sim/ai`, `src/host/sim/boss` |
 | Builds: one active per knight, HP/charge-based, persist between waves | §7 | replaces `building.ts`, `structures/`, snapshot contents (details in group C) |

@@ -119,7 +119,7 @@ export interface PlayerEnt extends Unit {
   superAim: Vec2 | null;
   /** Live aim while a thrown build is held (TV preview). */
   buildAim: Vec2 | null;
-  /** Regen (§5): none before `quietUntil` (4 s after the last damage taken); next tick at `nextRegen`. */
+  /** Regen (§5): none before `quietUntil` (5 s after the last damage, main or super); next tick at `nextRegen`. */
   regen: { quietUntil: number; nextRegen: number };
   /** Class growth bumps received (§6.1). */
   growth: { regular: number; boss: number };

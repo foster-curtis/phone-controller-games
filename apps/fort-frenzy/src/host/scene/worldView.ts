@@ -61,7 +61,7 @@ import { shotAnchor } from './support';
 import { SupportView } from './supportView';
 import { superPulse } from './superPulse';
 import { syncTag, type TagState } from './tag';
-import { wardenAttack } from './wardenFx';
+import { wardenAttack, type WardenImpact } from './wardenFx';
 
 export type { Pos } from './shot';
 
@@ -174,6 +174,8 @@ export class WorldView {
   /** Enemy tells and the Skitter core throb (effects layer, so the bloom takes them). */
   private readonly glow: Phaser.GameObjects.Graphics;
   private timers: Timer[] = [];
+  /** The Warden's pending impacts, by `source:slot`, so a cut-short wind-up can call its off. */
+  private readonly wardenImpacts = new Map<string, WardenImpact>();
   /** Reused by the aim previews each frame. */
   private readonly aimFrame: GroundFrame = { sx: 0, sy: 0, kx: 0, ky: 0 };
   private t = 0;
@@ -372,6 +374,16 @@ export class WorldView {
       }
       case 'attack':
         return this.attack(e, w);
+      case 'windupCancelled': {
+        const key = `${e.source}:${e.slot}`;
+        const impact = this.wardenImpacts.get(key);
+        if (impact) impact.cancelled = true;
+        this.wardenImpacts.delete(key);
+        // Out of the jump at once; a knight going down plays `down` from its own event next.
+        const k = this.knightById(e.source);
+        if (k && !k.down) k.rig.play('idle', { restart: true, fadeMs: 120 });
+        return;
+      }
       case 'damage': {
         const en = this.enemies.get(e.target);
         if (en && !en.dying) {
@@ -493,7 +505,10 @@ export class WorldView {
       // The slam and the stomp land on their clips' impact frames (FF8, wardenFx.ts).
       k.shotDelay = 0;
       const def = this.content.knights.find((c) => c.id === p.classId);
-      if (def) wardenAttack(this.w, k.rig, e, def, (ms, fn) => this.later(ms, fn));
+      if (def) {
+        const impact = wardenAttack(this.w, k.rig, e, def, (ms, fn) => this.later(ms, fn));
+        this.wardenImpacts.set(`${e.source}:${e.slot}`, impact);
+      }
       return;
     }
     if (e.slot === 'main') {
@@ -545,6 +560,8 @@ export class WorldView {
   }
 
   private aimOf(p: PlayerEnt, k: Knight): number | null {
+    // In the jump slam he holds the aim he jumped along (§8.2), whatever the sticks do.
+    if (p.super.windupEndsAt !== null) return k.shotAngle;
     if (p.mainAim && (p.mainAim.x !== 0 || p.mainAim.y !== 0))
       return Math.atan2(p.mainAim.y, p.mainAim.x);
     if (this.t < k.shotUntil) return k.shotAngle;
@@ -675,7 +692,8 @@ export class WorldView {
    * attack's real hit area from the sim's effective stats. A super shows only once it can fire.
    */
   private drawAim(p: PlayerEnt, at: { x: number; y: number }) {
-    if (p.respawnAt !== null) return;
+    // Nothing can be aimed from the air (§8.2).
+    if (p.respawnAt !== null || p.super.windupEndsAt !== null) return;
     const def = this.content.knights.find((c) => c.id === p.classId);
     if (!def) return;
     this.drawThrowAim(p, at);

@@ -3,7 +3,7 @@
 // aim preview and the class damage band.
 import { describe, expect, it } from 'vitest';
 import { content } from '../../../content';
-import { classes, grunt, shieldGen, warden } from '../../../content/balance';
+import { beacon, classes, grunt, rallyFlag, shieldGen, warden } from '../../../content/balance';
 import type { Content } from '../../../content';
 import type { ClassId } from '../../../shared/ids';
 import { buildPreview } from '../preview';
@@ -173,6 +173,26 @@ describe('placing a build (§7.1, §7.3)', () => {
     expect(b!.hp).toBe(shieldGen.hp);
     h.run(steps(shieldGen.armMs) + 1);
     expect(b!.state).toBe('active');
+  });
+
+  it('the shield generator flies 1 s at full range (RC1), then lands and arms on time', () => {
+    expect(beacon.throw.speed).toBe(12);
+    expect(rallyFlag.throw.speed).toBe(14);
+    const h = combat();
+    h.put(0, 10, 12);
+    h.pads[0]!.set({ buildAiming: true, buildAim: { x: 1, y: 0 } });
+    h.run(1);
+    const pv = buildPreview(h.p(0), content)!;
+    h.pads[0]!.tap('buildFires', { buildAiming: false });
+    h.run(1);
+    const [b] = wardenBuilds(h);
+    const f = b!.flight!;
+    expect(f.to).toEqual(pv.landing);
+    expect(f.landsAt - f.launchedAt).toBe(steps(1000));
+    expect(b!.liveAt).toBe(f.landsAt + steps(shieldGen.armMs));
+    h.run(f.landsAt - h.sim.world.tick + 1);
+    expect(b!.state).toBe('landed');
+    expect({ x: b!.x, y: b!.y }).toEqual(pv.landing);
   });
 
   it('a quick tap (aim 0,0) lands at his feet; the stick’s length sets the distance', () => {

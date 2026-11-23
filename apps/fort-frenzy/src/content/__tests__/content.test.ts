@@ -243,7 +243,7 @@ describe('content rules', () => {
     expect(c.rules!.respawn.length).toBeGreaterThanOrEqual(6);
     expect(c.rules!.inputStaleMs).toBe(250);
     expect(c.rules!.flareMs).toBe(1000);
-    expect(c.rules!.regen).toEqual({ delayMs: 4000, pct: 0.08, everyMs: 1000 });
+    expect(c.rules!.regen).toEqual({ delayMs: 5000, pct: 0.08, everyMs: 1000 });
     expect(c.rules!.respawnFloorMs).toEqual({ solo: 4000, team: 5000 });
     expect(c.rules!.hot.share).toBe(0.55);
     expect(c.scaling.map((r) => r.players)).toEqual([1, 2, 3, 4, 5, 6]);

@@ -333,18 +333,30 @@ describe('warden cards', () => {
     expect(stun([[0, 'earthshaker']]) / base).toBeCloseTo(1.3, 1);
   });
 
-  it('aftershock: a slam leaves enemies in front slowed', () => {
-    const slowed = (picks: Pick[]) => {
+  it('aftershock: the jump slam slows what it hits for slowMs; the main no longer slows', () => {
+    const params = cardDefs.find((c) => c.id === 'aftershock')!.module!.params!;
+    const slowMs = params.slowMs as number;
+    expect(slowMs).toBe(5000);
+    const slowed = (picks: Pick[], slot: 'main' | 'super') => {
       const h = game(['warden'], picks);
       h.put(0, 10, 12);
       const e = h.sim.spawnEnemy('grunt', 11.2, 12);
-      e.hp = e.maxHp = 1e6;
-      h.pads[0]!.tap('mainFires');
-      h.run(slamWindup + 10);
+      if (slot === 'super') {
+        h.p(0).superCharge = 1;
+        h.pads[0]!.tap('superFires', { superAim: { x: 1, y: 0 } });
+        h.run(1 + steps(warden.super.windupMs));
+      } else {
+        h.pads[0]!.tap('mainFires');
+        h.run(slamWindup + 10);
+      }
       return effectOf(e, 'slow');
     };
-    expect(slowed([])).toBeUndefined();
-    expect(slowed([[0, 'aftershock']])!.strength).toBeCloseTo(0.35, 6);
+    expect(slowed([], 'super')).toBeUndefined();
+    expect(slowed([[0, 'aftershock']], 'main')).toBeUndefined();
+    const slow = slowed([[0, 'aftershock']], 'super')!;
+    expect(slow.strength).toBeCloseTo(params.slow as number, 6);
+    expect(slow.remaining).toBeGreaterThanOrEqual(steps(slowMs) - 2);
+    expect(slow.remaining).toBeLessThanOrEqual(steps(slowMs));
   });
 
   it('giant_slayer: +50% damage to Brutes', () => {

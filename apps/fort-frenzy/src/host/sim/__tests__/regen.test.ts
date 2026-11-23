@@ -1,7 +1,8 @@
-// Delayed regen (SPEC §5; RD3): after 4 s without damage a knight heals 8% of max HP every 1 s, in
-// ticks, until full or hit again; in the build phase too; not a heal (no event, charge or stats).
+// Delayed regen (SPEC §5; RD3, RC1): 5 s after the last damage, main attack or super a knight heals 8%
+// of max HP every 1 s, in ticks, until full or interrupted; in the build phase too; not a heal (no
+// event, charge or stats). Placing a build doesn't delay it.
 import { describe, expect, it } from 'vitest';
-import { rules } from '../../../content/balance';
+import { rules, warden } from '../../../content/balance';
 import { harness, type Harness } from './harness';
 
 const steps = (ms: number) => Math.max(1, Math.round((ms * 60) / 1000));
@@ -44,7 +45,11 @@ function hurtWarden() {
 }
 
 describe('delayed regen (§5)', () => {
-  it('starts 4 s after the last hit and heals 8% of max HP per 1 s tick, no heal event', () => {
+  it('waits 5 s', () => {
+    expect(rules.regen.delayMs).toBe(5000);
+  });
+
+  it('starts 5 s after the last hit and heals 8% of max HP per 1 s tick, no heal event', () => {
     const h = hurtWarden();
     const hit = hitOnce(h);
     const max = h.p(0).maxHp;
@@ -66,7 +71,50 @@ describe('delayed regen (§5)', () => {
     expect(h.p(0).run.healingDone).toBe(0);
   });
 
-  it('damage interrupts it: the next tick waits another 4 s', () => {
+  it('a main attack restarts the wait, from the moment the slam lands', () => {
+    const h = hurtWarden();
+    h.pads[0]!.tap('mainFires');
+    h.sim.step();
+    const press = h.sim.world.tick - 1;
+    const wind = steps(warden.main.windupMs);
+    const got = rises(h, wind + DELAY + 1);
+    expect(got.map((x) => x.at - press)).toEqual([wind + DELAY]);
+  });
+
+  it('a super restarts the wait, from the moment the jump slam lands', () => {
+    const h = hurtWarden();
+    h.p(0).superCharge = 1;
+    h.pads[0]!.tap('superFires', { superAim: { x: 1, y: 0 } });
+    h.sim.step();
+    const press = h.sim.world.tick - 1;
+    const wind = steps(warden.super.windupMs);
+    const got = rises(h, wind + DELAY + 1);
+    expect(got.map((x) => x.at - press)).toEqual([wind + DELAY]);
+  });
+
+  it('applies to every knight: a Ranger shot restarts the wait', () => {
+    const h = harness(1, 1, { classes: ['ranger'] });
+    h.toCombat();
+    h.holdSpawns();
+    h.put(0, 12, 14);
+    h.p(0).hp = h.p(0).maxHp * 0.5;
+    h.pads[0]!.tap('mainFires', { mainAim: { x: 1, y: 0 } });
+    h.sim.step();
+    const press = h.sim.world.tick - 1;
+    expect(rises(h, DELAY + 1).map((x) => x.at - press)).toEqual([DELAY]);
+  });
+
+  it('placing a build does not delay it', () => {
+    const h = hurtWarden();
+    const hit = hitOnce(h);
+    h.run(60);
+    h.pads[0]!.tap('buildFires', { buildAim: { x: 1, y: 0 } });
+    const got = rises(h, DELAY);
+    expect(h.p(0).run.buildsPlaced).toBe(1);
+    expect(got[0]!.at - hit).toBe(DELAY);
+  });
+
+  it('damage interrupts it: the next tick waits another 5 s', () => {
     const h = hurtWarden();
     hitOnce(h);
     const first = rises(h, DELAY + 2);

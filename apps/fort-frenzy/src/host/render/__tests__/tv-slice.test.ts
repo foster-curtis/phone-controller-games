@@ -12,7 +12,7 @@ import {
 } from '../buildLook';
 import { sampleClip, blendSamples } from '../clip';
 import { TILE_W } from '../camera';
-import { JUMP_IMPACT_MS, JUMP_LIFT, SLAM_IMPACT_MS, clips } from '../clips/warden';
+import { JUMP_CROUCH_MS, JUMP_IMPACT_MS, JUMP_LIFT, SLAM_IMPACT_MS, clips } from '../clips/warden';
 import { RIG_INFO } from '../gallery/rigInfo';
 
 describe('enemy HP bars (SPEC §2.6)', () => {
@@ -119,8 +119,11 @@ describe('Warden slam clips (art README "Redesign poses")', () => {
   it('the jump slam crouches, lifts the torso 34 units, then lands with the same swap', () => {
     for (const view of ['side', 'front', 'back']) {
       const name = `super@${view}`;
-      const crouch = at(name, 100);
-      const air = at(name, JUMP_IMPACT_MS - 80);
+      // RC1: the whole clip reads as about 2 s.
+      expect(clips[name]!.durationMs).toBeGreaterThanOrEqual(1800);
+      expect(clips[name]!.durationMs).toBeLessThanOrEqual(2400);
+      const crouch = at(name, JUMP_CROUCH_MS);
+      const air = at(name, JUMP_IMPACT_MS - 200);
       const land = at(name, JUMP_IMPACT_MS + 10);
       expect(crouch.parts.get('torso')!.dy).toBeGreaterThan(0);
       expect(air.parts.get('torso')!.dy).toBe(-JUMP_LIFT);

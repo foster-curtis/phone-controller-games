@@ -19,5 +19,8 @@ describe('Warden wind-ups (FF8)', () => {
     const warden = content.knights.find((c) => c.id === 'warden')!;
     expect(warden.main.windupMs).toBe(SLAM_IMPACT_MS);
     expect(warden.super.windupMs).toBe(STOMP_IMPACT_MS);
+    // RC1: the jump slam is a slow, readable move of about 2 s.
+    expect(STOMP_IMPACT_MS).toBeGreaterThanOrEqual(1600);
+    expect(STOMP_IMPACT_MS).toBeLessThanOrEqual(2200);
   });
 });

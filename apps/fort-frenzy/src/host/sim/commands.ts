@@ -23,7 +23,7 @@ function apply(s: FullState, cmd: SimCommand): AckReason | null {
       // The first sample after a (re)connect only re-baselines the counters (§15.3).
       s.inputs.get(p.slot)!.baseline = true;
       if (!cmd.connected) {
-        releaseAll(p);
+        releaseAll(s, p);
         p.push = null;
       }
       s.emit({ e: 'presence', slot: p.slot, connected: cmd.connected });

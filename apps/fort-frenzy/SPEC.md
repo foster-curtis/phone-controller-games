@@ -202,10 +202,10 @@ T-visor; front-to-back crest plume (crest shape is Warden-only); gravity hammer 
 on the haft and an amber gravity coil at the center of the head, which brightens during the slam
 wind-up. Amber seams: chest chevron, power core, belt, pauldron trim, knee.
 Animations: idle, walk, main (hammer smash toward the aim; at impact the `slam` group swaps in the
-hammer standing on its striking face, and `slam-cracks` split out from the `hammer-ground` point; while
-aiming the TV shows its cone, §10.1), super (**jump slam**: crouch, a short airborne wind-up with the
-hammer raised and the shadow left on the ground, then the landing hits with the same impact pose,
-`landing-dust` at his feet and `slam-cracks-wide`), throw (the shield generator).
+hammer standing on its striking face, with no ground cracks (RC1: those are the super's); while aiming
+the TV shows its cone, §10.1), super (**jump slam**, about 2 s: crouch, a slow airborne wind-up with the
+hammer raised and the shadow left on the ground, then at 1.8 s the landing hits with the same impact
+pose, `landing-dust` at his feet and `slam-cracks-wide`), throw (the shield generator).
 
 **Ranger (neon knights):** tall, narrow silhouette with a dark cloak behind and the bow in front;
 sallet helm with a narrow amber goggle slit; one long swept-back feather plume (feather shape is
@@ -508,11 +508,13 @@ hits; feet circles still walk, collide and take enemy attacks.
   multiplied by the difficulty's respawn multiplier (§2.2). Quick Recovery (§6.1) subtracts 2 s per
   stack but never takes the respawn below **4 s solo, 5 s otherwise**; that floor never raises a
   respawn that is already shorter.
-- **Delayed regen** for every knight: after **4 s without taking damage**, the knight heals **8% of
-  max HP every 1 s** (in ticks, not a smooth trickle) until full or until it takes damage again.
+- **Delayed regen** for every knight: **5 s after the knight last took damage or used its main attack
+  or super** (RC1, §15.11 #120), it heals **8% of max HP every 1 s** (in ticks, not a smooth trickle)
+  until full or until one of those happens again. A wound-up attack restarts the wait at the press and
+  again when it lands. Placing a build doesn't restart it.
   - **Regen runs in the build phase too.** HP still carries over between waves, but a 20 s build phase
-    (about 13 s to refill from 1 HP) is always enough to refill, so there is no separate full-heal
-    rule.
+    (about 17 s to refill from 1 HP, the wait included) is always enough to refill, so there is no
+    separate full-heal rule.
   - Regen isn't a heal from anyone: it charges nothing, counts in no stats and triggers no heal cards
     (§15.11 #98). A down or dazed knight doesn't regen.
   - Balance watch: 8%/s also applies in combat. If support healing feels pointless, lower the
@@ -641,7 +643,7 @@ hits; feet circles still walk, collide and take enemy attacks.
 | Heavy Slam | Common | Wider slam arc |
 | Earthshaker | Common | Longer super stun. Doesn't add stagger on the boss |
 | Wide Field | Common | Larger shield generator radius (build card) |
-| Aftershock | Rare | Slam leaves a brief slowing zone |
+| Aftershock | Rare | The jump slam slows every enemy it hits for about 5 s (`slowMs` in the card's params; RC1, #118: on his super, not his main) |
 | Giant Slayer | Rare | +50% damage vs Brutes and the Colossus |
 | Unshakable | Rare | Immune to slows and knockback |
 | Challenger | Rare, unique | Passive card: nearby enemies target the Warden first |
@@ -792,7 +794,7 @@ These apply to every build unless its entry in §7.3 lists an exception.
 - **Shield generator:** its damage reduction is a status effect (`guard`) re-applied each combat step to
   allied knights and soldiers in its radius; where generators overlap, the strongest wins. It applies
   after card damage reduction and outside its +40% cap (§15.3). Wide Field and Reinforced Generator
-  improve it.
+  improve it. Its throw is a slow lob: 1 s at full range (RC1, #119).
 - **Mines** (exception to the one-build rule): one mine per full meter, **up to 3 active** (Minefield:
   +1); placing one more removes the oldest. A mine arms about 1 s after it's placed, then turns
   translucent to players (40%). A ground enemy entering its trigger radius starts a short trigger delay,
@@ -854,8 +856,8 @@ the baseline knight HP, and the damage band multiplies the damage of the knight'
 | | Warden | Ranger | Artificer | Commander |
 |---|---|---|---|---|
 | Class | Tank | Marksman | Support | Control |
-| Main | **Hammer smash:** damage in an arc spreading out in front of him | **Longbow shot:** the longest range in the game | **Nanite blast:** about 5 nanites fired at random spots in a narrow cone over about 0.8 s (one burst per release; cooldown ≥ 0.8 s; spread from the seeded combat stream) | **Shield bash:** short-range hit in an arc with knockback |
-| Super | **Jump slam:** a short airborne wind-up, then damage and stun in an arc as wide as the main's but longer; less damage than the main. The airborne pause is a tell for players (enemy AI doesn't dodge) | **Shockwave** from the Ranger: knockback and light damage in a wide circle | **Heal cone:** a wide nanite cone that heals himself and the allied knights it reaches (not builds, not soldiers) | **Reinforcements:** spawns one squad soldier, thrown a short distance. At the squad cap the button stays dimmed and the charge is held |
+| Main | **Hammer smash:** damage in an arc spreading out in front of him, knocking back targets that aren't already stunned (RC1) | **Longbow shot:** the longest range in the game | **Nanite blast:** about 5 nanites fired at random spots in a narrow cone over about 0.8 s (one burst per release; cooldown ≥ 0.8 s; spread from the seeded combat stream) | **Shield bash:** short-range hit in an arc with knockback |
+| Super | **Jump slam:** a slow airborne wind-up (1.8 s; the whole move reads as about 2 s, RC1), then damage and stun in an arc as wide as the main's but longer; less damage than the main. The airborne pause is a tell for players (enemy AI doesn't dodge) | **Shockwave** from the Ranger: knockback and light damage in a wide circle | **Heal cone:** a wide nanite cone that heals himself and the allied knights it reaches (not builds, not soldiers) | **Reinforcements:** spawns one squad soldier, thrown a short distance. At the squad cap the button stays dimmed and the charge is held |
 | Build | Shield generator (thrown) | Mines (at feet) | Healing beacon (thrown) | Rally flag (thrown); recall |
 | Passive | None built in; Challenger card | None built in; Steady Aim card | None built in; Field Medic card | None built in; Morale card |
 | Hits Flyers | No | Yes | Yes | No |
@@ -870,6 +872,10 @@ the baseline knight HP, and the damage band multiplies the damage of the knight'
 | Artificer | Aimed | Aimed | Aimed (thrown) |
 | Commander | Aimed | Aimed (soldier thrown a short distance; a quick tap aims toward the flag, or straight ahead with no flag out) | Aimed (thrown); a tap recalls when the meter isn't full and a flag is out |
 
+- **Jump slam wind-up (RC1, #116):** he is committed from the press to the landing: rooted, keeping the
+  aim and facing he jumped with; main and build presses are lost and no aim preview shows. He stays a
+  target and takes damage. If he goes down or dazed, or the phase ends, the slam doesn't land (no
+  damage, stun or impact effects) and the charge stays spent.
 - **Passives are cards:** no knight has a built-in passive. Each has one rare, unique passive card
   (§6.1): the old built-in passives that still apply (Steady Aim, Field Medic) and new ones
   (Challenger, Morale). Mason is removed (no walls).
@@ -937,7 +943,7 @@ Each enemy type is designed as a problem that specific classes solve.
   barrels are left out. The Colossus keeps a low hitbox, its legs, a bit bigger than its feet, so its
   head and chest never count. Sizes are measured off each rig and live in the balance sheet (§15.4);
   auto-aim and the sentries aim at the body's near end (the feet, or the Wasp's hull). Enemy attacks,
-  walking, collisions, the Commander's soldiers and ground effects (mine triggers, Aftershock zones,
+  walking, collisions, the Commander's soldiers and ground effects (mine triggers, Fault Line's fissure,
   spreads) keep the feet circles.
 - **Who attacks what (aggro leash):** Grunts, Brutes (once no build is left), Swarms and Flyers attack a
   knight or an HP build that comes within a short aggro radius, chase up to a leash distance, then
@@ -1887,7 +1893,7 @@ export interface PlayerEnt extends Unit {
   build: AttackState;                         // the build button: queued press, aim, held (§10.1)
   mainAim: Vec2 | null; superAim: Vec2 | null;
   buildAim: Vec2 | null;                      // live aim while a thrown build is held (TV preview)
-  /** Regen (§5): no regen before `quietUntil` (4 s after the last damage taken); next tick at `nextRegen`. */
+  /** Regen (§5): no regen before `quietUntil` (5 s after the last damage, main or super); next tick at `nextRegen`. */
   regen: { quietUntil: number; nextRegen: number };
   stillTicks: number;                         // Steady Aim
   flag: Vec2 | null;                          // Commander's planted rally flag (null = following)
@@ -2131,7 +2137,9 @@ interface BossBehavior {
   `huntLock { enemy; slot }`, `reinforce { slot; count }` (count 2 = the "×2"), `growth { slot; boss }`
   and `cardAuto { slot; card }` (a deadline pick). Later milestones append. RD3 appends
   `buildHp { build; kind; owner; hp; maxHp }`: an HP build's bar data, sent when it lands and with
-  every `buildHit` (mines and the flag never send it). The thrown-build aim preview is
+  every `buildHit` (mines and the flag never send it). RD3-fix-1 appends
+  `windupCancelled { source; slot }`: a knight's wound-up attack was cut short (down, dazed, phase
+  end), so the TV calls off its impact and leaves the clip. The thrown-build aim preview is
   `buildPreview(p, content, aim = p.buildAim)` in `sim/preview.ts`: `{ kind, from, landing, radius,
   range }` (tiles), null when not aiming or for at-feet builds.
 
@@ -2386,7 +2394,7 @@ export interface RulesDef {
   flareMs: number;                                  // portal flare ahead of a spawn (~1000, §9.4)
   inputStaleMs: number;
   knightHp: number;                                 // baseline knight HP (× ClassDef.hp)
-  regen: { delayMs: number; pct: number; everyMs: number };   // 4000, 0.08, 1000 (§5)
+  regen: { delayMs: number; pct: number; everyMs: number };   // 5000, 0.08, 1000 (§5)
   respawnFloorMs: { solo: number; team: number };   // Quick Recovery floor: 4000, 5000 (§5)
   hot: { share: number };                           // 0.55 (§9.3)
   respawn: Vec2[];
@@ -2921,7 +2929,7 @@ export interface RunSnapshot {
     starts full, no fill in the build phase or while down or dazed, build damage charges the super
     never the meter, recall without the meter, HP builds targetable and charge builds not, builds
     persist between waves without regen
-  - regen timing (4 s quiet, 8% per 1 s, in the build phase too), respawn table × difficulty and the
+  - regen timing (5 s after damage, main or super; 8% per 1 s, in the build phase too), respawn table × difficulty and the
     Quick Recovery floors
   - flow field: the ground field never rebuilds, `blocked` tiles are impassable, Hunter pricing of
     sentries, damage-dealing builds and hidden trigger radii, Brute per-target fields, every reachable
@@ -3117,3 +3125,8 @@ states, then RD0's own.
 | 113 | 2026-11-21 | TV slice (RD5) | A clip switches optional groups with `Keyframe.groups` (the Warden's `slam` swap); the build-view API and `EffectSpawner.mark` are additive (§15.2); HP bars (violet enemies, amber builds) are two pre-made images moved and scaled, never drawn per frame; the jump slam keeps the clip name `super` and the impact `JUMP_IMPACT_MS` (= `STOMP_IMPACT_MS`, content `warden.super.windupMs`); the thrown-build preview draws the sim's `buildPreview` (§7.3) (§2.4, §2.6, §7.5, §10.1, §15.2) | RD5 plan: new art, no per-frame rebuilds (FF7-fix-1, FF8, FF9 lessons); SPEC and REDESIGN agree otherwise |
 | 114 | 2026-11-21 | Slice wiring (RD6) | Debug commands: `meter` takes an optional `target` slot (none = every knight); `hot` forces the hot side: the spawn groups not yet flared that sit on their pulse's hot side move to the forced side's portals in turn (the others stay), every pulse is tagged with it, and every later wave's plan is forced at its combat start until `side: null` clears it; the forced side lives outside `World` (`Sim.debugHot`). The pop-up's growth header is the class's growth list for the wave just cleared (a boss wave's `boss` list) once the knight has a bump, null otherwise; the bumps and lists are RD11's. The e2e smoke is the solo Warden slice (§9.5, §10.2, §15.3, §15.9) | Simplest debug tools that keep replays exact (logged commands); a flared portal keeps its group because its flare was already shown (RD6) |
 | 115 | 2026-11-23 | Phone layout fixes (RC1) | The build button is **60 px** (pre-RD4 56, RD4 68) at offset (−134, +24); captions sit centered under their buttons clear of the 11 px aim/meter ring reach, and `layoutCombat`'s tests prove no caption meets a button or another caption. The shop is one column in the right two-thirds: a one-line header (title + short hint, hint dropped on short screens), then the scrolling rows; each row keeps icon, full name, tier, price (never below 96 px, no wrapping) and Request (§10.1, §10.3) | RC1: the shop rendered its header, rows and hint as three side-by-side columns, and the 68 px button covered captions |
+| 116 | 2026-11-23 | Jump slam timing | The wind-up is 1.8 s and the clip 2.2 s, with damage, stun, `landing-dust` and `slam-cracks-wide` together at the impact. From press to landing he is rooted with his aim and facing locked, main and build presses are lost, and he stays a target. Down, dazed or a phase end cancels the slam (`windupCancelled`) and the charge stays spent (§2.4, §8.2, §15.3) | User, RC1: "much slower (~2 seconds long)"; the simplest rule that keeps a long wind-up readable (RD3-fix-1) |
+| 117 | 2026-11-23 | Warden main | The hammer smash leaves no ground cracks (only the super does) and doesn't knock back a target that was already stunned; unstunned targets are knocked back as before (§2.4, §8.2) | User, RC1 (RD3-fix-1) |
+| 118 | 2026-11-23 | Aftershock | Moves from the main to the super: every enemy the jump slam hits is slowed for 5 s (`slowMs`), at the card's strength; the old slam zone is gone. RD11 keeps this behavior (§6.1) | User, RC1: "add it to his super ... ~5 seconds"; a hit-applied slow shows on the enemy (`shock-crawl`), and Fault Line stays the ground fissure (RD3-fix-1) |
+| 119 | 2026-11-23 | Shield generator throw | Throw speed 12 → 6 tiles/s: 1 s at full range (was 0.5 s). `minFlightMs` stays 300, so a quick tap at his feet is still quick; the beacon and flag keep their own values (§7.4) | User, RC1: "throw animation/flight time should be longer" (RD3-fix-1) |
+| 120 | 2026-11-23 | Regen wait | 5 s (was 4 s), restarted by damage taken and by every main attack or super, for every knight; placing a build doesn't restart it (§5) | User, RC1 (RD3-fix-1) |

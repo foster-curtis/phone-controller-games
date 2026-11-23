@@ -49,14 +49,15 @@ const SIDE_HAMMER_DOWN = 64;
 /** The slam's hammer hits the ground (= content `warden.main.windupMs`). */
 export const SLAM_IMPACT_MS = 200;
 /** The jump slam lands (= content `warden.super.windupMs`). */
-export const JUMP_IMPACT_MS = 320;
+export const JUMP_IMPACT_MS = 1800;
 /** Older name of `JUMP_IMPACT_MS` (the TD stomp); kept for the importers that still use it. */
 export const STOMP_IMPACT_MS = JUMP_IMPACT_MS;
 /** The build kneel's first hammer tap on the plate. */
 export const BUILD_TAP_MS = 300;
 
 const SLAM_MS = 600;
-const JUMP_MS = 760;
+/** The whole jump slam reads as about 2 s (RC1): 1.8 s to the landing, then the recover. */
+const JUMP_MS = 2200;
 /** Torso lift of the jump slam's airborne pose, sprite units (art README "Redesign poses"). */
 export const JUMP_LIFT = 34;
 /** The upright hammer is hidden from the impact until this long after it (the recover). */
@@ -185,9 +186,10 @@ function slam(view: ViewId): Clip {
 
 const S = JUMP_IMPACT_MS;
 /** Jump slam beats: crouch done, airborne peak reached, still up, then the landing at S. */
-const J_CROUCH = 100;
-const J_UP = 190;
-const J_HANG = S - 50;
+export const JUMP_CROUCH_MS = 420;
+const J_CROUCH = JUMP_CROUCH_MS;
+const J_UP = 1000;
+const J_HANG = S - 120;
 /** Crouch: the legs shorten to 0.74 and the torso drops with them (art README "Redesign poses"). */
 const CROUCH_SY = 0.74;
 const CROUCH_DROP = 11;
