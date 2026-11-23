@@ -1082,6 +1082,7 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD3-fix-1] decision: regen waits 5 s and `fire()` restarts it, so a wound-up attack restarts it at the press and at the landing; placing a build doesn't. This supersedes the 4 s in RD3's Deliverables and Acceptance (#120).
 - [RD3-fix-1] decision: left for RD12, which owns `render/gallery/pages.ts`: `ONE_SHOTS.super` (1600 ms) is shorter than the Warden's 2200 ms clip, so the gallery replays his jump before it lands; it needs a period of at least 2600 ms for him.
 - [RD3-fix-1] decision: `src/controller/copy.ts` line 199 is outside this fix; its Aftershock text should become `'Jump slam slows enemies for 5 s.'`.
+- [RD3-fix-1] note for RD12: `ONE_SHOTS.super` in `render/gallery/pages.ts` (1600 ms) restarts the Warden's 2.2 s jump slam before it lands; set it to at least 2600 ms.
 
 ## 9. Final handoff
 
