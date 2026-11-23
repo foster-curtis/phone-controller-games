@@ -536,8 +536,8 @@ Code IDs: Engineer = Ranger, Quartermaster = Artificer.
   **No build-ready indicator on the TV.**
 - **Commander:** with a flag out and the meter not full, the icon switches to recall and a tap recalls the
   flag; with the meter full, the button throws a new flag.
-- **Size: 68 px** (was 56 px), keeping the 24 px minimum gaps and edge margins; the cluster offsets are
-  re-laid out to fit.
+- **Size: 60 px** (was 56 px; RC1 trimmed the first 68 px), keeping the 24 px minimum gaps and edge
+  margins; the cluster is re-laid at (−134, +24) so no label meets a button.
 
 **Input type per knight**
 
@@ -633,7 +633,7 @@ For the agent to turn into §15 updates and redesign milestones. Paths are indic
 | Colossus Charge replaces Wall Breaker | §9.5, §9.6 | `src/host/sim/boss`, boss art |
 | Card list rework, passive and build cards, prerequisite on passives, Tinkerer | §6.1 | `src/content/cards`, card picker, modifiers |
 | Team shop: base max HP and armor tiers; pricing curve | §6.2 | shop, `balance.ts` |
-| Action button = build button (68 px, meter ring, per-build input type) | §10.1 | `controller-kit` usage in the combat screen, input handling, aim preview |
+| Action button = build button (60 px, meter ring, per-build input type) | §10.1 | `controller-kit` usage in the combat screen, input handling, aim preview |
 | Card pop-up + shop screen (no tabs, stick on left third) | §10.2, §10.3 | `src/controller/screens` |
 | Portals, shield generator, healing beacon, mines, Commander shield, Warden jump, Charge tell, HP bars, backpack gauge as build meter | §2.4, §2.6, §9.6 | art and renderer |
 

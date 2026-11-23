@@ -130,7 +130,7 @@ function combat(sample: string) {
 }
 
 describe('build button on the combat screen', () => {
-  it('shows the icon from me.build.icon and a 68 px face', () => {
+  it('shows the icon from me.build.icon and a 60 px face', () => {
     for (const [sample, icon] of [
       ['combat-warden', 'act-shield'],
       ['combat', 'act-mine'],
@@ -140,7 +140,7 @@ describe('build button on the combat screen', () => {
     ] as const) {
       const { btn } = combat(sample);
       expect(btn.querySelector('use')!.getAttribute('href'), sample).toBe(`#icon-${icon}`);
-      expect(btn.style.cssText, sample).toContain('--face: 68px');
+      expect(btn.style.cssText, sample).toContain('--face: 60px');
       app?.destroy();
       document.body.innerHTML = '<div id="app"></div>';
       root = document.getElementById('app')!;

@@ -1047,7 +1047,8 @@ button {
 
 .round-label {
   position: absolute;
-  top: calc(50% + var(--face) / 2 + 6px);
+  /* ring reach 11 + gap 3, the same sum as layout.ts `labelTop` (RD4-fix-1) */
+  top: calc(50% + var(--face) / 2 + 14px);
   left: 50%;
   transform: translateX(-50%);
   white-space: nowrap;
@@ -1501,8 +1502,33 @@ button {
   font-size: 34px;
 }
 
+/* One column: header line, then the scrolling rows (RD4-fix-1; "row" made each part a column of its own). */
 .shop-body {
-  flex-direction: row;
+  flex-direction: column;
+}
+
+.shop-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.shop-head .section-title {
+  margin: 0;
+  flex: none;
+  white-space: nowrap;
+}
+
+.shop-head .hint {
+  margin: 0;
+  min-width: 0;
+  flex: 1 1 auto;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .shop-cards {
@@ -1642,6 +1668,7 @@ button {
 
 .shop-name {
   font: 600 15px/1.1 var(--font-sans);
+  overflow-wrap: anywhere;
 }
 
 .shop-sub,
@@ -1659,7 +1686,9 @@ button {
 
 .price {
   position: relative;
-  min-width: 84px;
+  flex: none;
+  white-space: nowrap;
+  min-width: 96px;
   min-height: 40px;
   padding: 0 var(--space-2);
   background: var(--accent);
@@ -1699,6 +1728,7 @@ button {
 }
 
 .request {
+  flex: none;
   width: 40px;
   min-width: 40px;
   min-height: 40px;
@@ -1887,7 +1917,7 @@ button {
     font-size: 26px;
   }
 
-  .shop-list .hint {
+  .shop-head .hint {
     display: none;
   }
 
@@ -1899,10 +1929,6 @@ button {
   .cc-desc {
     font-size: 12px;
   }
-}
-
-.round-btn.super .round-label {
-  top: calc(50% + var(--face) / 2 + 16px);
 }
 
 .crate-count {

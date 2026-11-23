@@ -1071,6 +1071,8 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD6] decision: the debug panel's readout (hot side, portal activity, meters) and `__pcg.portals()` / `meters()` share one pure module, `src/host/debugInfo.ts`; the panel refreshes it every 500 ms with the seed.
 - [RD6] decision: the smoke spec is one solo Warden (start alone, Ready on the wave 1 pop-up so the phase's end picks the card, a thrown shield generator, wave 2's card Confirm and a purchase); two-phone flows stay in reconnect, late-join and pause. `e2e/helpers.ts` gains `pickKnight` (one swipe per card), `joinPhone(…, knight)`, `confirmCard` and `holdBuildAim`.
 - [RD6] decision: `render/types.ts`, `sim/builds/index.ts` and `scene/builds/<build>.ts` freeze as RD5 and RD3 left them (no changes needed): RD7–RD9 register a `BuildBehavior` and add a `scene/builds/<build>.ts` exporting `view: BuildViewFactory`.
+- [RD4-fix-1] decision: build button 60 px at (-134, +24) (pre-RD4 56, RD4 68), ring reach 11 px and caption top 14 px under the face; captions are proven clear of every button and label by `layoutCombat` rect tests (SPEC #115, revises #105).
+- [RD4-fix-1] decision: the shop 50/50 split was `.shop-body { flex-direction: row }` turning header, rows and hint into three columns; it is now one column with a one-line header (hint hidden under 400 px high), price min 96 px, no wrapping.
 
 ## 9. Final handoff
 

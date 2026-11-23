@@ -121,6 +121,52 @@ test.describe('dev toggle', () => {
   });
 });
 
+// RC1 notes (RD4-fix-1): the shop owns the right two-thirds; rows never overlap or overflow.
+for (const vp of [
+  { width: 644, height: 300 },
+  { width: 844, height: 390 },
+]) {
+  test.describe(`RD4-fix-1 shop ${vp.width}x${vp.height}`, () => {
+    test.use({ viewport: vp, hasTouch: true });
+
+    test('the shop fills the right two-thirds and each row fits', async ({ page }) => {
+      await open(page, 'shop');
+      const panel = (await page.locator('.build-panel').boundingBox())!;
+      expect(panel.x).toBeGreaterThanOrEqual(vp.width / 3 - 2);
+      expect(panel.x).toBeLessThanOrEqual(vp.width / 3 + 24);
+      expect(panel.x + panel.width).toBeGreaterThan(vp.width - 40);
+      const rowsBox = (await page.locator('.shop-rows').boundingBox())!;
+      expect(rowsBox.width).toBeGreaterThan(vp.width / 2);
+      // the header is one line above the rows, not a column beside them
+      const head = (await page.locator('.shop-head').boundingBox())!;
+      expect(head.y + head.height).toBeLessThanOrEqual(rowsBox.y + 1);
+      const rows = page.locator('.shop-row');
+      const count = await rows.count();
+      expect(count).toBeGreaterThan(2);
+      for (let i = 0; i < count; i++) {
+        const row = rows.nth(i);
+        const r = (await row.boundingBox())!;
+        const name = (await row.locator('.shop-name').boundingBox())!;
+        const price = (await row.locator('.price').boundingBox())!;
+        const req = (await row.locator('.request').boundingBox())!;
+        const badge = (await row.locator('.badge').boundingBox())!;
+        // left to right with nothing under anything else
+        expect(badge.x + badge.width).toBeLessThanOrEqual(name.x + 1);
+        expect(name.x + name.width).toBeLessThanOrEqual(price.x + 1);
+        expect(price.x + price.width).toBeLessThanOrEqual(req.x + 1);
+        expect(req.x + req.width).toBeLessThanOrEqual(r.x + r.width + 1);
+        // names are not squeezed to a letter per line (two lines at most)
+        expect(name.height).toBeLessThanOrEqual(15 * 1.1 * 2 + 4);
+        // the price label fits its button
+        const fits = await row
+          .locator('.price')
+          .evaluate((n) => n.scrollWidth <= n.clientWidth + 1);
+        expect(fits).toBe(true);
+      }
+    });
+  });
+}
+
 // C1 notes (FF4-fix-2): floating aimed joysticks, one-card swipes, the Ready-dimmed lobby, shop cards.
 for (const vp of VIEWPORTS) {
   test.describe(`FF4-fix-2 ${vp.width}x${vp.height}`, () => {
@@ -226,7 +272,7 @@ for (const vp of VIEWPORTS) {
       expect(await page.locator('.shop-row').count()).toBeGreaterThan(2);
     });
 
-    test('the build button is 68 px with a ring; its states render', async ({ page }) => {
+    test('the build button is 60 px with a ring; its states render', async ({ page }) => {
       for (const sample of [
         'combat-build-empty',
         'combat-build-charging',
@@ -236,7 +282,7 @@ for (const vp of VIEWPORTS) {
       ]) {
         await open(page, sample);
         const face = (await page.locator('.round-btn.action .round-face').boundingBox())!;
-        expect(Math.round(face.width)).toBe(68);
+        expect(Math.round(face.width)).toBe(60);
         await expect(page.locator('.round-btn.action .charge-ring.build')).toHaveCount(1);
       }
       await open(page, 'combat-build-charging');

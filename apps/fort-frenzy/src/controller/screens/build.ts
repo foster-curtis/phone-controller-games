@@ -91,12 +91,13 @@ export function createBuild(ctx: ScreenCtx): View {
   const shop = el(
     'div',
     { class: 'build-panel shop-body' },
-    el('p', { class: 'section-title tag', text: 'TEAM SHOP · ANYONE CAN BUY' }),
+    el(
+      'div',
+      { class: 'shop-head' },
+      el('p', { class: 'section-title tag', text: 'TEAM SHOP · ANYONE CAN BUY' }),
+      el('p', { class: 'hint body', text: 'Hold big buys. Request adds to the TV wishlist.' }),
+    ),
     rowsHost,
-    el('p', {
-      class: 'hint body',
-      text: 'Big buys need a press-and-hold. Request puts an item on the TV wishlist.',
-    }),
   );
 
   const pause = createPauseControl(ctx);
