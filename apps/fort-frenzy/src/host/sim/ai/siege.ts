@@ -1,11 +1,13 @@
-// `siege` AI (SPEC §3.3, §9, §9.6, §15.5): the Bombard walks the ground field until the Citadel is in
-// range, then stops and shells it (RD10 adds players and builds: base > players > builds, #108). A
-// shot plants and charges (the wind-up, its tell), then lobs a shell: a red danger marker shows where
-// it lands, and the landing hits everything inside (players, soldiers, HP builds, the Citadel;
-// combat.ts). Rangers outrange it (§8).
-import { rectDist, rectNearest } from '../geometry';
+// `siege` AI (SPEC §3.3, §9, §9.6, §15.5; RD10): the Bombard walks the ground field toward the base
+// and stops only with something in range, shelling the highest priority: base > players > builds,
+// nearest within each (#108). A higher-priority target entering range takes over at once, even mid
+// wind-up. A shot plants and charges (the wind-up, its tell), then lobs a shell: a red danger marker
+// shows where it lands, and the landing hits everything inside (players, soldiers, HP builds, the
+// Citadel; combat.ts). Rangers outrange it (§8).
+import { buildTargetable } from '../builds/core';
+import { dist, rectDist, rectNearest } from '../geometry';
 import { state, type SimState } from '../internal';
-import { BASE_ID, type EnemyEnt, type SimCtx } from '../types';
+import { BASE_ID, type EnemyEnt, type PlayerEnt, type SimCtx } from '../types';
 import { fieldStep, knocked, toBase } from './field';
 
 export function siegeAi(ctx: SimCtx, e: EnemyEnt): void {
@@ -13,9 +15,17 @@ export function siegeAi(ctx: SimCtx, e: EnemyEnt): void {
   const def = s.cat.enemy(e.kind);
   if (e.attack.windupEndsAt !== null) {
     const u = e.target === null ? undefined : s.units.get(e.target);
-    if (!u || u.hp <= 0) e.attack.windupEndsAt = null;
+    const lost =
+      !u || u.hp <= 0 || (s.kinds.get(u.id) === 'player' && !s.targetable(u as PlayerEnt));
+    if (lost) e.attack.windupEndsAt = null;
     else {
       e.vx = e.vy = 0;
+      const best = pickTarget(s, e, def.attack.range);
+      if (best !== null && rank(s, best) < rank(s, e.target!)) {
+        e.target = best;
+        const at = aimPoint(s, e, best);
+        e.facing = Math.atan2(at.y - e.y, at.x - e.x);
+      }
       if (s.tick() >= e.attack.windupEndsAt) {
         e.attack.windupEndsAt = null;
         lob(s, e, e.target!);
@@ -37,9 +47,28 @@ export function siegeAi(ctx: SimCtx, e: EnemyEnt): void {
   if (step.kind === 'goal') toBase(s, e, e.stats.moveSpeed);
 }
 
-/** The Citadel if in range, else null. */
+/** Priority of a target: the base 0, a knight 1, a build 2 (lower goes first, #108). */
+function rank(s: SimState, id: number): number {
+  if (id === BASE_ID) return 0;
+  return s.kinds.get(id) === 'player' ? 1 : 2;
+}
+
+/** The highest-priority target in range, nearest within its kind (ties to the earlier one). */
 function pickTarget(s: SimState, e: EnemyEnt, range: number): number | null {
-  return rectDist(e.x, e.y, s.baseRect) - e.r <= range ? BASE_ID : null;
+  if (rectDist(e.x, e.y, s.baseRect) - e.r <= range) return BASE_ID;
+  let best: number | null = null;
+  let bestD = Infinity;
+  const consider = (id: number, x: number, y: number, r: number) => {
+    const d = dist(e.x, e.y, x, y) - e.r - r;
+    if (d <= range && d < bestD) {
+      best = id;
+      bestD = d;
+    }
+  };
+  for (const p of s.world.players) if (s.targetable(p)) consider(p.id, p.x, p.y, p.r);
+  if (best !== null) return best;
+  for (const b of s.world.builds) if (buildTargetable(b)) consider(b.id, b.x, b.y, b.r);
+  return best;
 }
 
 /** Where a shell at `target` lands: a unit's position, or the Citadel's nearest edge. */

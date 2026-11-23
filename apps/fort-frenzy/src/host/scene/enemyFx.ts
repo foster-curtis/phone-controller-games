@@ -3,7 +3,9 @@
 // eyes) and the Skitter's core throb are violet glows drawn at the rig's attach points on the
 // effects layer, where the bloom picks them up. Enemy shots leave from the weapon (C2 note 2): the
 // drawn shell or stinger shot starts at the `muzzle` and eases onto the sim's path over its flight.
-// The Stalker flashes its new quarry's color at its feet (C3). Pure helpers are exported for tests; `drawGlow` takes a Phaser Graphics.
+// The Stalker flashes its quarry's color at the quarry's feet when it locks on (C3, RD10); the Brute
+// marks the build it locks on to (RD10). Pure helpers are exported for tests; `drawGlow` takes a
+// Phaser Graphics.
 import type * as Phaser from 'phaser';
 import { theme } from '../../shared/theme';
 import type { Pos } from './shot';
@@ -25,8 +27,8 @@ export function chargeLevel(ageMs: number, windupMs: number): number {
 }
 
 /**
- * The Stalker's target flash (C3, FF10-fix-1, §9.6): on each new quarry, the quarry's player color
- * flashes as a ring at the Stalker's feet for `HUNT_FLASH_MS`, then nothing until the next change.
+ * The Stalker's lock-on flash (C3, RD10, §9.6): when it locks on, the quarry's player color flashes
+ * as a ring at the quarry's feet for `HUNT_FLASH_MS`, then nothing until it locks on again.
  */
 export const HUNT_FLASH_MS = 2000;
 /** Flashes during the window. */
@@ -34,13 +36,51 @@ const HUNT_FLASHES = 4;
 /** The last part of the window fades out, ms. */
 const HUNT_FADE_MS = 500;
 
-/** The flash level `ageMs` after the Stalker took its quarry: pulsing, fading out, then 0. */
+/** The flash level `ageMs` after the Stalker locked on: pulsing, fading out, then 0. */
 export function huntFlashLevel(ageMs: number): number {
   if (ageMs < 0 || ageMs >= HUNT_FLASH_MS) return 0;
   const u = ageMs / HUNT_FLASH_MS;
   const pulse = 0.6 + 0.4 * Math.cos(2 * Math.PI * HUNT_FLASHES * u);
   const fade = Math.min(1, (HUNT_FLASH_MS - ageMs) / HUNT_FADE_MS);
   return pulse * fade;
+}
+
+/** The Brute's lock-on cue on the build (§7.5, §9.6), ms. */
+export const BRUTE_CUE_MS = 900;
+/** `brute-target`'s ring radius in sprite units (art README), and sprite units per tile. */
+const BRUTE_RING_R = 24;
+const UNITS_PER_TILE = 80;
+/** How high each build's art stands (sprite units), for the arrow's tip just above it. */
+const BUILD_TOP: Readonly<Record<string, number>> = { shield_gen: 50, beacon: 60 };
+const BUILD_TOP_DEFAULT = 56;
+const ARROW_GAP = 6;
+
+/** Scale that fits `brute-target`'s ring to a build's footprint (never below the art's size). */
+export function bruteCueScale(bodyRadius: number): number {
+  return Math.max(1, (bodyRadius * UNITS_PER_TILE) / BRUTE_RING_R);
+}
+
+/** How far above a build's ground point the arrow's tip goes, sprite units. */
+export function bruteArrowLift(kind: string): number {
+  return (BUILD_TOP[kind] ?? BUILD_TOP_DEFAULT) + ARROW_GAP;
+}
+
+/**
+ * The Charge's lane as a ground quad filled to `u` of its length: start left, start right, end
+ * right, end left (world tiles). `r` is the reach to each side of the center line.
+ */
+export function laneQuad(
+  m: { x: number; y: number; x2: number; y2: number; r: number },
+  u: number,
+): [number, number, number, number, number, number, number, number] {
+  const dx = m.x2 - m.x;
+  const dy = m.y2 - m.y;
+  const l = Math.sqrt(dx * dx + dy * dy) || 1;
+  const nx = (-dy / l) * m.r;
+  const ny = (dx / l) * m.r;
+  const ex = m.x + dx * u;
+  const ey = m.y + dy * u;
+  return [m.x + nx, m.y + ny, m.x - nx, m.y - ny, ex - nx, ey - ny, ex + nx, ey + ny];
 }
 
 /** Skitter core throb rate (Hz) by distance to the Citadel (tiles): faster as it nears (§9.6). */

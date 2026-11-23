@@ -1,7 +1,7 @@
 // FF11 Colossus scenarios (SPEC §9.2, §9.4, §15.3): the slam's 1.5 s marker, the forms per boss wave
-// (Mk I slam; Mk II boulders and escorts; Mk III's final phase below half HP with
-// shockwave rings and Runner calls), the stagger meter against a Warden-only stun loop, HP scaling,
-// and the boss's death ending the wave.
+// (Mk I slam and boulder; Mk II escorts; Mk III's Runner calls and its final phase below half HP with
+// shockwave rings), the stagger meter against a Warden-only stun loop, HP scaling, and the boss's
+// death ending the wave. The Charge and the move set by Mk are in roster.test.ts (RD10).
 import { describe, expect, it } from 'vitest';
 import { content } from '../../../content';
 import { colossus as colossusDef } from '../../../content/balance';
@@ -120,7 +120,7 @@ describe('Colossus slam', () => {
 });
 
 describe('boss waves', () => {
-  it('wave 5: Mk I, only the slam', () => {
+  it('wave 5: Mk I, slam and boulder only', () => {
     const h = waveCombat(5, { invincible: true });
     h.put(0, 18.5, 9);
     h.put(1, 17.5, 9.5);
@@ -136,10 +136,9 @@ describe('boss waves', () => {
         lastStart = act.startedAt;
         kinds.add(act.kind);
       }
-      expect(h.sim.world.projectiles.some((p) => p.from === 'colossus')).toBe(false);
       expect(h.sim.world.markers.some((m) => m.shape === 'ring')).toBe(false);
     }
-    expect([...kinds].sort()).toEqual(['slam']);
+    expect([...kinds].sort()).toEqual(['boulder', 'slam']);
     // No final phase below half HP before Mk III.
     b.hp = b.maxHp * 0.3;
     h.run(5);
@@ -208,9 +207,12 @@ describe('boss waves', () => {
     b.hp = b.maxHp * 0.49;
     h.run(1);
     expect(b.boss!.finalPhase).toBe(true);
-    // Runner calls from the spires: the first right away, then on the shortened cooldown.
+    // Faster on the move.
+    h.until(() => b.boss!.act === null && Math.hypot(b.vx, b.vy) > 0, 120);
+    expect(Math.hypot(b.vx, b.vy) / v0).toBeCloseTo(T.finalSpeed, 2);
+    // Runner calls from the spires (every Mk III), on the final phase's shortened cooldown.
     const runners: number[] = [];
-    for (let i = 0; i < 60 * 9; i++) {
+    for (let i = 0; i < 60 * 14; i++) {
       h.run(1);
       const n = h.events('spawn').filter((e) => e.enemy === 'runner').length;
       if (n > 0) {
@@ -222,10 +224,6 @@ describe('boss waves', () => {
     expect(runners[1]! - runners[0]!).toBe(
       Math.round(((T.callCooldownMs * T.finalCooldown) / 1000) * 60) + T.callWindupMs * 0.06,
     );
-    // Faster on the move.
-    for (const e of h.sim.world.enemies) if (e !== b) e.hp = 0;
-    h.until(() => b.boss!.act === null && Math.hypot(b.vx, b.vy) > 0, 120);
-    expect(Math.hypot(b.vx, b.vy) / v0).toBeCloseTo(T.finalSpeed, 2);
   });
 
   it('wave 15: each final-phase slam sends out shockwave rings', () => {
@@ -235,7 +233,7 @@ describe('boss waves', () => {
     h.run(1);
     expect(b.boss!.finalPhase).toBe(true);
     // Past the first Runner call, then a player in reach.
-    h.until(() => b.boss!.act === null && (b.boss!.ready?.call ?? 0) > h.sim.world.tick, 300);
+    h.until(() => b.boss!.act === null && (b.boss!.ready?.call ?? 0) > h.sim.world.tick + 60, 600);
     for (const e of h.sim.world.enemies) if (e !== b) e.hp = 0;
     h.put(0, b.x, b.y + 2);
     h.until(() => b.boss!.act?.kind === 'slam', 60);

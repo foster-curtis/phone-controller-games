@@ -116,10 +116,13 @@ export interface StateExtras {
   readonly caps: Caps;
   readonly goals: readonly number[];
   /**
-   * Re-prices the Hunters' fields (sentry threat; RD10 adds builds) and drops the hunted fields. The
-   * ground field itself is built once per run (§15.5): nothing a player places changes pathing.
+   * Re-prices the Hunters' fields (sentries, damage-dealing builds, hidden trigger radii) and drops
+   * the hunted fields. The ground field itself is built once per run (§15.5): nothing a player places
+   * changes pathing.
    */
   readonly repriceHunters: () => void;
+  /** A build is going: drops its Brute field unless another HP build stands on that tile. */
+  readonly dropBruteField: (b: BuildEnt) => void;
   readonly removeUnit: (id: EntityId) => void;
   readonly respawnPoint: (slot: number) => { x: number; y: number };
   /** A Commander's soldier (his class's `squad.soldier` stats); `index` defaults to the next free. */
@@ -238,17 +241,21 @@ export function createState(start: RunStart, cat: Catalog): FullState {
     const k = kinds[t];
     return k === 'citadel' || k === 'blocked' ? IMPASSABLE : 1;
   };
-  // Sentry threat for the Hunters' fields (C3, FF10-fix-1): ground cost plus a cost per attacker
-  // whose range covers the tile (ai/threat.ts). RD10 adds damage-dealing builds and hidden radii.
+  // Threat for the Hunters' fields (C3, FF10-fix-1, RD10): ground cost plus a cost per sentry or
+  // damage-dealing build whose range covers the tile, plus a cost per hidden build's trigger radius
+  // (ai/threat.ts).
   const threat = new Float32Array(cols * rows);
+  const hiddenThreat = new Float32Array(cols * rows);
   const hunt = cat.content.enemies.find((e) => e.hunt)?.hunt;
   const threatCost = hunt?.threatCost ?? 0;
+  const hiddenCost = hunt?.hiddenCost ?? 0;
   const huntCost = (t: number) => {
     const g = groundCost(t);
-    return g === IMPASSABLE ? g : g + threat[t]! * threatCost;
+    return g === IMPASSABLE ? g : g + threat[t]! * threatCost + hiddenThreat[t]! * hiddenCost;
   };
   const computeThreat = () => {
     const out: Attacker[] = [];
+    const hidden: Attacker[] = [];
     const b = world.base;
     const sentries = cat.base.archers;
     if (b.hp > 0) {
@@ -258,7 +265,15 @@ export function createState(start: RunStart, cat: Catalog): FullState {
         if (at) out.push({ x: at.x, y: at.y, range });
       }
     }
-    threatMap(cols, rows, out, threat, hunt?.threatPad ?? 0);
+    for (const f of world.builds) {
+      if (f.state === 'flight') continue;
+      const def = cat.build(f.kind);
+      if (def.traits.dealsDamage) out.push({ x: f.x, y: f.y, range: def.radius });
+      if (def.traits.hidden) hidden.push({ x: f.x, y: f.y, range: def.triggerRadius ?? 0 });
+    }
+    const pad = hunt?.threatPad ?? 0;
+    threatMap(cols, rows, out, threat, pad);
+    threatMap(cols, rows, hidden, hiddenThreat, pad);
   };
   // 8-neighbor fields that never cut an impassable tile's corner (C3: direct diagonals to the Citadel).
   const solid = (t: number) => {
@@ -271,6 +286,38 @@ export function createState(start: RunStart, cat: Catalog): FullState {
   const repriceHunters = () => {
     computeThreat();
     huntedAt.fill(-1);
+  };
+  /** The landed builds the Hunters price, by id: any change re-prices them (a build came or went). */
+  const priced: EntityId[] = [];
+  const syncPriced = () => {
+    let n = 0;
+    let same = true;
+    for (const f of world.builds) {
+      if (f.state === 'flight') continue;
+      const { dealsDamage, hidden } = cat.build(f.kind).traits;
+      if (!dealsDamage && !hidden) continue;
+      if (priced[n] !== f.id) {
+        priced[n] = f.id;
+        same = false;
+      }
+      n++;
+    }
+    if (priced.length !== n) {
+      priced.length = n;
+      same = false;
+    }
+    if (!same) repriceHunters();
+  };
+  const tileOf = (u: { x: number; y: number }) =>
+    Math.min(rows - 1, Math.max(0, Math.floor(u.y))) * cols +
+    Math.min(cols - 1, Math.max(0, Math.floor(u.x)));
+  const dropBruteField = (b: BuildEnt) => {
+    const t = tileOf(b);
+    if (world.fields.brute[t] === undefined) return;
+    const kept = world.builds.some(
+      (x) => x !== b && x.targetable && x.hp > 0 && x.state !== 'flight' && tileOf(x) === t,
+    );
+    if (!kept) delete world.fields.brute[t];
   };
 
   const respawnPoint = (slot: number) => {
@@ -373,6 +420,7 @@ export function createState(start: RunStart, cat: Catalog): FullState {
     caps,
     goals,
     repriceHunters,
+    dropBruteField,
     respawnPoint,
     addPlayer,
     debugHot: null,
@@ -540,9 +588,8 @@ export function createState(start: RunStart, cat: Catalog): FullState {
     huntField(slot) {
       const p = world.players.find((q) => q.slot === slot);
       if (!p) return null;
-      const col = Math.min(cols - 1, Math.max(0, Math.floor(p.x)));
-      const row = Math.min(rows - 1, Math.max(0, Math.floor(p.y)));
-      const t = row * cols + col;
+      syncPriced();
+      const t = tileOf(p);
       const hunted = world.fields.hunted;
       while (hunted.length <= slot) hunted.push(null);
       while (huntedAt.length <= slot) huntedAt.push(-1);
@@ -551,6 +598,16 @@ export function createState(start: RunStart, cat: Catalog): FullState {
       hunted[slot] = buildField(world.grid, huntCost, [t], f, fieldOpts);
       huntedAt[slot] = t;
       return hunted[slot];
+    },
+    bruteField(b) {
+      const t = tileOf(b);
+      return (world.fields.brute[t] ??= buildField(
+        world.grid,
+        groundCost,
+        [t],
+        undefined,
+        fieldOpts,
+      ));
     },
     addSoldier(owner, x, y, index) {
       const lead = world.players.find((p) => p.slot === owner);

@@ -53,6 +53,9 @@ const MARK_LOOK = {
   shockwave: { layer: 'groundOverlay', fadeIn: 0, hold: 0.55, grow: SHOCKWAVE_GROW },
   'mine-blast-ring': { layer: 'groundOverlay', fadeIn: 0, hold: 0.25, grow: 1 },
   'mine-blast': { layer: 'effects', fadeIn: 0, hold: 0.2, grow: 1.2 },
+  'brute-target': { layer: 'groundOverlay', fadeIn: 0.1, hold: 0.5, grow: 1 },
+  'brute-target-arrow': { layer: 'effects', fadeIn: 0.1, hold: 0.5, grow: 1 },
+  'charge-dust': { layer: 'groundOverlay', fadeIn: 0, hold: 0.2, grow: 1.15 },
 } as const satisfies Record<
   MarkKind,
   { layer: string; fadeIn: number; hold: number; grow: number }
@@ -158,7 +161,7 @@ export class Effects implements EffectSpawner {
       this.burst(kind, footSx + p.x * heightPx, footSy - p.y * heightPx, 0, p.delayMs);
   }
 
-  mark(kind: MarkKind, sx: number, sy: number, ms = 1000, scale = 1) {
+  mark(kind: MarkKind, sx: number, sy: number, ms = 1000, scale = 1, flipX = false) {
     const look = MARK_LOOK[kind];
     const pool = this.pool(MARK_FRAMES[kind], look.layer);
     const a = pool.get();
@@ -171,7 +174,8 @@ export class Effects implements EffectSpawner {
         const fadeOut =
           1 - Math.max(0, (u - look.hold - look.fadeIn) / (1 - look.hold - look.fadeIn));
         a.img.setAlpha(look.fadeIn > 0 ? Math.min(1, u / look.fadeIn) * fadeOut : fadeOut);
-        this.ctx.lib.setUnitScale(a, this.ctx.unitPx, scale * (1 + (look.grow - 1) * u));
+        const k = scale * (1 + (look.grow - 1) * u);
+        this.ctx.lib.setUnitScale(a, this.ctx.unitPx, flipX ? -k : k, k);
       },
     );
   }

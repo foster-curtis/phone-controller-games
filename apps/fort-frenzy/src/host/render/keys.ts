@@ -106,6 +106,9 @@ export const MARK_FRAMES = {
   shockwave: fk('shockwave'),
   'mine-blast-ring': fk('mine-blast-ring'),
   'mine-blast': fk('mine-blast'),
+  'brute-target': fk('brute-target'),
+  'brute-target-arrow': fk('brute-target-arrow'),
+  'charge-dust': fk('charge-dust'),
 } as const satisfies Record<MarkKind, FrameName>;
 
 /** The frames' own radii in sprite units (art README), to scale them to a hit radius. */

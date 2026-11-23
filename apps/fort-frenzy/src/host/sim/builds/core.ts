@@ -32,6 +32,7 @@ function emitHp(s: SimState, b: BuildEnt): void {
 export function removeBuild(s: FullState, b: BuildEnt, destroyed: boolean): void {
   const i = s.world.builds.indexOf(b);
   if (i >= 0) s.world.builds.splice(i, 1);
+  s.dropBruteField(b);
   s.emit({ e: 'buildGone', build: b.id, kind: b.kind, destroyed });
   s.removeUnit(b.id);
 }

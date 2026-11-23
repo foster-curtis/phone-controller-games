@@ -123,6 +123,7 @@ export function stepDeaths(s: FullState): void {
       w.builds[write++] = b;
       continue;
     }
+    s.dropBruteField(b);
     s.emit({ e: 'buildGone', build: b.id, kind: b.kind, destroyed: true });
     s.removeUnit(b.id);
   }
@@ -329,7 +330,7 @@ export function startCombat(s: FullState): void {
   }
   // The debug panel's forced hot side holds for every wave until cleared (RD6).
   if (s.debugHot) forceHot(s, s.debugHot);
-  // The Hunters' sentry threat picks up range upgrades bought in the build (FF10-fix-1).
+  // The Hunters' threat picks up range upgrades bought in the build (FF10-fix-1).
   s.repriceHunters();
   setPhase(s, 'combat', null);
 }

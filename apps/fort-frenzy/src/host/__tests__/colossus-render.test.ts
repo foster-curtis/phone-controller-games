@@ -4,10 +4,13 @@
 import { describe, expect, it } from 'vitest';
 import rig from '../../../art/neon-knights/rigs/colossus.json';
 import { colossus as def } from '../../content/balance';
+import { sampleClip } from '../render/clip';
 import {
   clips,
   COLOSSUS_CALL_MS,
+  COLOSSUS_CHARGE_MS,
   COLOSSUS_ORDERS,
+  COLOSSUS_PAW_MS,
   COLOSSUS_SLAM_MS,
   COLOSSUS_STAGGER_MS,
   COLOSSUS_THROW_MS,
@@ -34,6 +37,24 @@ describe('Colossus clips', () => {
     expect(COLOSSUS_CALL_MS).toBe(T.callWindupMs);
     expect(COLOSSUS_STAGGER_MS).toBe(T.staggerMs);
     expect(clips.stagger!.durationMs).toBe(T.staggerMs);
+    expect(COLOSSUS_CHARGE_MS).toBe(T.chargeWindupMs);
+    for (const at of COLOSSUS_PAW_MS) expect(at).toBeLessThan(COLOSSUS_CHARGE_MS);
+  });
+
+  it('the Charge tell lowers the yoke about 12° and paws with the near leg; the run loops', () => {
+    expect(CLIP_OF_ACT.charge).toBe('charge');
+    expect(CLIP_OF_ACT.chargeRun).toBe('chargeRun');
+    const tell = clips.charge!;
+    expect(tell.loop).toBe(false);
+    const yoke = sampleClip(tell, COLOSSUS_CHARGE_MS).parts.get('yoke')!;
+    expect(yoke.rot).toBeCloseTo(12, 5);
+    expect(yoke.dy).toBeCloseTo(10, 5);
+    const paw = sampleClip(tell, COLOSSUS_PAW_MS[0] - 170).parts.get('leg-near')!;
+    expect(paw.rot).toBeCloseTo(16, 5);
+    expect(paw.dy).toBeLessThan(0);
+    expect(clips.chargeRun!.loop).toBe(true);
+    for (const name of ['charge', 'chargeRun'])
+      for (const part of Object.keys(clips[name]!.tracks)) expect(parts).toContain(part);
   });
 
   it('cover every attack, name only rig parts, and play once', () => {

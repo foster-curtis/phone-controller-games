@@ -49,14 +49,19 @@ import {
   type EnemyEnt,
   type EntityId,
   type PlayerEnt,
+  type DangerMarker,
   type SimEvent,
   type World,
 } from '../sim/types';
 import {
+  BRUTE_CUE_MS,
+  bruteArrowLift,
+  bruteCueScale,
   chargeLevel,
   drawGlow,
   enemyShotPos,
   huntFlashLevel,
+  laneQuad,
   pulseHz,
   pulseLevel,
   TELL_GLOW,
@@ -152,6 +157,8 @@ interface Enemy {
   clipSpeed: number;
   /** Violet HP bar, made on the first hit and shown only while damaged (§2.6); none for mites. */
   bar: HpBar | null;
+  /** Brute (RD10): the `huntSince` whose cue already played. */
+  lockSeen?: number;
 }
 
 interface Timer {
@@ -855,19 +862,31 @@ export class WorldView {
       const c = en.rig.attach('core');
       if (c) drawGlow(this.glow, c.sx, c.sy, 7 * k1, pulseLevel(en.pulse));
     }
-    if (rigId === 'stalker' && e.hunting !== null && e.huntSince !== undefined) {
-      // C3: no thread; its new quarry's color flashes at its feet for ~2 s, from sim time.
+    if (rigId === 'stalker' && e.hunting !== null && e.locked && e.huntSince !== undefined) {
+      // RD10: the quarry's color flashes at the quarry's feet for ~2 s from the lock-on, sim time.
       const level = huntFlashLevel((w.tick - e.huntSince) * STEP_MS);
       const q = level > 0 ? w.players.find((p) => p.slot === e.hunting) : undefined;
       if (q) {
         const color = theme.players[q.color].fill.num;
-        const { rx, ry } = this.w.camera.groundEllipse(Math.max(0.45, en.info.hitbox * 1.4));
+        const at = this.w.camera.worldToScreen(q.x, q.y);
+        const { rx, ry } = this.w.camera.groundEllipse(Math.max(0.45, q.r * 1.4));
         const sw = theme.stroke.ring;
         this.ground
           .lineStyle(sw * 3, color, 0.3 * level)
-          .strokeEllipse(en.sx, en.sy, rx * 2 + sw * 2, ry * 2 + sw * 1.2)
+          .strokeEllipse(at.sx, at.sy, rx * 2 + sw * 2, ry * 2 + sw * 1.2)
           .lineStyle(sw, color, level)
-          .strokeEllipse(en.sx, en.sy, rx * 2, ry * 2);
+          .strokeEllipse(at.sx, at.sy, rx * 2, ry * 2);
+      }
+    }
+    if (rigId === 'brute' && e.huntSince !== undefined && e.huntSince !== en.lockSeen) {
+      // RD10: the violet cue on the build it just locked on to: ring under it, arrow above it.
+      en.lockSeen = e.huntSince;
+      const b = w.builds.find((x) => x.id === e.huntBuild);
+      if (b) {
+        const at = this.w.camera.worldToScreen(b.x, b.y);
+        this.w.fx.mark?.('brute-target', at.sx, at.sy, BRUTE_CUE_MS, bruteCueScale(b.r));
+        const up = bruteArrowLift(b.kind) * k1;
+        this.w.fx.mark?.('brute-target-arrow', at.sx, at.sy - up, BRUTE_CUE_MS);
       }
     }
   }
@@ -970,6 +989,10 @@ export class WorldView {
     for (const m of w.markers) {
       // Shockwave rings are the Colossus's rolling violet outline (colossusView.ts), not red fills.
       if (m.shape === 'ring') continue;
+      if (m.shape === 'lane') {
+        this.drawLane(w, m);
+        continue;
+      }
       const s = this.w.camera.worldToScreen(m.x, m.y);
       const { rx, ry } = this.w.camera.groundEllipse(m.r);
       const u = Math.min(
@@ -987,6 +1010,37 @@ export class WorldView {
         .fillStyle(theme.color.danger.num, 0.18 + 0.25 * u)
         .fillEllipse(s.sx, s.sy, rx * 2 * u, ry * 2 * u);
     }
+  }
+
+  /** The Charge's red lane (§9.2, RD10): its full path outlined, filling from the Colossus out. */
+  private drawLane(w: World, m: DangerMarker) {
+    const lane = { x: m.x, y: m.y, x2: m.x2 ?? m.x, y2: m.y2 ?? m.y, r: m.r };
+    const u = Math.min(
+      1,
+      Math.max(0, (w.tick - m.createdAt) / Math.max(1, m.landsAt - m.createdAt)),
+    );
+    const cam = this.w.camera;
+    const [ax, ay, bx, by, cx, cy, dx, dy] = laneQuad(lane, 1);
+    const a = cam.worldToScreen(ax, ay);
+    const b = cam.worldToScreen(bx, by);
+    const c = cam.worldToScreen(cx, cy);
+    const d = cam.worldToScreen(dx, dy);
+    const edge = (width: number, color: number, alpha: number) => {
+      this.ground.lineStyle(width, color, alpha);
+      this.ground.lineBetween(a.sx, a.sy, b.sx, b.sy);
+      this.ground.lineBetween(b.sx, b.sy, c.sx, c.sy);
+      this.ground.lineBetween(c.sx, c.sy, d.sx, d.sy);
+      this.ground.lineBetween(d.sx, d.sy, a.sx, a.sy);
+    };
+    edge(3 + DANGER_EDGE.px * 2, theme.color.brandInk.num, DANGER_EDGE.alpha);
+    edge(3, theme.color.danger.num, 0.9);
+    const [, , , , fx, fy, gx, gy] = laneQuad(lane, u);
+    const f = cam.worldToScreen(fx, fy);
+    const g = cam.worldToScreen(gx, gy);
+    this.ground
+      .fillStyle(theme.color.danger.num, 0.18 + 0.25 * u)
+      .fillTriangle(a.sx, a.sy, b.sx, b.sy, f.sx, f.sy)
+      .fillTriangle(a.sx, a.sy, f.sx, f.sy, g.sx, g.sy);
   }
 
   /** Debug panel overlays (§9.5): hitboxes, ranges and flow-field arrows. */

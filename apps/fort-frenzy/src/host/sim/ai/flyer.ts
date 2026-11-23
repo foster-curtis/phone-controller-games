@@ -2,7 +2,7 @@
 // Citadel; it takes the aggro leash like Grunts (chases a player in its aggro radius up to the leash,
 // then flies back to where it left its way). It hovers in range and shoots its stinger cannon: a
 // short wind-up (the muzzle charges), then a straight shot at where the target is. Shots hit players,
-// soldiers and the Citadel (combat.ts), never structures (it flies over them).
+// soldiers, HP builds and the Citadel (combat.ts); it never sets off ground builds like mines (RD10).
 import { dist, rectDist, rectNearest } from '../geometry';
 import { state, type SimState } from '../internal';
 import { BASE_ID, type EnemyEnt, type PlayerEnt, type SimCtx } from '../types';

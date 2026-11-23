@@ -5,6 +5,7 @@ import type { AttackDef, StatId, TileKind } from '../../content/types';
 import type { ClassId, EnemyId } from '../../shared/ids';
 import type { Catalog } from './catalog';
 import type {
+  BuildEnt,
   DamageKind,
   EffectApply,
   EnemyEnt,
@@ -103,6 +104,11 @@ export interface SimState extends SimCtx {
    * there's no such player.
    */
   huntField(slot: number): FlowField | null;
+  /**
+   * The ground field toward a build's tile (Brutes, §15.5), kept in `world.fields.brute` by tile:
+   * built when a Brute first targets it, dropped when the build goes.
+   */
+  bruteField(b: BuildEnt): FlowField;
 }
 
 /** The registered behaviors receive the frozen `SimCtx`; the sim always passes its `SimState`. */

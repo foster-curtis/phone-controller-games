@@ -9,6 +9,7 @@ import type { EffectId } from '../../shared/ids';
 import { colossus } from './boss/colossus';
 import { state } from './internal';
 import { flyerAi } from './ai/flyer';
+import { bruteAi } from './ai/brute';
 import { hunterAi } from './ai/hunter';
 import { pathAi } from './ai/path';
 import { runnerAi } from './ai/runner';
@@ -102,8 +103,7 @@ export const aiKinds: Partial<Record<EnemyDef['ai'], AiTick>> = {
   path: pathAi, // FF6
   runner: runnerAi, // FF10
   swarm: swarmAi, // FF10
-  // The Brute walks the ground field like a Grunt until RD10 sends it after builds.
-  brute: pathAi, // FF10
+  brute: bruteAi, // RD10
   flyer: flyerAi, // FF10
   siege: siegeAi, // FF10
   hunter: hunterAi, // FF10

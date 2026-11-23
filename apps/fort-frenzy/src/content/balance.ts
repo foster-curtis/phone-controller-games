@@ -469,7 +469,7 @@ export const swarm = {
   },
 } satisfies EnemyDef;
 
-/** Brute: huge HP, a long wind-up is its tell (RD10 sends it after builds). */
+/** Brute: huge HP, a long wind-up is its tell; it hunts the nearest targetable build (RD10). */
 export const brute = {
   id: 'brute',
   hp: 600,
@@ -511,7 +511,8 @@ export const flyer = {
   attack: {
     shape: 'projectile',
     damage: 12,
-    range: 3.5,
+    // About 1.25× its tower-defense 3.5 (§9.1).
+    range: 4.4,
     cooldownMs: 1400,
     windupMs: 300,
     speed: 16,
@@ -520,7 +521,7 @@ export const flyer = {
   aggro: { radius: 3, leash: 6 },
 } satisfies EnemyDef;
 
-/** Bombard: stops at range (under the Ranger's 9) and shells the base. */
+/** Bombard: stops with anything in range (under the Ranger's 9): base > players > builds. */
 export const siege = {
   id: 'siege',
   hp: 150,
@@ -546,11 +547,11 @@ export const siege = {
   },
 } satisfies EnemyDef;
 
-/** Stalker: hunts players (crouch, then lunge). */
+/** Stalker: hunts players, stalking at this speed and sprinting once locked on (crouch, lunge). */
 export const hunter = {
   id: 'hunter',
   hp: 200,
-  speed: 1.5 * SPEED,
+  speed: 1.3 * SPEED,
   radius: 0.36,
   flying: false,
   // Chest, head and legs (the tail left out).
@@ -567,9 +568,9 @@ export const hunter = {
     arcDeg: 90,
     hitsFlyers: false,
   },
-  // Paths round sentry range (+4 per covering attacker) and retargets on a player 2 tiles
-  // closer (C3, FF10-fix-1).
-  // RD10 turns on the lock-on sprint and the hidden-build pricing.
+  // Paths round the sentries and damage-dealing builds (+4 per covering attacker) and hidden trigger
+  // radii (+4 each), retargets on a player 2 tiles closer (C3, FF10-fix-1), and sprints at × 1.4
+  // once its quarry is within 5 tiles (RD10).
   hunt: {
     closeRange: 1.5,
     retargetTiles: 2,
@@ -620,7 +621,7 @@ export const colossus = {
       baseReach: 0.3,
       // The Citadel takes this × its slam damage.
       baseMult: 1.5,
-      // Boulder throw (Mk II+): wind-up, then a lob at the largest group of players.
+      // Boulder throw (every Mk): wind-up, then a lob at the largest group of players.
       boulderWindupMs: 1000,
       boulderMinFlightMs: 600,
       boulderCooldownMs: 7000,
@@ -630,8 +631,8 @@ export const colossus = {
       boulderDamage: 45,
       boulderSpeed: 8,
       groupRadius: 2,
-      // Final phase (Mk III below `finalAt` of its HP): faster moves and attacks, shockwave rings,
-      // Runner calls from the spires.
+      // Final phase (Mk III below `finalAt` of its HP): faster moves and attacks, shockwave rings.
+      // Runner calls (`call*`, `runners`) are every Mk III's.
       finalAt: 0.5,
       finalSpeed: 1.35,
       finalCooldown: 0.6,
@@ -654,6 +655,16 @@ export const colossus = {
       // Grunt and Swarm escorts walk in with Mk II and III (§9.2 wave 10).
       escortGrunts: 2,
       escortSwarms: 4,
+      // Charge (Mk II+, RD10): a tell with the lane up, then a run past the knight it locked on to.
+      chargeWindupMs: 1600,
+      chargeCooldownMs: 11_000,
+      chargeMinRange: 3.5,
+      chargeRange: 13,
+      chargeOvershoot: 3,
+      chargeSpeed: 8,
+      chargeHalfWidth: 1.2,
+      chargeDamage: 35,
+      chargeKnockback: 3,
     },
   },
 } satisfies EnemyDef;

@@ -1,10 +1,12 @@
 // `hunter` AI (SPEC §9, §9.6, §15.5): the Stalker hunts players instead of the base. It picks the
 // nearest targetable player (ties by slot) and follows that player's own flow field (one per hunted
 // player, rebuilt when they move to a new tile), going straight at them once close. Its field
-// prices tiles in sentry range (ai/threat.ts, C3; RD10 adds damage-dealing builds), so it slips round
-// the defenses when it can. When its quarry goes down or dazed (§11.3), or another player comes
-// clearly closer, it retargets; with nobody to hunt it walks the ground field and attacks the Citadel
-// like a Grunt. Its bite winds up (it crouches low, then lunges).
+// prices tiles in range of the sentries and damage-dealing builds and inside hidden builds' trigger
+// radii (ai/threat.ts, C3, RD10), so it slips round the defenses when it can. It stalks at normal
+// speed until its quarry is within `hunt.lockRange`, then locks on (`huntSince`, the TV's flash) and
+// sprints until the quarry changes. When its quarry goes down or dazed (§11.3), or another player
+// comes clearly closer, it retargets; with nobody to hunt it walks the ground field and attacks the
+// Citadel like a Grunt. Its bite winds up (it crouches low, then lunges).
 import { dist, rectDist, rectNearest } from '../geometry';
 import { state, type SimState } from '../internal';
 import { BASE_ID, type EnemyEnt, type PlayerEnt, type SimCtx } from '../types';
@@ -16,9 +18,9 @@ export function hunterAi(ctx: SimCtx, e: EnemyEnt): void {
   const def = s.cat.enemy(e.kind);
   if (windup(s, e, def)) return;
   if (knocked(e)) return;
-  const speed = e.stats.moveSpeed;
   const p = quarry(s, e);
   if (!p) {
+    const speed = e.stats.moveSpeed;
     // Nobody to hunt: the base, like a path walker.
     e.ai = 'path';
     if (rectDist(e.x, e.y, s.baseRect) - e.r <= def.attack.range) {
@@ -35,6 +37,11 @@ export function hunterAi(ctx: SimCtx, e: EnemyEnt): void {
   }
   e.ai = 'hunt';
   const d = dist(e.x, e.y, p.x, p.y);
+  if (!e.locked && d <= def.hunt!.lockRange) {
+    e.locked = true;
+    e.huntSince = s.tick();
+  }
+  const speed = e.stats.moveSpeed * (e.locked ? def.hunt!.sprint : 1);
   if (d - e.r - p.r <= def.attack.range) {
     swing(s, e, def, p.id, p.x, p.y);
     e.ai = 'hunt';
@@ -53,8 +60,8 @@ export function hunterAi(ctx: SimCtx, e: EnemyEnt): void {
 /**
  * The current quarry: the nearest targetable player (ties by slot). It keeps its quarry until that
  * player is gone, down or dazed, or another comes clearly closer (`hunt.retargetTiles` of
- * hysteresis, so two players at similar range don't flip it back and forth). Each new quarry stamps
- * `huntSince`.
+ * hysteresis, so two players at similar range don't flip it back and forth). A new quarry ends the
+ * lock-on.
  */
 function quarry(s: SimState, e: EnemyEnt): PlayerEnt | null {
   let cur: PlayerEnt | null = null;
@@ -77,8 +84,8 @@ function quarry(s: SimState, e: EnemyEnt): PlayerEnt | null {
   const slot = best ? best.slot : null;
   if (slot !== e.hunting) {
     e.hunting = slot;
-    if (slot === null) delete e.huntSince;
-    else e.huntSince = s.tick();
+    delete e.locked;
+    delete e.huntSince;
   }
   return best;
 }

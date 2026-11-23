@@ -2,11 +2,14 @@
 // that keeps to its path and attacks what's in front of it:
 // - slam: a red circle in front of it, landing 1.5 s later (exactly `attack.windupMs`), on players,
 //   soldiers and HP builds; a player or soldier in reach or the Citadel (× `baseMult`) draws it;
-// - boulder throw (Mk II+): at the largest group of players (2+), else one player, with its landing
-//   marker up from the wind-up;
-// - Charge (Mk II+): RD10;
+// - boulder throw (every Mk): at the largest group of players (2+), else one player, with its
+//   landing marker up from the wind-up;
+// - Charge (Mk II+, RD10): locks on to a knight, a red lane marker shows the path through the tell,
+//   then it runs the lane: knights and soldiers are hit once and knocked aside, HP builds it crosses
+//   are destroyed, mines trigger as for any ground enemy and the rally flag is left alone;
+// - Runner calls from the spires (Mk III);
 // - final phase (Mk III below half HP): faster moves and attacks, shockwave rings rolling out from
-//   every slam, and Runner calls from the spires.
+//   every slam.
 // It can't be stunned or knocked back. A hidden stagger meter fills a little with all damage and
 // more with a stun (one per lockout, so stuns alone can't lock it down); full = 3 s on one knee
 // taking bonus damage, the attack winding up called off, then the meter starts again from 0 and
@@ -15,6 +18,8 @@
 // geometry and the shared AI steps (registry rule, BUILD_PLAN §8 FF6).
 import type { EnemyDef } from '../../../content/types';
 import { fieldStep, toBase } from '../ai/field';
+import { walkTo } from '../ai/path';
+import { buildTargetable } from '../builds/core';
 import { dist, rectDist, rectNearest } from '../geometry';
 import { state, type SimState } from '../internal';
 import {
@@ -64,6 +69,18 @@ export interface ColossusTuning {
   staggerBonus: number;
   escortGrunts: number;
   escortSwarms: number;
+  /** The Charge (Mk II+): the tell, then a run at `chargeSpeed` past the knight it locked on to. */
+  chargeWindupMs: number;
+  chargeCooldownMs: number;
+  chargeMinRange: number;
+  chargeRange: number;
+  chargeOvershoot: number;
+  chargeSpeed: number;
+  /** The lane's reach to each side of its center line (what the marker shows is what it hits). */
+  chargeHalfWidth: number;
+  chargeDamage: number;
+  /** How far a knight or soldier it hits is thrown, tiles. */
+  chargeKnockback: number;
 }
 
 export const COLOSSUS_TUNING_KEYS = [
@@ -100,10 +117,19 @@ export const COLOSSUS_TUNING_KEYS = [
   'staggerBonus',
   'escortGrunts',
   'escortSwarms',
+  'chargeWindupMs',
+  'chargeCooldownMs',
+  'chargeMinRange',
+  'chargeRange',
+  'chargeOvershoot',
+  'chargeSpeed',
+  'chargeHalfWidth',
+  'chargeDamage',
+  'chargeKnockback',
 ] as const satisfies readonly (keyof ColossusTuning)[];
 
 /** Attack kinds (`BossAct.kind`); render picks the clip by these. */
-export type ColossusAct = 'slam' | 'boulder' | 'charge' | 'call';
+export type ColossusAct = 'slam' | 'boulder' | 'charge' | 'chargeRun' | 'call';
 
 export function tuning(def: EnemyDef): ColossusTuning {
   return (def.boss?.params ?? {}) as unknown as ColossusTuning;
@@ -120,6 +146,14 @@ function stop(e: EnemyEnt) {
 /** Ticks of a cooldown, shortened in the final phase. */
 function cooldown(s: SimState, e: EnemyEnt, T: ColossusTuning, ms: number): number {
   return s.cat.steps(ms * (e.boss!.finalPhase ? T.finalCooldown : 1));
+}
+
+/**
+ * `base` damage with what's baked into its slam at spawn (difficulty × the wave's multiplier, §9.3),
+ * so the boulder, rings and Charge scale like the slam.
+ */
+function scaled(s: SimState, e: EnemyEnt, base: number): number {
+  return base * (e.stats.damage / s.cat.enemy(e.kind).attack.damage);
 }
 
 function ready(e: EnemyEnt, key: string, t: number): boolean {
@@ -339,7 +373,7 @@ function boulder(s: SimState, e: EnemyEnt, to: { x: number; y: number; target: E
       createdAt: t,
       landsAt: t + windup + flight,
       payload: {
-        damage: T.boulderDamage * s.cat.difficulty.enemyDamage,
+        damage: scaled(s, e, T.boulderDamage),
         kind: 'shell',
         tags: ['boss', 'boulder'],
         hitsBuilds: true,
@@ -411,7 +445,7 @@ function rings(s: SimState, e: EnemyEnt, x: number, y: number) {
         createdAt: t,
         landsAt: t + k * step,
         payload: {
-          damage: T.ringDamage * s.cat.difficulty.enemyDamage,
+          damage: scaled(s, e, T.ringDamage),
           kind: 'area',
           tags: ['boss', 'shockwave'],
           hitsBuilds: false,
@@ -422,7 +456,138 @@ function rings(s: SimState, e: EnemyEnt, x: number, y: number) {
   }
 }
 
-/** Final phase: Skitters launch from the spires, fanned out behind it. */
+// ---- the Charge -----------------------------------------------------------------------------------
+
+/** How far it can run toward (tx, ty) plus the overshoot before the map edge or the Citadel. */
+function laneEnd(
+  s: SimState,
+  e: EnemyEnt,
+  tx: number,
+  ty: number,
+  T: ColossusTuning,
+): { x: number; y: number; len: number } | null {
+  const d = dist(e.x, e.y, tx, ty);
+  if (d < 1e-6) return null;
+  const dx = (tx - e.x) / d;
+  const dy = (ty - e.y) / d;
+  const { cols, rows } = s.world.grid;
+  const want = d + T.chargeOvershoot;
+  const inc = 0.25;
+  let len = 0;
+  while (len + inc <= want) {
+    const x = e.x + dx * (len + inc);
+    const y = e.y + dy * (len + inc);
+    if (x < e.r || y < e.r || x > cols - e.r || y > rows - e.r) break;
+    if (rectDist(x, y, s.baseRect) < e.r) break;
+    len += inc;
+  }
+  // It must at least reach the knight's side of the lane.
+  if (len < Math.min(d, T.chargeMinRange)) return null;
+  return { x: e.x + dx * len, y: e.y + dy * len, len };
+}
+
+/** The nearest knight in Charge range with a lane to run (ties by id). */
+function chargeTarget(s: SimState, e: EnemyEnt, T: ColossusTuning) {
+  let best: { x: number; y: number; len: number; target: EntityId } | null = null;
+  let bestD = Infinity;
+  for (const p of s.world.players) {
+    if (!s.targetable(p)) continue;
+    const d = dist(e.x, e.y, p.x, p.y);
+    if (d < T.chargeMinRange || d > T.chargeRange || d >= bestD) continue;
+    const end = laneEnd(s, e, p.x, p.y, T);
+    if (!end) continue;
+    best = { ...end, target: p.id };
+    bestD = d;
+  }
+  return best;
+}
+
+/** The tell: rooted, the lane marker up until the run ends. */
+function charge(
+  s: SimState,
+  e: EnemyEnt,
+  to: { x: number; y: number; len: number; target: EntityId },
+  T: ColossusTuning,
+) {
+  const t = s.tick();
+  const windup = s.cat.steps(T.chargeWindupMs);
+  const run = Math.max(1, Math.ceil((to.len / T.chargeSpeed) * 60));
+  const marker = addMarker(
+    s,
+    {
+      source: e.id,
+      shape: 'lane',
+      x: e.x,
+      y: e.y,
+      x2: to.x,
+      y2: to.y,
+      r: T.chargeHalfWidth,
+      createdAt: t,
+      landsAt: t + windup + run,
+      payload: { damage: 0, kind: 'contact', tags: ['boss', 'charge'], hitsBuilds: false },
+    },
+    true,
+  );
+  // Counted from the end of the run; a stagger that cuts it short keeps the cooldown.
+  setReady(e, 'charge', t + windup + run + cooldown(s, e, T, T.chargeCooldownMs));
+  begin(s, e, {
+    kind: 'charge',
+    startedAt: t,
+    at: t + windup,
+    x: to.x,
+    y: to.y,
+    target: to.target,
+    marker,
+  });
+}
+
+/** One step of the run: on down the lane, hitting what it crosses. */
+function runStep(s: SimState, e: EnemyEnt, act: BossAct, T: ColossusTuning) {
+  walkTo(e, act.x, act.y, T.chargeSpeed);
+  const hit = (act.hit ??= []);
+  const reach = (u: Unit) => dist(e.x, e.y, u.x, u.y) <= T.chargeHalfWidth + u.r;
+  const blow = (u: Unit) => {
+    hit.push(u.id);
+    s.damage({
+      source: e.id,
+      target: u.id,
+      amount: scaled(s, e, T.chargeDamage),
+      kind: 'contact',
+      tags: ['boss', 'charge'],
+    });
+    knockAside(s, e, u, act, T);
+  };
+  for (const p of s.world.players) if (s.targetable(p) && !hit.includes(p.id) && reach(p)) blow(p);
+  for (const u of s.world.soldiers) if (u.hp > 0 && !hit.includes(u.id) && reach(u)) blow(u);
+  // HP builds it crosses are destroyed; mines and the flag aren't targetable (§9.2).
+  for (const b of s.world.builds) {
+    if (!buildTargetable(b) || !reach(b)) continue;
+    s.damage({
+      source: e.id,
+      target: b.id,
+      amount: b.hp,
+      kind: 'contact',
+      tags: ['boss', 'charge'],
+    });
+  }
+}
+
+/** Throws `u` out of the lane: to its nearer side and a little forward, `chargeKnockback` tiles. */
+function knockAside(s: SimState, e: EnemyEnt, u: Unit, act: BossAct, T: ColossusTuning) {
+  const l = dist(e.x, e.y, act.x, act.y);
+  const fx = l > 1e-6 ? (act.x - e.x) / l : Math.cos(e.facing);
+  const fy = l > 1e-6 ? (act.y - e.y) / l : Math.sin(e.facing);
+  const side = fx * (u.y - e.y) - fy * (u.x - e.x) >= 0 ? 1 : -1;
+  let dx = fx * 0.5 - fy * side;
+  let dy = fy * 0.5 + fx * side;
+  const n = Math.sqrt(dx * dx + dy * dy);
+  dx /= n;
+  dy /= n;
+  const v0 = T.chargeKnockback * 60 * (1 - s.cat.rules.knockbackDecay);
+  u.push = { x: (u.push?.x ?? 0) + dx * v0, y: (u.push?.y ?? 0) + dy * v0 };
+}
+
+/** Skitters launch from the spires, fanned out behind it. */
 function callRunners(s: SimState, e: EnemyEnt) {
   const n = tuning(s.cat.enemy(e.kind)).runners;
   const bx = -Math.cos(e.facing);
@@ -494,6 +659,20 @@ function finish(s: SimState, e: EnemyEnt, act: BossAct, T: ColossusTuning) {
       launch(s, e, act);
       setReady(e, 'boulder', t + cooldown(s, e, T, T.boulderCooldownMs));
       return;
+    case 'charge': {
+      // The tell is over: the run starts now and ends as the lane marker does.
+      const m = s.world.markers.find((x) => x.id === act.marker);
+      const run: BossAct = {
+        ...act,
+        kind: 'chargeRun',
+        startedAt: t,
+        at: m ? m.landsAt : t + 1,
+        hit: [],
+      };
+      e.boss!.act = run;
+      runStep(s, e, run, T);
+      return;
+    }
     case 'call':
       callRunners(s, e);
       setReady(e, 'call', t + cooldown(s, e, T, T.callCooldownMs));
@@ -518,8 +697,13 @@ export const colossus: BossBehavior = {
       staggeredUntil: null,
       finalPhase: false,
       act: null,
-      // The first boulder waits half a cooldown, so it walks in before throwing.
-      ready: { slam: t, boulder: t + s.cat.steps(T.boulderCooldownMs / 2), call: t },
+      // The first boulder, Charge and Runner call wait half a cooldown, so it walks in first.
+      ready: {
+        slam: t,
+        boulder: t + s.cat.steps(T.boulderCooldownMs / 2),
+        charge: t + s.cat.steps(T.chargeCooldownMs / 2),
+        call: t + s.cat.steps(T.callCooldownMs / 2),
+      },
       stunAt: null,
     };
     e.mods.push(colossusModifier());
@@ -545,16 +729,23 @@ export const colossus: BossBehavior = {
     }
     if (b.mk >= 3 && !b.finalPhase && e.hp < e.maxHp * T.finalAt) {
       b.finalPhase = true;
-      setReady(e, 'call', t + s.cat.steps(T.callWindupMs));
     }
     const act = b.act ?? null;
-    if (act) {
+    if (act?.kind === 'chargeRun') {
+      if (t < act.at) {
+        runStep(s, e, act, T);
+        return;
+      }
+      b.act = null;
+      stop(e);
+    } else if (act) {
       stop(e);
       if (t < act.at) return;
       b.act = null;
       finish(s, e, act, T);
+      if (b.act) return; // the Charge's tell became its run
     }
-    if (b.finalPhase && ready(e, 'call', t)) {
+    if (b.mk >= 3 && ready(e, 'call', t)) {
       begin(s, e, {
         kind: 'call',
         startedAt: t,
@@ -573,7 +764,14 @@ export const colossus: BossBehavior = {
         return;
       }
     }
-    if (b.mk >= 2 && ready(e, 'boulder', t)) {
+    if (b.mk >= 2 && ready(e, 'charge', t)) {
+      const to = chargeTarget(s, e, T);
+      if (to) {
+        charge(s, e, to, T);
+        return;
+      }
+    }
+    if (ready(e, 'boulder', t)) {
       const to = boulderTarget(s, e, T);
       if (to) {
         boulder(s, e, to);

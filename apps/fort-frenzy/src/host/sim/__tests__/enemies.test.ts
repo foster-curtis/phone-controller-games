@@ -1,6 +1,6 @@
-// FF10 enemy scenarios (SPEC §9, §9.1, §15.5): Runner burst, the Brute as a walker (RD10 sends it
-// after builds), Siege range and shells, Hunter fields and retargeting, Flyers and their
-// substitution, the aggro leash, Swarm packs and coins per kill.
+// FF10 enemy scenarios (SPEC §9, §9.1, §15.5): Runner burst, the Brute as a walker with no builds out,
+// Siege range and shells, Hunter fields and retargeting, Flyers and their substitution, the aggro
+// leash, Swarm packs and coins per kill. RD10's redesign behavior is in roster.test.ts.
 import { describe, expect, it } from 'vitest';
 import { content as baseContent, type Content } from '../../../content';
 import {
@@ -98,7 +98,7 @@ describe('Runner', () => {
 });
 
 describe('Brute', () => {
-  it('walks the ground field to the Citadel like a Grunt (RD10 sends it after builds)', () => {
+  it('with no build out, walks the ground field to the Citadel like a Grunt', () => {
     const t = quiet();
     const b = t.sim.spawnEnemy('brute', 17.5, 20);
     t.until(() => b.ai === 'attack', 60 * 60);
@@ -140,8 +140,7 @@ describe('Hunter', () => {
     t.run(2);
     expect(h.hunting).toBe(a.slot);
     expect(h.ai).toBe('hunt');
-    const first = h.huntSince!;
-    expect(first).toBeLessThanOrEqual(w.tick);
+    expect(h.locked).toBeUndefined(); // 7 tiles out: still stalking
     const field = w.fields.hunted[a.slot]!;
     expect(field.dist[14 * 36 + 8]).toBe(0);
     // Its quarry steps to a new tile: the field follows.
@@ -159,12 +158,10 @@ describe('Hunter', () => {
     toward(dA - (RETARGET_TILES - 0.5));
     t.run(2);
     expect(h.hunting).toBe(a.slot);
-    expect(h.huntSince).toBe(first);
-    // Clearly closer: it switches, and the switch is stamped (the TV's foot flash).
+    // Clearly closer: it switches.
     toward(Math.max(1.6, dA - RETARGET_TILES - 1.5));
     t.run(2);
     expect(h.hunting).toBe(b.slot);
-    expect(h.huntSince!).toBeGreaterThan(first);
     // Back out of the way: the first player is clearly closer again.
     b.x = 28.5;
     b.y = 8.5;

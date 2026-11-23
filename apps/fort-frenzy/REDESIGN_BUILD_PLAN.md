@@ -1103,6 +1103,11 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD9] decision: Last Stand counts soldiers short of the cap (#142); Morale's flag area lives in the flag's build behavior so it works while he's down (#143).
 - [RD9] decision: Warcry still skips the Commander himself (the kept card's behavior) and flashes through its own `warcry` event, because the Morale card uses the same effect with no visual (#143).
 - [RD9] note: balance report after rebasing on RD7 and RD8, at starting values: Commander 35.0 s (-27%, outside ±25%), Warden 64.2 s (+34%, outside ±25%), Ranger 43.5 s (-10%), Artificer 49.7 s (+3%). Left for the RC2 tuning pass (a report, never a gate).
+- [RD10] contract+: `EnemyEnt.huntBuild?` and `locked?`, with `huntSince` now the lock-on tick (Hunter and Brute, as SPEC §15.3 sketched); `BossAct.hit?` and kind `chargeRun`; `DangerMarker.shape` `lane` with `x2?`, `y2?`; `MarkKind` `brute-target`, `brute-target-arrow`, `charge-dust`; `EffectSpawner.mark` optional `flipX`; `SimState.bruteField`, `StateExtras.dropBruteField`; nine `charge*` Colossus params.
+- [RD10] decision: the Hunters' pricing compares the landed priced builds' ids on each field request instead of relying on hooks, so RD7's mines re-price however they're placed or removed.
+- [RD10] decision: the Brute rechecks the nearest build every step (a nearer build is bait) (#150); "ignores ground builds" for Flyers means trap builds, so they still shoot HP builds (#151).
+- [RD10] decision: Charge starting values, soldiers hit like knights, one hit per run, lane width = hit width (#152); Mk III Runner calls run all fight (#153); Hunter stalk speed 1.3 per §9.1 (#154); boulder, rings and Charge take the wave multiplier (#155).
+- [RD10] decision: the peak bench's p99 swings around 2 ms under the parallel load on both this branch and its base (best runs 1.90 and 2.07 ms; means equal at 0.63 and 0.65 ms), so it's load, not this milestone.
 
 ## 9. Final handoff
 

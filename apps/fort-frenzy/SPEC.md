@@ -936,7 +936,7 @@ Each enemy type is designed as a problem that specific classes solve.
 | Runner (Skitter) | Fast and fragile; ignores knights and builds and bursts on the base. Caught in transit (mines, stuns, knockback) | Ranger (bow, mines in its path), Warden (super stun), Commander (shield bash, squad at a flag on its route), Artificer (cone) |
 | Brute | **Build hunter:** goes straight for the nearest targetable build, **at any distance.** With none on the map (or once it has destroyed them all) it walks toward the base and attacks knights like a Grunt | Warden (HP, stun), Ranger (kiting at range), Commander (squad); any targetable build pulls it off course |
 | Siege (Bombard) | Paths toward the base and **stops only when something is in range.** Target priority: **base > players > builds**, nearest within each; it retargets the moment a higher-priority target enters range. Keeps the red landing marker before each shell. The team's main ranged threat to knights | Ranger (outranges it), Commander (flag thrown beside it, squad dives in), Warden (HP to walk in) |
-| Flyer (Wasp drone) | Flies straight; **range slightly increased** over the tower-defense value. Ignores ground builds (never sets off mines); melee can't hit it | Ranger, Artificer, the sentries (spawns only for teams that can hit it) |
+| Flyer (Wasp drone) | Flies straight; **range slightly increased** over the tower-defense value. Ignores ground trap builds (never sets off mines) but still shoots knights and HP builds in its aggro radius; melee can't hit it | Ranger, Artificer, the sentries (spawns only for teams that can hit it) |
 | Swarm (Scrap mites) | Many weak units, in packs of 8 | Warden (arc), Artificer (spread), Ranger (mines) |
 | Hunter (Stalker) | Hunts players; **senses hidden builds** (sees and avoids mines' trigger radii) and **stays out of range of damage-dealing builds and the sentries**; **speeds up once it locks on** to its quarry | Warden (HP, stun), Commander (squad blocks it), Artificer (healing) |
 | Boss (Colossus, §9.2) | Appears at waves 5, 10 and 15 | Everyone (the stagger meter) |
@@ -957,9 +957,10 @@ Each enemy type is designed as a problem that specific classes solve.
   return to their path; the nearest candidate wins. Runners never attack knights or builds. Siege
   follows its priority above. Hunters always hunt players. Challenger (Warden card) makes nearby
   enemies pick the Warden first. Radii live in config.
-- **Brute:** it picks the nearest targetable build by distance and reaches it on a ground field toward
-  that build (§15.5); when that build is destroyed it picks the next. The TV flashes the build it locks
-  on to (§7.5).
+- **Brute:** it goes for the nearest targetable build by distance, rechecked every step, so a build
+  landing nearer pulls it off course (the bait tactic), and reaches it on a ground field toward that
+  build (§15.5); when that build is destroyed it picks the next. The TV flashes each build it locks on
+  to (§7.5).
 - **Hunter (C3, redesigned):** it hunts the nearest player and keeps that quarry until they go down or
   dazed, or another player comes clearly closer (2 tiles closer, so two players at similar range don't
   flip it). Two phases: it **stalks** at normal speed, taking the route that spends the least time in
@@ -1013,8 +1014,8 @@ walker mech with a glowing core in its chest (§2.1); its art is in §9.6.
 | Wave | Attacks and changes |
 |---|---|
 | 5 (Mk I) | **Slam:** a red circle appears in front of it, and the slam lands 1.5 s later, damaging knights, soldiers and HP builds. **Boulder throw:** targets a player (the largest group of players), with a red marker showing where it will land. Only a light stream of Grunts spawns alongside it |
-| 10 (Mk II) | Everything from wave 5, plus **Charge:** it locks on to a knight, a red lane marker shows its path, then it plows down the lane, knocking knights back, destroying any HP builds it crosses and setting off any mines it crosses (the rally flag is left alone). Dodged, not tanked; it punishes stacking builds in one spot. Grunt and Swarm escorts walk with it |
-| 15 (Mk III) | Everything from wave 10, plus it **calls in Runners** periodically. **Below 50% HP, final phase:** it moves and attacks faster, and each slam sends out a shockwave ring that players must dodge |
+| 10 (Mk II) | Everything from wave 5, plus **Charge:** it locks on to a knight, a red lane marker shows its path, then it plows down the lane, hitting knights and soldiers once and knocking them aside, destroying any HP builds it crosses and setting off any mines it crosses (the rally flag is left alone). Dodged, not tanked; it punishes stacking builds in one spot. Grunt and Swarm escorts walk with it |
+| 15 (Mk III) | Everything from wave 10, plus it **calls in Runners** periodically, from the start of the fight. **Below 50% HP, final phase:** it moves and attacks faster, and each slam sends out a shockwave ring that players must dodge |
 
 **Stagger meter**
 - The Colossus can't be stunned directly. It has a hidden stagger meter.
@@ -1828,8 +1829,9 @@ interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: num
   switch with `Keyframe.groups` (`{ slam: true }` from that key on; a group no key names follows
   `setGroup`), and hides the upright hammer with `alpha` keys until the recover (#113).
 - **Renderer API** (`src/host/render/types.ts`): the FF3-fix-1 and FF8 additions stay
-  (`RigInstance.clipMs`, `clipDone`, `EffectSpawner.burst`, `bodyBurst`, `scrap`, `arcWave`). RD5 adds
-  the **build-view API** (a view per `BuildId` under `src/host/scene/builds/<build>.ts`, found with
+  (`RigInstance.clipMs`, `clipDone`, `EffectSpawner.burst`, `bodyBurst`, `scrap`, `arcWave`). RD10 adds
+  `MarkKind` `brute-target`, `brute-target-arrow` and `charge-dust`, and `mark`'s optional `flipX`
+  (mirrors a frame about its anchor). RD5 adds the **build-view API** (a view per `BuildId` under `src/host/scene/builds/<build>.ts`, found with
   `import.meta.glob`: create, update from the sim's `BuildEnt` each frame, destroy), which freezes after
   RD6. A view exports `view: BuildViewFactory` (`id`, `create(ctx): BuildView`); the scene
   (`scene/buildsView.ts`) fills a `BuildViewState` (phase, ground point, throw height and progress, HP
@@ -1933,15 +1935,17 @@ export interface EnemyEnt extends Unit {
   target: EntityId | null;                     // a knight, soldier, build or BASE_ID
   leashFrom: Vec2 | null;
   hunting: number | null;
-  huntSince?: number;                          // Hunter: tick it locked on (drives the flash, §9.6)
+  huntSince?: number;                          // Hunter, Brute: tick it locked on (drives the flash, §9.6)
   locked?: boolean;                            // Hunter: locked on and sprinting (§9)
+  huntBuild?: EntityId;                        // Brute: the build it is going for (RD10)
   attack: AttackState;
   wander?: { side: number; pace: number; until: number };
   boss?: { mk: 1 | 2 | 3; stagger: number; staggeredUntil: number | null; finalPhase: boolean;
     act?: BossAct | null; ready?: Record<string, number>; stunAt?: number | null };
 }
 // HP and damage are baked at spawn: difficulty × player-count table × WaveDef.enemyMult (§2.2).
-// BossAct.kind for the Colossus: 'slam' | 'boulder' | 'charge' | 'call' (the wall attack is gone).
+// BossAct.kind for the Colossus: 'slam' | 'boulder' | 'charge' (the tell) | 'chargeRun' | 'call' (the
+// wall attack is gone). BossAct.hit? lists who the run already hit (RD10).
 
 /** A placed build (§7). A Unit so it takes damage through `applyDamage` and carries card mods. */
 export interface BuildEnt extends Unit {
@@ -1994,7 +1998,8 @@ export interface World {
 }
 export type Phase = 'countdown' | 'build' | 'combat' | 'victory' | 'defeat' | 'summary';
 // ProjectileEnt.from: KnightId | EnemyId | BuildId | 'archer'; blockedBy is gone (nothing blocks shots).
-// DangerMarker.payload.hitsStructures becomes hitsBuilds.
+// DangerMarker.payload.hitsStructures becomes hitsBuilds. DangerMarker.shape adds 'lane' (RD10): the
+// Charge's path from (x, y) to (x2?, y2?), `r` to each side; it only shows, the run itself hits.
 ```
 
 - **Input sources** (§13 squad solo mode): knights only ever read an `InputSource`.
@@ -2134,9 +2139,10 @@ interface BossBehavior {
   tick(ctx: SimCtx, boss: EnemyEnt): void;       // picks attacks, emits DangerMarkers with wind-ups
   onDamage?(ctx: SimCtx, boss: EnemyEnt, r: DamageResult): void;  // stagger meter
 }
-// The Colossus: slam and boulder (Mk I), + Charge (Mk II: a 'charge' DangerMarker lane from the boss
-// to its target knight, then the run, knocking knights back, destroying HP builds and triggering mines
-// it crosses), + call Runners and the final-phase shockwave (Mk III). Boss-wave rules shared by every
+// The Colossus: slam and boulder (Mk I), + Charge (Mk II: a 'lane' DangerMarker from the boss past
+// its target knight, then the run, hitting knights and soldiers once and knocking them aside,
+// destroying HP builds and triggering mines it crosses), + call Runners and the final-phase shockwave
+// (Mk III). Boss-wave rules shared by every
 // boss (spawn at a seeded hot-side portal, the Mk, death collapsing the wave) live in
 // `sim/boss/index.ts`.
 ```
@@ -3157,3 +3163,9 @@ states, then RD0's own.
 | 141 | 2026-11-23 | Rally flag as a build (RD9) | The flag is a `BuildEnt` (saved and drawn like any build; `PlayerEnt.flag` holds where it stands or will land, set at the throw, so the squad moves at once and the banner leaves his back). `BuildBehavior.placed` is the new optional hook. Its view takes the owner's color from `BuildViewState.ownerTint` | Replaces RD2's "until RD9" flag on the player; one pipeline for every build |
 | 142 | 2026-11-23 | Squad (RD9) | `start` soldiers once per run (`PlayerEnt.squadSeeded`), no respawn; a resume restores exactly the survivors around him or at his flag. Forced March, Drillmaster and Reinforced Ranks are the Commander's `squadSpeed`, `squadHp` + `squadDamage` and `squadCap` stats (Forced March capped at +40% like movement). Last Stand counts soldiers short of the cap, since the squad no longer has a fixed size. Squad damage counts in his `damageDealt` | §8.4; the stats were reserved in RD2; the cap is the only stable "full size" without respawn |
 | 143 | 2026-11-23 | Morale and Warcry (RD9) | Morale: `morale` re-applied from him and from the flag's build behavior, so the flag keeps working while he's down (§7.1), one effect through `refresh`. Warcry applies the same effect and sends `warcry` so the TV flashes only the knights it reached; the Morale card itself shows nothing. The Lead from the Front module, motes and aura are gone | §6.1 "no visual of its own" needs a signal apart from the effect |
+| 150 | 2026-11-23 | Brute targeting | The Brute rechecks the nearest targetable build every step, so a build landing nearer pulls it off course and flashes a new lock-on (§9) | "Nearest" plus "builds are Brute bait" reads as live; a sticky target would ignore the bait (RD10) |
+| 151 | 2026-11-23 | Flyer and builds | "Ignores ground builds" means trap builds: a Flyer never sets off mines, and still shoots knights and HP builds in its aggro radius (§9) | REDESIGN D1's list is "mines, nets, traps", and §7.3 and §9's aggro rule include Flyers (RD10) |
+| 152 | 2026-11-23 | Charge rules | Tell 1.6 s with the lane up, then a run at 8 tiles/s to 3 tiles past the knight, stopping short of the map edge and Citadel; the lane's half-width (1.2) is exactly what it hits; knights and soldiers take one 35 hit and are thrown 3 tiles aside; a stagger calls it off and the cooldown stands (§9.2) | Starting values; what the marker shows is what it hits, so it stays dodgeable (RD10) |
+| 153 | 2026-11-23 | Mk III Runner calls | Runner calls run for the whole Mk III fight, the first after half a cooldown; the final phase only shortens them (§9.2) | REDESIGN D2: Mk III adds calling Runners "and, in the final phase, the shockwave" (RD10) |
+| 154 | 2026-11-23 | Hunter pace | Stalk speed is §9.1's 1.3 (the code still had the tower-defense 1.5), × 1.4 once locked on; the lock holds until the quarry changes; the flash is at the quarry's feet (§9, §9.1, §9.6) | The two phases need a real speed change; §9.6 names the quarry's feet (RD10) |
+| 155 | 2026-11-23 | Boss damage scaling | The boulder, shockwave rings and Charge take the same difficulty × wave multiplier as the slam, read from its baked damage (§9.3) | The multiplier "applies to every type"; these three used difficulty only (RD10) |

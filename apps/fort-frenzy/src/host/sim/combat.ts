@@ -204,6 +204,8 @@ export function stepMarkers(s: FullState): void {
       w.markers[write++] = m;
       continue;
     }
+    // The Charge's lane only shows the path; the run itself hits (boss/colossus.ts).
+    if (m.shape === 'lane') continue;
     const hit = (u: Unit) =>
       s.damage({
         source: m.source,

@@ -162,7 +162,8 @@ export interface EffectSpawner {
    * slam cracks (about 1 s), the jump slam's landing dust and wide cracks, the portal flare sparks.
    * `scale` multiplies the frame's unit scale.
    */
-  mark?(kind: MarkKind, sx: number, sy: number, ms?: number, scale?: number): void;
+  /** `flipX` mirrors the frame about its anchor (the Charge's dust trails behind a left-facing run). */
+  mark?(kind: MarkKind, sx: number, sy: number, ms?: number, scale?: number, flipX?: boolean): void;
   arcWave?(
     side: ScrapSide,
     x: number,
@@ -237,4 +238,7 @@ export type MarkKind =
   // RD7: the Ranger's super and a mine going off.
   | 'shockwave'
   | 'mine-blast-ring'
-  | 'mine-blast';
+  | 'mine-blast'
+  | 'brute-target'
+  | 'brute-target-arrow'
+  | 'charge-dust';

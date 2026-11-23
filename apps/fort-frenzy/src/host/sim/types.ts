@@ -218,10 +218,14 @@ export interface EnemyEnt extends Unit {
   /** Hunter's quarry (slot). */
   hunting: number | null;
   /**
-   * Hunter only (FF10-fix-1): the tick it took its current quarry (first pick or a change), which
-   * drives the TV's ~2 s player-color flash at its feet. Absent for other enemies.
+   * The tick it locked on (RD10), which drives the TV's flash. Hunter: its quarry came within
+   * `hunt.lockRange`. Brute: it picked `huntBuild`. Absent until then.
    */
   huntSince?: number;
+  /** Hunter (RD10): locked on and sprinting, until its quarry changes. */
+  locked?: boolean;
+  /** Brute (RD10): the build it is going for. Absent while it has none. */
+  huntBuild?: EntityId;
   attack: AttackState;
   /**
    * Scrap-mite jitter (FF10; §15.3: in the sim, combat stream): sideways drift (−1..1), pace factor
@@ -244,8 +248,9 @@ export interface EnemyEnt extends Unit {
 }
 
 /**
- * A boss attack in progress (FF11, §9.2): what it is (`slam`, `boulder`, `charge` (RD10), `call` for
- * the Colossus), when it started and lands, where it lands, what it aims at and its danger marker.
+ * A boss attack in progress (FF11, §9.2): what it is (`slam`, `boulder`, `charge` (the tell, RD10),
+ * `chargeRun` (the run), `call` for the Colossus), when it started and lands, where it lands, what it
+ * aims at and its danger marker.
  */
 export interface BossAct {
   kind: string;
@@ -255,6 +260,8 @@ export interface BossAct {
   y: number;
   target: EntityId | null;
   marker: EntityId | null;
+  /** `chargeRun` (RD10): who it already hit, so each takes one blow per run. */
+  hit?: EntityId[];
 }
 
 export type DamageKind = 'melee' | 'ranged' | 'area' | 'dot' | 'contact' | 'shell';
@@ -282,7 +289,8 @@ export interface ProjectileEnt extends Body {
 export interface DangerMarker {
   id: EntityId;
   source: EntityId;
-  shape: 'circle' | 'arc' | 'ring';
+  /** `lane` (RD10): the Charge's path from (x, y) to (x2, y2), `r` to each side; it deals nothing. */
+  shape: 'circle' | 'arc' | 'ring' | 'lane';
   x: number;
   y: number;
   r: number;
@@ -290,6 +298,9 @@ export interface DangerMarker {
   angle?: number;
   arcDeg?: number;
   inner?: number;
+  /** Lane end. */
+  x2?: number;
+  y2?: number;
   createdAt: number;
   landsAt: number;
   payload: {
