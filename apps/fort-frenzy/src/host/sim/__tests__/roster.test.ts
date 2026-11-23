@@ -1,7 +1,7 @@
 // RD10 roster scenarios (SPEC §9, §9.2, §15.5): the Brute hunting builds, Siege priority, the Hunter's
 // priced stalk and lock-on sprint, Flyer rules, the per-wave enemy multiplier, the Colossus's move set
-// by Mk and the Charge, plus answered-by spot checks. Mines and the rally flag aren't merged here, so
-// these use their build traits through `addBuild` fixtures.
+// by Mk and the Charge, plus answered-by spot checks. Mines are tested both as `addBuild` trait
+// fixtures and as real placed mines (RD7); the rally flag's traits come through a fixture.
 import { describe, expect, it } from 'vitest';
 import { content as baseContent, type Content } from '../../../content';
 import {
@@ -15,7 +15,7 @@ import {
 } from '../../../content/balance';
 import type { ClassId } from '../../../shared/ids';
 import { tuning } from '../boss/colossus';
-import { BASE_ID, type EnemyEnt } from '../types';
+import { BASE_ID, type BuildEnt, type EnemyEnt } from '../types';
 import { harness, type Harness, type HarnessOptions } from './harness';
 
 const T = tuning(colossusDef);
@@ -52,6 +52,17 @@ function lone(n: number, x: number, y: number, players = 2): { h: Harness; b: En
   b.boss!.ready = { slam: 1e9, boulder: 1e9, charge: 1e9, call: 1e9 };
   h.run(1);
   return { h, b };
+}
+
+/** A real mine (RD7) through slot 0's build press at (x, y), armed; the Ranger stays there. */
+function placeMine(h: Harness, x: number, y: number): BuildEnt {
+  h.put(0, x, y);
+  h.p(0).meter = 1;
+  h.pads[0]!.tap('buildFires');
+  h.run(1);
+  const mine = h.sim.world.builds.find((b) => b.kind === 'mine')!;
+  h.until(() => mine.state === 'active', 120);
+  return mine;
 }
 
 describe('Brute (build hunter)', () => {
@@ -193,6 +204,39 @@ describe('Hunter (priced stalk, lock-on sprint)', () => {
     expect(closest(false).best).toBeLessThan(0.6); // the straight line runs over the spot
     const { best } = closest(true);
     expect(best).toBeGreaterThan(mineDef.triggerRadius + hunterDef.radius);
+  });
+
+  it('walks round a real armed mine without setting it off', () => {
+    const h = arena(['ranger']);
+    const mine = placeMine(h, 10.5, 14.5);
+    h.put(0, 16.5, 14.5);
+    const e = h.sim.spawnEnemy('hunter', 4.5, 14.5);
+    let best = Infinity;
+    let triggers = 0;
+    for (let i = 0; i < 60 * 12 && Math.hypot(e.x - 16.5, e.y - 14.5) > 2.2; i++) {
+      h.run(1);
+      triggers += h.events('mineTrigger').length;
+      best = Math.min(best, Math.hypot(e.x - 10.5, e.y - 14.5));
+    }
+    expect(Math.hypot(e.x - 16.5, e.y - 14.5)).toBeLessThanOrEqual(2.2); // it got there
+    expect(triggers).toBe(0);
+    expect(best).toBeGreaterThan(mineDef.triggerRadius + hunterDef.radius);
+    expect(mine.charges).toBe(1);
+    expect(h.sim.world.builds).toContain(mine);
+  });
+
+  it('re-prices its field when a real mine is used up', () => {
+    const h = arena(['ranger']);
+    const mine = placeMine(h, 10.5, 14.5);
+    h.put(0, 16.5, 14.5);
+    h.sim.spawnEnemy('hunter', 4.5, 14.5);
+    h.run(2);
+    const at = 14 * 36 + 4;
+    const priced = h.sim.world.fields.hunted[0]!.dist[at]!;
+    mine.triggerAt = h.sim.world.tick;
+    h.run(2);
+    expect(h.sim.world.builds).not.toContain(mine);
+    expect(h.sim.world.fields.hunted[0]!.dist[at]!).toBeLessThan(priced);
   });
 
   it('prices a build that appears or goes without waiting for the next wave', () => {
@@ -385,12 +429,11 @@ describe('Colossus Charge', () => {
     expect(h.sim.world.markers.some((x) => x.id === m.id)).toBe(false);
   });
 
-  it('destroys an HP build in its lane, leaves the flag and a mine, spares one outside', () => {
+  it('destroys an HP build in its lane, leaves the flag, spares one outside', () => {
     const { h, b } = setup();
     const hit = h.sim.addBuild('shield_gen', 18.4, 12, 0);
     const beside = h.sim.addBuild('beacon', 18 + T.chargeHalfWidth + 1.2, 12, 1);
     const flag = h.sim.addBuild('rally_flag', 18, 13, 1);
-    const mine = h.sim.addBuild('mine', 18, 14, 0);
     h.until(() => b.boss!.act?.kind === 'chargeRun', 120);
     h.until(() => b.boss!.act === null, 200);
     h.run(1);
@@ -399,7 +442,33 @@ describe('Colossus Charge', () => {
     expect(left).toContain(beside);
     expect(beside.hp).toBe(beside.maxHp);
     expect(left).toContain(flag);
-    expect(left).toContain(mine);
+  });
+
+  it('sets off a real mine in its lane: the run carries on and the blast hits it', () => {
+    const { h, b } = lone(10, 18, 8);
+    const mine = placeMine(h, 18, 13);
+    b.x = 18;
+    b.y = 8;
+    h.put(0, 18, 16);
+    b.boss!.ready!.charge = 0;
+    h.until(() => b.boss!.act?.kind === 'charge', 5);
+    const end = h.sim.world.markers.find((m) => m.id === b.boss!.act!.marker)!.y2!;
+    h.until(() => b.boss!.act?.kind === 'chargeRun', 120);
+    expect(h.sim.world.builds).toContain(mine); // the tell alone doesn't set it off
+    const hp = b.hp;
+    let triggered = 0;
+    let burst = 0;
+    for (let i = 0; i < 200 && (b.boss!.act || burst === 0); i++) {
+      h.run(1);
+      triggered += h.events('mineTrigger').filter((x) => x.build === mine.id).length;
+      burst += h.events('mineBurst').filter((x) => x.build === mine.id).length;
+    }
+    expect([triggered, burst]).toEqual([1, 1]);
+    expect(b.hp).toBeLessThan(hp);
+    expect(b.boss!.act).toBeNull();
+    expect(b.y).toBeCloseTo(end, 0); // too heavy for the mine's knockback: it finished its lane
+    h.run(1);
+    expect(h.sim.world.builds).not.toContain(mine);
   });
 
   it('hits a knight in its lane once and knocks him out of it', () => {
