@@ -54,13 +54,7 @@ function shoot(h: Harness, slot = 0) {
 
 describe('card coverage', () => {
   it('has a def for every card id, once, except the ones their milestones add (RD7–RD11)', () => {
-    const pending = [
-      'tinkerer',
-      'wide_field',
-      'challenger',
-      'reinforced_generator',
-      'fault_line',
-    ];
+    const pending = ['tinkerer', 'wide_field', 'challenger', 'reinforced_generator', 'fault_line'];
     expect(cardDefs.map((c) => c.id).sort()).toEqual(
       CARD_IDS.filter((id) => !pending.includes(id)).sort(),
     );
