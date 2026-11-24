@@ -1,7 +1,8 @@
 // `path` AI (SPEC §9 Grunt, §15.5): follow the ground field to the base and attack it; aggro-leash
-// enemies leave the path for a targetable player or HP build (§7.3, RD3: exactly like a knight, the
-// nearest wins, a knight on a tie) in the aggro radius, chase up to the leash, then walk back (§9,
-// §11.3).
+// enemies leave the path for a targetable player, Commander's soldier or HP build (§7.3, RD3,
+// RD10-fix-1: exactly like a knight, the nearest wins, a knight on a tie) in the aggro radius, chase
+// up to the leash, then go on toward the base from where they stand, not back to where they left
+// the path (§9, §11.3; RC2 note).
 // Melee swings wind up, root the enemy, and land if the target is still in reach.
 import type { EnemyDef } from '../../../content/types';
 import { buildTargetable } from '../builds/core';
@@ -15,6 +16,7 @@ import {
   type FlowField,
   type PlayerEnt,
   type SimCtx,
+  type SoldierEnt,
   type Unit,
 } from '../types';
 
@@ -53,56 +55,79 @@ export function pathAi(ctx: SimCtx, e: EnemyEnt): void {
     else walkTo(e, p.x, p.y, e.stats.moveSpeed);
     return;
   }
-  if (e.ai === 'return') {
-    walkTo(e, e.leashFrom!.x, e.leashFrom!.y, e.stats.moveSpeed);
-    return;
-  }
   followPath(s, e, def);
 }
 
-/** A unit an aggro-leash enemy may chase: a targetable knight or HP build (§7.3), else null. */
+/** A Commander's soldier enemies may target: alive and on the ground (§8.4: not in the air). */
+export function soldierTargetable(u: SoldierEnt): boolean {
+  return u.hp > 0 && !u.flight;
+}
+
+/**
+ * A unit an aggro-leash enemy may chase: a targetable knight, soldier or HP build (§7.3, §8.4),
+ * else null.
+ */
 export function aggroTarget(s: SimState, id: number | null): Unit | null {
   if (id === null) return null;
   const u = s.units.get(id);
   if (!u) return null;
   const kind = s.kinds.get(id);
   if (kind === 'player') return s.targetable(u as PlayerEnt) ? u : null;
+  if (kind === 'soldier') return soldierTargetable(u as SoldierEnt) ? u : null;
   if (kind === 'build') return buildTargetable(u as BuildEnt) ? u : null;
   return null;
 }
 
-/** Aggro and leash transitions. */
+/**
+ * Aggro and leash transitions. Past the leash, or with its target gone, it lets go and walks on
+ * toward the base from where it stands (RD10-fix-1); a target it let go at the leash stays ignored
+ * until it leaves the aggro radius, so the leash still ends a chase.
+ */
 export function leash(s: SimState, e: EnemyEnt, a: { radius: number; leash: number }) {
+  // A save from before RD10-fix-1 may hold a walk back: it goes on from here instead.
+  if (e.ai === 'return') {
+    e.ai = 'path';
+    e.leashFrom = null;
+  }
   if (e.ai === 'aggro') {
     const ok = aggroTarget(s, e.target) !== null;
     const from = e.leashFrom!;
-    if (!ok || dist(e.x, e.y, from.x, from.y) > a.leash) {
-      e.ai = 'return';
-      e.target = null;
-    }
+    if (ok && dist(e.x, e.y, from.x, from.y) <= a.leash) return;
+    if (ok) e.dropped = e.target!;
+    e.ai = 'path';
+    e.target = null;
+    e.leashFrom = null;
     return;
   }
-  if (e.ai === 'return') {
-    const from = e.leashFrom!;
-    if (dist(e.x, e.y, from.x, from.y) <= 0.5) {
-      e.ai = 'path';
-      e.leashFrom = null;
+  let skip = e.dropped;
+  if (skip !== undefined) {
+    const u = aggroTarget(s, skip);
+    if (!u || dist(e.x, e.y, u.x, u.y) - u.r > a.radius) {
+      delete e.dropped;
+      skip = undefined;
     }
-    return;
   }
-  // Knights first, so a knight wins an exact tie with a build.
+  // Knights first, so a knight wins an exact tie with a soldier or a build.
   let best: Unit | null = null;
   let bestD = Infinity;
   for (const p of s.world.players) {
-    if (!s.targetable(p)) continue;
+    if (p.id === skip || !s.targetable(p)) continue;
     const d = dist(e.x, e.y, p.x, p.y) - p.r;
     if (d <= a.radius && d < bestD) {
       best = p;
       bestD = d;
     }
   }
+  for (const u of s.world.soldiers) {
+    if (u.id === skip || !soldierTargetable(u)) continue;
+    const d = dist(e.x, e.y, u.x, u.y) - u.r;
+    if (d <= a.radius && d < bestD) {
+      best = u;
+      bestD = d;
+    }
+  }
   for (const b of s.world.builds) {
-    if (!buildTargetable(b)) continue;
+    if (b.id === skip || !buildTargetable(b)) continue;
     const d = dist(e.x, e.y, b.x, b.y) - b.r;
     if (d <= a.radius && d < bestD) {
       best = b;

@@ -912,6 +912,8 @@ the baseline knight HP, and the damage band multiplies the damage of the knight'
 - Squad damage charges his super at a reduced rate, never his build meter. His damage for the balance
   rule (§2) counts his own plus the squad's.
 - **Thrown soldiers** can't be hit or targeted in the air and take their formation slot on landing.
+- **Enemies target soldiers like knights** (§9, RC2): aggro radius, leash, nearest wins; a soldier
+  at 0 HP dies.
   A double spawn never passes the cap. A new soldier takes the lowest free squad index.
 - **Last Stand** counts the soldiers short of the cap (RD9, §15.11 #142).
 - **Shield bash** (RC2): a solid rectangle from his feet along the aim, 2.25 tiles long (the old
@@ -941,7 +943,7 @@ Each enemy type is designed as a problem that specific classes solve.
 | Grunt (Drone) | Walks to the base and attacks it; attacks knights and HP builds that come within its aggro radius | Everyone |
 | Runner (Skitter) | Fast and fragile; ignores knights and builds and bursts on the base. Caught in transit (mines, stuns, knockback) | Ranger (bow, mines in its path), Warden (super stun), Commander (shield bash, squad at a flag on its route), Artificer (cone) |
 | Brute | **Build hunter:** goes straight for the nearest targetable build, **at any distance.** With none on the map (or once it has destroyed them all) it walks toward the base and attacks knights like a Grunt | Warden (HP, stun), Ranger (kiting at range), Commander (squad); any targetable build pulls it off course |
-| Siege (Bombard) | Paths toward the base and **stops only when something is in range.** Target priority: **base > players > builds**, nearest within each; it retargets the moment a higher-priority target enters range. Keeps the red landing marker before each shell. The team's main ranged threat to knights | Ranger (outranges it), Commander (flag thrown beside it, squad dives in), Warden (HP to walk in) |
+| Siege (Bombard) | Paths toward the base and **stops only when something is in range.** Target priority: **base > players (and soldiers) > builds**, nearest within each; it retargets the moment a higher-priority target enters range. Keeps the red landing marker before each shell. The team's main ranged threat to knights | Ranger (outranges it), Commander (flag thrown beside it, squad dives in), Warden (HP to walk in) |
 | Flyer (Wasp drone) | Flies straight; **range slightly increased** over the tower-defense value. Ignores ground trap builds (never sets off mines) but still shoots knights and HP builds in its aggro radius; melee can't hit it | Ranger, Artificer, the sentries (spawns only for teams that can hit it) |
 | Swarm (Scrap mites) | Many weak units, in packs of 8 | Warden (arc), Artificer (spread), Ranger (mines) |
 | Hunter (Stalker) | Hunts players; **senses hidden builds** (sees and avoids mines' trigger radii) and **stays out of range of damage-dealing builds and the sentries**; **speeds up once it locks on** to its quarry | Warden (HP, stun), Commander (squad blocks it), Artificer (healing) |
@@ -959,10 +961,20 @@ Each enemy type is designed as a problem that specific classes solve.
   walking, collisions, the Commander's soldiers and ground effects (mine triggers, Fault Line's fissure,
   spreads) keep the feet circles.
 - **Who attacks what (aggro leash):** Grunts, Brutes (once no build is left), Swarms and Flyers attack a
-  knight or an HP build that comes within a short aggro radius, chase up to a leash distance, then
-  return to their path; the nearest candidate wins. Runners never attack knights or builds. Siege
-  follows its priority above. Hunters always hunt players. Challenger (Warden card) makes nearby
-  enemies pick the Warden first. Radii live in config.
+  knight, a Commander's soldier or an HP build that comes within a short aggro radius and chase it up
+  to a leash distance (measured from where they left their way); the nearest candidate wins (a knight
+  on an exact tie). When they lose the target (past the leash, or it goes down, dazed or away) they
+  **go on toward the base from where they stand** on the ground field (Flyers straight at the
+  Citadel), never back to the point they left; a target let go at the leash is ignored until it
+  leaves the aggro radius, so the leash still ends a chase (RC2, §15.11 #157). Runners never attack
+  knights or builds. Siege follows its priority above. Hunters always hunt players. Challenger
+  (Warden card) makes nearby enemies pick the Warden first. Radii live in config.
+- **Soldiers as targets (RC2, §15.11 #158):** the Commander's soldiers are targets exactly like
+  knights: the same aggro radius, leash and nearest-wins with knights and HP builds; Siege ranks
+  them with the players; enemy attacks, shots and shells damage them, and a soldier at 0 HP dies
+  (no respawn, §8.4). A soldier in the air (Reinforcements) isn't a target until it lands. The
+  Brute's build hunt, the Hunter's quarry and the Colossus's lock-ons (boulder and Charge targets)
+  stay knights (or builds) only; the slam and the Charge still hit soldiers (§9.2).
 - **Brute:** it goes for the nearest targetable build by distance, rechecked every step, so a build
   landing nearer pulls it off course (the bait tactic), and reaches it on a ground field toward that
   build (§15.5); when that build is destroyed it picks the next. The TV flashes each build it locks on
@@ -1816,8 +1828,9 @@ interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: num
     its art: it lifts the #262b33 stone to #62676f, enough for the violet-iron hulls and the ink
     outlines to stand off it, and still below the bloom (§15.11 #43).
   - Status effects (§6.1): `burn-1`/`2` and `corrosion-1`/`2` loop at about 8 fps, anchored
-    bottom-center on the body and scaled to its height; `stun-1`…`4` loop centered on the enemy's
-    `top` point.
+    bottom-center on the body at the top of its legs, at 0.45 of its height, capped at 1.1× the
+    frame (RC2: a small flame on a mite, modest on the Colossus, §15.11 #159); `stun-1`…`4` loop
+    centered on the enemy's `top` point.
   - Frames kept on file but unused (the tower-defense structures, `review/redesign/obsolete.md`) stay
     in `sprites.json` and the atlas until RD12 deletes the "removed outright" ones.
 - **Facing and aim snapping:** side views mirror for left. Knights and footmen take the view from the
@@ -1940,7 +1953,8 @@ export interface EnemyEnt extends Unit {
   group: number;
   ai: 'path' | 'aggro' | 'return' | 'attack' | 'siege' | 'hunt' | 'boss';
   target: EntityId | null;                     // a knight, soldier, build or BASE_ID
-  leashFrom: Vec2 | null;
+  leashFrom: Vec2 | null;                      // where it left its way (the leash is measured from here)
+  dropped?: EntityId;                          // the target it let go at the leash (RD10-fix-1, §9)
   hunting: number | null;
   huntSince?: number;                          // Hunter, Brute: tick it locked on (drives the flash, §9.6)
   locked?: boolean;                            // Hunter: locked on and sprinting (§9)
@@ -2570,11 +2584,12 @@ interface PresentationHost {                     // TV only (src/presentation/ho
   route and never shortcuts through a Hunter's priced tiles (C3, §15.11 #46). With nothing farther
   clear it steers toward its next tile's center, blended with the one after so movement doesn't
   zigzag. Plus soft separation from nearby units. Units never hard-block each other.
-- **Behavior per `ai`:** `path` follows the ground field and attacks the base, plus knights and HP
-  builds inside its aggro leash (nearest first; a `taunt` knight first); `runner` bursts on base
-  contact and attacks nothing else; `siege` walks the ground field and stops once a player, an HP build
-  or the base is in its range, shelling the highest priority (base > players > builds, nearest within
-  each), retargeting the moment a higher-priority target enters range; `hunter` stalks its quarry's
+- **Behavior per `ai`:** `path` follows the ground field and attacks the base, plus knights, soldiers
+  and HP builds inside its aggro leash (nearest first; a `taunt` knight first), and on losing its
+  target follows the field on from where it stands (`return` is no longer entered; RD10-fix-1); `runner` bursts on base
+  contact and attacks nothing else; `siege` walks the ground field and stops once a player, a soldier,
+  an HP build or the base is in its range, shelling the highest priority (base > players and soldiers >
+  builds, nearest within each), retargeting the moment a higher-priority target enters range; `hunter` stalks its quarry's
   field and locks on within `hunt.lockRange`, then sprints at `hunt.sprint` × speed (retargeting on down, daze or a player
   2 tiles closer, §9); `flyer` flies straight and aggro-leashes like `path`; `swarm` is a `path` walker
   with the in-sim mite jitter; `brute` walks its target build's `brute` field to the nearest
@@ -3180,3 +3195,6 @@ states, then RD0's own.
 | 154 | 2026-11-23 | Hunter pace | Stalk speed is §9.1's 1.3 (the code still had the tower-defense 1.5), × 1.4 once locked on; the lock holds until the quarry changes; the flash is at the quarry's feet (§9, §9.1, §9.6) | The two phases need a real speed change; §9.6 names the quarry's feet (RD10) |
 | 155 | 2026-11-23 | Boss damage scaling | The boulder, shockwave rings and Charge take the same difficulty × wave multiplier as the slam, read from its baked damage (§9.3) | The multiplier "applies to every type"; these three used difficulty only (RD10) |
 | 156 | 2026-11-24 | Commander RC2 notes (RD9-fix-1) | The shield bash is a solid rectangle (`AttackDef.shape 'rect'`, `width`, stat `width`) from his feet along the aim: 2.25 tiles long, 2 wide, every enemy body overlapping it hit, knockback 0.96 (×0.8), still pushed away from him; Heavy Bash widens it (+20% `width`) instead of the arc. Soldiers walk at 3.9 tiles/s, about 90% of his 4.3; the hurry (×1.3 past 3 tiles) still lets them regroup. The TV's aim preview draws the rectangle (§8.2, §8.4, §10.1, §15.4) | RC2 notes (Foster): "make the commander's squad slower"; "a wide solid rectangle instead of a cone", "+range", "−20% knockback" |
+| 157 | 2026-11-24 | Leash resume | An aggro-leash enemy that loses its target (past the leash, or the target goes down, dazed or away) goes on toward the base from where it stands on the ground field (a Flyer straight at the Citadel), not back to the point it left; a target let go at the leash is ignored until it leaves the aggro radius (`EnemyEnt.dropped`), so the leash still ends a chase (§9, §15.5) | User, RC2 (RD10-fix-1): enemies walked back to their old path first |
+| 158 | 2026-11-24 | Soldiers as targets | The Commander's soldiers are aggro targets like knights (same radius, leash, nearest wins; a knight on an exact tie); Siege ranks them with the players; a soldier in the air isn't a target until it lands. The Brute's build hunt, the Hunter's quarry and the Colossus's boulder and Charge lock-ons stay knight (or build) only (§9, §8.4) | User, RC2 (RD10-fix-1); the lock-ons are each enemy's own rule in §9 and §9.2, and the slam and Charge already hit soldiers |
+| 159 | 2026-11-24 | Burn size | The burn and corrosion looks are 0.45 of the body's height, capped at 1.1× the frame, with their bottom at the top of the legs (§15.2) | User, RC2 (RD10-fix-1): the flames were the body's full height, huge on the Colossus |

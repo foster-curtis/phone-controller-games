@@ -211,10 +211,17 @@ export interface EnemyEnt extends Unit {
   portal: PortalId | null;
   /** Spawn group: a Swarm pays its coins when the group's last unit dies (§9.1). */
   group: number;
+  /** `return` is no longer entered (RD10-fix-1: a leashed enemy goes on from where it stands). */
   ai: 'path' | 'aggro' | 'return' | 'attack' | 'siege' | 'hunt' | 'boss';
+  /** A knight, soldier, build or BASE_ID. */
   target: EntityId | null;
-  /** Where an aggro-leash enemy left its path. */
+  /** Where an aggro-leash enemy left its path (the leash is measured from here). */
   leashFrom: Vec2 | null;
+  /**
+   * Aggro leash (RD10-fix-1): the target it let go at the leash. It walks on toward the base from
+   * where it stands and won't take that target again until it leaves the aggro radius.
+   */
+  dropped?: EntityId;
   /** Hunter's quarry (slot). */
   hunting: number | null;
   /**

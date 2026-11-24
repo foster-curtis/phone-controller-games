@@ -244,7 +244,7 @@ describe('Flyer', () => {
 
 describe('aggro leash', () => {
   for (const kind of ['grunt', 'brute', 'swarm', 'flyer'] as const) {
-    it(`${kind}: leaves its way for a nearby player, then returns past the leash`, () => {
+    it(`${kind}: leaves its way for a nearby player, then lets go past the leash`, () => {
       const t = quiet();
       const p = t.sim.world.players[0]!;
       const e = t.sim.spawnEnemy(kind, 10.5, 14.5);
@@ -255,10 +255,12 @@ describe('aggro leash', () => {
       const from = { ...e.leashFrom! };
       p.x = 33;
       p.y = 22;
-      t.until(() => e.ai === 'return', 60 * 10);
-      t.until(() => e.ai !== 'return', 60 * 10);
+      t.until(() => e.ai !== 'aggro', 60 * 10);
+      // RD10-fix-1: on toward the base from where it stands, not back to `from` (aggro.test.ts).
+      expect(e.ai).toBe('path');
       expect(e.target === null || e.target === BASE_ID).toBe(true);
-      expect(Math.hypot(e.x - from.x, e.y - from.y)).toBeLessThan(1);
+      expect(e.leashFrom).toBeNull();
+      expect(Math.hypot(e.x - from.x, e.y - from.y)).toBeGreaterThan(3);
     });
   }
 

@@ -1115,6 +1115,13 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD9-fix-1] decision: the unwound `arc` shape handler stays (no content uses it now); the optional sword slash trail (group `sword`, off in v1) keeps its 90° sweep since it is not a hit area.
 - [RD5-fix-1] decision: facing holds on the rig's own clip (`heldAim`, render/aim.ts): while attack, super, build or throw plays and isn't done, the knight keeps the attack's angle; no new timer. Throws and mine kneels have no aim event, so they hold the player's facing at placement.
 - [RD5-fix-1] decision: next-wave banner sizes tiles by `previewLayout` (spacing 14 down to 6, then tiles 120 down to 56, in a 230 px text allowance); the widest wave has 7 types.
+- [RD10-fix-1] contract+: `EnemyEnt.dropped?` (the target let go at the leash); `ai: 'return'` stays in the type but is no longer entered (a saved `return` resumes as `path`); SPEC §15.3 updated.
+- [RD10-fix-1] decision: a leashed enemy goes on toward the base from where it stands, and ignores the target it let go until that target leaves its aggro radius; without that a kiting knight would be taken again the next step and the leash would never end a chase (#157).
+- [RD10-fix-1] decision: soldiers join the aggro scan as one more loop over `world.soldiers` (a few per Commander) between knights and builds, so a knight wins an exact tie; no second spatial scan was needed (bench below) (#158).
+- [RD10-fix-1] decision: the Brute's build hunt, the Hunter's quarry rules and the Colossus's lock-ons (boulder target, Charge target) stay knight-only, as SPEC §9 and §9.2 name each rule; the slam and the Charge already hit soldiers (#158).
+- [RD10-fix-1] decision: burn and corrosion share one size rule, 0.45 × the body height capped at 1.1× the frame, bottom at the top of the legs (`bodyLookScale`, render/status.ts); still only scale and position per frame (#159).
+- [RD10-fix-1] note: bench under heavy parallel load swings widely (peak p99 2.0–11 ms on this branch, 6.1 ms on its base in the same window); best peak run mean 0.63 ms, p99 2.01 ms, matching RD10's 0.63 / 1.90–2.07, so the soldier loop costs nothing visible. In this worktree `presentation-keys` (atlas URLs empty under a `.claude/` path, fails on the base too) and three timing tests (flowfield < 1 ms, wave generator, regen timeout) fail from load and the path; every sim, scene and render test of this change passes.
+- [RD10-fix-1] decision: RD10's roster test "Siege never picks a soldier" now keeps the soldiers out of range (they rank with the players), and the flag test removes them so it still tests the flag alone.
 
 ## 9. Final handoff
 

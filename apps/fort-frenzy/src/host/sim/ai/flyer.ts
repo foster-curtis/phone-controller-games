@@ -1,8 +1,9 @@
 // `flyer` AI (SPEC §9, §15.5): the Wasp drone ignores flow fields and walls and flies straight at the
-// Citadel; it takes the aggro leash like Grunts (chases a player in its aggro radius up to the leash,
-// then flies back to where it left its way). It hovers in range and shoots its stinger cannon: a
-// short wind-up (the muzzle charges), then a straight shot at where the target is. Shots hit players,
-// soldiers, HP builds and the Citadel (combat.ts); it never sets off ground builds like mines (RD10).
+// Citadel; it takes the aggro leash like Grunts (chases a knight, soldier or HP build in its aggro
+// radius up to the leash, then flies on at the Citadel from where it is, RD10-fix-1). It hovers in
+// range and shoots its stinger cannon: a short wind-up (the muzzle charges), then a straight shot at
+// where the target is. Shots hit players, soldiers, HP builds and the Citadel (combat.ts); it never
+// sets off ground builds like mines (RD10).
 import { dist, rectDist, rectNearest } from '../geometry';
 import { state, type SimState } from '../internal';
 import { BASE_ID, type EnemyEnt, type PlayerEnt, type SimCtx } from '../types';
@@ -33,13 +34,9 @@ export function flyerAi(ctx: SimCtx, e: EnemyEnt): void {
   if (def.aggro) leash(s, e, def.aggro);
   const speed = e.stats.moveSpeed;
   if (e.ai === 'aggro') {
-    const p = s.units.get(e.target!) as PlayerEnt;
+    const p = s.units.get(e.target!)!;
     if (dist(e.x, e.y, p.x, p.y) - p.r <= range) aim(s, e, p.id, p.x, p.y);
     else walkTo(e, p.x, p.y, speed);
-    return;
-  }
-  if (e.ai === 'return') {
-    walkTo(e, e.leashFrom!.x, e.leashFrom!.y, speed);
     return;
   }
   const n = rectNearest(e.x, e.y, s.baseRect);

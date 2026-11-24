@@ -623,6 +623,8 @@ describe('the real rally flag and soldiers (RD9)', () => {
     const h = arena(['commander']);
     const flag = placeFlag(h, 18, 16);
     h.put(0, 1, 1);
+    // Soldiers at the flag are targets themselves (RD10-fix-1); this is about the flag alone.
+    for (const u of h.sim.world.soldiers) u.hp = 0;
     const brute = h.sim.spawnEnemy('brute', 15, 16);
     const siege = h.sim.spawnEnemy('siege', 21, 18);
     const y0 = siege.y;
@@ -637,11 +639,15 @@ describe('the real rally flag and soldiers (RD9)', () => {
     expect(h.sim.world.builds).toContain(flag);
   });
 
-  it('Siege shells knights, never picks a soldier, and its blast still hits one beside him', () => {
+  it('Siege shells the knight nearer than his soldiers, and its blast hits a soldier beside him', () => {
     const h = arena(['commander']);
     const s = h.sim.spawnEnemy('siege', 18, 16);
     h.put(0, 14, 16);
-    const u = h.sim.world.soldiers[0]!;
+    // Soldiers rank with the players, nearest first (RD10-fix-1): keep them out of range at first.
+    const [u, ...rest] = h.sim.world.soldiers as [SoldierEnt, ...SoldierEnt[]];
+    for (const x of rest) x.hp = 0;
+    u.x = 4;
+    u.y = 16;
     h.until(() => h.sim.world.markers.some((m) => m.source === s.id), 180);
     expect(s.target).toBe(h.p(0).id);
     const m = h.sim.world.markers.find((x) => x.source === s.id)!;
@@ -651,7 +657,6 @@ describe('the real rally flag and soldiers (RD9)', () => {
       u.y = m.y;
       h.run(1);
       hits += h.events('damage').filter((d) => d.source === s.id && d.target === u.id).length;
-      expect(s.target).not.toBe(u.id);
     }
     expect(hits).toBe(1);
   });

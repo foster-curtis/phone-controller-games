@@ -1,14 +1,16 @@
 // `siege` AI (SPEC §3.3, §9, §9.6, §15.5; RD10): the Bombard walks the ground field toward the base
 // and stops only with something in range, shelling the highest priority: base > players > builds,
-// nearest within each (#108). A higher-priority target entering range takes over at once, even mid
-// wind-up. A shot plants and charges (the wind-up, its tell), then lobs a shell: a red danger marker
-// shows where it lands, and the landing hits everything inside (players, soldiers, HP builds, the
-// Citadel; combat.ts). Rangers outrange it (§8).
+// nearest within each (#108); the Commander's soldiers count with the players (RD10-fix-1). A
+// higher-priority target entering range takes over at once, even mid wind-up. A shot plants and
+// charges (the wind-up, its tell), then lobs a shell: a red danger marker shows where it lands, and
+// the landing hits everything inside (players, soldiers, HP builds, the Citadel; combat.ts). Rangers
+// outrange it (§8).
 import { buildTargetable } from '../builds/core';
 import { dist, rectDist, rectNearest } from '../geometry';
 import { state, type SimState } from '../internal';
 import { BASE_ID, type EnemyEnt, type PlayerEnt, type SimCtx } from '../types';
 import { fieldStep, knocked, toBase } from './field';
+import { soldierTargetable } from './path';
 
 export function siegeAi(ctx: SimCtx, e: EnemyEnt): void {
   const s = state(ctx);
@@ -47,10 +49,11 @@ export function siegeAi(ctx: SimCtx, e: EnemyEnt): void {
   if (step.kind === 'goal') toBase(s, e, e.stats.moveSpeed);
 }
 
-/** Priority of a target: the base 0, a knight 1, a build 2 (lower goes first, #108). */
+/** Priority of a target: the base 0, a knight or soldier 1, a build 2 (lower goes first, #108). */
 function rank(s: SimState, id: number): number {
   if (id === BASE_ID) return 0;
-  return s.kinds.get(id) === 'player' ? 1 : 2;
+  const kind = s.kinds.get(id);
+  return kind === 'player' || kind === 'soldier' ? 1 : 2;
 }
 
 /** The highest-priority target in range, nearest within its kind (ties to the earlier one). */
@@ -66,6 +69,7 @@ function pickTarget(s: SimState, e: EnemyEnt, range: number): number | null {
     }
   };
   for (const p of s.world.players) if (s.targetable(p)) consider(p.id, p.x, p.y, p.r);
+  for (const u of s.world.soldiers) if (soldierTargetable(u)) consider(u.id, u.x, u.y, u.r);
   if (best !== null) return best;
   for (const b of s.world.builds) if (buildTargetable(b)) consider(b.id, b.x, b.y, b.r);
   return best;
