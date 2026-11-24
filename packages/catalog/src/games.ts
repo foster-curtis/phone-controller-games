@@ -5,9 +5,10 @@
 import fortFrenzy from '../../../apps/fort-frenzy/game.meta.ts';
 import sayCheese from '../../../apps/say-cheese/game.meta.ts';
 import sunnySide from '../../../apps/sunny-side/game.meta.ts';
+import thievesForum from '../../../apps/thieves-forum/game.meta.ts';
 import type { GameMeta } from './types.ts';
 
-export const GAMES: readonly GameMeta[] = [sunnySide, fortFrenzy, sayCheese];
+export const GAMES: readonly GameMeta[] = [sunnySide, fortFrenzy, sayCheese, thievesForum];
 
 /** Games shown on public surfaces (the gallery): every status but `hidden`, in catalog order. */
 export function listedGames(games: readonly GameMeta[] = GAMES): GameMeta[] {
