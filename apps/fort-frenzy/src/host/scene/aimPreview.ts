@@ -1,7 +1,7 @@
 // Aim previews (SPEC §10.1, §15.2; C3, C4): while a phone aims, the TV draws the attack's real hit
 // area (sim `aimPreview`): a transparent amber bar as wide as the bolt's hitbox for a single bolt
-// (C4), a transparent amber-filled sector for arcs, cones and spread volleys, and a filled 0.6
-// ellipse for circles (all ground overlay, under the units). Ours is amber; the fill and edge stay
+// (C4), a transparent amber-filled sector for arcs, cones and spread volleys, the same bar at the
+// attack's own width for rectangles (the shield bash, RD9-fix-1), and a filled 0.6 ellipse for circles (all ground overlay, under the units). Ours is amber; the fill and edge stay
 // dim enough to sit under the bloom threshold. Draws into the caller's pooled Graphics with no
 // per-vertex allocation: the §2.5 projection is linear on the ground, so vertices are the center
 // plus scaled offsets.
@@ -39,22 +39,14 @@ export function drawAimPreview(
   const c = Math.cos(angle);
   const s = Math.sin(angle);
   switch (shape.kind) {
-    case 'line': {
-      // A strip along the aim, the bolt's hit width across (C4: the cones' fill and edge).
-      const ex = c * shape.range * f.kx;
-      const ey = s * shape.range * f.ky;
-      const px = -s * boltRadius * f.kx;
-      const py = c * boltRadius * f.ky;
-      ground.beginPath();
-      ground.moveTo(f.sx + px, f.sy + py);
-      ground.lineTo(f.sx + ex + px, f.sy + ey + py);
-      ground.lineTo(f.sx + ex - px, f.sy + ey - py);
-      ground.lineTo(f.sx - px, f.sy - py);
-      ground.closePath();
-      ground.fillStyle(color, AIM_FILL_ALPHA).fillPath();
-      ground.lineStyle(2, color, AIM_EDGE_ALPHA).strokePath();
+    case 'line':
+      // The bolt's hit width across.
+      drawStrip(ground, f, c, s, shape.range, boltRadius, color);
       return;
-    }
+    case 'rect':
+      // The bash's solid rectangle: exactly what the sim hits (classes/sector.ts `inStrip`).
+      drawStrip(ground, f, c, s, shape.range, shape.width / 2, color);
+      return;
     case 'cone': {
       const r = shape.range;
       const steps = Math.max(4, Math.ceil(2 * shape.half * ARC_STEPS_PER_RAD));
@@ -79,6 +71,33 @@ export function drawAimPreview(
     case 'none':
       return;
   }
+}
+
+/**
+ * A strip from the feet along the aim (unit `c`, `s`), `range` long and `half` tiles either side
+ * (C4: the cones' fill and edge).
+ */
+function drawStrip(
+  ground: Phaser.GameObjects.Graphics,
+  f: GroundFrame,
+  c: number,
+  s: number,
+  range: number,
+  half: number,
+  color: number,
+): void {
+  const ex = c * range * f.kx;
+  const ey = s * range * f.ky;
+  const px = -s * half * f.kx;
+  const py = c * half * f.ky;
+  ground.beginPath();
+  ground.moveTo(f.sx + px, f.sy + py);
+  ground.lineTo(f.sx + ex + px, f.sy + ey + py);
+  ground.lineTo(f.sx + ex - px, f.sy + ey - py);
+  ground.lineTo(f.sx - px, f.sy - py);
+  ground.closePath();
+  ground.fillStyle(color, AIM_FILL_ALPHA).fillPath();
+  ground.lineStyle(2, color, AIM_EDGE_ALPHA).strokePath();
 }
 
 // ---- thrown builds (SPEC §7.3, §10.1; RD5) ----------------------------------------------------------

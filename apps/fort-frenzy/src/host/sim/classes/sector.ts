@@ -1,6 +1,7 @@
-// Arc and cone hit tests (SPEC §8: sword slash, nanite cone): a circle of radius `r` at (x, y) is hit
-// when it reaches within `range` of the apex and its edge lies inside the sector's angle. Leaf
-// module: plain math, shared with the TV's glints (render reads the same geometry).
+// Arc, cone and rectangle hit tests (SPEC §8: Warden arcs, nanite cone, shield bash): a circle of
+// radius `r` at (x, y) is hit when it reaches within `range` of the apex and its edge lies inside the
+// sector's angle, or when it overlaps the rectangle (RD9-fix-1). Leaf module: plain math, shared with
+// the TV's glints (render reads the same geometry).
 
 export interface Sector {
   x: number;
@@ -29,4 +30,29 @@ export function inSector(s: Sector, x: number, y: number, r: number): boolean {
   // The circle's angular half-width widens the sector a little, so edges count.
   const slack = Math.asin(Math.min(1, r / d));
   return Math.abs(angleDiff(Math.atan2(dy, dx), s.angle)) <= s.half + slack;
+}
+
+/** A solid rectangle from (x, y) along `angle`: `range` long, `half` its half-width (RD9-fix-1). */
+export interface Strip {
+  x: number;
+  y: number;
+  /** Direction, radians (world-ground angle). */
+  angle: number;
+  range: number;
+  /** Half the width, tiles. */
+  half: number;
+}
+
+/** A circle of radius `r` at (x, y) is hit when any of it overlaps the rectangle. */
+export function inStrip(s: Strip, x: number, y: number, r: number): boolean {
+  const c = Math.cos(s.angle);
+  const sn = Math.sin(s.angle);
+  const dx = x - s.x;
+  const dy = y - s.y;
+  // Into the strip's frame: u along it, v across it; then the nearest point of the rectangle.
+  const u = dx * c + dy * sn;
+  const v = -dx * sn + dy * c;
+  const cu = u < 0 ? 0 : u > s.range ? s.range : u;
+  const cv = v < -s.half ? -s.half : v > s.half ? s.half : v;
+  return (u - cu) * (u - cu) + (v - cv) * (v - cv) <= r * r;
 }

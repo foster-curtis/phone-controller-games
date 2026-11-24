@@ -231,14 +231,16 @@ export const commander = {
   role: 'control',
   moveSpeed: 4.3,
   radius: 0.34,
-  // Shield bash: a short aimed arc with knockback; a quick tap auto-aims (§8.2, RD9).
+  // Shield bash: an aimed solid rectangle from him along the aim, with knockback; a quick tap
+  // auto-aims (§8.2, RD9). RC2 (RD9-fix-1): was a 1.6-tile, 110° arc with knockback 1.2; now 40%
+  // longer, a little narrower than long, knockback ×0.8.
   main: {
-    shape: 'arc',
+    shape: 'rect',
     damage: 28,
-    range: 1.6,
-    arcDeg: 110,
+    range: 2.25,
+    width: 2,
     cooldownMs: 550,
-    knockback: 1.2,
+    knockback: 0.96,
     hitsFlyers: false,
   },
   // Reinforcements: an aimed throw of one soldier; a quick tap throws toward the flag, or straight
@@ -265,7 +267,8 @@ export const commander = {
     cap: 4,
     soldier: {
       hp: 60,
-      moveSpeed: 4.4,
+      // RC2 (RD9-fix-1): about 90% of his 4.3, so the squad trails him; `hurry` closes big gaps.
+      moveSpeed: 3.9,
       radius: 0.24,
       attack: { shape: 'arc', damage: 8, range: 0.5, cooldownMs: 900, hitsFlyers: false },
     },
@@ -1094,7 +1097,8 @@ export const commanderCards: CardDef[] = [
     owner: 'commander',
     tier: 'common',
     stats: [
-      { stat: 'arcDeg', addPct: 0.2, scope: 'main' },
+      // Wider: the bash's rectangle (RD9-fix-1).
+      { stat: 'width', addPct: 0.2, scope: 'main' },
       { stat: 'knockback', addPct: 0.4, scope: 'main' },
     ],
   },

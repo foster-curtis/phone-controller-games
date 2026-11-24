@@ -75,6 +75,8 @@ export const STAT_IDS = [
   'squadHp',
   'squadDamage',
   'squadSpeed',
+  /** A `rect` attack's width (Heavy Bash, RD9-fix-1). */
+  'width',
 ] as const;
 export type StatId = (typeof STAT_IDS)[number];
 
@@ -101,13 +103,19 @@ export interface EffectApply {
 // ---- attacks and units --------------------------------------------------------------------------
 
 export interface AttackDef {
-  /** `spawn`: hits nothing; Reinforcements throws soldiers (`KnightDef.super.spawn`, RD9). */
-  shape: 'projectile' | 'arc' | 'cone' | 'circle' | 'spawn';
+  /**
+   * `spawn`: hits nothing; Reinforcements throws soldiers (`KnightDef.super.spawn`, RD9). `rect`: a
+   * solid rectangle from the attacker along the aim, `range` long and `width` wide (the Commander's
+   * shield bash, RD9-fix-1).
+   */
+  shape: 'projectile' | 'arc' | 'cone' | 'circle' | 'spawn' | 'rect';
   damage: number;
   range: number;
   cooldownMs: number;
   windupMs?: number;
   arcDeg?: number;
+  /** `rect` attacks: the full width across the aim (tiles). */
+  width?: number;
   count?: number;
   spreadDeg?: number;
   /** Nanite blast: `count` shots over this long (RD8). */

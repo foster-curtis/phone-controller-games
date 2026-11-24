@@ -3,10 +3,11 @@
 import { rngStream } from '@pcg/game-kit';
 import { describe, expect, it } from 'vitest';
 import { content, type Content } from '../../../content';
-import { commander, rallyFlag } from '../../../content/balance';
+import { commander, grunt, rallyFlag } from '../../../content/balance';
 import type { CardId, ClassId } from '../../../shared/ids';
 import { buildFor, meView, type FfMember, type ViewCtx } from '../../net/views';
 import { rallyCryChance, rollRallyCry } from '../cards/commander';
+import { groundBody, sectorHitsBody } from '../body';
 import { aimPreview, createSim, soldierPreview, stateHash, superHeld } from '../index';
 import { resumeStart, takeSnapshot, type SnapshotMeta } from '../snapshot';
 import { harness, type Harness } from './harness';
@@ -67,7 +68,7 @@ describe('shield bash (§8.2)', () => {
     expect(front.x).toBeGreaterThan(x0 + 0.5);
   });
 
-  it('Heavy Bash: a wider arc and a stronger knockback', () => {
+  it('Heavy Bash: a wider bash and a stronger knockback', () => {
     const push = (cards: CardId[]) => {
       const h = fight(cards);
       const e = h.sim.spawnEnemy('grunt', 13.2, 14);
@@ -76,12 +77,103 @@ describe('shield bash (§8.2)', () => {
       return e.push!.x;
     };
     expect(push(['heavy_bash']) / push([])).toBeCloseTo(1.4, 6);
-    // The arc the sim hits with and the TV previews (classes/hitShape.ts).
-    const half = (cards: CardId[]) => {
+    // The rectangle the sim hits with and the TV previews (classes/hitShape.ts).
+    const width = (cards: CardId[]) => {
       const shape = aimPreview(fight(cards).p(0), commander, 'main', content.rules);
-      return shape.kind === 'cone' ? shape.half : 0;
+      return shape.kind === 'rect' ? shape.width : 0;
     };
-    expect(half(['heavy_bash']) / half([])).toBeCloseTo(1.2, 6);
+    expect(width(['heavy_bash']) / width([])).toBeCloseTo(1.2, 6);
+  });
+});
+
+// RC2 checkpoint notes on the Commander (RD9-fix-1).
+describe('RC2: squad speed and the rectangular bash', () => {
+  /** The bash before RC2: a 1.6-tile, 110° arc with knockback 1.2. */
+  const OLD = { range: 1.6, arcDeg: 110, knockback: 1.2 };
+
+  it("a soldier's base speed is a little below his (85–95%)", () => {
+    const ratio = commander.squad.soldier.moveSpeed / commander.moveSpeed;
+    expect(ratio).toBeLessThan(1);
+    expect(ratio).toBeGreaterThanOrEqual(0.85);
+    expect(ratio).toBeLessThanOrEqual(0.95);
+    // Far from their slot they hurry faster than he walks, so they still regroup.
+    expect(commander.squad.soldier.moveSpeed * commander.squad.hurry.factor).toBeGreaterThan(
+      commander.moveSpeed,
+    );
+  });
+
+  it('the squad trails him on the march and regroups when he stops', () => {
+    const h = fight();
+    h.run(120);
+    h.pads[0]!.set({ move: { x: 1, y: 0 } });
+    let worst = 0;
+    for (let i = 0; i < 150; i++) {
+      h.run(1);
+      for (const u of squad(h)) worst = Math.max(worst, Math.hypot(u.x - h.p(0).x, u.y - h.p(0).y));
+    }
+    // They fall behind his follow ring, but never past the hurry distance plus it.
+    expect(worst).toBeGreaterThan(commander.squad.followRadius + 0.3);
+    expect(worst).toBeLessThan(commander.squad.followRadius + commander.squad.hurry.at + 0.5);
+    h.pads[0]!.set({ move: { x: 0, y: 0 } });
+    h.run(180);
+    for (const u of squad(h)) expect(Math.hypot(u.x - h.p(0).x, u.y - h.p(0).y)).toBeLessThan(2.2);
+  });
+
+  it('the bash is a solid rectangle: a far corner hits (outside the old arc), past its end or side misses', () => {
+    const { range, width } = commander.main;
+    expect(range).toBeCloseTo(OLD.range * 1.4, 1);
+    expect(width).toBeLessThanOrEqual(range);
+    expect(width).toBeGreaterThanOrEqual(range * 0.75);
+    const h = fight();
+    for (const u of squad(h)) {
+      u.x = 30;
+      u.y = 20;
+      u.stats.moveSpeed = 0;
+    }
+    const { x: px, y: py } = h.p(0);
+    const r = grunt.body!.radius;
+    const at = (dx: number, dy: number) => {
+      const e = h.sim.spawnEnemy('grunt', px + dx, py + dy);
+      e.stats.moveSpeed = 0;
+      return e;
+    };
+    // Aimed east. Bodies reach north (−y) of their feet, so the probes off a side stand north of it.
+    const corner = at(range - 0.1, -(width / 2 - 0.1));
+    const pastEnd = at(range + r + 0.1, 0);
+    const pastSide = at(range / 2, -(width / 2 + r + 0.1));
+    // The corner is out of the old arc's reach, body and all.
+    const oldArc = {
+      x: px,
+      y: py,
+      angle: 0,
+      half: (OLD.arcDeg / 2) * (Math.PI / 180),
+      range: OLD.range,
+    };
+    expect(sectorHitsBody(oldArc, corner.x, corner.y, groundBody(grunt.body!))).toBe(false);
+    h.pads[0]!.tap('mainFires', { mainAim: { x: 1, y: 0 } });
+    h.run(1);
+    expect(corner.hp).toBeLessThan(corner.maxHp);
+    expect(pastEnd.hp).toBe(pastEnd.maxHp);
+    expect(pastSide.hp).toBe(pastSide.maxHp);
+  });
+
+  it('bash knockback is 0.8× the old value', () => {
+    expect(commander.main.knockback).toBeCloseTo(OLD.knockback * 0.8, 9);
+    // The same bash with the old knockback, for the push it gave.
+    const old: Content = {
+      ...content,
+      knights: content.knights.map((k) =>
+        k.id === 'commander' ? { ...k, main: { ...k.main, knockback: OLD.knockback } } : k,
+      ),
+    };
+    const push = (c: Content) => {
+      const h = fight([], { content: c });
+      const e = h.sim.spawnEnemy('grunt', 13.2, 14);
+      h.pads[0]!.tap('mainFires', { mainAim: { x: 1, y: 0 } });
+      h.run(1);
+      return Math.hypot(e.push!.x, e.push!.y);
+    };
+    expect(push(content) / push(old)).toBeCloseTo(0.8, 6);
   });
 });
 

@@ -134,14 +134,11 @@ describe('drawAimPreview', () => {
   });
 });
 
-// FF7-fix-3 (C3 follow-up): the Warden's slam and the Commander's slash are aimed; while aiming the TV
-// draws the sim's own sector for them (`aimPreview`), turned to the phone's aim.
+// FF7-fix-3 (C3 follow-up): the Warden's slam and the Commander's bash are aimed; while aiming the TV
+// draws the sim's own shape for them (`aimPreview`), turned to the phone's aim.
 describe('aimed melee previews', () => {
   const DEG = Math.PI / 180;
-  for (const [cls, def] of [
-    ['warden', warden],
-    ['commander', commander],
-  ] as const) {
+  for (const [cls, def] of [['warden', warden]] as const) {
     it(`${cls} main: a filled amber sector of the attack's real range and arc at the aim`, () => {
       const h = harness(1, 1, { classes: [cls] });
       h.toCombat();
@@ -166,6 +163,40 @@ describe('aimed melee previews', () => {
       expect(ground.r.fills).toEqual([[amber, AIM_FILL_ALPHA]]);
     });
   }
+});
+
+// RD9-fix-1 (RC2): "make it a wide solid rectangle instead of a cone." The TV draws the sim's own
+// rectangle: from his feet along the aim, the bash's real length and width.
+describe('Commander bash preview (RC2)', () => {
+  it("is a filled amber rectangle of the bash's real length and width at the aim", () => {
+    const h = harness(1, 1, { classes: ['commander'] });
+    h.toCombat();
+    h.holdSpawns();
+    h.pads[0]!.set({ mainAim: { x: -0.6, y: 0.8 }, mainAiming: true });
+    h.run(1);
+    const p = h.p(0);
+    const shape = aimPreview(p, commander, 'main', content.rules);
+    expect(shape).toEqual({
+      kind: 'rect',
+      range: commander.main.range,
+      width: commander.main.width,
+    });
+    const angle = Math.atan2(p.mainAim!.y, p.mainAim!.x);
+    const ground = fakeGfx();
+    drawAimPreview(ground.g, shape, frame, angle, amber, content.rules!.projectileRadius);
+    const c = Math.cos(angle);
+    const sn = Math.sin(angle);
+    const uv = ground.r.pts.map(toWorld).map(([x, y]) => [x! * c + y! * sn, -x! * sn + y! * c]);
+    expect(uv.length).toBe(4);
+    const us = uv.map(([u]) => u!);
+    const vs = uv.map(([, v]) => v!);
+    expect(Math.min(...us)).toBeCloseTo(0, 9);
+    expect(Math.max(...us)).toBeCloseTo(commander.main.range, 9);
+    expect(Math.min(...vs)).toBeCloseTo(-commander.main.width / 2, 9);
+    expect(Math.max(...vs)).toBeCloseTo(commander.main.width / 2, 9);
+    expect(ground.r.fills).toEqual([[amber, AIM_FILL_ALPHA]]);
+    expect(ground.r.strokes).toEqual([[2, amber, AIM_EDGE_ALPHA]]);
+  });
 });
 
 // FF7-fix-6 (C4): "The Ranger's aim line should match the style of the other players: it should be a

@@ -1109,6 +1109,10 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD10] decision: Charge starting values, soldiers hit like knights, one hit per run, lane width = hit width (#152); Mk III Runner calls run all fight (#153); Hunter stalk speed 1.3 per §9.1 (#154); boulder, rings and Charge take the wave multiplier (#155).
 - [RD10] decision: the peak bench's p99 swings around 2 ms under the parallel load on both this branch and its base (best runs 1.90 and 2.07 ms; means equal at 0.63 and 0.65 ms), so it's load, not this milestone.
 - [RD10] decision: the Charge skips soldiers in the air (RD9 Reinforcements), matching the slam and every marker.
+- [RD9-fix-1] contract+: `AttackDef.shape` gains `rect` and `AttackDef.width?`; `STAT_IDS` appends `width` (Heavy Bash widens the rectangle); sim `HitShape` gains `{ kind: 'rect'; range; width }`; SPEC §15.4 updated.
+- [RD9-fix-1] decision: the bash rectangle is 2.25 × 2 tiles (old 1.6-tile reach + 40%, a bit narrower than long), knockback 0.96 (1.2 × 0.8); knockback still pushes away from him (simplest, same as the arc), and an enemy body counts if any of its capsule overlaps the rectangle (the arc test's circles along the body, `stripHitsBody`) (#156).
+- [RD9-fix-1] decision: soldier speed is a value, 3.9 (90.7% of his 4.3), not a ratio: units live in content like every other speed; the hurry (×1.3 = 5.07 past 3 tiles) still catches him (#156).
+- [RD9-fix-1] decision: the unwound `arc` shape handler stays (no content uses it now); the optional sword slash trail (group `sword`, off in v1) keeps its 90° sweep since it is not a hit area.
 
 ## 9. Final handoff
 

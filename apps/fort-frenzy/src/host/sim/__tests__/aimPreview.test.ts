@@ -32,6 +32,7 @@ const BOOST: Modifier = {
     { stat: 'range', addPct: 0.3 },
     { stat: 'arcDeg', add: 12 },
     { stat: 'radius', addPct: 0.25 },
+    { stat: 'width', addPct: 0.2 },
   ],
 };
 
@@ -105,6 +106,10 @@ const cone = (s: HitShape) => {
   if (s.kind !== 'cone') throw new Error(`expected a cone, got ${s.kind}`);
   return s;
 };
+const rect = (s: HitShape) => {
+  if (s.kind !== 'rect') throw new Error(`expected a rect, got ${s.kind}`);
+  return s;
+};
 
 describe('preview geometry is the content through modifiers', () => {
   it('matches each class kit with no mods', () => {
@@ -126,11 +131,7 @@ describe('preview geometry is the content through modifiers', () => {
         },
       },
       commander: {
-        main: {
-          kind: 'cone',
-          range: commander.main.range,
-          half: (commander.main.arcDeg / 2) * DEG,
-        },
+        main: { kind: 'rect', range: commander.main.range, width: commander.main.width },
         super: { kind: 'none' },
       },
       warden: {
@@ -190,7 +191,6 @@ describe('the sim hits exactly the previewed area', () => {
   const arcs: [ClassId, 'main' | 'super'][] = [
     ['warden', 'main'],
     ['warden', 'super'],
-    ['commander', 'main'],
   ];
   for (const [cls, slot] of arcs) {
     for (const boosted of [false, true]) {
@@ -206,9 +206,9 @@ describe('the sim hits exactly the previewed area', () => {
     }
   }
 
-  // FF7-fix-3: the Warden's slam and the Commander's slash are aimed, so the previewed sector turns
-  // with the phone's aim and the hit turns with it.
-  for (const cls of ['warden', 'commander'] as const) {
+  // FF7-fix-3: the Warden's slam is aimed, so the previewed sector turns with the phone's aim and
+  // the hit turns with it (the Commander's bash: the rectangle below).
+  for (const cls of ['warden'] as const) {
     for (const ang of [2.2, -1.1]) {
       it(`${cls} main aimed at ${ang} rad: the reach and both edges follow the aim`, () => {
         const reach = (s: HitShape) => cone(s).range + R;
@@ -233,7 +233,6 @@ describe('the sim hits exactly the previewed area', () => {
   for (const [cls, card] of [
     ['warden', 'heavy_slam'],
     ['warden', 'reach'],
-    ['commander', 'reach'],
   ] as const) {
     it(`${cls} main with ${card}: the preview and the aimed hit agree`, () => {
       const base = cone(shapeOf(setup(cls, false), 'main'));
@@ -250,6 +249,43 @@ describe('the sim hits exactly the previewed area', () => {
       expect(hits(cls, 'main', card, (s) => polar(d(s), edge(s) + 0.02), ang)).toBe(false);
     });
   }
+
+  // RD9-fix-1 (RC2): the Commander's bash is a solid rectangle from him along the aim. A body
+  // overlapping it anywhere is hit (its far corners too), one just past its end or a side isn't;
+  // it turns with the aim and moves with mods and cards (Reach: longer; Heavy Bash: wider).
+  for (const boosted of [false, true, 'reach', 'heavy_bash'] as const) {
+    for (const ang of [0, 2.2, -1.1]) {
+      it(`commander main${boosted ? ` (${boosted === true ? 'a mod' : boosted})` : ''} at ${ang} rad: the rectangle`, () => {
+        const end = (s: HitShape) => rect(s).range + R;
+        const side = (s: HitShape) => rect(s).width / 2 + R;
+        const mid = (s: HitShape) => rect(s).range / 2;
+        expect(hits('commander', 'main', boosted, (s) => [end(s) - 0.02, 0], ang)).toBe(true);
+        expect(hits('commander', 'main', boosted, (s) => [end(s) + 0.02, 0], ang)).toBe(false);
+        for (const sd of [1, -1]) {
+          expect(
+            hits('commander', 'main', boosted, (s) => [mid(s), sd * (side(s) - 0.02)], ang),
+          ).toBe(true);
+          expect(
+            hits('commander', 'main', boosted, (s) => [mid(s), sd * (side(s) + 0.02)], ang),
+          ).toBe(false);
+          // The far corner, just inside.
+          const corner = (s: HitShape): [number, number] => [
+            rect(s).range - 0.02,
+            sd * (rect(s).width / 2 - 0.02),
+          ];
+          expect(hits('commander', 'main', boosted, corner, ang)).toBe(true);
+        }
+      });
+    }
+  }
+
+  it('Reach lengthens the bash and Heavy Bash widens it, in the preview', () => {
+    const base = rect(shapeOf(setup('commander', false), 'main'));
+    expect(rect(shapeOf(setup('commander', 'reach'), 'main')).range).toBeGreaterThan(base.range);
+    const wide = rect(shapeOf(setup('commander', 'heavy_bash'), 'main'));
+    expect(wide.width).toBeCloseTo(base.width * 1.2, 9);
+    expect(wide.range).toBeCloseTo(base.range, 9);
+  });
 
   for (const boosted of [false, true]) {
     it(`ranger super${boosted ? ' (with a mod)' : ''}: the circle's edge`, () => {

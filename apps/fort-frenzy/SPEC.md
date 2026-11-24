@@ -230,7 +230,7 @@ stays in the rig as the optional group `sword`, off in v1. The rally flag rides 
 while it isn't out; throwing it moves it into the world, so "following" vs "holding" is visible at a
 glance.
 Animations: idle, walk, main (**shield bash** toward the aim: a short lunge with the shield, impact
-sparks at the `shield` point; while aiming the TV shows the bash arc filled, §10.1), super
+sparks at the `shield` point; while aiming the TV shows the bash rectangle filled, §10.1), super
 (**Reinforcements**: he throws a footman a short distance, which lands and joins the squad; "×2" pops
 over the soldiers on a Rally Cry double spawn), throw flag / recall. Morale (the card) has no visual of
 its own.
@@ -859,7 +859,7 @@ the baseline knight HP, and the damage band multiplies the damage of the knight'
 | | Warden | Ranger | Artificer | Commander |
 |---|---|---|---|---|
 | Class | Tank | Marksman | Support | Control |
-| Main | **Hammer smash:** damage in an arc spreading out in front of him, knocking back targets that aren't already stunned (RC1) | **Longbow shot:** the longest range in the game | **Nanite blast:** about 5 nanites fired at random spots in a narrow cone over about 0.8 s (one burst per release; cooldown ≥ 0.8 s; spread from the seeded combat stream) | **Shield bash:** short-range hit in an arc with knockback |
+| Main | **Hammer smash:** damage in an arc spreading out in front of him, knocking back targets that aren't already stunned (RC1) | **Longbow shot:** the longest range in the game | **Nanite blast:** about 5 nanites fired at random spots in a narrow cone over about 0.8 s (one burst per release; cooldown ≥ 0.8 s; spread from the seeded combat stream) | **Shield bash:** a wide, solid rectangle from him along the aim (2.25 tiles long, 2 wide; every enemy whose body overlaps it is hit) with knockback (RC2) |
 | Super | **Jump slam:** a slow airborne wind-up (1.8 s; the whole move reads as about 2 s, RC1), then damage and stun in an arc as wide as the main's but longer; less damage than the main. The airborne pause is a tell for players (enemy AI doesn't dodge) | **Shockwave** from the Ranger: knockback and light damage in a wide circle | **Heal cone:** a wide nanite cone that heals himself and the allied knights it reaches (not builds, not soldiers) | **Reinforcements:** spawns one squad soldier, thrown a short distance. At the squad cap the button stays dimmed and the charge is held |
 | Build | Shield generator (thrown) | Mines (at feet) | Healing beacon (thrown) | Rally flag (thrown); recall |
 | Passive | None built in; Challenger card | None built in; Steady Aim card | None built in; Field Medic card | None built in; Morale card |
@@ -904,13 +904,18 @@ the baseline knight HP, and the damage band multiplies the damage of the knight'
 - **Squad cap:** starting value 4 (Reinforced Ranks: +1); tune in playtesting. At the cap the super
   button stays dimmed and its charge is held.
 - Soldiers have low HP. With a flag out they go to it and fight within its ring; with no flag out they
-  follow the Commander. Survivors carry over between waves, keeping their current HP (soldiers don't
+  follow the Commander. They walk a little slower than he does (3.9 vs his 4.3 tiles/s, about 90%;
+  RC2), so on the march they trail him; more than 3 tiles from their slot they hurry (×1.3) and
+  regroup. Forced March and Morale still apply on top. Survivors carry over between waves, keeping their current HP (soldiers don't
   regen).
 - Squad damage charges his super at a reduced rate, never his build meter. His damage for the balance
   rule (§2) counts his own plus the squad's.
 - **Thrown soldiers** can't be hit or targeted in the air and take their formation slot on landing.
   A double spawn never passes the cap. A new soldier takes the lowest free squad index.
 - **Last Stand** counts the soldiers short of the cap (RD9, §15.11 #142).
+- **Shield bash** (RC2): a solid rectangle from his feet along the aim, 2.25 tiles long (the old
+  1.6-tile arc + 40%) and 2 wide; knockback 0.96 (the old 1.2 × 0.8), pushed away from him. Heavy Bash
+  widens the rectangle (+20% `width`) and adds knockback (+40%).
 - **Two Commanders** each keep their own squad and flag.
 - **Morale** (card): see §6.1. It needs no TV visual of its own; Warcry reuses the morale flash.
 - The squad has no bonus archers in v1.
@@ -1281,7 +1286,8 @@ viewport. Sizes are fixed in px, with the minimums listed.
   sim uses (content through cards, growth and class multipliers): a transparent amber bar the bolt's
   range long and its hitbox wide (2 × `rules.projectileRadius`) for a single bolt (Ranger; #52), a
   transparent amber-filled cone for arcs, cones and spread volleys (Warden smash and jump slam,
-  Commander bash, Artificer blast and heal cone), a filled amber 0.6 ellipse for circles. **Thrown
+  Artificer blast and heal cone), a transparent amber-filled rectangle of the attack's length and
+  width for rectangles (Commander bash, RC2), a filled amber 0.6 ellipse for circles. **Thrown
   builds and soldiers** show the landing spot as a 0.6 ground ellipse at the build's real effect radius
   (the rally flag: the squad's flag ring), plus the throw range as a faint ring around the knight.
   Previews lie on the ground under the units, dim enough to stay out of the bloom. A super previews
@@ -2265,14 +2271,17 @@ export const STAT_IDS = [
   'buildMax',         // extra active builds (Minefield: add 1)
   'squadCap',         // Reinforced Ranks: add 1
   'squadHp', 'squadDamage', 'squadSpeed', // Drillmaster, Forced March
+  'width',            // a `rect` attack's width (Heavy Bash; RD9-fix-1)
 ] as const;
 export type StatId = (typeof STAT_IDS)[number];
 // StatMod.scope: 'main' | 'super' | 'build' | 'squad' (was 'passive'; omitted = the whole knight).
 
 export interface AttackDef {
-  shape: 'projectile' | 'arc' | 'cone' | 'circle' | 'spawn';  // 'spawn': Reinforcements (RD9)
+  // 'spawn': Reinforcements (RD9). 'rect': a solid rectangle from the attacker along the aim,
+  // `range` long and `width` wide; an enemy body overlapping it is hit (shield bash, RD9-fix-1).
+  shape: 'projectile' | 'arc' | 'cone' | 'circle' | 'spawn' | 'rect';
   damage: number; range: number; cooldownMs: number; windupMs?: number;
-  arcDeg?: number; count?: number; spreadDeg?: number;
+  arcDeg?: number; width?: number; count?: number; spreadDeg?: number;
   burstMs?: number;                                 // nanite blast: `count` shots over this long
   burstMinReach?: number;                           // nanite blast: nearest spot, fraction of range
   speed?: number; hitsFlyers: boolean; knockback?: number;
@@ -3169,3 +3178,4 @@ states, then RD0's own.
 | 153 | 2026-11-23 | Mk III Runner calls | Runner calls run for the whole Mk III fight, the first after half a cooldown; the final phase only shortens them (§9.2) | REDESIGN D2: Mk III adds calling Runners "and, in the final phase, the shockwave" (RD10) |
 | 154 | 2026-11-23 | Hunter pace | Stalk speed is §9.1's 1.3 (the code still had the tower-defense 1.5), × 1.4 once locked on; the lock holds until the quarry changes; the flash is at the quarry's feet (§9, §9.1, §9.6) | The two phases need a real speed change; §9.6 names the quarry's feet (RD10) |
 | 155 | 2026-11-23 | Boss damage scaling | The boulder, shockwave rings and Charge take the same difficulty × wave multiplier as the slam, read from its baked damage (§9.3) | The multiplier "applies to every type"; these three used difficulty only (RD10) |
+| 156 | 2026-11-24 | Commander RC2 notes (RD9-fix-1) | The shield bash is a solid rectangle (`AttackDef.shape 'rect'`, `width`, stat `width`) from his feet along the aim: 2.25 tiles long, 2 wide, every enemy body overlapping it hit, knockback 0.96 (×0.8), still pushed away from him; Heavy Bash widens it (+20% `width`) instead of the arc. Soldiers walk at 3.9 tiles/s, about 90% of his 4.3; the hurry (×1.3 past 3 tiles) still lets them regroup. The TV's aim preview draws the rectangle (§8.2, §8.4, §10.1, §15.4) | RC2 notes (Foster): "make the commander's squad slower"; "a wide solid rectangle instead of a cone", "+range", "−20% knockback" |

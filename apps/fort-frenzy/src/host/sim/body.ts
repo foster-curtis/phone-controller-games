@@ -6,7 +6,7 @@
 // Leaf module: plain math, no allocation per test (the projectile step runs it per candidate).
 import type { EnemyDef } from '../../content/types';
 import { GROUND_SQUASH } from '../../shared/projection';
-import { inSector, type Sector } from './classes/sector';
+import { inSector, inStrip, type Sector, type Strip } from './classes/sector';
 
 export interface GroundBody {
   /** Radius, tiles. */
@@ -116,6 +116,21 @@ export function sectorHitsBody(sec: Sector, ex: number, ey: number, b: GroundBod
   for (let k = 0; k <= n; k++) {
     const y = n === 0 ? near : near - (len * k) / n;
     if (inSector(sec, ex, y, b.r)) return true;
+  }
+  return false;
+}
+
+/**
+ * Does a rectangle (the shield bash, RD9-fix-1) reach the body of an enemy at (ex, ey)? The capsule
+ * is tested as circles along its segment, like `sectorHitsBody`.
+ */
+export function stripHitsBody(st: Strip, ex: number, ey: number, b: GroundBody): boolean {
+  const near = ey - b.lo;
+  const len = b.hi - b.lo;
+  const n = len > 0 ? Math.ceil((4 * len) / b.r) : 0;
+  for (let k = 0; k <= n; k++) {
+    const y = n === 0 ? near : near - (len * k) / n;
+    if (inStrip(st, ex, y, b.r)) return true;
   }
   return false;
 }
