@@ -204,6 +204,24 @@ describe('placing a build (§7.1, §7.3)', () => {
     expect({ x: b!.x, y: b!.y }).toEqual(pv.landing);
   });
 
+  it('a generator thrown from the loaded content lands within its flight time (RC2)', () => {
+    const def = content.builds.find((b) => b.id === 'shield_gen')!;
+    const soldier = content.knights.find((k) => k.id === 'commander')!.super.spawn!;
+    for (const v of [def.throw!.speed, soldier.throwSpeed]) {
+      expect(Number.isFinite(v) && v > 0).toBe(true);
+      expect(v).toBe(THROW_SPEED);
+    }
+    const h = combat(['warden'], content);
+    h.put(0, 10, 12);
+    h.pads[0]!.tap('buildFires', { buildAim: { x: 1, y: 0 } });
+    h.run(1);
+    const [b] = wardenBuilds(h);
+    expect(b!.state).toBe('flight');
+    const fly = Math.ceil((def.throw!.range / def.throw!.speed) * 60);
+    expect(h.collect('buildLanded', fly + 1)).toEqual([{ e: 'buildLanded', build: b!.id }]);
+    expect(b!.state).toBe('landed');
+  });
+
   it('a quick tap (aim 0,0) lands at his feet; the stick’s length sets the distance', () => {
     const h = combat();
     h.put(0, 10, 12);

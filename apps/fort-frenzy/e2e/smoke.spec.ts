@@ -103,8 +103,10 @@ test('solo Warden: start alone → wave 1 → shield generator → card → shop
   expect(build).toMatchObject({ kind: 'shield_gen', owner: 0 });
   expect((await meter()).full).toBe(false);
   await expect(ann.page.locator('.screen.combat .round-btn.action')).toHaveClass(/dimmed/);
+  // The clock is frozen: each poll steps 20 (a full-range throw flies 72 steps at THROW_SPEED, RC2;
+  // 5 per poll only covered RC1's 60 within the poll's 10 s).
   await expect
-    .poll(stepped(host, () => host.page.evaluate(() => window.__pcg!.builds()[0]?.state), 5))
+    .poll(stepped(host, () => host.page.evaluate(() => window.__pcg!.builds()[0]?.state), 20))
     .not.toBe('flight');
   await host.page.screenshot({ path: 'e2e/__screens__/smoke-build-landed.png' });
 
