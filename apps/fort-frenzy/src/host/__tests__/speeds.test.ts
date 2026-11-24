@@ -2,6 +2,7 @@
 // as a bolt (the Ranger's longbow, the base sentries) flies at PROJECTILE_SPEEDS.bolt.
 import { describe, expect, it } from 'vitest';
 import { content } from '../../content';
+import { THROW_SPEED } from '../../content/balance';
 import { SLAM_IMPACT_MS, STOMP_IMPACT_MS } from '../render/clips/warden';
 import { PROJECTILE_SPEEDS } from '../render/effectsMath';
 
@@ -19,8 +20,19 @@ describe('Warden wind-ups (FF8)', () => {
     const warden = content.knights.find((c) => c.id === 'warden')!;
     expect(warden.main.windupMs).toBe(SLAM_IMPACT_MS);
     expect(warden.super.windupMs).toBe(STOMP_IMPACT_MS);
-    // RC1: the jump slam is a slow, readable move of about 2 s.
-    expect(STOMP_IMPACT_MS).toBeGreaterThanOrEqual(1600);
-    expect(STOMP_IMPACT_MS).toBeLessThanOrEqual(2200);
+    // RC2: the jump slam lands in 1/2 to 2/3 of RC1's 1.8 s wind-up.
+    expect(STOMP_IMPACT_MS).toBeGreaterThanOrEqual(1800 / 2);
+    expect(STOMP_IMPACT_MS).toBeLessThanOrEqual((1800 * 2) / 3);
+  });
+});
+
+describe('throw speeds (RC2)', () => {
+  it('every thrown thing flies at one shared base speed, a little slower than RC1’s generator', () => {
+    const thrown = content.builds.filter((b) => b.throw);
+    expect(thrown.map((b) => b.id).sort()).toEqual(['beacon', 'rally_flag', 'shield_gen']);
+    const soldier = content.knights.find((c) => c.id === 'commander')!.super.spawn!;
+    for (const b of thrown) expect(b.throw!.speed, b.id).toBe(THROW_SPEED);
+    expect(soldier.throwSpeed).toBe(THROW_SPEED);
+    expect(THROW_SPEED).toBeLessThan(6);
   });
 });

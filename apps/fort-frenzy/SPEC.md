@@ -204,9 +204,9 @@ on the haft and an amber gravity coil at the center of the head, which brightens
 wind-up. Amber seams: chest chevron, power core, belt, pauldron trim, knee.
 Animations: idle, walk, main (hammer smash toward the aim; at impact the `slam` group swaps in the
 hammer standing on its striking face, with no ground cracks (RC1: those are the super's); while aiming
-the TV shows its cone, §10.1), super (**jump slam**, about 2 s: crouch, a slow airborne wind-up with the
-hammer raised and the shadow left on the ground, then at 1.8 s the landing hits with the same impact
-pose, `landing-dust` at his feet and `slam-cracks-wide`), throw (the shield generator).
+the TV shows its cone, §10.1), super (**jump slam**, about 1.35 s: crouch, an airborne wind-up with the
+hammer raised and the shadow left on the ground, then at 1.1 s the landing hits with the same impact
+pose, `landing-dust` at his feet and `slam-cracks-wide`; RC2, #125), throw (the shield generator).
 
 **Ranger (neon knights):** tall, narrow silhouette with a dark cloak behind and the bow in front;
 sallet helm with a narrow amber goggle slit; one long swept-back feather plume (feather shape is
@@ -773,6 +773,11 @@ These apply to every build unless its entry in §7.3 lists an exception.
     position + aim × his throw range, so it never passes the range (RD3, §15.11 #112). While aiming,
     the TV shows the landing spot as a 0.6 ground ellipse at the build's real effect radius, plus its
     maximum throw range (`sim/preview.ts` `buildPreview`, the same landing the sim uses).
+  - **Every throw flies at one speed** (RC2, #126): the shield generator, the healing beacon, the rally
+    flag and the Commander's Reinforcements soldier all fly at `THROW_SPEED` (5 tiles/s, `balance.ts`
+    builds section), so a throw's flight time is its distance / 5 s (1.2 s for a 6-tile build throw).
+    Each keeps its own `minFlightMs`, so a quick tap at the feet stays quick; Strong Arm multiplies a
+    build throw's speed on top.
 - **Builds as targets:** enemies target an HP build exactly as they target a knight, with the same
   aggro radius and leash; when a knight and a build are both in range, the enemy picks the **nearest**
   (the same tie-break used between knights). **Only builds with HP are targetable.** Charge builds
@@ -796,7 +801,7 @@ These apply to every build unless its entry in §7.3 lists an exception.
 - **Shield generator:** its damage reduction is a status effect (`guard`) re-applied each combat step to
   allied knights and soldiers in its radius; where generators overlap, the strongest wins. It applies
   after card damage reduction and outside its +40% cap (§15.3). Wide Field and Reinforced Generator
-  improve it. Its throw is a slow lob: 1 s at full range (RC1, #119).
+  improve it. Its throw is a slow lob at the shared throw speed: 1.2 s at full range (§7.3; RC2, #126).
 - **Mines** (exception to the one-build rule): one mine per full meter, **up to 3 active** (Minefield:
   +1); placing one more removes the oldest. A mine arms about 1 s after it's placed, then turns
   translucent to players (40%). A ground enemy entering its trigger radius starts a short trigger delay,
@@ -860,8 +865,8 @@ the baseline knight HP, and the damage band multiplies the damage of the knight'
 | | Warden | Ranger | Artificer | Commander |
 |---|---|---|---|---|
 | Class | Tank | Marksman | Support | Control |
-| Main | **Hammer smash:** damage in an arc spreading out in front of him, knocking back targets that aren't already stunned (RC1) | **Longbow shot:** the longest range in the game | **Nanite blast:** about 5 nanites fired at random spots in a narrow cone over about 0.8 s (one burst per release; cooldown ≥ 0.8 s; spread from the seeded combat stream) | **Shield bash:** a wide, solid rectangle from him along the aim (2.25 tiles long, 2 wide; every enemy whose body overlaps it is hit) with knockback (RC2) |
-| Super | **Jump slam:** a slow airborne wind-up (1.8 s; the whole move reads as about 2 s, RC1), then damage and stun in an arc as wide as the main's but longer; less damage than the main. The airborne pause is a tell for players (enemy AI doesn't dodge) | **Shockwave** from the Ranger: knockback and light damage in a wide circle | **Heal cone:** a wide nanite cone that heals himself and the allied knights it reaches (not builds, not soldiers) | **Reinforcements:** spawns one squad soldier, thrown a short distance. At the squad cap the button stays dimmed and the charge is held |
+| Main | **Hammer smash:** damage in an arc spreading out in front of him (2.89 tiles: RC2 made it 1.65× longer), with no knockback (RC2, #124) | **Longbow shot:** the longest range in the game | **Nanite blast:** about 5 nanites fired at random spots in a narrow cone over about 0.8 s (one burst per release; cooldown ≥ 0.8 s; spread from the seeded combat stream) | **Shield bash:** a wide, solid rectangle from him along the aim (2.25 tiles long, 2 wide; every enemy whose body overlaps it is hit) with knockback (RC2) |
+| Super | **Jump slam:** an airborne wind-up (1.1 s in a 1.35 s clip; RC2, #125), then damage and stun in an arc as wide as the main's but longer; less damage than the main. The airborne pause is a tell for players (enemy AI doesn't dodge) | **Shockwave** from the Ranger: knockback and light damage in a wide circle | **Heal cone:** a wide nanite cone that heals himself and the allied knights it reaches (not builds, not soldiers) | **Reinforcements:** spawns one squad soldier, thrown a short distance. At the squad cap the button stays dimmed and the charge is held |
 | Build | Shield generator (thrown) | Mines (at feet) | Healing beacon (thrown) | Rally flag (thrown); recall |
 | Passive | None built in; Challenger card | None built in; Steady Aim card | None built in; Field Medic card | None built in; Morale card |
 | Hits Flyers | No | Yes | Yes | No |
@@ -876,7 +881,7 @@ the baseline knight HP, and the damage band multiplies the damage of the knight'
 | Artificer | Aimed | Aimed | Aimed (thrown) |
 | Commander | Aimed | Aimed (soldier thrown a short distance; a quick tap aims toward the flag, or straight ahead with no flag out) | Aimed (thrown); a tap recalls when the meter isn't full and a flag is out |
 
-- **Jump slam wind-up (RC1, #116):** he is committed from the press to the landing: rooted, keeping the
+- **Jump slam wind-up (RC1, #116; timing RC2, #125):** he is committed from the press to the landing: rooted, keeping the
   aim and facing he jumped with; main and build presses are lost and no aim preview shows. He stays a
   target and takes damage. If he goes down or dazed, or the phase ends, the slam doesn't land (no
   damage, stun or impact effects) and the charge stays spent.
@@ -3181,6 +3186,9 @@ states, then RD0's own.
 | 121 | 2026-11-23 | Mine delay at a wave's end | A mine whose trigger delay is cut off by the end of the wave doesn't burst: it re-arms with its charge. Shrapnel Charge's shorter delay stops at `minTriggerMs` (120 ms) (§7.4) | Build effects run in combat only (§7.1); a burst in an empty build phase would waste the charge (RD7) |
 | 122 | 2026-11-23 | One-card prerequisites | A card with one prerequisite (Deadeye, Wide Aura) is gated by it but stacks like any other card unless marked unique; only two-card combos are implicitly unique (§6.1) | §6.1 marks only combos and named cards unique; the picker treated every `requires` as a combo (RD7) |
 | 123 | 2026-11-23 | Ranger kit on the TV | The `shockwave` frame replaces the Ranger's code-drawn ring and rolls out to his effective hit radius; the mine uses the shared life cycle with `liveAlpha` 0.4 and a `trigger` frame, its shadow fading with it; his Steady Aim pose shows only with the card (§2.4, §7.5, §15.2) | RD7 |
+| 124 | 2026-11-24 | Warden main reach (RC2) | The hammer smash reaches 1.65× as far (1.75 → 2.89 tiles; its aim preview with it, one `hitShape`) and knocks nothing back, stunned or not; #117's "already stunned" check is gone, its no-cracks rule stays. The jump slam never knocked back. The stun is unchanged (§8.2) | User, RC2: "Increase the range of the warden's main attack by 60-70% and remove the knockback" (RD3-fix-2) |
+| 125 | 2026-11-24 | Jump slam timing (RC2) | Revises #116's timing (RC1's "~2 s"): the wind-up is 1.1 s (was 1.8 s) and the clip 1.35 s (was 2.2 s), about 60%. Every clip beat (crouch, lift, hang, landing hold, hammer swap) is scaled by the same ~0.61, so no pose is cut. Damage, stun, `landing-dust` and `slam-cracks-wide` still land together at the impact, and #116's commit rules stand (§2.4, §8.2) | User, RC2: "Warden super animation is much too slow now. Make it 1/2 - 2/3 the length" (RD3-fix-2) |
+| 126 | 2026-11-24 | One throw speed | Every throw flies at `THROW_SPEED` 5 tiles/s (`balance.ts` builds section): the shield generator (was 6, #119), the beacon (was 12), the rally flag (was 14) and the Reinforcements soldier (was 10). Each keeps its `minFlightMs`; Strong Arm still multiplies build throws (§7.3, §7.4) | User, RC2: the generator's throw "slightly slower", and "all throws should be the same speed" (RD3-fix-2) |
 | 130 | 2026-11-23 | Nanite blast | 5 nanites, evenly over 0.8 s from the press, each to a random spot in the cone at 60–100% of the range (`combat:<wave>` stream), along the aim he released with. Each nanite restarts regen; going down, dazed or a phase end drops the rest. The cooldown never goes under `burstMs`, whatever his attack speed (§8.2) | One burst per release, and RC1's regen rule on the blast's own firing path (RD8) |
 | 131 | 2026-11-23 | Artificer healing | Field Medic and beacon healing charge the super at `superCharge.perHeal`, through Focus (Field Medic's own `chargeRate` is gone); only Field Medic charges the meter. The beacon pulses at once when it switches on, then every `heal.everyMs`, and keeps working while he is down; Booster Beacon raises heal per pulse (`buildPower`) and HP (§7.4, §8.3) | One charge rule for both heals; `buildPower` is the contract's heal-per-pulse stat (RD8) |
 | 132 | 2026-11-23 | Build HP on resume | A restored build's max HP is recomputed from its owner's cards before its saved HP is applied (§15.8) | Otherwise a resume clips a Booster Beacon back to base HP (RD8) |

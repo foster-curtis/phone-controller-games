@@ -3,7 +3,15 @@
 // aim preview and the class damage band.
 import { describe, expect, it } from 'vitest';
 import { content } from '../../../content';
-import { beacon, classes, grunt, rallyFlag, shieldGen, warden } from '../../../content/balance';
+import {
+  THROW_SPEED,
+  beacon,
+  classes,
+  grunt,
+  rallyFlag,
+  shieldGen,
+  warden,
+} from '../../../content/balance';
 import type { Content } from '../../../content';
 import type { ClassId } from '../../../shared/ids';
 import { buildBehaviors } from '../builds';
@@ -176,9 +184,9 @@ describe('placing a build (§7.1, §7.3)', () => {
     expect(b!.state).toBe('active');
   });
 
-  it('the shield generator flies 1 s at full range (RC1), then lands and arms on time', () => {
-    expect(beacon.throw.speed).toBe(12);
-    expect(rallyFlag.throw.speed).toBe(14);
+  it('the shield generator flies 1.2 s at full range (RC2), then lands and arms on time', () => {
+    // RC2: one shared throw speed for every thrown build.
+    for (const b of [shieldGen, beacon, rallyFlag]) expect(b.throw.speed, b.id).toBe(THROW_SPEED);
     const h = combat();
     h.put(0, 10, 12);
     h.pads[0]!.set({ buildAiming: true, buildAim: { x: 1, y: 0 } });
@@ -189,7 +197,7 @@ describe('placing a build (§7.1, §7.3)', () => {
     const [b] = wardenBuilds(h);
     const f = b!.flight!;
     expect(f.to).toEqual(pv.landing);
-    expect(f.landsAt - f.launchedAt).toBe(steps(1000));
+    expect(f.landsAt - f.launchedAt).toBe(steps((shieldGen.throw.range / THROW_SPEED) * 1000));
     expect(b!.liveAt).toBe(f.landsAt + steps(shieldGen.armMs));
     h.run(f.landsAt - h.sim.world.tick + 1);
     expect(b!.state).toBe('landed');

@@ -12,7 +12,8 @@ const OLD = {
 
 describe('C3 knight tuning', () => {
   it('the Warden slam and stomp: ~15% narrower, ~15% longer', () => {
-    expect(warden.main).toMatchObject({ range: 1.75, arcDeg: 102 });
+    // RC2 then lengthened the slam to 1.65× C3's 1.75 tiles (sim/__tests__/warden.test.ts).
+    expect(warden.main).toMatchObject({ range: 2.89, arcDeg: 102 });
     // The stomp's reach was retuned past C3's ~15% by the playtest balance (0fbe288): pin it as is.
     // RD3's jump slam: an arc as wide as the slam's, longer (§8.2).
     expect(warden.super).toMatchObject({ range: 4.7, arcDeg: warden.main.arcDeg });
@@ -22,7 +23,6 @@ describe('C3 knight tuning', () => {
       expect(now.arcDeg / old.arcDeg).toBeGreaterThan(0.8);
       expect(now.arcDeg / old.arcDeg).toBeLessThan(0.9);
       expect(now.range / old.range).toBeGreaterThan(1.1);
-      expect(now.range / old.range).toBeLessThan(1.2);
     }
   });
 

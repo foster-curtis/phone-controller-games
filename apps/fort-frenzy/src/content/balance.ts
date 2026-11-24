@@ -251,7 +251,16 @@ export const commander = {
     range: 0,
     cooldownMs: 500,
     hitsFlyers: false,
-    spawn: { count: 1, throwRange: 4, throwSpeed: 10, minFlightMs: 300, spread: 0.7 },
+    spawn: {
+      count: 1,
+      throwRange: 4,
+      // The shared THROW_SPEED (Builds section, RC2); a getter because it's declared further down.
+      get throwSpeed() {
+        return THROW_SPEED;
+      },
+      minFlightMs: 300,
+      spread: 0.7,
+    },
   },
   build: 'rally_flag',
   input: { main: 'aimed', super: 'aimed', build: 'aimed' },
@@ -291,26 +300,25 @@ export const warden = {
   moveSpeed: 3.8,
   radius: 0.36,
   // C3: both arcs ~15% narrower and ~15% longer (slam 1.5 → 1.75 tiles, 120° → 102°; stomp 3.2 → 3.7,
-  // 100° → 85°).
+  // 100° → 85°). RC2: the slam reaches 1.65× as far (1.75 → 2.89 tiles) and knocks nothing back.
   main: {
     shape: 'arc',
     damage: 30,
-    range: 1.75,
+    range: 2.89,
     arcDeg: 102,
     cooldownMs: 800,
     windupMs: 200,
-    knockback: 0.5,
     hitsFlyers: false,
   },
-  // Jump slam (§8.2, RD3): a slow airborne wind-up (RC1: the clip reads about 2 s), then an arc as wide
-  // as the slam's but longer, with less damage, that stuns.
+  // Jump slam (§8.2, RD3): an airborne wind-up (RC2: lands at 1.1 s in a 1.35 s clip; RC1 had 1.8 s
+  // in 2.2 s), then an arc as wide as the slam's but longer, with less damage, that stuns.
   super: {
     shape: 'arc',
     damage: 25,
     range: 4.7,
     arcDeg: 102,
     cooldownMs: 600,
-    windupMs: 1800,
+    windupMs: 1100,
     hitsFlyers: false,
     effects: [{ effect: 'stun', strength: 1, durationMs: 1800 }],
   },
@@ -329,11 +337,19 @@ export const knights: KnightDef[] = [ranger, artificer, commander, warden];
 // ==== Builds =====================================================================================
 // One build per knight (SPEC §7.4). Starting values: RD3 (shield generator) and RD7–RD9 tune them.
 
+/**
+ * Every throw flies at this base speed, tiles/s (RC2, §7.3): the shield generator, the beacon, the
+ * rally flag and the Commander's Reinforcements soldier. Strong Arm multiplies it for builds; each
+ * throw keeps its own `minFlightMs`, so a quick tap at the feet stays quick.
+ */
+export const THROW_SPEED = 5;
+
 export const shieldGen = {
   id: 'shield_gen',
   input: 'aimed',
-  // RC1: a slower lob, 1 s at full range (was 0.5 s). A quick tap at his feet keeps the short minimum.
-  throw: { range: 6, speed: 6, minFlightMs: 300 },
+  // A slow lob, 1.2 s at full range (RC2's shared speed; RC1 had 6). A quick tap at his feet keeps
+  // the short minimum.
+  throw: { range: 6, speed: THROW_SPEED, minFlightMs: 300 },
   hp: 300,
   radius: 2.5,
   bodyRadius: 0.4,
@@ -365,7 +381,7 @@ export const mine = {
 export const beacon = {
   id: 'beacon',
   input: 'aimed',
-  throw: { range: 6, speed: 12, minFlightMs: 300 },
+  throw: { range: 6, speed: THROW_SPEED, minFlightMs: 300 },
   hp: 200,
   radius: 2.5,
   bodyRadius: 0.35,
@@ -378,7 +394,7 @@ export const beacon = {
 export const rallyFlag = {
   id: 'rally_flag',
   input: 'aimed',
-  throw: { range: 8, speed: 14, minFlightMs: 250 },
+  throw: { range: 8, speed: THROW_SPEED, minFlightMs: 250 },
   // The squad's ring around the flag: also its aim preview's radius (§7.4).
   radius: commander.squad.formation.flagRing,
   bodyRadius: 0.3,

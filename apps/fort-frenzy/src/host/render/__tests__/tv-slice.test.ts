@@ -119,9 +119,11 @@ describe('Warden slam clips (art README "Redesign poses")', () => {
   it('the jump slam crouches, lifts the torso 34 units, then lands with the same swap', () => {
     for (const view of ['side', 'front', 'back']) {
       const name = `super@${view}`;
-      // RC1: the whole clip reads as about 2 s.
-      expect(clips[name]!.durationMs).toBeGreaterThanOrEqual(1800);
-      expect(clips[name]!.durationMs).toBeLessThanOrEqual(2400);
+      // RC2: 1/2 to 2/3 of RC1's 2.2 s clip.
+      expect(clips[name]!.durationMs).toBeGreaterThanOrEqual(2200 / 2);
+      expect(clips[name]!.durationMs).toBeLessThanOrEqual((2200 * 2) / 3);
+      // The landing pose and the recover still fit after the impact.
+      expect(clips[name]!.durationMs).toBeGreaterThan(JUMP_IMPACT_MS + 200);
       const crouch = at(name, JUMP_CROUCH_MS);
       const air = at(name, JUMP_IMPACT_MS - 200);
       const land = at(name, JUMP_IMPACT_MS + 10);

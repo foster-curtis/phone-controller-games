@@ -2,7 +2,9 @@
 // wind-up), the aimed stomp (longer arc, damage and a brief stun), and Mason (walls near him repair in
 // combat only, §5).
 import { describe, expect, it } from 'vitest';
+import { content } from '../../../content';
 import { classes, warden } from '../../../content/balance';
+import { aimPreview } from '../preview';
 import { harness } from './harness';
 
 // The tank's damage band multiplies the slam and the jump slam (§8.1).
@@ -117,9 +119,9 @@ describe('Warden jump slam wind-up (§8.2, RC1)', () => {
     return { h, near };
   }
 
-  it('lands about 2 s after the press, with its damage and stun together', () => {
-    expect(warden.super.windupMs).toBeGreaterThanOrEqual(1600);
-    expect(warden.super.windupMs).toBeLessThanOrEqual(2200);
+  it('lands 1/2 to 2/3 of RC1’s 1.8 s after the press, with its damage and stun together', () => {
+    expect(warden.super.windupMs).toBeGreaterThanOrEqual(1800 / 2);
+    expect(warden.super.windupMs).toBeLessThanOrEqual((1800 * 2) / 3);
     const { h, near } = jumping();
     h.run(WIND - 1);
     expect(near.hp).toBe(near.maxHp);
@@ -180,15 +182,33 @@ describe('Warden jump slam wind-up (§8.2, RC1)', () => {
   });
 });
 
-describe('Warden slam knockback (RC1)', () => {
-  it('knocks back an unstunned target', () => {
+describe('Warden slam reach and knockback (RC2)', () => {
+  it('reaches 1.65× RC1’s 1.75 tiles, in the hit and in its aim preview', () => {
+    const reach = 1.75 * 1.65;
+    expect(warden.main.range).toBeCloseTo(reach, 2);
+    const h = combat();
+    h.put(0, 10, 12);
+    const shape = aimPreview(h.p(0), warden, 'main', content.rules);
+    expect(shape).toMatchObject({ kind: 'cone', range: warden.main.range });
+    // A target past RC1's reach, inside the new one, is hit.
+    const e = tough(h, 10 + reach - 0.1, 12);
+    h.pads[0]!.tap('mainFires', { mainAim: { x: 1, y: 0 } });
+    h.run(1 + steps(warden.main.windupMs));
+    expect(e.maxHp - e.hp).toBe(warden.main.damage * TANK);
+  });
+
+  it('knocks nothing back, stunned or not', () => {
+    expect((warden.main as { knockback?: number }).knockback ?? 0).toBe(0);
     const h = combat();
     h.put(0, 10, 12);
     const e = tough(h, 11.2, 12);
+    e.stats.moveSpeed = 0;
+    const x = e.x;
     h.pads[0]!.tap('mainFires');
     h.run(1 + steps(warden.main.windupMs));
     expect(e.maxHp - e.hp).toBe(warden.main.damage * TANK);
-    expect(e.push).not.toBeNull();
+    expect(e.push).toBeNull();
+    expect(e.x).toBeCloseTo(x, 6);
   });
 
   it('damages a target that is already stunned without moving it', () => {

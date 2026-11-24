@@ -49,19 +49,24 @@ const SIDE_HAMMER_DOWN = 64;
 /** The slam's hammer hits the ground (= content `warden.main.windupMs`). */
 export const SLAM_IMPACT_MS = 200;
 /** The jump slam lands (= content `warden.super.windupMs`). */
-export const JUMP_IMPACT_MS = 1800;
+export const JUMP_IMPACT_MS = 1100;
 /** Older name of `JUMP_IMPACT_MS` (the TD stomp); kept for the importers that still use it. */
 export const STOMP_IMPACT_MS = JUMP_IMPACT_MS;
 /** The build kneel's first hammer tap on the plate. */
 export const BUILD_TAP_MS = 300;
 
 const SLAM_MS = 600;
-/** The whole jump slam reads as about 2 s (RC1): 1.8 s to the landing, then the recover. */
-const JUMP_MS = 2200;
+/**
+ * The whole jump slam, 1.1 s to the landing, then the recover (RC2: about 60% of RC1's 1.8 s in
+ * 2.2 s; every beat below is scaled by the same ~0.61, so no pose is cut).
+ */
+const JUMP_MS = 1350;
 /** Torso lift of the jump slam's airborne pose, sprite units (art README "Redesign poses"). */
 export const JUMP_LIFT = 34;
 /** The upright hammer is hidden from the impact until this long after it (the recover). */
 const SLAM_HOLD_MS = 260;
+/** The same for the jump slam's landing, scaled with its clip (RC2). */
+const JUMP_HOLD_MS = 160;
 const BUILD_MS = 760;
 
 /** Every glow piece, the split leg halves included. */
@@ -186,10 +191,12 @@ function slam(view: ViewId): Clip {
 
 const S = JUMP_IMPACT_MS;
 /** Jump slam beats: crouch done, airborne peak reached, still up, then the landing at S. */
-export const JUMP_CROUCH_MS = 420;
+export const JUMP_CROUCH_MS = 260;
 const J_CROUCH = JUMP_CROUCH_MS;
-const J_UP = 1000;
-const J_HANG = S - 120;
+const J_UP = 610;
+/** How long before the landing the hang ends, and how long the landing pose holds (RC2 scale). */
+const J_DROP = 75;
+const J_HANG = S - J_DROP;
 /** Crouch: the legs shorten to 0.74 and the torso drops with them (art README "Redesign poses"). */
 const CROUCH_SY = 0.74;
 const CROUCH_DROP = 11;
@@ -214,7 +221,7 @@ function jump(view: ViewId): Clip {
     { t: J_UP, dy: -JUMP_LIFT, sy: 1.02, rot: view === 'side' ? -4 : 0 },
     { t: J_HANG, dy: -JUMP_LIFT, sy: 1.02, rot: view === 'side' ? -4 : 0 },
     { t: S, dy: 3, sy: 0.96, rot: view === 'side' ? 8 : 0 },
-    { t: S + 120, dy: 3, sy: 0.96, rot: view === 'side' ? 8 : 0 },
+    { t: S + J_DROP, dy: 3, sy: 0.96, rot: view === 'side' ? 8 : 0 },
     { t: JUMP_MS, dy: 0, sy: 1, rot: 0 },
   ];
   // The legs: shortened in the crouch, dangling at full length in the air, planted on the landing.
@@ -237,7 +244,7 @@ function jump(view: ViewId): Clip {
     { t: J_UP, dy: up },
     { t: J_HANG, dy: up },
     { t: S, dy: down },
-    { t: S + 120, dy: down },
+    { t: S + J_DROP, dy: down },
     { t: JUMP_MS, dy: 0 },
   ];
   if (view === 'side') {
@@ -248,9 +255,10 @@ function jump(view: ViewId): Clip {
         frontleg: legKeys(1),
         backleg: legKeys(1),
         // The head goes up over his shoulder in the air, then lands on its short end (rot 64).
-        hammer: [...hammerUp(0, -42, SIDE_HAMMER_DOWN), { t: S + 120, rot: SIDE_HAMMER_DOWN }].sort(
-          (x, y) => x.t - y.t,
-        ),
+        hammer: [
+          ...hammerUp(0, -42, SIDE_HAMMER_DOWN),
+          { t: S + J_DROP, rot: SIDE_HAMMER_DOWN },
+        ].sort((x, y) => x.t - y.t),
         gauntlet: raise(-12, 2),
       },
       flare,
@@ -263,10 +271,10 @@ function jump(view: ViewId): Clip {
     { torso },
     each([...legs, ...legGlows], legKeys(1)),
     { gauntlets: raise(-10, 6) },
-    { hammer: hammerOff(S, S + SLAM_HOLD_MS, hammerUp(0, -6, 4)) },
+    { hammer: hammerOff(S, S + JUMP_HOLD_MS, hammerUp(0, -6, 4)) },
     flare,
-    { 'hammer-glow': hammerOff(S, S + SLAM_HOLD_MS, coil(S, JUMP_MS)) },
-    slamGroup(S, S + SLAM_HOLD_MS, coil(S, JUMP_MS)),
+    { 'hammer-glow': hammerOff(S, S + JUMP_HOLD_MS, coil(S, JUMP_MS)) },
+    slamGroup(S, S + JUMP_HOLD_MS, coil(S, JUMP_MS)),
   );
 }
 

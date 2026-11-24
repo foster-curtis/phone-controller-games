@@ -30,16 +30,14 @@ export interface ArcHit {
 
 /**
  * A slam or stomp lands: every enemy in the arc (ground only unless the attack hits Flyers) takes the
- * damage, then the attack's effects (the stomp's stun) and a knockback away from the Warden. The
- * main doesn't knock back a target that was already stunned (RC1). Returns the enemies hit.
+ * damage, then the attack's effects (the stomp's stun). Neither knocks back (RC2). Returns the
+ * enemies hit.
  */
 export function landArc(s: SimState, p: PlayerEnt, h: ArcHit): EnemyEnt[] {
   const a = h.attack;
   // The same geometry as the TV's aim preview (classes/hitShape.ts).
   const g = sectorGeometry(a, (b, st) => s.attackStat(p, b, st, h.slot));
   const reach = g.range;
-  const knock = s.attackStat(p, a.knockback ?? 0, 'knockback', h.slot);
-  const v0 = knock * 60 * (1 - s.cat.rules.knockbackDecay);
   // The same sector test as the Commander's slash (FF9, classes/sector.ts).
   const sec = {
     x: p.x,
@@ -63,23 +61,8 @@ export function landArc(s: SimState, p: PlayerEnt, h: ArcHit): EnemyEnt[] {
     hit.push(e);
   }
   for (const e of hit) {
-    // Read before this hit's own effects.
-    const held = h.slot === 'main' && stunned(e);
     s.damage({ source: p.id, target: e.id, amount: h.damage, kind: h.kind, tags: [...h.tags] });
     for (const fx of h.effects) s.applyEffect(e.id, fx, p.id);
-    if (v0 > 0 && e.hp > 0 && !held) {
-      let dx = e.x - p.x;
-      let dy = e.y - p.y;
-      const d = Math.sqrt(dx * dx + dy * dy);
-      if (d < 1e-6) {
-        dx = h.dx;
-        dy = h.dy;
-      } else {
-        dx /= d;
-        dy /= d;
-      }
-      e.push = { x: (e.push?.x ?? 0) + dx * v0, y: (e.push?.y ?? 0) + dy * v0 };
-    }
   }
   return hit;
 }

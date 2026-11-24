@@ -255,7 +255,7 @@ function fire(
     circle(s, p, a, slot, damage, atk);
     return;
   }
-  // A wound-up arc landing (the Warden's slam and stomp, FF8): its effects (stun) and knockback.
+  // A wound-up arc landing (the Warden's slam and stomp, FF8): its effects (stun), no knockback (RC2).
   if (a.shape === 'arc' && landing) {
     // Cards lengthen the attack's own effects (FF12: Earthshaker's `stunMs`, others' `durationMs`).
     const extra = ((a as { effects?: readonly EffectApply[] }).effects ?? []).map((fx) => ({
