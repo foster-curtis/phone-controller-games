@@ -13,6 +13,7 @@ Same-room party games: the TV runs the game in a browser, phones are the control
 | `apps/sunny-side`         | `@pcg/sunny-side`     | Sunny Side Slam: host (`/`) + phone controller (`/play`)                 |
 | `apps/fort-frenzy`        | `@pcg/fort-frenzy`    | Fort Frenzy: host (`/`) + phone controller (`/play`)                     |
 | `apps/say-cheese`         | `@pcg/say-cheese`     | Say Cheese!: host (`/`) + phone controller (`/play`)                     |
+| `apps/thieves-forum`      | `@pcg/thieves-forum`  | Thieves' Forum: host (`/`) + phone controller (`/play`)                  |
 | `apps/gallery`            | `@pcg/gallery`        | Game Gallery at games.fostercurtis.dev: one static page from the catalog |
 | `packages/net-client`     | `@pcg/net-client`     | Relay protocol types + host/controller clients (TS source)               |
 | `packages/controller-kit` | `@pcg/controller-kit` | Phone platform, app shell, input widgets, gestures, sender, dev harness  |
@@ -35,7 +36,8 @@ pnpm install
 
 ## Develop
 
-Scripts are per game (`<game>` is the app folder name: `sunny-side`, `fort-frenzy` or `say-cheese`):
+Scripts are per game (`<game>` is the app folder name: `sunny-side`, `fort-frenzy`,
+`say-cheese` or `thieves-forum`):
 
 ```sh
 pnpm dev:sunny-side       # relay on :8787 + Vite on :5173 (http://localhost:5173, phones at /play)
@@ -50,7 +52,7 @@ With `dev:lan:<game>`, open `http://<laptop-LAN-IP>:5173` on the TV and
 ### Real phones over HTTPS
 
 ```sh
-pnpm dev:https:sunny-side   # also dev:https:fort-frenzy, dev:https:say-cheese
+pnpm dev:https:sunny-side   # also dev:https:fort-frenzy, dev:https:say-cheese, dev:https:thieves-forum
 ```
 
 Serves the game over HTTPS on the LAN (default `https://<LAN-IP>:5443`, flags `--port` and

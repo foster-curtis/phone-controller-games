@@ -20,6 +20,9 @@ const PLAY_JS_LIMIT_KB = {
   'fort-frenzy': 100,
   // Say Cheese: no Phaser, a DOM controller plus the kits.
   'say-cheese': 40,
+  // Thieves' Forum: no Phaser on the phone; a DOM controller plus the kits like Say Cheese's (shell
+  // ~10 KB at setup), with Say Cheese's headroom for the real joystick, stall and tip-off screens.
+  'thieves-forum': 40,
   // controller-compat: the shared heartbeat, full-screen, keep-awake and diagnostics code (+3.4 KB).
   'sunny-side': 23,
 };
