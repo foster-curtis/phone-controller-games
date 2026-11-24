@@ -1,0 +1,129 @@
+/* Read-only brand kit ("Gilded denarius", SPEC §6.0): never edit; theme.ts mirrors it and theme.test.ts checks the mirror. */
+/* Thieves' Forum brand tokens. Generated from tokens.json. Dark only. */
+:root {
+  color-scheme: dark;
+  --brand-ink: #14161a;
+  --brand-paper: #ffffff;
+  --brand-amber: #e8a33d;
+  --brand-gray: #6b7280;
+  --background: #14161a;
+  --foreground: #ffffff;
+  --surface: #1a1d23;
+  --surface-strong: #22262e;
+  --border: #2e333c;
+  --border-control: #6b7280;
+  --muted: #9aa1ad;
+  --gold: var(--brand-amber);
+  --gold-on: #14161a;
+  --bronze: #a8703a;
+  --bronze-light: #c48a4c;
+  --travertine: #e9dfc9;
+  --travertine-light: #f3ecdd;
+  --linen-bleached: #efe6d2;
+  --forum-ground: #b9a888;
+  --paver-line: #a3926f;
+  --wood-light: #c9a27a;
+  --wood: #8a6648;
+  --wood-dark: #5a3f2c;
+  --wood-post: #7a5a43;
+  --shelf-back: #3e2b1f;
+  --shelf-top: #a07a55;
+  --shelf-edge: #6b4a33;
+  --cone-idle: #e9dfc9;
+  --cone-alert: var(--danger);
+  --accent: var(--brand-amber);
+  --accent-on: #14161a;
+  --accent-text: #e8a33d;
+  --select: #ffffff;
+  --danger: #e05252;
+  --danger-on: #14161a;
+  --success: #3fb98a;
+  --presence-off: #5a6270;
+  --scrim: rgba(10, 11, 13, 0.72);
+  --reveal-dim: rgba(10, 11, 13, 0.55);
+  --closed-stall-shade: rgba(10, 11, 13, 0.42);
+
+  /* outfit fabrics (shared by players and NPCs; never player colors) */
+  --fabric-linen: #d9cfb8;
+  --fabric-umber: #7a5a43;
+  --fabric-terracotta: #a85f45;
+  --fabric-madder: #9c5a63;
+  --fabric-olive: #7d7f4f;
+  --fabric-sage: #8a9a7e;
+  --fabric-woad: #5b7186;
+  --fabric-mulberry: #6e5a72;
+
+  /* stall canopies, one per shop */
+  --canopy-pawnbroker: #3a404b;
+  --canopy-bakery: #d9cfb8;
+  --canopy-pottery: #a85f45;
+  --canopy-clothing: #5b7186;
+  --canopy-wine: #9c5a63;
+  --canopy-smithy: #7a5a43;
+  --canopy-perfume: #8a9a7e;
+  --canopy-spices: #a8703a;
+  --canopy-rugs: #7d7f4f;
+  --canopy-jewelry: #6e5a72;
+
+  /* player colors: phone banner + end-of-round reveal only (never on characters during a round) */
+  --player-crimson: #c23b3b;
+  --player-crimson-on: #ffffff;
+  --player-cobalt: #2f63c4;
+  --player-cobalt-on: #ffffff;
+  --player-jade: #3fb98a;
+  --player-jade-on: #14161a;
+  --player-berry: #a8327f;
+  --player-berry-on: #ffffff;
+  --player-bone: #e3e5e9;
+  --player-bone-on: #14161a;
+  --player-sky: #7cc4f2;
+  --player-sky-on: #14161a;
+  --player-rose: #f2a0b8;
+  --player-rose-on: #14161a;
+  --player-forest: #2f7d4f;
+  --player-forest-on: #ffffff;
+
+  /* spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-tv-safe: 96px;
+
+  /* radius */
+  --radius: 6px;
+  --radius-card: 10px;
+  --radius-panel: 14px;
+  --radius-pill: 999px;
+  --radius-mark: 14px;
+
+  /* signature: the stamped coin edge (dashed inner ring). Primary action and money only. */
+  --coin-edge: 1.5px dashed #14161a;
+  --coin-edge-offset: -5px;
+
+  /* type */
+  --font-display: "Cinzel", "Trajan Pro", Georgia, serif;
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.title { font: 900 96px/1 var(--font-display); letter-spacing: 4px; text-transform: uppercase; }
+.banner { font: 900 56px/1 var(--font-display); letter-spacing: 3px; text-transform: uppercase; }
+.h2 { font: 900 32px/1.1 var(--font-display); letter-spacing: 2px; text-transform: uppercase; }
+.name-phone { font: 900 15px/1 var(--font-display); letter-spacing: 1px; text-transform: uppercase; }
+.button { font: 900 14px/1 var(--font-display); letter-spacing: 1px; text-transform: uppercase; }
+.name-tv { font: 600 22px/1 var(--font-sans); }
+.body { font: 400 18px/26px var(--font-sans); }
+.label { font: 600 16px/20px var(--font-sans); }
+.caption { font: 400 14px/20px var(--font-sans); }
+.money { font: 600 18px/1 var(--font-mono); }
+.code-tv { font: 600 64px/1 var(--font-mono); letter-spacing: 8px; }
+.code { font: 600 24px/1 var(--font-mono); letter-spacing: 4px; }
+
+/* stamped coin edge on a filled amber element */
+.coin-edge { outline: var(--coin-edge); outline-offset: var(--coin-edge-offset); }
+
+body { margin: 0; background: var(--background); color: var(--foreground); font: 400 18px/26px var(--font-sans); }

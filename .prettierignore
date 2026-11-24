@@ -14,6 +14,9 @@ apps/fort-frenzy/brand/
 apps/say-cheese/src/styles/brand.css
 apps/say-cheese/public/
 apps/say-cheese/brand/
+apps/thieves-forum/src/styles/brand.css
+apps/thieves-forum/public/
+apps/thieves-forum/brand/
 apps/gallery/src/brand/
 apps/gallery/public/
 apps/gallery/brand/
@@ -24,6 +27,8 @@ apps/fort-frenzy/index.html
 apps/fort-frenzy/play.html
 apps/say-cheese/index.html
 apps/say-cheese/play.html
+apps/thieves-forum/index.html
+apps/thieves-forum/play.html
 apps/*/generated/
 PLATFORM.md
 apps/*/SPEC.md
