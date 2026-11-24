@@ -15,7 +15,7 @@ import type { ClassId, EffectId } from '../../shared/ids';
 import { theme } from '../../shared/theme';
 import type { ArtImage } from '../render/atlas';
 import { drawBowString } from '../render/bowString';
-import { pickFacing, enemyMirror, type Facing } from '../render/aim';
+import { pickFacing, enemyMirror, heldAim, type Facing } from '../render/aim';
 import { KNIGHT_DOWN } from '../render/clipKit';
 import { ATTACK_MS } from '../render/clips/ranger';
 import { enemyBarWidth, enemyHasHpBar, hpBarShown } from '../render/buildLook';
@@ -383,6 +383,9 @@ export class WorldView {
       case 'buildPlaced': {
         // He kneels and sets the mine (§2.4); the mine's own view does the rest.
         const k = this.knights.get(e.slot);
+        // Mine and beacon throws have no aim of their own: face where he was facing (RC2).
+        const pl = w.players.find((x) => x.slot === e.slot);
+        if (k && pl) k.shotAngle = pl.facing;
         if (e.kind === 'mine' && k && !k.down) k.rig.play('build', { restart: true, fadeMs: 40 });
         return;
       }
@@ -589,6 +592,9 @@ export class WorldView {
   private aimOf(p: PlayerEnt, k: Knight): number | null {
     // In the jump slam he holds the aim he jumped along (§8.2), whatever the sticks do.
     if (p.super.windupEndsAt !== null) return k.shotAngle;
+    // One rule for every knight: the attack's aim holds until its clip ends (RC2).
+    const held = heldAim(k.rig.clip, k.rig.clipDone, k.shotAngle);
+    if (held !== null) return held;
     if (p.mainAim && (p.mainAim.x !== 0 || p.mainAim.y !== 0))
       return Math.atan2(p.mainAim.y, p.mainAim.x);
     if (this.t < k.shotUntil) return k.shotAngle;

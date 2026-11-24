@@ -615,7 +615,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 260px;
+  flex: none;
 }
 #tv-ui .pv-head .pad {
   font: 700 28px/1 var(--font-display);
@@ -625,21 +625,23 @@
 }
 #tv-ui .pv-tiles {
   display: flex;
-  gap: 14px;
+  gap: var(--pv-gap, 14px);
   flex: 1;
-  justify-content: flex-end;
+  min-width: 0;
+  justify-content: flex-start;
 }
 #tv-ui .eny {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 120px;
+  width: var(--pv-tile, 120px);
+  flex: none;
 }
 #tv-ui .eny .tile {
   position: relative;
   display: block;
-  width: 120px;
-  height: 88px;
+  width: var(--pv-tile, 120px);
+  height: calc(var(--pv-tile, 120px) * 88 / 120);
   background: var(--stone);
   clip-path: var(--clip-chamfer-sm);
 }

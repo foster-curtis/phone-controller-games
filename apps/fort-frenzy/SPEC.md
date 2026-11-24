@@ -160,8 +160,9 @@ The art is in `art/neon-knights/` (§15.10); its `README.md` holds the per-frame
 - **View:** oblique three-quarter top-down, defined exactly in §2.5. Every part shows its top face
   above its front face.
 - **Facing (4 directions):** each knight and each footman has three body views: side (mirrored for left
-  and right), front (facing the camera) and back. A unit faces where it's aiming while attacking, and
-  otherwise where it's moving; it picks the view from the stronger axis, with a small dead zone so it
+  and right), front (facing the camera) and back. A unit faces where it's aiming while attacking and
+  keeps that facing until the attack's clip ends (main, super, mine kneel and build throw, whatever it is
+  moving toward), and otherwise faces where it's moving; it picks the view from the stronger axis, with a small dead zone so it
   doesn't flicker on diagonals. Attack arcs, the aim line and the ring notch still rotate a full 360°.
   Enemies use the side view only (mirrored) in v1; back views for common walkers are a v2 candidate.
   The Artificer's backpack gauge only needs to read in the side and back views.
@@ -1687,7 +1688,7 @@ Everything sits inside the brand's 96 px TV-safe margin (`--space-tv-safe`) on a
 | Top HUD | 96–136 | wave and phase (left), base HP bar centered directly above the Citadel, team coins (right); "Citadel under attack" under the bar at low HP |
 | Headroom | 136–216 | the Citadel's keep, core and smoke plumes rise into it (§3.6) |
 | Playfield | 216–907 | 36 × 24 sim tiles, x 96–1824; during the build phase, ready status and the wishlist overlay its right side |
-| Bottom HUD | 907–984 | boss bar (boss waves); purchase announcements stack bottom-left. The build phase's next-wave card is 156 px tall (828–984, x 600–1760, clear of the announcements): it ends on the bottom edge and overlays the playfield's last rows so enemy icons (120 × 88) read from the couch (C1) |
+| Bottom HUD | 907–984 | boss bar (boss waves); purchase announcements stack bottom-left. The build phase's next-wave card is 156 px tall (828–984, x 600–1760, clear of the announcements): it ends on the bottom edge and overlays the playfield's last rows so enemy icons (120 × 88, shrinking to 56 wide with tighter spacing when a wave has many types, so none is cut) read from the couch (C1); the text block is only as wide as its text and the icons follow it (RC2) |
 | Bottom margin | 984–1080 | nothing (TV-safe) |
 
 - **Map v1** (`src/content/map.ts`, §15.4): 36 × 24 tiles, all `open` except the Citadel footprint

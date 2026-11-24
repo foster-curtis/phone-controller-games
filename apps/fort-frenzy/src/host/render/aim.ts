@@ -60,6 +60,26 @@ export function pickFacing(dx: number, dy: number, prev: Facing | null = null): 
   return { view: dy > 0 || (dy === 0 && prev?.view === 'front') ? 'front' : 'back', mirror: false };
 }
 
+/** Knight clips that own the facing while they play: main, super, mine kneel and build throw (RC2). */
+export const FACING_HOLD_CLIPS: ReadonlySet<string> = new Set([
+  'attack',
+  'super',
+  'build',
+  'throw',
+]);
+
+/**
+ * The aim a knight keeps while an attack clip plays, whatever the sticks do; null once it ends.
+ * Read from the clip itself (not a timer), so a long burst such as the Artificer's holds to its end.
+ */
+export function heldAim(
+  clip: string | null,
+  clipDone: boolean,
+  attackAngle: number,
+): number | null {
+  return clip !== null && FACING_HOLD_CLIPS.has(clip) && !clipDone ? attackAngle : null;
+}
+
 /** Enemies use the side view only, mirrored for left (§2.4); Wasp drones mirror only. */
 export function enemyMirror(dx: number, prev: boolean): boolean {
   return dx === 0 ? prev : dx < 0;

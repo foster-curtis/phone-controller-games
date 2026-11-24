@@ -1,6 +1,6 @@
 // Aim snapping with 8° hysteresis, sentry aims and facing (SPEC §15.2).
 import { describe, expect, it } from 'vitest';
-import { pickFacing, snapSentryAim } from '../aim';
+import { heldAim, pickFacing, snapSentryAim } from '../aim';
 
 const rad = (d: number) => (d * Math.PI) / 180;
 
@@ -35,5 +35,26 @@ describe('facing', () => {
     expect(pickFacing(1.1, 1, front).view).toBe('front');
     expect(pickFacing(1.2, 1, front).view).toBe('side');
     expect(pickFacing(0, 0, front)).toBe(front);
+  });
+});
+
+describe('facing holds through an attack clip (RC2)', () => {
+  it('a knight shooting right while moving left faces right until the clip ends, then turns', () => {
+    const shot = 0; // aimed right
+    const move = { x: -1, y: 0 }; // walking left
+    let facing = pickFacing(1, 0, null);
+    // Mid-clip (Artificer burst, super, mine kneel and throw hold too): the attack's aim wins.
+    for (const clip of ['attack', 'super', 'build', 'throw']) {
+      const a = heldAim(clip, false, shot);
+      expect(a).toBe(shot);
+      facing = pickFacing(Math.cos(a!), Math.sin(a!), facing);
+      expect(facing).toEqual({ view: 'side', mirror: false });
+    }
+    // Clip over: no hold, so the movement facing returns.
+    expect(heldAim('attack', true, shot)).toBeNull();
+    expect(heldAim('walk', false, shot)).toBeNull();
+    expect(heldAim(null, false, shot)).toBeNull();
+    facing = pickFacing(move.x, move.y, facing);
+    expect(facing).toEqual({ view: 'side', mirror: true });
   });
 });

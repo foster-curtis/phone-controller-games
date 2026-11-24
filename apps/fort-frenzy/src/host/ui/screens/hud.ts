@@ -12,6 +12,35 @@ export const TOTAL_WAVES = 15;
 export const LOW_HP = 0.25;
 const MAX_ANNOUNCEMENTS = 3;
 
+/** The next-wave banner's box in 1920×1080 stage px (ui.css .hud-preview); keep the two in step. */
+export const PREVIEW = {
+  width: 1160,
+  pad: 28,
+  gap: 28,
+  /** Widest the head text gets ("Boss wave" / "NNN enemies" at 28 px), with room to spare. */
+  textMaxPx: 230,
+  tile: 120,
+  tileFloor: 56,
+  tileH: 88,
+  gapMax: 14,
+  gapMin: 6,
+};
+
+/**
+ * Tile width and spacing for n enemy types: the full size when they fit, else the spacing shrinks
+ * to its floor, then the tiles shrink to theirs, so every type shows (RC2). Never cuts one.
+ */
+export function previewLayout(n: number): { tile: number; gap: number; used: number } {
+  const room = PREVIEW.width - 2 * PREVIEW.pad - PREVIEW.gap - PREVIEW.textMaxPx;
+  const count = Math.max(1, n);
+  let gap = PREVIEW.gapMax;
+  let tile = PREVIEW.tile;
+  const fit = () => count * tile + (count - 1) * gap <= room;
+  while (!fit() && gap > PREVIEW.gapMin) gap--;
+  while (!fit() && tile > PREVIEW.tileFloor) tile--;
+  return { tile, gap, used: count * tile + (count - 1) * gap };
+}
+
 export function hudSections(view: TvView, ctx: RenderCtx): Section[] {
   const team = view.team;
   const build = view.screen === 'build';
@@ -70,6 +99,7 @@ export function hudSections(view: TvView, ctx: RenderCtx): Section[] {
     const nw = team.nextWave;
     const total = nw.enemies.reduce((a, e) => a + e.count, 0);
     const head = nw.boss ? 'Boss wave' : `${total} enemies`;
+    const lay = previewLayout(nw.enemies.length);
     const tiles = nw.enemies
       .map((e) => {
         const isNew = view.nextWaveNew.includes(e.id);
@@ -83,7 +113,7 @@ export function hudSections(view: TvView, ctx: RenderCtx): Section[] {
     out.push({
       name: 'preview',
       html: panel(
-        `<div class="pv-head"><span class="tag muted">Next wave</span><span class="pad">${head}</span></div><div class="pv-tiles">${tiles}</div>`,
+        `<div class="pv-head"><span class="tag muted">Next wave</span><span class="pad">${head}</span></div><div class="pv-tiles" style="--pv-tile:${lay.tile}px;--pv-gap:${lay.gap}px">${tiles}</div>`,
         'hud-preview',
       ),
     });
