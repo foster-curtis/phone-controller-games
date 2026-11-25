@@ -303,18 +303,20 @@ export const warden = {
   moveSpeed: 3.8,
   radius: 0.36,
   // C3: both arcs ~15% narrower and ~15% longer (slam 1.5 → 1.75 tiles, 120° → 102°; stomp 3.2 → 3.7,
-  // 100° → 85°). RC2: the slam reaches 1.65× as far (1.75 → 2.89 tiles) and knocks nothing back.
+  // 100° → 85°). RC2: the slam reaches 1.65× as far (1.75 → 2.89 tiles) and knocks nothing back,
+  // in a cone a third narrower (102° → 68°, RD3-fix-3).
   main: {
     shape: 'arc',
     damage: 30,
     range: 2.89,
-    arcDeg: 102,
+    arcDeg: 68,
     cooldownMs: 800,
     windupMs: 200,
     hitsFlyers: false,
   },
   // Jump slam (§8.2, RD3): an airborne wind-up (RC2: lands at 1.1 s in a 1.35 s clip; RC1 had 1.8 s
-  // in 2.2 s), then an arc as wide as the slam's but longer, with less damage, that stuns.
+  // in 2.2 s), then a longer arc than the slam's (and, since RC2 narrowed the slam, a wider one),
+  // with less damage, that stuns.
   super: {
     shape: 'arc',
     damage: 25,

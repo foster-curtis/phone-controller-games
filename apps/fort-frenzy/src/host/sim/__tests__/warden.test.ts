@@ -3,7 +3,8 @@
 // combat only, §5).
 import { describe, expect, it } from 'vitest';
 import { content } from '../../../content';
-import { classes, warden } from '../../../content/balance';
+import { classes, grunt, warden } from '../../../content/balance';
+import { groundBody, sectorHitsBody } from '../body';
 import { aimPreview } from '../preview';
 import { harness } from './harness';
 
@@ -226,5 +227,52 @@ describe('Warden slam reach and knockback (RC2)', () => {
     expect(hp - e.hp).toBe(warden.main.damage * TANK);
     expect(e.push).toBeNull();
     expect(e.x).toBeCloseTo(x, 6);
+  });
+});
+
+describe('Warden slam cone (RC2, RD3-fix-3)', () => {
+  /** The slam's opening before RC2's narrower cone. */
+  const OLD_ARC_DEG = 102;
+  const DEG = Math.PI / 180;
+
+  it('a third narrower than RC1, at the same 2.89-tile reach', () => {
+    expect(warden.main.range).toBe(2.89);
+    expect(warden.main.arcDeg / OLD_ARC_DEG).toBeCloseTo(2 / 3, 2);
+  });
+
+  it('misses a target just inside the old cone, hits one on the aim line at full reach; the aim preview is that cone', () => {
+    const h = combat();
+    h.put(0, 10, 12);
+    const { x: px, y: py } = h.p(0);
+    const reach = warden.main.range;
+    // The TV's aim preview: the new cone, at the same reach.
+    const shape = aimPreview(h.p(0), warden, 'main', content.rules);
+    expect(shape).toEqual({ kind: 'cone', range: reach, half: (warden.main.arcDeg / 2) * DEG });
+    const preview = shape as Extract<typeof shape, { kind: 'cone' }>;
+    const still = (x: number, y: number) => {
+      const e = tough(h, x, y);
+      e.stats.moveSpeed = 0;
+      return e;
+    };
+    // Aimed east. 45° off the aim, between the new half-angle (34°) and the old (51°), north of the
+    // line: bodies reach north (−y) of their feet, so the body leans away from the cone.
+    const ang = 45 * DEG;
+    const d = reach - 0.4;
+    const side = still(px + Math.cos(ang) * d, py - Math.sin(ang) * d);
+    // 25° off the aim, well inside the preview's edge.
+    const inner = still(px + Math.cos(25 * DEG) * d, py - Math.sin(25 * DEG) * d);
+    const ahead = still(px + reach - 0.05, py);
+    const body = groundBody(grunt.body!);
+    const sec = (half: number) => ({ x: px, y: py, angle: 0, half, range: preview.range });
+    // The old cone caught the side target, body and all; the previewed one doesn't.
+    expect(sectorHitsBody(sec((OLD_ARC_DEG / 2) * DEG), side.x, side.y, body)).toBe(true);
+    expect(sectorHitsBody(sec(preview.half), side.x, side.y, body)).toBe(false);
+    expect(sectorHitsBody(sec(preview.half), inner.x, inner.y, body)).toBe(true);
+    h.pads[0]!.tap('mainFires', { mainAim: { x: 1, y: 0 } });
+    h.run(1 + steps(warden.main.windupMs));
+    // The slam lands exactly what the preview showed.
+    expect(side.hp).toBe(side.maxHp);
+    expect(inner.maxHp - inner.hp).toBe(warden.main.damage * TANK);
+    expect(ahead.maxHp - ahead.hp).toBe(warden.main.damage * TANK);
   });
 });
