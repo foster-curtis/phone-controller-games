@@ -1125,6 +1125,8 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD10-fix-1] decision: burn and corrosion share one size rule, 0.45 × the body height capped at 1.1× the frame, bottom at the top of the legs (`bodyLookScale`, render/status.ts); still only scale and position per frame (#159).
 - [RD10-fix-1] note: bench under heavy parallel load swings widely (peak p99 2.0–11 ms on this branch, 6.1 ms on its base in the same window); best peak run mean 0.63 ms, p99 2.01 ms, matching RD10's 0.63 / 1.90–2.07, so the soldier loop costs nothing visible. After the rebase on RD9-fix-1: boss 0.61 / 2.00 ms, peak 0.52 / 1.52 ms (mean / p99). In this worktree `presentation-keys` (atlas URLs empty under a `.claude/` path, fails on the base too) and three timing tests (flowfield < 1 ms, wave generator, regen timeout) fail from load and the path; every sim, scene and render test of this change passes.
 - [RD10-fix-1] decision: RD10's roster test "Siege never picks a soldier" now keeps the soldiers out of range (they rank with the players), and the flag test removes them so it still tests the flag alone.
+- [RD9-fix-2] decision: soldier speed 3.45 (80.2% of his 4.3, was 3.9); the hurry factor goes 1.3 → 1.45 so the regroup pace stays about 5 tiles/s (3.45 × 1.3 = 4.49 would only just beat his 4.3, and any buff on him would leave them behind) (#160).
+- [RD9-fix-2] decision: the bash rectangle is 1.5 tiles wide (2 × 0.75), reach kept at 2.25; knockback 0.864 (0.96 × 0.9, kept exact rather than rounded to 0.86); Heavy Bash's +20% width applies to the new base; the TV aim preview already reads both from content via `rectGeometry`, so no visual changed (#160).
 
 ## 9. Final handoff
 

@@ -865,7 +865,7 @@ the baseline knight HP, and the damage band multiplies the damage of the knight'
 | | Warden | Ranger | Artificer | Commander |
 |---|---|---|---|---|
 | Class | Tank | Marksman | Support | Control |
-| Main | **Hammer smash:** damage in an arc spreading out in front of him (2.89 tiles: RC2 made it 1.65× longer), with no knockback (RC2, #124) | **Longbow shot:** the longest range in the game | **Nanite blast:** about 5 nanites fired at random spots in a narrow cone over about 0.8 s (one burst per release; cooldown ≥ 0.8 s; spread from the seeded combat stream) | **Shield bash:** a wide, solid rectangle from him along the aim (2.25 tiles long, 2 wide; every enemy whose body overlaps it is hit) with knockback (RC2) |
+| Main | **Hammer smash:** damage in an arc spreading out in front of him (2.89 tiles: RC2 made it 1.65× longer), with no knockback (RC2, #124) | **Longbow shot:** the longest range in the game | **Nanite blast:** about 5 nanites fired at random spots in a narrow cone over about 0.8 s (one burst per release; cooldown ≥ 0.8 s; spread from the seeded combat stream) | **Shield bash:** a solid rectangle from him along the aim (2.25 tiles long, 1.5 wide; every enemy whose body overlaps it is hit) with knockback (RC2, #156, #160) |
 | Super | **Jump slam:** an airborne wind-up (1.1 s in a 1.35 s clip; RC2, #125), then damage and stun in an arc as wide as the main's but longer; less damage than the main. The airborne pause is a tell for players (enemy AI doesn't dodge) | **Shockwave** from the Ranger: knockback and light damage in a wide circle | **Heal cone:** a wide nanite cone that heals himself and the allied knights it reaches (not builds, not soldiers) | **Reinforcements:** spawns one squad soldier, thrown a short distance. At the squad cap the button stays dimmed and the charge is held |
 | Build | Shield generator (thrown) | Mines (at feet) | Healing beacon (thrown) | Rally flag (thrown); recall |
 | Passive | None built in; Challenger card | None built in; Steady Aim card | None built in; Field Medic card | None built in; Morale card |
@@ -910,8 +910,8 @@ the baseline knight HP, and the damage band multiplies the damage of the knight'
 - **Squad cap:** starting value 4 (Reinforced Ranks: +1); tune in playtesting. At the cap the super
   button stays dimmed and its charge is held.
 - Soldiers have low HP. With a flag out they go to it and fight within its ring; with no flag out they
-  follow the Commander. They walk a little slower than he does (3.9 vs his 4.3 tiles/s, about 90%;
-  RC2), so on the march they trail him; more than 3 tiles from their slot they hurry (×1.3) and
+  follow the Commander. They walk slower than he does (3.45 vs his 4.3 tiles/s, about 80%;
+  RC2, #160), so on the march they clearly trail him; more than 3 tiles from their slot they hurry (×1.45, about 5 tiles/s) and
   regroup. Forced March and Morale still apply on top. Survivors carry over between waves, keeping their current HP (soldiers don't
   regen).
 - Squad damage charges his super at a reduced rate, never his build meter. His damage for the balance
@@ -922,7 +922,7 @@ the baseline knight HP, and the damage band multiplies the damage of the knight'
   A double spawn never passes the cap. A new soldier takes the lowest free squad index.
 - **Last Stand** counts the soldiers short of the cap (RD9, §15.11 #142).
 - **Shield bash** (RC2): a solid rectangle from his feet along the aim, 2.25 tiles long (the old
-  1.6-tile arc + 40%) and 2 wide; knockback 0.96 (the old 1.2 × 0.8), pushed away from him. Heavy Bash
+  1.6-tile arc + 40%) and 1.5 wide (RD9-fix-1's 2, −25%); knockback 0.864 (the old 1.2 × 0.8 × 0.9), pushed away from him. Heavy Bash
   widens the rectangle (+20% `width`) and adds knockback (+40%).
 - **Two Commanders** each keep their own squad and flag.
 - **Morale** (card): see §6.1. It needs no TV visual of its own; Warcry reuses the morale flash.
@@ -3206,3 +3206,4 @@ states, then RD0's own.
 | 157 | 2026-11-24 | Leash resume | An aggro-leash enemy that loses its target (past the leash, or the target goes down, dazed or away) goes on toward the base from where it stands on the ground field (a Flyer straight at the Citadel), not back to the point it left; a target let go at the leash is ignored until it leaves the aggro radius (`EnemyEnt.dropped`), so the leash still ends a chase (§9, §15.5) | User, RC2 (RD10-fix-1): enemies walked back to their old path first |
 | 158 | 2026-11-24 | Soldiers as targets | The Commander's soldiers are aggro targets like knights (same radius, leash, nearest wins; a knight on an exact tie); Siege ranks them with the players; a soldier in the air isn't a target until it lands. The Brute's build hunt, the Hunter's quarry and the Colossus's boulder and Charge lock-ons stay knight (or build) only (§9, §8.4) | User, RC2 (RD10-fix-1); the lock-ons are each enemy's own rule in §9 and §9.2, and the slam and Charge already hit soldiers |
 | 159 | 2026-11-24 | Burn size | The burn and corrosion looks are 0.45 of the body's height, capped at 1.1× the frame, with their bottom at the top of the legs (§15.2) | User, RC2 (RD10-fix-1): the flames were the body's full height, huge on the Colossus |
+| 160 | 2026-11-24 | Commander RC2 notes (RD9-fix-2) | Soldiers walk at 3.45 tiles/s, about 80% of his 4.3 (was 3.9); the hurry past 3 tiles goes from ×1.3 to ×1.45 (about 5 tiles/s, the old regroup pace) so they still catch him. The bash rectangle is 1.5 tiles wide (was 2, −25%), reach kept at 2.25; knockback 0.864 (×0.9); Heavy Bash still widens it by 20% from the new base (§8.2, §8.4) | RC2 notes (Foster): "Commander squad members should be even slower"; "Narrow the commander bash hit by about 25%, and decrease the knockback by about 10%" |

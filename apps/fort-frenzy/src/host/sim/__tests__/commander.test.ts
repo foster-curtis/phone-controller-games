@@ -86,16 +86,18 @@ describe('shield bash (§8.2)', () => {
   });
 });
 
-// RC2 checkpoint notes on the Commander (RD9-fix-1).
+// RC2 checkpoint notes on the Commander (RD9-fix-1, then RD9-fix-2).
 describe('RC2: squad speed and the rectangular bash', () => {
   /** The bash before RC2: a 1.6-tile, 110° arc with knockback 1.2. */
   const OLD = { range: 1.6, arcDeg: 110, knockback: 1.2 };
+  /** RD9-fix-1's values, before the second round of RC2 notes (RD9-fix-2). */
+  const FIX1 = { soldierSpeed: 3.9, width: 2, knockback: 0.96 };
 
-  it("a soldier's base speed is a little below his (85–95%)", () => {
+  it("a soldier's base speed is clearly below his (75–85%), slower than RD9-fix-1's", () => {
     const ratio = commander.squad.soldier.moveSpeed / commander.moveSpeed;
-    expect(ratio).toBeLessThan(1);
-    expect(ratio).toBeGreaterThanOrEqual(0.85);
-    expect(ratio).toBeLessThanOrEqual(0.95);
+    expect(commander.squad.soldier.moveSpeed).toBeLessThan(FIX1.soldierSpeed);
+    expect(ratio).toBeGreaterThanOrEqual(0.75);
+    expect(ratio).toBeLessThanOrEqual(0.85);
     // Far from their slot they hurry faster than he walks, so they still regroup.
     expect(commander.squad.soldier.moveSpeed * commander.squad.hurry.factor).toBeGreaterThan(
       commander.moveSpeed,
@@ -122,8 +124,7 @@ describe('RC2: squad speed and the rectangular bash', () => {
   it('the bash is a solid rectangle: a far corner hits (outside the old arc), past its end or side misses', () => {
     const { range, width } = commander.main;
     expect(range).toBeCloseTo(OLD.range * 1.4, 1);
-    expect(width).toBeLessThanOrEqual(range);
-    expect(width).toBeGreaterThanOrEqual(range * 0.75);
+    expect(width).toBeLessThan(range);
     const h = fight();
     for (const u of squad(h)) {
       u.x = 30;
@@ -157,15 +158,42 @@ describe('RC2: squad speed and the rectangular bash', () => {
     expect(pastSide.hp).toBe(pastSide.maxHp);
   });
 
-  it('bash knockback is 0.8× the old value', () => {
-    expect(commander.main.knockback).toBeCloseTo(OLD.knockback * 0.8, 9);
-    // The same bash with the old knockback, for the push it gave.
-    const old: Content = {
-      ...content,
-      knights: content.knights.map((k) =>
-        k.id === 'commander' ? { ...k, main: { ...k.main, knockback: OLD.knockback } } : k,
-      ),
+  /** Content with the Commander's main attack overridden. */
+  const withMain = (main: Partial<typeof commander.main>): Content => ({
+    ...content,
+    knights: content.knights.map((k) =>
+      k.id === 'commander' ? { ...k, main: { ...k.main, ...main } } : k,
+    ),
+  });
+
+  it('the bash is 25% narrower (RD9-fix-2): a body inside the old 2-tile width but outside the new one is missed', () => {
+    expect(commander.main.width).toBeCloseTo(FIX1.width * 0.75, 9);
+    // Reach is kept.
+    expect(commander.main.range).toBe(2.25);
+    const r = grunt.body!.radius;
+    // Feet north of him, halfway between the new and the old side edges plus the body radius.
+    const offset = -((commander.main.width / 2 + FIX1.width / 2) / 2 + r);
+    const hit = (c: Content) => {
+      const h = fight([], { content: c });
+      for (const u of squad(h)) {
+        u.x = 30;
+        u.y = 20;
+        u.stats.moveSpeed = 0;
+      }
+      const e = h.sim.spawnEnemy('grunt', h.p(0).x + commander.main.range / 2, h.p(0).y + offset);
+      e.stats.moveSpeed = 0;
+      h.pads[0]!.tap('mainFires', { mainAim: { x: 1, y: 0 } });
+      h.run(1);
+      return e.hp < e.maxHp;
     };
+    expect(hit(content)).toBe(false);
+    // The same probe with RD9-fix-1's width is hit, so the miss is the narrowing.
+    expect(hit(withMain({ width: FIX1.width }))).toBe(true);
+  });
+
+  it('bash knockback is 0.9× the RD9-fix-1 value (0.72× the pre-RC2 one)', () => {
+    expect(commander.main.knockback).toBeCloseTo(FIX1.knockback * 0.9, 9);
+    expect(commander.main.knockback).toBeCloseTo(OLD.knockback * 0.8 * 0.9, 9);
     const push = (c: Content) => {
       const h = fight([], { content: c });
       const e = h.sim.spawnEnemy('grunt', 13.2, 14);
@@ -173,7 +201,8 @@ describe('RC2: squad speed and the rectangular bash', () => {
       h.run(1);
       return Math.hypot(e.push!.x, e.push!.y);
     };
-    expect(push(content) / push(old)).toBeCloseTo(0.8, 6);
+    // The same bash with the earlier knockback, for the push it gave.
+    expect(push(content) / push(withMain({ knockback: FIX1.knockback }))).toBeCloseTo(0.9, 6);
   });
 });
 

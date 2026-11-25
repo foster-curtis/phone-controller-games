@@ -233,14 +233,15 @@ export const commander = {
   radius: 0.34,
   // Shield bash: an aimed solid rectangle from him along the aim, with knockback; a quick tap
   // auto-aims (§8.2, RD9). RC2 (RD9-fix-1): was a 1.6-tile, 110° arc with knockback 1.2; now 40%
-  // longer, a little narrower than long, knockback ×0.8.
+  // longer, knockback ×0.8. RC2 (RD9-fix-2): narrowed 2 → 1.5 tiles across the aim (−25%),
+  // knockback 0.96 → 0.864 (×0.9).
   main: {
     shape: 'rect',
     damage: 28,
     range: 2.25,
-    width: 2,
+    width: 1.5,
     cooldownMs: 550,
-    knockback: 0.96,
+    knockback: 0.864,
     hitsFlyers: false,
   },
   // Reinforcements: an aimed throw of one soldier; a quick tap throws toward the flag, or straight
@@ -276,14 +277,16 @@ export const commander = {
     cap: 4,
     soldier: {
       hp: 60,
-      // RC2 (RD9-fix-1): about 90% of his 4.3, so the squad trails him; `hurry` closes big gaps.
-      moveSpeed: 3.9,
+      // RC2 (RD9-fix-2): about 80% of his 4.3 (RD9-fix-1 had 3.9), so the squad clearly trails him;
+      // `hurry` closes big gaps.
+      moveSpeed: 3.45,
       radius: 0.24,
       attack: { shape: 'arc', damage: 8, range: 0.5, cooldownMs: 900, hitsFlyers: false },
     },
     followRadius: 1.4,
     aggro: { radius: 3, leash: 5 },
-    hurry: { at: 3, factor: 1.3 },
+    // ×1.45 = 5.0 tiles/s (RD9-fix-2; was ×1.3 of 3.9): regroups at the old pace, above his 4.3.
+    hurry: { at: 3, factor: 1.45 },
     formation: { flagRing: 0.8, followSpread: 0.6 },
   },
 } satisfies KnightDef;
