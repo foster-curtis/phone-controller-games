@@ -7,7 +7,7 @@ import { DIFFICULTY_NAME, fmtSavedAgo, shortUrl } from '../labels';
 import type { HomeRow, TvView } from '../types';
 
 const arrows = (inner: string) =>
-  `<span class="arr l"></span><span class="val">${inner}</span><span class="arr r"></span>`;
+  `<span class="arr l" data-dir="-1"></span><span class="val">${inner}</span><span class="arr r" data-dir="1"></span>`;
 
 function row(r: HomeRow, focused: boolean): string {
   const cls = `row ${r.id === 'create' ? 'primary' : ''} ${focused ? 'focus' : ''}`;
@@ -32,7 +32,9 @@ function row(r: HomeRow, focused: boolean): string {
 export function homeSections(view: TvView): Section[] {
   const home = view.home ?? { rows: [], focus: 0, loading: view.screen === 'loading' ? 0 : 1 };
   const loading = home.loading < 1;
-  const rows = home.rows.map((r, i) => row(r, i === home.focus)).join('');
+  const rows = home.rows
+    .map((r, i) => `<div class="hit" data-row="${i}">${row(r, i === home.focus)}</div>`)
+    .join('');
   const pct = Math.round(Math.min(Math.max(home.loading, 0), 1) * 100);
   // A saved run reclaims its room before the choice: phones rejoining a new room need the code (§15.8).
   const room = view.room

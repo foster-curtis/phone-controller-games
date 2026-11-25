@@ -176,6 +176,14 @@
 #tv-ui .row {
   height: 64px;
 }
+/* Mouse: the overlay root ignores the pointer (the canvas sits under it), so only the home rows take it. */
+#tv-ui .hit {
+  display: contents;
+}
+#tv-ui .hit .pnl {
+  pointer-events: auto;
+  cursor: pointer;
+}
 #tv-ui .row .in {
   display: flex;
   align-items: center;

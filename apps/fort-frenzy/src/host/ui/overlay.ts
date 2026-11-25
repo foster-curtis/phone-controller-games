@@ -133,6 +133,35 @@ export function createTvOverlay(host: HTMLElement, handlers: OverlayHandlers = {
   };
   window.addEventListener('keydown', onKey);
 
+  // Mouse (SPEC §11.1): the root is pointer-events: none, only home rows take the pointer. Hover moves
+  // focus; a click focuses and activates like Enter (a ◂ ▸ arrow click cycles that way).
+  const rowAt = (e: Event): { i: number; dir: -1 | 1 | 0 } | null => {
+    const t = e.target instanceof Element ? e.target : null;
+    const hit = t?.closest<HTMLElement>('[data-row]');
+    if (!hit || view?.screen !== 'home' || !view.home) return null;
+    const d = t?.closest<HTMLElement>('[data-dir]')?.dataset.dir;
+    return { i: Number(hit.dataset.row), dir: d === '-1' ? -1 : d === '1' ? 1 : 0 };
+  };
+  const onOver = (e: Event) => {
+    const r = rowAt(e);
+    if (r && view?.home && view.home.focus !== r.i)
+      handlers.onHome?.({ type: 'focus', index: r.i });
+  };
+  const onClick = (e: Event) => {
+    const r = rowAt(e);
+    if (!r || !view?.home) return;
+    const home = view.home;
+    if (home.focus !== r.i) handlers.onHome?.({ type: 'focus', index: r.i });
+    if (home.rows[r.i]?.id === 'difficulty' && r.dir !== 0) {
+      handlers.onHome?.({ type: 'cycle', row: 'difficulty', dir: r.dir });
+      return;
+    }
+    const intent = stepHome(home.rows, r.i, 'select');
+    if (intent) handlers.onHome?.(intent);
+  };
+  layer.addEventListener('pointerover', onOver);
+  layer.addEventListener('click', onClick);
+
   // Gamepad API: polled while the home screen is up. Unavailable → the keyboard still drives it.
   const padNav = createPadNav();
   let raf = 0;
