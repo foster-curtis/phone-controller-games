@@ -6,7 +6,7 @@ import { theme } from '../../shared/theme';
 import type { ArtImage } from './atlas';
 import { GROUND_SQUASH } from './camera';
 import { placeFrame, type RenderContext } from './context';
-import { bodyBurstPoints } from './effectsMath';
+import { bodyBurstPoints, flareFlicker } from './effectsMath';
 import { fk, MARK_FRAMES, scrapFrame, SHOCKWAVE_GROW } from './keys';
 import { Pool } from './pool';
 import { SHADOW_TEXTURE } from './textures';
@@ -92,6 +92,8 @@ export class Effects implements EffectSpawner {
   private live: Live[] = [];
   /** Seeds bodyBurst placements (stable sequence, no randomness). */
   private seq = 0;
+  /** Seeds each portal flare's flicker by start order. */
+  private flares = 0;
   readonly pools = new Map<string, Pool<ArtImage>>();
   private readonly gfxPool: Pool<Phaser.GameObjects.Graphics>;
   private readonly shadowPool: Pool<Phaser.GameObjects.Image>;
@@ -166,6 +168,9 @@ export class Effects implements EffectSpawner {
     const pool = this.pool(MARK_FRAMES[kind], look.layer);
     const a = pool.get();
     a.img.setPosition(sx, sy).setDepth(look.layer === 'effects' ? sy : MARK_DEPTH);
+    // The portal flare flickers (SPEC §9.6), seeded by its place and start order.
+    const flickerSeed =
+      kind === 'portal-flare' ? `${Math.round(sx)}:${Math.round(sy)}:${this.flares++}` : '';
     this.add(
       a.img,
       ms,
@@ -173,8 +178,10 @@ export class Effects implements EffectSpawner {
       (u) => {
         const fadeOut =
           1 - Math.max(0, (u - look.hold - look.fadeIn) / (1 - look.hold - look.fadeIn));
-        a.img.setAlpha(look.fadeIn > 0 ? Math.min(1, u / look.fadeIn) * fadeOut : fadeOut);
-        const k = scale * (1 + (look.grow - 1) * u);
+        const fl = flickerSeed ? flareFlicker(u, flickerSeed) : null;
+        const shown = look.fadeIn > 0 ? Math.min(1, u / look.fadeIn) * fadeOut : fadeOut;
+        a.img.setAlpha(fl ? shown * fl.alpha : shown);
+        const k = scale * (1 + (look.grow - 1) * u) * (fl ? fl.scale : 1);
         this.ctx.lib.setUnitScale(a, this.ctx.unitPx, flipX ? -k : k, k);
       },
     );

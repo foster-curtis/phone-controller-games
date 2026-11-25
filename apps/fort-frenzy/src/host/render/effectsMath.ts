@@ -32,3 +32,34 @@ export function bodyBurstPoints(seed: number): { x: number; y: number; delayMs: 
     delayMs: Math.round(i * 70 + r(`d${i}`) * 50),
   }));
 }
+
+/**
+ * The portal flare's flicker (RD5-fix-2, SPEC §9.6): irregular alpha dips and a slight scale jitter
+ * over the flare's life, on top of its fade in and out. Three incommensurate waves (cycles per
+ * life) sum to an uneven pattern; the phases come from the seed, so one flare always flickers the
+ * same way. The envelope is strongest at the start and settles as the group arrives. Only alpha and
+ * scale change per frame. All tuning for it lives here.
+ */
+export const FLARE_FLICKER = {
+  /** Wave frequencies, cycles over the flare's life (not multiples of each other). */
+  cycles: [5.3, 8.7, 13.1] as const,
+  /** Deepest dip at full strength: alpha never goes below this (readable across the room). */
+  minAlpha: 0.4,
+  /** Scale swing at full strength, as a fraction (±). */
+  scaleSwing: 0.07,
+  /** Envelope at the start and the end of the life (linear between). */
+  envStart: 1,
+  envEnd: 0.35,
+} as const;
+
+/** `alpha` multiplies the flare's fade, `scale` its size. Both are pure in (`u`, `seed`). */
+export function flareFlicker(u: number, seed: string): { alpha: number; scale: number } {
+  const F = FLARE_FLICKER;
+  const env = F.envStart + (F.envEnd - F.envStart) * Math.min(1, Math.max(0, u));
+  let n = 0;
+  for (let i = 0; i < F.cycles.length; i++)
+    n += Math.sin((u * F.cycles[i]! + hash01(`flare:${seed}:${i}`)) * Math.PI * 2);
+  n /= F.cycles.length; // -1..1
+  const dip = 0.5 * (1 + n); // 0..1
+  return { alpha: 1 - (1 - F.minAlpha) * dip * env, scale: 1 + F.scaleSwing * n * env };
+}
