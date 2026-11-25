@@ -1171,6 +1171,7 @@ Format: `- [TF#] decision: one line, with the reason.`
 - [TF0] decision: subsystem stubs that must return a value either return a neutral value (null, false, []) or throw "not implemented (TF#)"; `economy.roll` is the one-line §6.4 formula, because callers in the same wave test through fakes anyway.
 - [TF0] decision: created `src/controller/tipoff/spike.ts` (not in the TF0 Owns list) as the stub the controller mode routing dispatches to, because the deliverable names it; TF4 owns it from here.
 - [TF0] decision: `.changeset/*.md` added for the minor note (repo root, required by the brief).
+- [TF0] decision: Full gate run in the sandbox: `pnpm check:affected` passed; `pnpm e2e:affected` passed every chromium test (thieves-forum, gallery, and all other apps' chromium projects) but 17 Firefox/WebKit `compat` tests in sunny-side, fort-frenzy and say-cheese fail to launch (`/opt/pw-browsers` has no firefox or webkit, and installs are not allowed), so the "Full gate green" tick waits for CI or a machine with those browsers; TF0 touched none of those apps.
 
 ## 9. Final handoff (and early setup)
 

@@ -628,8 +628,8 @@ interface RoundStart {
   created first (the opening shows only players anyway) and every later character, NPC or walk-on,
   takes the next id, so ids say nothing about who is a player.
 - **A `Character`** (Fort Frenzy's `Unit` style) = body + `rig: 'citizen'` + `outfit` + `facing` +
-  `gait` + `pose` + `activity` (free, browsing, grabbing, pickpocketing, tossing, pointing, caught,
-  marched, stocks, handsUp, entering, leaving) + **`control`**: `player | npc | takeover | walkOn`
+  `gait` + `pose` + `activity` (free, browsing, holding a GRAB or PICKPOCKET, tossing, pointing,
+  tipping, caught, marched, stocks, handsUp, entering, leaving) + **`control`**: `player | npc | takeover | walkOn`
   (§6.18). An NPC mind (`npc`) is present on NPCs and on every player character too, so takeover and
   walk-on drive the same character with NPC behavior. `Merchant`, `Guard`, `Stall`, `Hold` are their own
   kinds. A player's money and pack live in the **ledger** keyed by `Side`, not on the character (§9 prep).
@@ -726,7 +726,8 @@ ride in `send.data` and are defined in `src/shared/messages.ts` with runtime gua
 
 - **Room:** game ID `thieves-forum`, relay `maxPlayers` from `game.meta.ts` (8).
 - **Handshake:** the phone sends `join { name, proto }` after every (re)connect. `proto` is
-  `PROTOCOL_VERSION` (absent = the scaffold join screen, read as 1 until TF5 sends it); a mismatch gets `outdated { proto }` (an older phone reloads once; an older TV
+  `PROTOCOL_VERSION` (absent = the scaffold join screen, read as 1 until TF5 sends it); a mismatch
+  gets `outdated { proto }` (an older phone reloads once; an older TV
   shows "Refresh the TV"). Otherwise the host answers `joined { name }` and then the phone's current
   `screen` plus its private state (`bag`, `outfit`, `context`, an open `stallView`), so a reconnect
   heals itself.
