@@ -1,11 +1,12 @@
-// Phone entry (play.html, SPEC §3, §4). With `?code=` the app joins that room through the relay;
-// without one it shows the join screen and reloads under the typed code. `?dev=1` runs offline with a
-// fake client that answers the join. In dev or with `?debug=1`, `window.__pcg` exposes the client.
+// Phone entry (play.html, SPEC §3, §4, §12.7). With `?code=` the app joins that room through the relay;
+// without one it shows the join screen and reloads under the typed code. Mode routing (TF0): `?dev=1` →
+// dev.ts (TF5, offline), `?spike=tipoff` → tipoff/spike.ts (TF4). In dev or with `?debug=1`,
+// `window.__pcg` exposes the client.
 // Never imports Phaser or host code (lint, check:bundle).
 import { createLocalClient, isDevMode } from '@pcg/controller-kit';
 import { debugEnabled, installDebug, relayUrl } from '@pcg/game-kit';
 import { createControllerClient, getPlayerKey } from '@pcg/net-client';
-import { GAME_ID, isPhoneMsg } from '../shared/messages';
+import { GAME_ID } from '../shared/messages';
 import { mountVersionTag } from '../shared/version';
 import '../styles/brand.css';
 import '../styles/controller.css';
@@ -38,16 +39,7 @@ function boot(): void {
   );
 }
 
-function bootDev(): void {
-  // Offline (AGENTS.md): a fake client that echoes the host's `joined`.
-  const client = createLocalClient();
-  const send = client.send.bind(client);
-  client.send = (d: unknown) => {
-    send(d);
-    if (isPhoneMsg(d)) queueMicrotask(() => client.emit({ t: 'joined', name: d.name }));
-  };
-  createApp({ root, client, code: 'DEVV' });
-}
-
-if (isDevMode()) bootDev();
+const params = new URLSearchParams(location.search);
+if (isDevMode()) void import('./dev').then((m) => m.mount(root));
+else if (params.get('spike') === 'tipoff') void import('./tipoff/spike').then((m) => m.mount(root));
 else boot();

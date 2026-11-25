@@ -1,0 +1,36 @@
+{
+  "notes": [
+    "One entry per asset file or pack (SPEC §12.10). `path` is a glob relative to apps/thieves-forum/ (`*` within a folder, `**` across folders); `font` names a Google Fonts family loaded by brand/head.html.",
+    "src/__tests__/licenses.test.ts fails if a file under art/ or audio/, or a font, has no entry, or its entry doesn't allow commercial use. Audio entries arrive with the audio delivery (BUILD_PLAN §9 step 7)."
+  ],
+  "entries": [
+    {
+      "path": "art/forum/**",
+      "source": "Original work for Thieves' Forum (art delivery 2026-11-24)",
+      "author": "Foster Curtis",
+      "license": "owned",
+      "commercial": true
+    },
+    {
+      "font": "Cinzel",
+      "source": "https://fonts.google.com/specimen/Cinzel",
+      "author": "Natanael Gama",
+      "license": "OFL-1.1",
+      "commercial": true
+    },
+    {
+      "font": "Geist",
+      "source": "https://fonts.google.com/specimen/Geist",
+      "author": "Vercel",
+      "license": "OFL-1.1",
+      "commercial": true
+    },
+    {
+      "font": "JetBrains Mono",
+      "source": "https://fonts.google.com/specimen/JetBrains+Mono",
+      "author": "JetBrains",
+      "license": "OFL-1.1",
+      "commercial": true
+    }
+  ]
+}

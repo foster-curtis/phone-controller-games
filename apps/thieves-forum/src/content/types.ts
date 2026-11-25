@@ -99,6 +99,14 @@ export interface ShopDef {
 
 // ---- outfits (SPEC §6.11) -----------------------------------------------------------------------
 
+/** One character's outfit (SPEC §6.11): fabrics by brand token name, hair and skin as tone indices. */
+export interface Outfit {
+  tunic: FabricId;
+  mantle: FabricId;
+  hair: number;
+  skin: number;
+}
+
 /** The shared outfit pool: players and NPCs draw from the same one (SPEC §6.11). */
 export interface OutfitPool {
   tunics: readonly FabricId[];

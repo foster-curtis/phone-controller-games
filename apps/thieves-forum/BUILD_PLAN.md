@@ -1022,10 +1022,10 @@ Rules:
 
 - [x] Pre-flight green (S1)
 - **TF0**
-  - [ ] SPEC §12 written; §6.17, §10.4, §11 updated
-  - [ ] Content data: balance (every §7 value), items, shops, layout + tests
-  - [ ] Contracts: messages, hold, viewer, blob-transfer types, sim types/snapshot/systems/events, match + TvView, sfx + AudioMap
-  - [ ] Subsystem stubs, LICENSES.json + test, devDeps + lockfile
+  - [x] SPEC §12 written; §6.17, §10.4, §11 updated
+  - [x] Content data: balance (every §7 value), items, shops, layout + tests
+  - [x] Contracts: messages, hold, viewer, blob-transfer types, sim types/snapshot/systems/events, match + TvView, sfx + AudioMap
+  - [x] Subsystem stubs, LICENSES.json + test, devDeps + lockfile
   - [ ] Full gate green
   - [ ] Merged to `thieves-forum` and pushed
   - [ ] User approved C0 (§12 + contracts)
@@ -1158,6 +1158,19 @@ Format: `- [TF#] decision: one line, with the reason.`
 - [plan] Changesets: features `--minor`, fixes `--patch`, all on `@pcg/thieves-forum` (0.x before launch). The launch to 1.0.0 is a major note added in §9 step 11, with the user's approval (PLATFORM §5).
 - [plan] AGENTS.md "commit only when asked, never push unless asked" is satisfied by this plan: the user asked for pushes of `thieves-forum` after every merge; milestone branches are never pushed and nothing is pushed to `main`.
 - [plan] Sandbox Playwright: the preinstalled Chromium 1243 is linked to the version `@playwright/test` 1.64.1 expects if the dry run asks for another (pre-flight); never install another.
+- [TF0] decision: world units are tiles (48 px wide, 28.8 px deep at ground factor 0.6), the market is 40 × 37.5 tiles, and `layout.ts` positions are the reference SVG ×3 → tiles, because Fort Frenzy's projection carries over unchanged; TF1/TF7 nudge positions to the rendered art.
+- [TF0] decision: `Outfit` = tunic and mantle fabric token names + hair and skin tone **indices**, because the brand kit has no hair or skin palette (SPEC §6.11 lists them but §6.0 only gives fabrics); TF1 owns the tone table (flag for C0).
+- [TF0] decision: `join.proto` is optional and absent reads as `PROTOCOL_VERSION`, because the scaffold join screen (`src/controller/app.ts`, not TF0's to edit) doesn't send it yet; TF5 sends it.
+- [TF0] decision: the host sends a private `context` event (main button label, toss cooldown, Tip/Catch live), because only the host knows when a phone is at a stall, beside a buyer or behind someone (SPEC §6.17 context button).
+- [TF0] decision: `handsUp` is a screen only (it carries the Bag, Items and Total tiles), with no separate private event, because a second message would duplicate it.
+- [TF0] decision: lobby color is a phone request `color {color}` validated by the host, because SPEC §6.18 has phones pick a player color and the plan's message list had no way to send it.
+- [TF0] decision: `browse` is the main-button tap for both BROWSE and SELL (the host resolves which from its context), and `grab` uses one `slot` number unique across a stall's counter and shelf, because the phone only echoes what the stall view gave it.
+- [TF0] decision: Catch! rides the `catch` input bit, held by the phone ≥ `CATCH_MIN_MS` (120 ms) so a tap spans a 30 Hz sample; the sim acts on the rising edge, because the plan fixed bits (not counters) for input.
+- [TF0] decision: the hold bit reads released after `balance.net.holdStaleMs` (500 ms) of silence while the stick zeroes after 250 ms, because a brief stall shouldn't cancel a long grab but a vanished phone must.
+- [TF0] decision: stalls have 4 counter + 4 shelf slots (the stall art's item spots) and the stocks 3 standing slots; common items restock after 8 s (build value), because §6.5 says only "always restocks".
+- [TF0] decision: subsystem stubs that must return a value either return a neutral value (null, false, []) or throw "not implemented (TF#)"; `economy.roll` is the one-line §6.4 formula, because callers in the same wave test through fakes anyway.
+- [TF0] decision: created `src/controller/tipoff/spike.ts` (not in the TF0 Owns list) as the stub the controller mode routing dispatches to, because the deliverable names it; TF4 owns it from here.
+- [TF0] decision: `.changeset/*.md` added for the minor note (repo root, required by the brief).
 
 ## 9. Final handoff (and early setup)
 

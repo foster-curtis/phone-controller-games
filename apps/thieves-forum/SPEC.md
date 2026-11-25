@@ -726,7 +726,7 @@ ride in `send.data` and are defined in `src/shared/messages.ts` with runtime gua
 
 - **Room:** game ID `thieves-forum`, relay `maxPlayers` from `game.meta.ts` (8).
 - **Handshake:** the phone sends `join { name, proto }` after every (re)connect. `proto` is
-  `PROTOCOL_VERSION`; a mismatch gets `outdated { proto }` (an older phone reloads once; an older TV
+  `PROTOCOL_VERSION` (absent = the scaffold join screen, read as 1 until TF5 sends it); a mismatch gets `outdated { proto }` (an older phone reloads once; an older TV
   shows "Refresh the TV"). Otherwise the host answers `joined { name }` and then the phone's current
   `screen` plus its private state (`bag`, `outfit`, `context`, an open `stallView`), so a reconnect
   heals itself.
@@ -742,7 +742,7 @@ ride in `send.data` and are defined in `src/shared/messages.ts` with runtime gua
   to }` (`to` is `'pawn'` or the buyer token from `sellSheet`), `toss { x, y }` (aim, or 0,0 = facing),
   `tipOpen`, `tipSend { target }`, `tipCancel`, `color { color }` and `ready { ready }` (lobby), `leader {
   action }` (`start`, `howToPlay`, `next`, `skip`, `playAgain`), `leave`, and `blobAck { blobId }`.
-- **Screens (host → phone):** `screen { s }` where `s` is one of `joining`, `lobby`, `rules`,
+- **Screens (host → phone):** `screen { screen }` where the screen is tagged by `s`, one of `joining`, `lobby`, `rules`,
   `roundStart`, `play`, `handsUp`, `stocks`, `walkOn`, `matchEnd`, `waiting`, each with the data that
   screen shows. **Timers ride as `endsInMs`** and the phone sets its deadline on receipt (no clock
   handshake, as in Say Cheese).
