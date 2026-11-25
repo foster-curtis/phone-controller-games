@@ -2,7 +2,8 @@
 // enemies leave the path for a targetable player, Commander's soldier or HP build (§7.3, RD3,
 // RD10-fix-1: exactly like a knight, the nearest wins, a knight on a tie) in the aggro radius, chase
 // up to the leash, then go on toward the base from where they stand, not back to where they left
-// the path (§9, §11.3; RC2 note).
+// the path (§9, §11.3; RC2 note). A knight carrying `taunt` (Challenger, RD11) in the aggro radius
+// wins over anything nearer, and pulls an enemy already chasing someone else.
 // Melee swings wind up, root the enemy, and land if the target is still in reach.
 import type { EnemyDef } from '../../../content/types';
 import { buildTargetable } from '../builds/core';
@@ -78,6 +79,31 @@ export function aggroTarget(s: SimState, id: number | null): Unit | null {
   return null;
 }
 
+/** Carries Challenger's `taunt` (§6.1). */
+function taunting(u: Unit): boolean {
+  return u.effects.some((x) => x.def === 'taunt');
+}
+
+/** The nearest targetable taunting knight in `radius` of the enemy (not `skip`), or null. */
+function nearestTaunt(
+  s: SimState,
+  e: EnemyEnt,
+  radius: number,
+  skip: number | undefined,
+): PlayerEnt | null {
+  let best: PlayerEnt | null = null;
+  let bestD = Infinity;
+  for (const p of s.world.players) {
+    if (p.id === skip || !taunting(p) || !s.targetable(p)) continue;
+    const d = dist(e.x, e.y, p.x, p.y) - p.r;
+    if (d <= radius && d < bestD) {
+      best = p;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
 /**
  * Aggro and leash transitions. Past the leash, or with its target gone, it lets go and walks on
  * toward the base from where it stands (RD10-fix-1); a target it let go at the leash stays ignored
@@ -92,7 +118,15 @@ export function leash(s: SimState, e: EnemyEnt, a: { radius: number; leash: numb
   if (e.ai === 'aggro') {
     const ok = aggroTarget(s, e.target) !== null;
     const from = e.leashFrom!;
-    if (ok && dist(e.x, e.y, from.x, from.y) <= a.leash) return;
+    if (ok && dist(e.x, e.y, from.x, from.y) <= a.leash) {
+      // Challenger: a taunting knight in the aggro radius takes the chase over (same leash).
+      const cur = s.units.get(e.target!);
+      if (!cur || !taunting(cur)) {
+        const t = nearestTaunt(s, e, a.radius, e.dropped);
+        if (t) e.target = t.id;
+      }
+      return;
+    }
     if (ok) e.dropped = e.target!;
     e.ai = 'path';
     e.target = null;
@@ -107,9 +141,10 @@ export function leash(s: SimState, e: EnemyEnt, a: { radius: number; leash: numb
       skip = undefined;
     }
   }
-  // Knights first, so a knight wins an exact tie with a soldier or a build.
-  let best: Unit | null = null;
-  let bestD = Infinity;
+  // A taunting knight (Challenger) first; then knights, so a knight wins an exact tie with a soldier
+  // or a build.
+  let best: Unit | null = nearestTaunt(s, e, a.radius, skip);
+  let bestD = best ? -Infinity : Infinity;
   for (const p of s.world.players) {
     if (p.id === skip || !s.targetable(p)) continue;
     const d = dist(e.x, e.y, p.x, p.y) - p.r;

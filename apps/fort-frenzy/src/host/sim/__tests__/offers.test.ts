@@ -137,6 +137,48 @@ describe('picker exclusions (real content)', () => {
     // Other classes' cards never.
     expect(eligible(w, w.p(0), 'volley')).toBe(false);
   });
+
+  it('Wide Aura and Deadeye only once their passive is owned, then they stack (RD11, #122)', () => {
+    for (const [cls, passive, card] of [
+      ['artificer', 'field_medic', 'wide_aura'],
+      ['ranger', 'steady_aim', 'deadeye'],
+    ] as const) {
+      const h = harness(1, 1, { classes: [cls] });
+      h.toBuild();
+      const p = h.p(0);
+      expect(eligible(h, p, card), card).toBe(false);
+      // Never dealt before the passive, over many seeds.
+      for (let seed = 1; seed <= 30; seed++) {
+        const g = harness(1, seed, { classes: [cls] });
+        g.toBuild();
+        expect(g.p(0).offer).not.toContain(card);
+      }
+      h.give(0, passive);
+      expect(eligible(h, p, passive), passive).toBe(false); // unique
+      expect(eligible(h, p, card), card).toBe(true);
+      h.give(0, card);
+      expect(eligible(h, p, card), card).toBe(true);
+    }
+  });
+
+  it('Fault Line needs Aftershock and Earthshaker, then is unique; Challenger is unique', () => {
+    const h = harness(1, 1, { classes: ['warden'] });
+    h.toBuild();
+    const p = h.p(0);
+    expect(eligible(h, p, 'fault_line')).toBe(false);
+    h.give(0, 'aftershock');
+    expect(eligible(h, p, 'fault_line')).toBe(false);
+    h.give(0, 'earthshaker');
+    expect(eligible(h, p, 'fault_line')).toBe(true);
+    h.give(0, 'fault_line');
+    expect(eligible(h, p, 'fault_line')).toBe(false);
+    expect(eligible(h, p, 'challenger')).toBe(true);
+    h.give(0, 'challenger');
+    expect(eligible(h, p, 'challenger')).toBe(false);
+    // The Warden's cards and the commons, Tinkerer included, all reach his offers.
+    for (const id of ['wide_field', 'reinforced_generator', 'tinkerer'] as const)
+      expect(eligible(h, p, id), id).toBe(true);
+  });
 });
 
 describe('picks', () => {

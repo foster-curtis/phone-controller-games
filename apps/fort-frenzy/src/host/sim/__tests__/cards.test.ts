@@ -53,11 +53,8 @@ function shoot(h: Harness, slot = 0) {
 }
 
 describe('card coverage', () => {
-  it('has a def for every card id, once, except the ones their milestones add (RD7–RD11)', () => {
-    const pending = ['tinkerer', 'wide_field', 'challenger', 'reinforced_generator', 'fault_line'];
-    expect(cardDefs.map((c) => c.id).sort()).toEqual(
-      CARD_IDS.filter((id) => !pending.includes(id)).sort(),
-    );
+  it('has a def for every card id, once (RD11: none pending)', () => {
+    expect(cardDefs.map((c) => c.id).sort()).toEqual([...CARD_IDS].sort());
   });
 });
 
@@ -78,12 +75,15 @@ const COMMONS: Partial<Record<CardId, Common>> = {
   focus: per(true, 'superCharge', 0.12, 0.12, 0.15, 0.12),
   toughness: per(false, 'damageReduction', 0.06, 0.08, 0.06, 0.07),
   quick_recovery: per(false, 'respawnMs', -2000, -2000, -2000, -2000),
+  tinkerer: per(true, 'buildCharge', 0.15, 0.15, 0.15, 0.15),
 };
 const CLASSES: ClassId[] = ['ranger', 'warden', 'artificer', 'commander'];
 
 /** The stat as a card sees it: unit stats directly, attack-only ones through a 100-point base. */
 const readStat = (p: PlayerEnt, stat: StatId) =>
-  stat === 'damage' || stat === 'range' ? atk(p, 100, stat, 'super') : p.stats[stat];
+  stat === 'damage' || stat === 'range' || stat === 'buildCharge'
+    ? atk(p, 100, stat, 'super')
+    : p.stats[stat];
 
 describe('shared commons (numbers per class)', () => {
   for (const [id, c] of Object.entries(COMMONS) as [CardId, Common][]) {

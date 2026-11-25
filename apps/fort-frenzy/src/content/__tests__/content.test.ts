@@ -3,6 +3,7 @@
 // count, and the balance sheet carries every number the sim reads.
 import { describe, expect, it } from 'vitest';
 import { CARD_INFO } from '../../controller/copy';
+import { presentationShared } from '../../presentation/shared';
 import { buildBehaviors } from '../../host/sim/builds';
 import { aiKinds, bosses, modules } from '../../host/sim/registry';
 import { generateWave, groupsCost, waveRng } from '../../host/systems/waves';
@@ -24,15 +25,6 @@ const c = content;
 const enemyIds = new Set(c.enemies.map((e) => e.id));
 const cardIds = new Set(c.cards.map((x) => x.id));
 const knightIds = new Set(c.knights.map((x) => x.id));
-
-/** Card ids whose defs arrive with their milestone (each knight's kit, RD11's commons). */
-const PENDING_CARDS: CardId[] = [
-  'tinkerer',
-  'wide_field',
-  'challenger',
-  'reinforced_generator',
-  'fault_line',
-];
 
 function unique(ids: string[]) {
   expect(new Set(ids).size).toBe(ids.length);
@@ -115,10 +107,22 @@ describe('content ids', () => {
     }
   });
 
-  it('every card id has content except the ones still to come; commons are tuned per knight', () => {
-    const missing = CARD_IDS.filter((id) => !cardIds.has(id));
-    expect(missing.sort()).toEqual([...PENDING_CARDS].sort());
+  it('every card id has content (RD11: none pending); 9 commons, tuned per knight', () => {
+    expect(CARD_IDS.filter((id) => !cardIds.has(id))).toEqual([]);
+    expect(c.cards).toHaveLength(CARD_IDS.length);
     const commons = c.cards.filter((x) => x.owner === 'common');
+    expect(commons.map((x) => x.id)).toEqual([
+      'vitality',
+      'might',
+      'haste',
+      'reach',
+      'swiftness',
+      'focus',
+      'toughness',
+      'quick_recovery',
+      'tinkerer',
+    ]);
+    for (const x of commons) expect(x.tier, x.id).toBe('common');
     for (const x of commons)
       for (const k of KNIGHT_IDS) expect(x.perKnight?.[k]?.length, x.id).toBeGreaterThan(0);
     // Every card does something: stats, per-knight stats or a registered module.
@@ -139,6 +143,91 @@ describe('content ids', () => {
     }
     for (const x of c.cards.filter((k) => k.tier !== 'combo'))
       expect((x.requires ?? []).length).toBeLessThanOrEqual(1);
+  });
+
+  it('passive cards: one per knight, rare and unique; a one-id `requires` names its passive', () => {
+    const passives = new Set(c.knights.map((k) => k.passiveCard));
+    expect(passives.size).toBe(c.knights.length);
+    for (const k of c.knights) {
+      const def = c.cards.find((x) => x.id === k.passiveCard)!;
+      expect(def, k.id).toBeDefined();
+      expect(def.owner).toBe(k.id);
+      expect(def.tier).toBe('rare');
+      expect(def.unique).toBe(true);
+    }
+    // §6.1: Wide Aura and Deadeye improve a passive, so they need it (and stack, #122).
+    expect(c.cards.find((x) => x.id === 'wide_aura')!.requires).toEqual(['field_medic']);
+    expect(c.cards.find((x) => x.id === 'deadeye')!.requires).toEqual(['steady_aim']);
+    for (const x of c.cards.filter((k) => k.tier !== 'combo' && k.requires?.length))
+      expect(passives, x.id).toContain(x.requires![0]);
+    // The Warden's combo (RD11).
+    expect(c.cards.find((x) => x.id === 'fault_line')!.requires!.sort()).toEqual([
+      'aftershock',
+      'earthshaker',
+    ]);
+  });
+
+  it('card marks follow §6.1’s table on the phone (copy.ts) and the TV (presentation)', () => {
+    const table: Record<string, CardId[]> = {
+      'card-tinkerer': ['tinkerer'],
+      'card-attack': ['quick_draw', 'piercing_shot', 'volley', 'heavy_slam', 'heavy_bash'],
+      'card-super': ['blast_radius', 'earthshaker', 'rally_cry'],
+      'card-passive': ['steady_aim', 'challenger', 'field_medic', 'morale', 'deadeye', 'wide_aura'],
+      'card-build': [
+        'shrapnel_charge',
+        'minefield',
+        'wide_field',
+        'reinforced_generator',
+        'booster_beacon',
+        'strong_arm',
+      ],
+      'card-effect': ['fire_arrows', 'venom_bolts', 'aftershock'],
+      'card-hunter': ['skyhunter', 'giant_slayer', 'siege_breakers'],
+      'card-ally': ['overflow', 'triage'],
+      'card-squad': ['forced_march', 'veterans', 'last_stand', 'drillmaster', 'reinforced_ranks'],
+      'card-toughness': ['unshakable', 'vanguard', 'toughness'],
+      'card-combo': ['wildfire', 'fault_line', 'plague', 'warcry'],
+      'card-vitality': ['vitality'],
+      'card-might': ['might'],
+      'card-haste': ['haste'],
+      'card-reach': ['reach'],
+      'card-swiftness': ['swiftness'],
+      'card-focus': ['focus'],
+      'card-recovery': ['quick_recovery'],
+    };
+    const want = new Map<CardId, string>();
+    for (const [mark, ids] of Object.entries(table)) for (const id of ids) want.set(id, mark);
+    expect([...want.keys()].sort()).toEqual([...CARD_IDS].sort());
+    for (const id of CARD_IDS) {
+      expect(CARD_INFO[id].mark, id).toBe(want.get(id));
+      expect(presentationShared.iconFor.card[id], id).toBe(want.get(id));
+      // Rare frames on the phone match the content's tier.
+      expect(CARD_INFO[id].rare, id).toBe(c.cards.find((x) => x.id === id)!.tier !== 'common');
+    }
+    expect(Object.values(table).flat()).not.toContain('card-supply');
+  });
+
+  it('class growth: every class grows, more after a boss, only uncapped stats', () => {
+    const caps = c.rules!.statCaps;
+    const sum = (mods: readonly { addPct?: number }[]) =>
+      mods.reduce((n, m) => n + (m.addPct ?? 0), 0);
+    for (const cls of c.classes) {
+      const { regular, boss } = cls.growth;
+      expect(regular.length, cls.id).toBeGreaterThan(0);
+      expect(sum(boss), cls.id).toBeGreaterThan(sum(regular));
+      for (const m of [...regular, ...boss]) {
+        expect(['maxHp', 'damage', 'healing'], `${cls.id} ${m.stat}`).toContain(m.stat);
+        expect(caps[m.stat], `${cls.id} ${m.stat}`).toBeUndefined();
+        expect(m.scope).toBeUndefined();
+        expect(m.addPct ?? 0).toBeGreaterThan(0);
+      }
+    }
+    const of = (id: string, stat: string) =>
+      c.classes.find((x) => x.id === id)!.growth.regular.find((m) => m.stat === stat)?.addPct ?? 0;
+    // §6.1: the tank mostly HP, the marksman mostly damage, the support also heals.
+    expect(of('tank', 'maxHp')).toBeGreaterThan(of('tank', 'damage'));
+    expect(of('marksman', 'damage')).toBeGreaterThan(of('marksman', 'maxHp'));
+    expect(of('support', 'healing')).toBeGreaterThan(0);
   });
 
   it('favored enemies are ones the waves can spawn', () => {

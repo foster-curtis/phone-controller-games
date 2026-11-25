@@ -33,7 +33,7 @@ import {
 } from './cards/effects';
 import { fireArrows, piercingShot, skyhunter, volley, wildfire } from './cards/ranger';
 import { overflow, plague, triage, venomBolts } from './cards/artificer';
-import { aftershock, giantSlayer, unshakable } from './cards/warden';
+import { aftershock, challenger, faultLine, giantSlayer, unshakable } from './cards/warden';
 import { stunEffect } from './classes/warden';
 import { steadyAim } from './modules/steadyAim';
 import { fieldMedic } from './modules/fieldMedic';
@@ -69,6 +69,8 @@ export const modules: Record<string, ModuleDef> = {
   warcry: warcry,
   rally_cry: rallyCry, // RD9
   morale: moraleCard, // RD9
+  challenger: challenger, // RD11
+  fault_line: faultLine, // RD11
 };
 
 /** Status effect definitions (§15.3). */

@@ -95,7 +95,8 @@ export function teamView(ctx: ViewCtx): TeamView {
     phase,
     wave: w?.wave ?? ctx.restoring?.wave ?? 0,
     buildEndsInMs: w && w.phase === 'build' ? msLeft(w) : null,
-    coins: w?.team.coins ?? 0,
+    // Whole coins (the sim keeps the fraction, RD11).
+    coins: w ? Math.floor(w.team.coins) : 0,
     baseHp: w ? Math.ceil(w.base.hp) : 0,
     baseMaxHp: w ? w.base.maxHp : 0,
     difficulty: ctx.settings.difficulty,

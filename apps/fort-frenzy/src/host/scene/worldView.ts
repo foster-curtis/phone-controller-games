@@ -75,7 +75,7 @@ import { shotAnchor } from './support';
 import { SupportView } from './supportView';
 import { superPulse } from './superPulse';
 import { syncTag, type TagState } from './tag';
-import { wardenAttack, type WardenImpact } from './wardenFx';
+import { wardenAttack, type FissureLook, type WardenImpact } from './wardenFx';
 
 export type { Pos } from './shot';
 
@@ -529,7 +529,14 @@ export class WorldView {
       k.shotDelay = 0;
       const def = this.content.knights.find((c) => c.id === p.classId);
       if (def) {
-        const impact = wardenAttack(this.w, k.rig, e, def, (ms, fn) => this.later(ms, fn));
+        const impact = wardenAttack(
+          this.w,
+          k.rig,
+          e,
+          def,
+          (ms, fn) => this.later(ms, fn),
+          e.slot === 'super' ? this.fissureLook(p, def) : null,
+        );
         this.wardenImpacts.set(`${e.source}:${e.slot}`, impact);
       }
       return;
@@ -587,6 +594,16 @@ export class WorldView {
     if (!this.citadel.collapsing && w.base.hp > 0)
       this.citadel.setStage(w.base.stage ?? Citadel.stageFor(w.base.hp / w.base.maxHp));
     this.citadel.update(dt);
+  }
+
+  /** Fault Line's fissure for a Warden's jump slam (RD11), from the card's content, or null. */
+  private fissureLook(p: PlayerEnt, def: Content['knights'][number]): FissureLook | null {
+    if (!(p.cards.fault_line ?? 0)) return null;
+    const params = this.content.cards.find((c) => c.id === 'fault_line')?.module?.params;
+    const lengthPct = params?.lengthPct;
+    const ms = params?.fissureMs;
+    if (typeof lengthPct !== 'number' || typeof ms !== 'number') return null;
+    return { length: def.super.range * lengthPct, ms };
   }
 
   private aimOf(p: PlayerEnt, k: Knight): number | null {

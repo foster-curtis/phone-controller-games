@@ -532,7 +532,9 @@ hits; feet circles still walk, collide and take enemy attacks.
   carry anything.
 - **Coin income is low on purpose:** coins per kill = the enemy's budget cost (§9.1) × the coin rate in
   the balance sheet, times the difficulty's coin multiplier (§2.2). A Swarm group pays when its last
-  unit dies. Starting values are set with the shop prices (§6.2, §14).
+  unit dies. Starting values are set with the shop prices (§6.2, §14): a coin rate of 0.25 and no
+  starting coins (RD11). The pool keeps the fraction (a Grunt pays a quarter coin); phones and the TV
+  show whole coins, and a purchase needs the whole price (§15.11 #165).
 - **Personal power** comes only from upgrade cards and per-wave class growth (§6.1). There is no
   personal shop and no personal currency in v1 (§13).
 - **Between waves:**
@@ -586,6 +588,16 @@ hits; feet circles still walk, collide and take enemy attacks.
   on range, movement speed and damage reduction.
 - It shows as a header on the card pop-up, for example "Wave 4 cleared: +HP +DMG", above the three
   cards. The build phase before wave 1 has no header.
+- **Starting values per wave cleared** (balance sheet; a boss wave's list replaces the regular one, so
+  waves 5 and 10 give the boss list; wave 15 ends the run). A knight down at the wave end grows too
+  (RD11, §15.11 #166):
+
+| Class | Regular wave | Boss wave |
+|---|---|---|
+| Tank | +3% HP, +1% damage | +8% HP, +3% damage |
+| Marksman | +1% HP, +3% damage | +3% HP, +8% damage |
+| Support | +1.5% HP, +1.5% damage, +2% healing | +4% HP, +4% damage, +6% healing |
+| Control | +2% HP, +2% damage | +5% HP, +5% damage |
 
 **Card marks:** each card shows a category mark from the icon set (§2.6):
 
@@ -618,7 +630,7 @@ hits; feet circles still walk, collide and take enemy attacks.
 | Focus | +super charge rate |
 | Toughness | Take less damage (capped) |
 | Quick Recovery | −2 s respawn time (floor 4 s solo, 5 s otherwise, §5) |
-| Tinkerer | +build charge rate (§7.2) |
+| Tinkerer | +build charge rate (§7.2): its passive fill and its fill from actions |
 
 **Knight cards**
 
@@ -643,14 +655,14 @@ hits; feet circles still walk, collide and take enemy attacks.
 | Card | Tier | Effect |
 |---|---|---|
 | Heavy Slam | Common | Wider slam arc |
-| Earthshaker | Common | Longer super stun. Doesn't add stagger on the boss |
+| Earthshaker | Common | Longer jump slam stun. Doesn't add stagger on the boss (the Colossus counts a stun by a fixed amount, whatever its length) |
 | Wide Field | Common | Larger shield generator radius (build card) |
 | Aftershock | Rare | The jump slam slows every enemy it hits for about 5 s (`slowMs` in the card's params; RC1, #118: on his super, not his main) |
 | Giant Slayer | Rare | +50% damage vs Brutes and the Colossus |
 | Unshakable | Rare | Immune to slows and knockback |
-| Challenger | Rare, unique | Passive card: nearby enemies target the Warden first |
+| Challenger | Rare, unique | Passive card: nearby enemies target the Warden first. In combat he carries `taunt`: an aggro-leash enemy (§9) picks a taunting knight in its aggro radius before anything nearer, and one already chasing someone else turns on him (a swing already wound up lands first); the leash is unchanged (§15.11 #167) |
 | Reinforced Generator | Rare | More shield generator HP and a stronger damage reduction (build card) |
-| Fault Line (Aftershock + Earthshaker) | Combo | The jump slam leaves a long slowing fissure along its arc |
+| Fault Line (Aftershock + Earthshaker) | Combo | The jump slam leaves a long slowing fissure along its arc: a strip from his feet along the aim, as long as the jump slam's reach and about 0.9 tiles wide, open 4 s in combat; ground enemies on it are slowed 50%, lingering 0.5 s after they step off. The TV lays `slam-cracks` along it, fading with it (§15.11 #167) |
 
 *Artificer*
 
@@ -707,6 +719,13 @@ growth, so every coin purchase is a team choice.
   purchases per run, and the team **can't afford much in the first couple of waves:** the cheapest
   item (repair) becomes affordable after wave 2, a sentry upgrade or a tier I after about wave 3–4, and
   the third sentry and tier III items need saving across several waves.
+- **Starting prices (RD11, §15.11 #165):** repair 6, 9, 12, 15, 18 (then 18; restores 150 HP);
+  sentry damage 12; sentry range 12; third sentry 30; base max HP 12 / 20 / 28 (+150 each); base
+  armor 14 / 22 / 30 (+0.1 damage reduction each). Press-and-hold from 20 coins. Measured with the
+  economy run (an autopilot team that repairs below 75% base HP and otherwise saves for a fixed want
+  list; `sim/economy.ts`, seed 1, Normal): 2 players have 3 coins before wave 2 and 7 before wave 3,
+  buy their first item before wave 4 and 9 items in the run; solo buys 7 (first before wave 6), 4
+  players 9 plus a 46-coin surplus. Coin income scales with the player-count table like the waves.
 - The shop is thin in v1 on purpose; more items are a v2 addition (§13).
 
 **Purchasing rules**
@@ -3249,3 +3268,6 @@ states, then RD0's own.
 | 162 | 2026-11-24 | Pause menu: Leave game and End game (RD6-fix-1) | The paused card gets **Leave game** (every run player) and **End game** (the leader only), each behind a confirm step with Cancel (§10.5). Leave (`leave` intent) drops the player from the party at once (no reconnect into the slot, leadership passes, the phone is kicked back to the join screen); the knight stays on the map dazed for the rest of the run, its builds and squad as a dropped phone's, and late joiners never take its slot; the last player out ends the run (§11.3). End game (`leader` `endGame`) goes straight to the lobby, knights kept, snapshot cleared (§15.6). Revises §11.1 "nobody can leave" and §10.5 "no pause menus (quit)" | User, RC2. Keeping the knight is the simplest rule that matches §11.3's held slot: removing a knight mid-run would touch builds, squads, targeting, stats, the snapshot and the TV for little gain. End game goes to the lobby, not the summary: the summary is a win or a loss (`RunSummary.result`), and a forced end is neither |
 | 163 | 2026-11-24 | Art pass (RD12) | The 15 "Removed outright" art files are deleted (Armory kiosk and pad, repair-zone pad, power cell, `carry-pip`, `carry-pip-empty`, their two review sheets, seven crate icons) with six `sprites.json` frames; icons are 66 (§2.6). The gallery gains `builds` and `portals` pages and `slam` and `sword` rig toggles, and the jump slam's gallery loop is 1750 ms (clip + 400 ms) | Plan RD12 |
 | 164 | 2026-11-24 | Audio cues for the redesign (RD13) | Nine new cues (§12, §15.4): mine trigger and blast, shield generator hit, beacon pulse (one a second at most), portal flare, Brute lock-on, Colossus Charge wind-up (replaces the generic boss marker cue for that marker), Warden jump-slam landing, Rally Cry double (`reinforce` count 2). Every cue has a tuning cap (§15.10); three events and one optional field were added to the sim events (contract+). No crate or structure cues exist | Redesign; the simplest mapping from existing events, adding an event only where none carried the fact |
+| 165 | 2026-11-24 | Coin curve and shop prices (RD11) | Coin rate 0.25, no starting coins; the team pool keeps the fraction and the views show whole coins. Prices: repair 6/9/12/15/18, sentry damage and range 12, third sentry 30, base max HP 12/20/28, base armor 14/22/30; press-and-hold from 20. The economy run (`sim/economy.ts`, seed 1, 2 players, Normal) buys nothing before wave 3, its first item before wave 4 and 9 items in all (solo 7, 4 players 9 with coins left over) (§6, §6.2) | §6.2's target: repair affordable after wave 2, a tier I around waves 3–4, saving for the third sentry and tier IIIs, about 10 purchases; a rate under 1 needs the fraction or a Grunt pays nothing |
+| 166 | 2026-11-24 | Class growth (RD11) | Every wave's end (before the next build phase, not after wave 15) adds the class's `regular` list, or its `boss` list after a boss wave, to every knight in the run, down or disconnected too; the bump counts (`PlayerEnt.growth`) make one `growth` modifier, restored from the snapshot's counts. The sim drops any stat that has a cap, whatever the content lists. Debug `jumpWave` grows nothing. Starting values in §6.1 (§6.1, §8.1) | §6.1: additive like the cards, uncapped stats only; counts keep the snapshot shape (v3) unchanged |
+| 167 | 2026-11-24 | Warden cards (RD11) | Challenger: `taunt` in combat; an aggro-leash enemy picks a taunting knight in its aggro radius first and turns from its current target to him (its leash and other rules unchanged; Siege, Hunters, the Brute's build hunt and the Colossus keep their own targeting). Fault Line: a strip from his feet along the jump slam's aim (not its curved edge), reach × 1, 0.9 wide, 4 s, 50% slow lingering 0.5 s, ground enemies only; drawn with `slam-cracks` marks. Wide Field +25% field radius; Reinforced Generator +40% HP and +20% guard per stack; Earthshaker unchanged (+30% stun, no boss stagger by the Colossus's fixed stun fill) (§6.1) | "Nearby enemies target him first" as the existing aggro rule's first pick; a straight strip is the simplest long fissure "along its arc" and needs no new art |

@@ -106,8 +106,12 @@ describe('card state and the growth header (§10.2)', () => {
     w.wave = bossWave + 1;
     p.growth.boss = 1;
     expect(growthFor(content, w, p)).toEqual({ wave: bossWave, boss: true, stats: ['healing'] });
-    // Today's content grows nothing (RD11): no header.
-    expect(growthFor(baseContent, w, p)).toBeNull();
+    // The real tank grows HP and damage after a boss (RD11).
+    expect(growthFor(baseContent, w, p)).toEqual({
+      wave: bossWave,
+      boss: true,
+      stats: ['maxHp', 'damage'],
+    });
   });
 });
 

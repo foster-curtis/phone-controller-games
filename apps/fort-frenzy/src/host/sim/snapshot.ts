@@ -22,6 +22,7 @@ import {
 } from '../../shared/ids';
 import { RUN_STAT_KEYS, type RunStats } from '../../shared/messages';
 import { attachAllCards } from './cards';
+import { attachGrowth } from './growth';
 import { refitBase } from './shop';
 import { postOf, refitSoldier, seedSquads } from './squad';
 import { newAttack, zeroRunStats, type FullState } from './state';
@@ -321,9 +322,11 @@ export function restoreSnapshot(s: FullState, snap: RunSnapshot): void {
     if (!p) continue;
     p.cards = { ...sl.cards };
     attachAllCards(s, p);
+    // Class growth: the saved bump counts back as one modifier (RD11).
+    p.growth = { ...sl.growth };
+    attachGrowth(s, p);
     p.hp = sl.hp > 0 ? Math.min(p.maxHp, sl.hp) : p.maxHp;
     p.meter = Math.min(1, Math.max(0, sl.meter));
-    p.growth = { ...sl.growth };
     p.offer = sl.offer ? [...sl.offer] : null;
     p.picked = sl.picked;
     p.run = { ...zeroRunStats(), ...sl.stats };

@@ -50,8 +50,10 @@ export const base = {
 } satisfies BaseDef;
 
 export const rules = {
-  startCoins: 6,
-  coinRate: 1,
+  // Low on purpose (§6, §6.2): nothing is affordable before wave 2's kills. Coins per kill =
+  // budget × `coinRate` × difficulty, kept fractional (the views show whole coins; RD11).
+  startCoins: 0,
+  coinRate: 0.25,
   countdownMs: 3000,
   // 20 s; a card not confirmed by then is picked at random (§10.2).
   buildCapMs: 20_000,
@@ -135,13 +137,45 @@ export const scaling: PlayerCountRow[] = [
 
 // ==== Classes ====================================================================================
 // The classes (SPEC §8.1): HP tier (× rules.knightHp) and damage band (× the knight's main and super
-// damage, applied when they fire); class growth per wave cleared comes with RD11.
+// damage, applied when they fire). Growth (§6.1, RD11): added at every wave's end, `boss` after a boss
+// wave (5, 10) in place of `regular`; additive percentages of the base, uncapped stats only (max HP,
+// damage, healing), so growth never spends the +40% caps.
+
+const grow = (maxHp: number, damage: number, healing = 0): StatMod[] => [
+  { stat: 'maxHp', addPct: maxHp },
+  { stat: 'damage', addPct: damage },
+  ...(healing > 0 ? [{ stat: 'healing' as const, addPct: healing }] : []),
+];
 
 export const classes: ClassDef[] = [
-  { id: 'tank', hp: 1.6, damage: 0.9, growth: { regular: [], boss: [] } },
-  { id: 'marksman', hp: 0.8, damage: 1.15, growth: { regular: [], boss: [] } },
-  { id: 'support', hp: 0.9, damage: 0.8, growth: { regular: [], boss: [] } },
-  { id: 'control', hp: 1, damage: 0.95, growth: { regular: [], boss: [] } },
+  // Mostly HP.
+  {
+    id: 'tank',
+    hp: 1.6,
+    damage: 0.9,
+    growth: { regular: grow(0.03, 0.01), boss: grow(0.08, 0.03) },
+  },
+  // Mostly damage.
+  {
+    id: 'marksman',
+    hp: 0.8,
+    damage: 1.15,
+    growth: { regular: grow(0.01, 0.03), boss: grow(0.03, 0.08) },
+  },
+  // HP, damage and healing.
+  {
+    id: 'support',
+    hp: 0.9,
+    damage: 0.8,
+    growth: { regular: grow(0.015, 0.015, 0.02), boss: grow(0.04, 0.04, 0.06) },
+  },
+  // HP and damage.
+  {
+    id: 'control',
+    hp: 1,
+    damage: 0.95,
+    growth: { regular: grow(0.02, 0.02), boss: grow(0.05, 0.05) },
+  },
 ];
 
 // ==== Knights =====================================================================================
@@ -843,8 +877,9 @@ export const waves: WaveDef[] = [
 ];
 
 // ==== Upgrade cards ==============================================================================
-// Upgrade cards (SPEC §6.1): the 8 shared commons (numbers tuned per class, `perKnight`), then each
-// class's 2 commons, 5 rares and 1 combo, in the spec's table order. Stat cards change stats (attack
+// Upgrade cards (SPEC §6.1): the 9 shared commons (numbers tuned per knight, `perKnight`), then each
+// knight's cards, in the spec's table order. A passive card is rare and unique; a card that improves
+// a passive names it in `requires` (one id), a combo names two. Stat cards change stats (attack
 // stats scoped to their button, so aim previews read the effective values); the rest are sim
 // modules (src/host/sim/cards/). Every number is a starting value for playtesting (§14 #2).
 // Stacks add (×N); range, movement speed and damage reduction are capped by the rules (+40%).
@@ -911,12 +946,19 @@ export const commonCards: CardDef[] = [
     tier: 'common',
     perKnight: per('damageReduction', 'add', 0.06, 0.08, 0.06, 0.07),
   },
-  // −2 s respawn, never below 5 s (the rules cap Σ add at −5000 ms on a 10 s respawn).
+  // −2 s respawn a stack, never below `rules.respawnFloorMs` (4 s solo, 5 s otherwise; §5).
   {
     id: 'quick_recovery',
     owner: 'common',
     tier: 'common',
     perKnight: per('respawnMs', 'add', -2000, -2000, -2000, -2000),
+  },
+  // A faster build meter (§7.2): its passive fill and its fill from actions.
+  {
+    id: 'tinkerer',
+    owner: 'common',
+    tier: 'common',
+    perKnight: per('buildCharge', 'addPct', 0.15, 0.15, 0.15, 0.15),
   },
 ];
 
@@ -1002,6 +1044,9 @@ export const rangerCards: CardDef[] = [
 ];
 
 // ---- warden -------------------------------------------------------------------------------------
+// RD11 (the Warden's kit landed in the slice without cards): Heavy Slam on the main (68°, RD3-fix-3),
+// Earthshaker and Aftershock on the jump slam (102°), Wide Field and Reinforced Generator on the
+// shield generator, Challenger his passive card, Fault Line the combo (sim/cards/warden.ts).
 
 export const wardenCards: CardDef[] = [
   {
@@ -1010,12 +1055,20 @@ export const wardenCards: CardDef[] = [
     tier: 'common',
     stats: [{ stat: 'arcDeg', addPct: 0.2, scope: 'main' }],
   },
-  // Longer stomp stun (the stun's duration × `stunMs`); no extra stagger on the boss (FF11).
+  // Longer jump slam stun (the stun's duration × `stunMs`). No extra stagger on the boss: the
+  // Colossus counts a stun into its meter by a fixed `staggerStun`, whatever its length (FF11).
   {
     id: 'earthshaker',
     owner: 'warden',
     tier: 'common',
     stats: [{ stat: 'stunMs', addPct: 0.3, scope: 'super' }],
+  },
+  // A larger shield generator field (build card).
+  {
+    id: 'wide_field',
+    owner: 'warden',
+    tier: 'common',
+    stats: [{ stat: 'buildRadius', addPct: 0.25, scope: 'build' }],
   },
   {
     id: 'aftershock',
@@ -1034,13 +1087,43 @@ export const wardenCards: CardDef[] = [
     favoredEnemy: 'brute',
     module: { module: 'giant_slayer', params: { enemies: 'brute,colossus', pct: 0.5 } },
   },
-
   {
     id: 'unshakable',
     owner: 'warden',
     tier: 'rare',
     unique: true,
     module: { module: 'unshakable' },
+  },
+  // His passive card (§6.1, §8.2): enemies in aggro range pick him first. He carries `taunt` in
+  // combat, re-applied each step for `auraMs`.
+  {
+    id: 'challenger',
+    owner: 'warden',
+    tier: 'rare',
+    unique: true,
+    module: { module: 'challenger', params: { auraMs: 200 } },
+  },
+  // More shield generator HP and a stronger guard (build card).
+  {
+    id: 'reinforced_generator',
+    owner: 'warden',
+    tier: 'rare',
+    stats: [
+      { stat: 'buildHp', addPct: 0.4, scope: 'build' },
+      { stat: 'buildPower', addPct: 0.2, scope: 'build' },
+    ],
+  },
+  // The jump slam leaves a fissure along its aim, `lengthPct` of its reach and `width` wide, for
+  // `fissureMs`; ground enemies on it are slowed by `slow`, lasting `lingerMs` after they step off.
+  {
+    id: 'fault_line',
+    owner: 'warden',
+    tier: 'combo',
+    requires: ['aftershock', 'earthshaker'],
+    module: {
+      module: 'fault_line',
+      params: { slow: 0.5, lingerMs: 500, fissureMs: 4000, width: 0.9, lengthPct: 1 },
+    },
   },
 ];
 
@@ -1208,15 +1291,17 @@ export const cards: CardDef[] = [
 // ==== Team shop ==================================================================================
 // Team shop items (SPEC §3.4, §3.5, §6.2): rising repair, the 3 sentry upgrades, base max HP and base
 // armor. Prices rise with each tier; every item is always shown. Every number is a starting value
-// (§14 #2; RD11 sets the pricing).
+// (§14 #2). RD11's curve, priced against `rules.coinRate` (2 players, Normal): repair (the cheapest)
+// is affordable after wave 2, a sentry upgrade or a tier I around waves 3–4, the third sentry and the
+// tier IIIs only after saving; about 10 purchases a run (src/host/sim/economy.ts logs the curve).
 
 /** Items at or above this price ask for a press-and-hold to confirm (§6.2, ~0.6 s). */
-export const HOLD_CONFIRM_PRICE = 10;
+export const HOLD_CONFIRM_PRICE = 20;
 
 /** Repeatable; the price climbs this ladder per purchase and stays at the last step (§3.4). */
 export const repair = {
   id: 'repair',
-  tiers: [4, 6, 8, 10, 12, 14].map((price) => ({
+  tiers: [6, 9, 12, 15, 18].map((price) => ({
     price,
     effect: { kind: 'repair' as const, hp: 150 },
   })),
@@ -1227,7 +1312,7 @@ export const archerDamage = {
   id: 'archer_damage',
   tiers: [
     {
-      price: 8,
+      price: 12,
       effect: { kind: 'stats', target: 'archers', stats: [{ stat: 'damage', addPct: 0.5 }] },
     },
   ],
@@ -1237,7 +1322,7 @@ export const archerRange = {
   id: 'archer_range',
   tiers: [
     {
-      price: 8,
+      price: 12,
       effect: { kind: 'stats', target: 'archers', stats: [{ stat: 'range', addPct: 0.25 }] },
     },
   ],
@@ -1245,7 +1330,7 @@ export const archerRange = {
 
 export const archerThird = {
   id: 'archer_third',
-  tiers: [{ price: 12, effect: { kind: 'archers', add: 1 } }],
+  tiers: [{ price: 30, effect: { kind: 'archers', add: 1 } }],
 } satisfies ShopItemDef;
 
 const tiers3 = (prices: [number, number, number], effect: ShopItemDef['tiers'][number]['effect']) =>
@@ -1254,7 +1339,7 @@ const tiers3 = (prices: [number, number, number], effect: ShopItemDef['tiers'][n
 /** Each tier raises the Citadel's max HP and its current HP by the same amount (§6.2). */
 export const baseHp = {
   id: 'base_hp',
-  tiers: tiers3([6, 10, 14], {
+  tiers: tiers3([12, 20, 28], {
     kind: 'stats',
     target: 'base',
     stats: [{ stat: 'maxHp', add: 150 }],
@@ -1264,7 +1349,7 @@ export const baseHp = {
 /** The Citadel takes less damage (capped with every damage reduction). */
 export const baseArmor = {
   id: 'base_armor',
-  tiers: tiers3([8, 12, 16], {
+  tiers: tiers3([14, 22, 30], {
     kind: 'stats',
     target: 'base',
     stats: [{ stat: 'damageReduction', add: 0.1 }],

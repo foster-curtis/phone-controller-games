@@ -34,6 +34,10 @@ function busyBuild() {
   const h = harness(4, 11, { classes: CLASSES });
   const { sim } = h;
   h.toBuild();
+  // Wave 1 cleared at once, so every knight has a real class growth bump (RD11).
+  h.toCombat();
+  sim.world.spawns.length = 0;
+  h.until(() => sim.world.phase === 'build', 5);
   sim.command({ c: 'debug', slot: -1, action: 'jumpWave', wave: 6 });
   h.run(1);
   const w = sim.world;
@@ -63,7 +67,7 @@ function busyBuild() {
   for (const u of w.soldiers) u.veterans = u.index;
   w.soldiers[0]!.hp -= 11;
   h.p(0).meter = 0.4;
-  h.p(2).growth = { regular: 5, boss: 1 };
+  expect(h.p(2).growth).toEqual({ regular: 1, boss: 0 });
   h.p(1).run.kills = 9;
   // The scenario really holds each kind of state.
   expect(Object.values(w.team.shop).filter((n) => n > 0).length).toBeGreaterThanOrEqual(3);

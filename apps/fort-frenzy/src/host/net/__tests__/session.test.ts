@@ -146,6 +146,10 @@ describe('session: run', () => {
       s.afterStep();
     }
     expect(sim.world.phase).toBe('build');
+    // The run starts with no coins (RD11): give the team some first.
+    sim.command({ c: 'debug', slot: -1, action: 'coins', amount: 100 });
+    sim.step();
+    s.afterStep();
     s.handleMessage('a', { t: 'intent', seq: 703, intent: { k: 'buy', item: 'base_hp' } });
     s.handleMessage('a', { t: 'intent', seq: 704, intent: { k: 'buy', item: 'repair' } });
     expect(ackOf(sent, 703)).toBeUndefined();

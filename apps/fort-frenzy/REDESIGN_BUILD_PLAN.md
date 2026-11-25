@@ -842,7 +842,7 @@ Rules:
   - [x] Colossus Mk I–III + Charge + tells; merged
 - [x] **User approved RC2** (kits, enemies, balance report)
 - RD11 Economy
-  - [ ] Commons + card rules + marks; Warden cards; class growth; shop + pricing + coins; merged
+  - [x] Commons + card rules + marks; Warden cards; class growth; shop + pricing + coins; merged
 - RD12 Art pass
   - [x] Gallery pages; retired art deleted; asset checks (merge and gallery e2e: orchestrator)
 - RD13 Polish
@@ -1141,6 +1141,16 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD12] decision: new gallery pages `builds` (each real build view in all five states, the mine's trigger frame, the flag's flight parts, the beacon's pulse) and `portals` (idle and flare per side with the `portal-flare` sparks); the map page flares its six portals in turn; the effects page drops every `MARK_FRAMES` mark on a loop. No turret, autotile or other kept-on-file page existed in the gallery, so none was removed.
 - [RD12] decision: `sword` (Commander) and `slam` (Warden) are gallery checkboxes and URL params (`sword=1`, `slam=1`), off by default; `ONE_SHOTS.super` is 1750 ms.
 - [RD12] decision: 15 files deleted (8 art and review files, 7 icons) and 6 `sprites.json` frames; the art README's stale mentions stay (input, read-only).
+- [RD11] decision: no frozen contract changed: growth lives in a new `sim/growth.ts` (one `growth` modifier from `PlayerEnt.growth`'s counts, re-attached on resume), the Warden modules append to the registry, and `TeamState.coins` keeps its type but now holds a fraction (#165).
+- [RD11] decision: coin rate 0.25 with the pool kept fractional (`coinsFor` no longer rounds, `TeamView.coins` floors) rather than a rate of 1 and 4× prices: a rate under 1 rounded a Grunt's pay to 0, and the knob stays the one the spec names (#165).
+- [RD11] decision: the economy run (`sim/economy.ts`, `scripts/economy.ts`, `economy.test.ts`) is an autopilot team that repairs below 75% base HP and otherwise saves for a fixed want list, base not held (players invincible, as the soak). Seed 1, Normal, purchases by build phase: 2 players (Ranger + Artificer) w4 sentry damage, w7 base HP I, w8 sentry range, w10 base armor I, w11 repair, w12 repair ×2, w14 base HP II, w15 third sentry = 9; solo Warden 7 (first at w6); 4 players 9 (first at w4, 46 coins left). Coins before waves 2/3/4: 3/7/12 (2 players).
+- [RD11] decision: income scales with the player-count table (more enemies, more coins), so the §6.2 curve is tuned for 2 players (the wave budgets' reference); solo buys about 7, 4 players run out of things to buy by wave 15. Left for RC4 (a per-player-count coin factor would be one line in `coinsFor`).
+- [RD11] decision: growth runs at the wave end before `startBuild` (so the pop-up header shows it), for every knight in the run including down and disconnected ones; none after wave 15 or on debug `jumpWave`; the sim skips any stat with a `statCaps` entry even if content lists one (#166).
+- [RD11] decision: Challenger is the `taunt` effect re-applied each combat step (200 ms) by his card module; `leash` (ai/path.ts) picks a taunting knight in the aggro radius first and switches an enemy already in `aggro` to him, but a swing already wound up lands first; Siege, Hunters, the Brute's build hunt and the Colossus keep their own targeting (#167).
+- [RD11] decision: Fault Line's fissure is a straight strip from his feet along the jump slam's aim (its center line, reach × `lengthPct` 1, 0.9 wide, 4 s), kept on the card's modifier like the old slam zone; the TV lays `slam-cracks` every 0.9 tiles along it for the same 4 s (`wardenFx` gets an optional `FissureLook`), no new art (#167).
+- [RD11] decision: Wide Field +25% `buildRadius`; Reinforced Generator +40% `buildHp` and +20% `buildPower` per stack (rare, not unique, so no cap on the guard: three stacks give 0.48); Tinkerer +15% `buildCharge` for every knight; `HOLD_CONFIRM_PRICE` 10 → 20 so only tier II/III and the third sentry need the hold.
+- [RD11] decision: Earthshaker needs no code: the Colossus fills its stagger by a fixed `staggerStun` per stun whatever its length, so a longer stun adds none (tested).
+- [RD11] decision: the commons, Warden card copy and marks were already in `copy.ts` and `presentation/shared.ts` from RD2–RD4 (they match §6.1, now tested); the Commander's squad-stats shop item was already gone (RD2/RD9), so the shop is the six §6.2 items.
 
 ## 9. Final handoff
 

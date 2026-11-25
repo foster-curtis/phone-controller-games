@@ -278,7 +278,7 @@ describe('aggro leash', () => {
 });
 
 describe('Swarm and coins', () => {
-  it('spawns a scattered pack of 8 that pays its 3 coins once, on the last mite', () => {
+  it('spawns a scattered pack of 8 that pays its budget (3) once, on the last mite', () => {
     const t = quiet();
     const w = t.sim.world;
     t.sim.command({ c: 'debug', slot: -1, action: 'spawn', enemy: 'swarm', portal: 'bottom-w' });
@@ -296,7 +296,7 @@ describe('Swarm and coins', () => {
     expect(w.team.coins).toBe(coins);
     pack[7]!.hp = 0;
     t.run(1);
-    expect(w.team.coins).toBe(coins + 3);
+    expect(w.team.coins).toBeCloseTo(coins + 3 * content.rules!.coinRate, 9);
   });
 
   it('a whole pack dying in one step still pays once', () => {
@@ -306,17 +306,17 @@ describe('Swarm and coins', () => {
     const coins = t.sim.world.team.coins;
     for (const e of t.sim.world.enemies) e.hp = 0;
     t.run(1);
-    expect(t.sim.world.team.coins).toBe(coins + 3);
+    expect(t.sim.world.team.coins).toBeCloseTo(coins + 3 * content.rules!.coinRate, 9);
   });
 
-  it('every other kill pays its budget cost', () => {
+  it('every other kill pays its budget cost × the coin rate', () => {
     for (const def of content.enemies.filter((e) => (e.groupSize ?? 1) === 1)) {
       const t = quiet();
       const e: EnemyEnt = t.sim.spawnEnemy(def.id, 12.5, 16.5);
       const coins = t.sim.world.team.coins;
       e.hp = 0;
       t.run(1);
-      expect(t.sim.world.team.coins - coins).toBe(def.budget);
+      expect(t.sim.world.team.coins - coins).toBeCloseTo(def.budget * content.rules!.coinRate, 9);
     }
   });
 });

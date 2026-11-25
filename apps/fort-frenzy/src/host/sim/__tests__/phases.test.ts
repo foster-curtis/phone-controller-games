@@ -203,7 +203,7 @@ describe('wave end, victory, defeat', () => {
     expect(p.hp).toBe(p.maxHp);
   });
 
-  it('kills pay their budget cost into the team pool', () => {
+  it('kills pay their budget cost × the coin rate into the team pool', () => {
     const h = harness(1);
     h.toCombat();
     h.holdSpawns();
@@ -213,7 +213,7 @@ describe('wave end, victory, defeat', () => {
     h.put(0, 10, 18);
     h.pads[0]!.tap('mainFires');
     h.run(30);
-    expect(h.sim.world.team.coins).toBe(coins + 1);
+    expect(h.sim.world.team.coins).toBeCloseTo(coins + rules.coinRate, 9);
     expect(h.p(0).run.kills).toBe(1);
   });
 

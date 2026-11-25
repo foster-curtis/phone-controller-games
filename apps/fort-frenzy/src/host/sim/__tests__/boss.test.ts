@@ -376,7 +376,10 @@ describe('boss HP and the wave end', () => {
     expect(h.sim.world.phase).toBe('build');
     expect(h.sim.world.wave).toBe(6);
     expect(h.sim.world.enemies).toHaveLength(0);
-    expect(h.sim.world.team.coins - coins).toBe(colossusDef.budget);
+    expect(h.sim.world.team.coins - coins).toBeCloseTo(
+      colossusDef.budget * content.rules!.coinRate,
+      9,
+    );
   });
 
   it('the boss wave lasts while it lives, even with every escort dead', () => {

@@ -41,7 +41,7 @@ describe('purchases', () => {
       prices.push(itemState(content, h.sim.world, item('base_armor')).price);
       ack(h, { c: 'buy', slot: 0, item: 'base_armor' });
     }
-    expect(prices).toEqual([8, 12, 16, null]);
+    expect(prices).toEqual([...item('base_armor').tiers.map((t) => t.price), null]);
     expect(h.sim.world.team.shop.base_armor).toBe(3);
     expect(ack(h, { c: 'buy', slot: 0, item: 'base_armor' }).reason).toBe('invalid');
     expect(itemState(content, h.sim.world, item('archer_third')).holdToConfirm).toBe(true);
@@ -66,6 +66,37 @@ describe('purchases', () => {
     expect(b.hp).toBe(hp0 + 150);
   });
 
+  it('base max HP and base armor: all three tiers apply, adding up (RD11)', () => {
+    const h = shopAt(['ranger']);
+    const b = h.sim.world.base;
+    const max0 = b.maxHp;
+    const dr0 = b.stats.damageReduction;
+    const hpStep = (n: number) => {
+      const fx = item('base_hp').tiers[n]!.effect;
+      return fx.kind === 'stats' ? (fx.stats[0]!.add ?? 0) : 0;
+    };
+    const armorStep = (n: number) => {
+      const fx = item('base_armor').tiers[n]!.effect;
+      return fx.kind === 'stats' ? (fx.stats[0]!.add ?? 0) : 0;
+    };
+    let max = max0;
+    let dr = dr0;
+    for (let n = 0; n < 3; n++) {
+      expect(ack(h, { c: 'buy', slot: 0, item: 'base_hp' }).ok).toBe(true);
+      expect(ack(h, { c: 'buy', slot: 0, item: 'base_armor' }).ok).toBe(true);
+      max += hpStep(n);
+      dr += armorStep(n);
+      expect(b.maxHp).toBe(max);
+      expect(b.stats.damageReduction).toBeCloseTo(dr, 9);
+    }
+    expect(max - max0).toBeGreaterThan(0);
+    expect(dr - dr0).toBeGreaterThan(0);
+    expect(h.sim.world.team.shop.base_hp).toBe(3);
+    expect(h.sim.world.team.shop.base_armor).toBe(3);
+    // Three armor tiers stay inside the shared damage-reduction cap.
+    expect(dr).toBeLessThanOrEqual(content.rules!.statCaps.damageReduction?.addMax ?? 1);
+  });
+
   it('repair restores base HP at a price that rises each purchase', () => {
     const h = shopAt(['ranger']);
     const b = h.sim.world.base;
@@ -75,7 +106,13 @@ describe('purchases', () => {
       prices.push(itemState(content, h.sim.world, item('repair')).price!);
       expect(ack(h, { c: 'buy', slot: 0, item: 'repair' }).ok).toBe(true);
     }
-    expect(prices).toEqual([4, 6, 8]);
+    expect(prices).toEqual(
+      item('repair')
+        .tiers.slice(0, 3)
+        .map((t) => t.price),
+    );
+    expect(prices[1]).toBeGreaterThan(prices[0]!);
+    expect(prices[2]).toBeGreaterThan(prices[1]!);
     expect(b.hp).toBe(200 + 3 * 150);
     expect(b.repairs).toBe(3);
     b.hp = b.maxHp;

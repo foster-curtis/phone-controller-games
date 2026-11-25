@@ -6,6 +6,7 @@ import { PORTAL_IDS, SIDE_IDS, type PortalId, type SideId } from '../../shared/i
 import { generateWave, waveRng } from '../systems/waves';
 import { bossSpawn, collapseAfterBoss } from './boss';
 import { autoPickCards, closeOffers, dealOffers } from './cards';
+import { growKnights } from './growth';
 import { clearWishlist } from './shop';
 import { releaseAll, respawn } from './players';
 import { effects as effectDefs } from './registry';
@@ -71,9 +72,9 @@ function coinsFor(s: FullState, e: EnemyEnt, paid: Set<number>): number {
   // A group pays once, when its last unit dies (§9.1), even if several die in the same step.
   if (groupLeft || paid.has(e.group)) return 0;
   paid.add(e.group);
-  return Math.round(
-    s.cat.enemy(e.kind).budget * s.cat.rules.coinRate * s.cat.difficulty.coinIncome,
-  );
+  // Kept fractional (RD11): a coin rate under 1 would round a Grunt's pay to 0. The views show whole
+  // coins (net/views.ts), and a purchase needs the whole price.
+  return s.cat.enemy(e.kind).budget * s.cat.rules.coinRate * s.cat.difficulty.coinIncome;
 }
 
 export function stepDeaths(s: FullState): void {
@@ -399,7 +400,11 @@ export function stepPhases(s: FullState): void {
         s.emit({ e: 'waveCleared', wave: w.wave });
         const last = s.cat.waves[s.cat.waves.length - 1]?.n ?? w.wave;
         if (w.wave >= last) endRun(s, 'victory');
-        else startBuild(s, w.wave + 1);
+        else {
+          // Class growth for the wave just cleared (§6.1), before the next build phase's pop-up.
+          growKnights(s);
+          startBuild(s, w.wave + 1);
+        }
       }
       return;
     case 'victory':

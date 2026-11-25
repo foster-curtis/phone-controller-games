@@ -116,9 +116,18 @@ test('solo Warden: start alone → wave 1 → shield generator → card → shop
   await expect.poll(stepped(host, owned)).toBe(2);
   await expect(ann.page.locator('.shop-row[data-item=repair]')).toBeVisible();
   await expect(ann.page.locator('.shop-row[data-item=base_hp]')).toBeVisible();
+  // Income is low on purpose (RD11, §6.2): nothing is affordable this early, so the TV's debug
+  // command pays for the purchase.
+  await host.page.evaluate(() =>
+    window.__pcg!.command({ c: 'debug', slot: -1, action: 'coins', amount: 20 }),
+  );
+  await advance(host, 1);
+  const price = await host.page.evaluate(
+    () => window.__pcg!.team()!.shop.find((r) => r.id === 'base_hp')!.price!,
+  );
   const coins0 = (await stats(host)).coins;
   await ann.page.locator('.shop-row[data-item=base_hp] .price').click();
-  await expect.poll(stepped(host, async () => (await stats(host)).coins)).toBe(coins0 - 6);
+  await expect.poll(stepped(host, async () => (await stats(host)).coins)).toBe(coins0 - price);
 
   // Ready: combat of wave 2.
   await ann.page.locator('.screen.build .ready').click();
