@@ -3,9 +3,9 @@
 > Living spec. Only **decided** items go in the body. Open questions live in §10 until we settle them.
 > Repo-wide rules (architecture, phone requirements, hosting, layout): [`PLATFORM.md`](../../PLATFORM.md). Relay protocol: [`apps/relay/SPEC.md`](../relay/SPEC.md).
 > Working title was "Marketplace thief". Design history: project doc `claude/marketplace-thief.md` (retired once this spec lands; this file is now the source of truth).
-> Last updated: 2026-11-24 (rev 2: ambient market audio, fixed-volume bed; rev 1: 20 d purse, weighted money ranges, mid-round walk-on joins, NPC churn; pending Foster's review)
+> Last updated: 2026-11-25 (rev 3: §12 Technical design, open-stall rule settled, pawnbroker sheet wording, §11 #24–#30; rev 2: ambient market audio, fixed-volume bed; rev 1: 20 d purse, weighted money ranges, mid-round walk-on joins, NPC churn; pending Foster's review)
 
-**Status:** v1 game design is complete. Technical design (engine details, protocol shapes, file layout) is left to the implementer, who records decisions in a §12 Technical design section, as Fort Frenzy did in its §15. Every number in this spec is a **starting value** for playtesting; all of them live in the balance sheet (§7).
+**Status:** v1 game design is complete. Technical design (engine details, protocol shapes, file layout) is in §12 Technical design, as Fort Frenzy did in its §15. Every number in this spec is a **starting value** for playtesting; all of them live in the balance sheet (§7).
 
 ---
 
@@ -96,7 +96,7 @@ Single fixed camera showing the whole market (no scrolling), Fort Frenzy's obliq
 
 - **Stalls block line of sight** for guards' view cones (§6.12). Ducking into an alley breaks it.
 - **Alleys slow guards** (they squeeze through at reduced speed), giving a fleeing thief a head start. Players and NPCs pass at normal speed.
-- **Open stalls = players + 2, min 5, max 10. The pawnbroker is always open.** Which shop stalls open is chosen per match so the open set spans the value range (always at least one cheap shop and the jewelry stall from 5 open stalls up); the implementer picks the selection rule. **Closed stalls** keep the full canopy, valance, shelf and counter but have **no items and no merchant**, with the area under the canopy darkened (~40% black). Not boarded up.
+- **Open stalls = players + 2, min 5, max 10. The pawnbroker is always open.** Which shop stalls open is chosen per match so the open set spans the value range (always at least one cheap shop and the jewelry stall from 5 open stalls up). **Selection rule (settled, §11 #24):** once per match from the seed, open the pawnbroker, jewelry and one of bakery/pottery, then draw the rest at random from the remaining shops until players + 2 (clamped 5–10). The set is fixed for the whole match, so mid-match joins never open more stalls. **Closed stalls** keep the full canopy, valance, shelf and counter but have **no items and no merchant**, with the area under the canopy darkened (~40% black). Not boarded up.
 - **One canopy color per shop:** pawnbroker charcoal `#3a404b`, bakery linen `#d9cfb8`, pottery terracotta `#a85f45`, clothing woad `#5b7186`, wine madder `#9c5a63`, smithy umber `#7a5a43`, perfume sage `#8a9a7e`, spices bronze `#a8703a`, rugs olive `#7d7f4f`, jewelry mulberry `#6e5a72`.
 
 ### 6.4 Economy and scoring
@@ -328,7 +328,7 @@ Top banner on every in-round screen: the player's color, name (Cinzel), connecti
 - **Stall view (private):** header in the stall's canopy color; **joystick stays on the left**, items on the right. "Counter · hold to grab" row of large item tiles (hold bar on the tile; tiles use rarity borders: common gray, uncommon bronze, rare gold border + warm tile). "Back shelf · out of reach" row dimmed, which becomes grabbable while the merchant is away (§6.7). Items the merchant brings forward move to the counter row. **Walking away closes the view** (no Leave button). **No merchant status on the phone**: players must watch the merchant on the TV.
 - **Merchant dialog:** bottom sheet over the stall view with the merchant's face, "WHAT'LL IT BE?" and **Just browsing** / **Buy…** (all items with prices) / **Ask about…** (back-shelf items) / **Leave** on the far right.
 - **Tip-off:** the still snapshot of the market; tap a suspect (selected character outlined), fee shown (e.g., "10 d"), **SEND GUARD**, Cancel. The joystick is disabled while it's open (your character stands still, like a shopper idling).
-- **Pawnbroker:** list of pack items with half-value prices and Sell buttons, plus a pack weight bar (e.g., "5 / 15"). Opens from BROWSE at the pawnbroker.
+- **Pawnbroker:** list of pack items with today's offer per item (the §6.4 rate of the moment) and Sell buttons, plus a pack weight bar (e.g., "5 / 15"). Opens from BROWSE at the pawnbroker.
 - **Sell to an NPC:** only beside a shopper; shows what that shopper wants, highlights matching pack items with the over-value price, greys out the rest.
 - **Pack:** tapping the coin pill opens a read-only sheet of the pack (items, values, weight bar).
 - **Stocks:** red **CAUGHT!** banner with the pot lost, a countdown ring, "IN THE STOCKS"; controls return when the timer ends.
@@ -465,7 +465,7 @@ Build v1 so these can be added without rewrites.
 1. **Tagline:** "Blend in. Swipe gold. Don't get caught." is a placeholder.
 2. **Final name check** before any public release (Steam, itch.io, USPTO), as for Fort Frenzy.
 3. **Balance numbers** (§7): all starting values, to be set from playtesting, especially the escape window, tip fee, pickpocket amount, merchant glance timing and how often merchants bring items forward or leave them out.
-4. **Open-stall selection rule** (§6.3): which shops open at low player counts. The implementer proposes one; review in playtesting.
+4. ~~**Open-stall selection rule** (§6.3)~~ **Settled 2026-11-25** (§6.3, §11 #24): pawnbroker + jewelry + bakery or pottery, then random to players + 2. Review in playtesting.
 5. **Art still to draw:** final character rigs in all poses (§6.21), title screen, podium, reveal cards.
 
 ## 11. Decision log
@@ -495,3 +495,390 @@ Design decisions made in the project before this spec (full history: `claude/mar
 21. 2026-11-24 (review): **low-weighted luck rolls** for pickpocket (8–20 d), pawnbroker (45–70%) and NPC shoppers (110–150%).
 22. 2026-11-24 (review): **mid-round joins walk on as an NPC** from a named entry and take control a few paces in; NPCs churn on and off all round within **±8%** of the planned count.
 23. 2026-11-24 (review): **ambient market audio in v1** (crowd bed + randomized one-shots, no modern speech or music), sourced from Sonniss GDC bundles first.
+24. 2026-11-25 (build plan, user approved): **open-stall rule**: pawnbroker + jewelry + one of bakery/pottery, then random from the rest until players + 2 (5–10), once per match (§6.3).
+25. 2026-11-25 (build plan): the **pawnbroker sheet shows today's offer per item** at the §6.4 rate of the moment (§6.17 said "half-value", which predated the 45–70% rule).
+26. 2026-11-25 (build plan): **GRAB targets an item**: the phone names the item (stall, slot) when the hold starts and the held button times it on the host; PICKPOCKET uses the same held button with the host picking the victim (§3, §6.7, §6.8).
+27. 2026-11-25 (build plan): the **stocks hold several thieves at once** (standing slots), since two catches within 20 s are likely with 8 players (§6.13).
+28. 2026-11-25 (build plan): the **tip-off snapshot excludes the tipper's own character**, and an open snapshot **expires** after a short time (start 20 s in `balance.ts`, §12.4) so a forgotten sheet can't land a late tip (§6.13, §6.17).
+29. 2026-11-25 (build plan): **in-person catches use mid-steal + 300 ms grace; only tip-offs use the 5 s hot-hands window** (§6.13 as written, confirmed).
+30. 2026-11-25 (build plan): a **disconnected player's character under NPC takeover can still be pickpocketed and caught** as normal, and the hands-up reveal includes disconnected players (§6.14, §6.18).
+
+---
+
+## 12. Technical design
+
+Decisions and contracts for building §1–§9. Fort Frenzy's SPEC §15 is the model, and where this section
+says "as in Fort Frenzy" the pattern is there (`apps/fort-frenzy/SPEC.md` §15). Type sketches are
+indicative: the contract files named in §12.11 hold the exact shapes, frozen at TF0 (additive changes
+only). Repo-wide rules are in `PLATFORM.md`; the relay protocol is in `apps/relay/SPEC.md`. Nothing here
+changes the game design in §1–§9; a conflict found while building goes to `BUILD_PLAN.md` §7, not here.
+
+### 12.1 Module layout and lint boundaries
+
+- **App:** `apps/thieves-forum`, package `@pcg/thieves-forum`, game ID `thieves-forum` (§4). `index.html`
+  (TV, `data-entry="host"`) and `play.html` (phone, `data-entry="controller"`) are separate Vite entries.
+- **Shared code is used as is:** `@pcg/net-client`, `@pcg/controller-kit`, `@pcg/game-kit`. No package
+  changes. Code taken from other games is **copied** into extraction-ready folders with a header naming
+  its source (user decision, `BUILD_PLAN.md` §8): Fort Frenzy's atlas script, rig renderer, clip kit
+  and sim helpers; Say Cheese's blob transfer, generalized to a `blobId` and to host → phone.
+
+```
+apps/thieves-forum/
+  index.html  play.html  vite.config.ts  vercel.json  playwright.config.ts  game.meta.ts
+  SPEC.md  BUILD_PLAN.md
+  art/forum/            SVG sources (read-only) + rigs/<id>.json, sprites.json (TF1)
+  audio/forum/          licensed .mp3 files (user delivery, TF19)
+  assets/LICENSES.json  one entry per asset file or pack (§12.10)
+  scripts/              build-atlases.ts (TF1), crowd.ts + bench.ts (TF2), economy.ts (TF17), soak.ts (TF21)
+  src/
+    content/      balance.ts (every tuning number), items.ts, shops.ts, layout.ts, types.ts, index.ts
+    shared/       messages.ts (protocol), hold.ts, sfx.ts, theme.ts, version.ts
+      viewer/         stall view + tip snapshot formats (no game imports; → net-client later, §4)
+      blob-transfer/  chunked base64 over the relay (no game imports; from Say Cheese)
+      audio/          Web Audio bed + one-shots + ducking (no game imports; → game-kit later, §6.20)
+    host/
+      main.ts       mode routing (§12.7), lobby.ts, roster.ts (scaffold)
+      sim/          one deterministic round: types, snapshot, systems, events, core (world, nav, LOS,
+                    movement, spatial hash) and one folder per subsystem: npc, holds, merchants, stalls,
+                    guards, catches, pickpocket, tipoff, economy, distractions, ledger, lifecycle, bots
+      match/        match state machine, party/leader, open-stall rule, round results (TF10)
+      net/          relay wiring; handlers/*.ts and context/*.ts registries (TF12)
+      render/       Phaser scene, camera, layers, rigs, clips, effects (TF1, TF7)
+      ui/           TV DOM: title, lobby, HUD, hands-up, reveal, podium; `TvView` (TF6)
+      audio/        the forum `AudioMap` and the `Sfx` implementation (TF11)
+      gallery/ spike/ debugHooks/   dev modes and `window.__pcg` hook groups
+    controller/   phone app (DOM): shell, router, screens, hold estimator, tip viewer
+```
+
+- **Lint boundaries** (the root `eslint.config.js` rules already match these folders; no config change):
+  - `src/host/{sim,match}/**`: no `phaser`, no `@pcg/net-client`, no DOM. `src/host/sim/**` also bans
+    `Math.random`, `Date.now`, `performance.now` and `new Date()` (determinism, §12.3).
+  - `src/controller/**`: no `phaser`, nothing under `host/` (phones load fast; `check:bundle`).
+  - `src/shared/{viewer,blob-transfer,audio}/**` import nothing from the game (by review and their file
+    headers), so each can move into a package as a folder move.
+- **Append-only registries** (any milestone may append, never reorder or remove): the `SimEvent` union
+  (`sim/events.ts`), `SfxCue` names (`shared/sfx.ts`), `src/content/index.ts`, `host/net/handlers/*.ts`,
+  `host/net/context/*.ts` and `host/debugHooks/*.ts` (one file each, found with `import.meta.glob`).
+
+### 12.2 Engine and rendering
+
+- **Phaser 4.2.x renders only;** it never owns game state (as in Fort Frenzy). The sim is plain TS with
+  no physics engine: kinematic bodies, circle hitboxes, a uniform spatial hash, soft separation (§5).
+- **Canvas:** 1920 × 1080 logical, `Scale.FIT`, inside the brand's TV-safe margin for HUD text (the
+  market art itself runs edge to edge: the top row is flush to the top edge, §6.3).
+- **World units and the projection (§6.3):** the sim works in **tiles** on the ground plane (48 px
+  wide, as in Fort Frenzy), with y increasing down the screen. The market is 40 × 37.5 tiles. One
+  `Camera` interface owns the oblique three-quarter projection with **ground factor 0.6**: a tile is
+  48 px wide and 28.8 px deep on screen, and height above the ground (`z`, tiles) rises 48 px per tile.
+
+```ts
+interface Camera {
+  readonly tilePx: number;        // 48
+  readonly groundFactor: number;  // 0.6
+  toScreen(p: Vec2, z?: number): Vec2;  // { x: x*48, y: y*48*0.6 − z*48 } (+ origin)
+  toWorld(s: Vec2): Vec2;               // inverse on the ground plane (z = 0)
+  depth(p: Vec2): number;               // y-sort key = the foot point's screen y
+}
+```
+
+- **Layers** (back to front): `ground` (paving, stall floor strips, the guard view cones, a landed coin,
+  the reveal rings) → `world` (one y-sorted list: characters, merchants, guards, stalls, the gate, the
+  stocks) → `overlay` (bubbles, "!" bangs, starbursts, crowns, reveal name tags, the dev overlay) → the
+  **DOM HUD** over the canvas (§12.7 for phones; TV: timer, round pill, room code, reveal cards,
+  podium, title and lobby; `TvView`, §12.11). **Y-sort by foot point:** every world object sorts by
+  `Camera.depth` of its foot point; ties break by entity id.
+- **Stalls** are one world object each, sorted at their counter's front edge, drawn internally in the
+  art's order (ART_NOTES): back + shelf → shelf items → merchant → counter → counter items → closed
+  shade → frame. The merchant's screen y moves between the counter line and the shelf line (§6.21).
+- **Rigs from tinted cut-out parts** (as in Fort Frenzy): `art/forum/rigs/<id>.json` for `citizen`,
+  `merchant` and `guard` names each part per view (`front`, `side`, `back`), its pivot, parent and draw
+  order; tintable parts (`--tunic`, `--mantle`, `--hair`, `--skin`, `--wrap`) are rasterized neutral
+  and tinted from the character's `Outfit` at draw time. **Clips are code** (`render/clips/*.ts`):
+  keyframed part rotations and offsets per pose (walk, browse/reach, pickpocket, throw, point, hands-up,
+  run, stocks; merchant glance in three stages, fetch, carry; guard patrol, jog, catch, march). Browse and
+  reach share one clip, so stealing never looks different from browsing (§6.7, §6.21).
+- **Character scale:** about 1/10 of screen height (108 px): the 40 × 60 character viewBox (feet at
+  20,55) draws at 2×.
+- **The renderer reads only `WorldView`** (§12.3) and **TV events** (`ch: 'tv'`). It never sees a player
+  id, a controller kind or a phone event, so it can't reveal a player during a round (§6.11). The
+  reveal draws from a separate `RevealView` that exists only in the `handsUp` phase.
+- **Performance target:** the full crowd (8 players + 24 NPCs, 10 merchants, 4 guards) at 60 fps on a
+  2020-era laptop's integrated GPU; TF2 logs sim bench numbers, TF7 the frame rate.
+
+### 12.3 Simulation
+
+- **Loop:** fixed 60 Hz steps from `@pcg/game-kit` (`createFixedStep`), render interpolation with `lerp`.
+  The host runs no steps while the TV tab is hidden (as in the other games). A debug-only
+  `?timeScale=<n>` (TF7) runs `n` steps per frame slot for fast e2e rounds.
+- **One deterministic sim per round** from `RoundStart` to the end of the round transition. The match
+  (lobby, rules, round start, reveal sequencing, podium) is outside it, in `host/match/` (§12.11).
+
+```ts
+interface RoundStart {
+  seed: number; round: number;               // round 1..3
+  players: { id: PlayerId; side: Side }[];   // in join order; outfits come from the sim's own stream
+  openStalls: StallId[];                     // the match's open set (§6.3, decided once per match)
+  guards: number;                            // starting guards for this round (§6.12)
+}
+```
+
+- **Entity model: ECS-lite** (Fort Frenzy §15.3): plain arrays per kind in `World` (`characters`,
+  `merchants`, `guards`, `stalls`, `holds`, `coins`, `stocks`), pure system functions run in a fixed
+  order. `EntityId` is an incrementing number never reused within a round; players' characters are
+  created first (the opening shows only players anyway) and every later character, NPC or walk-on,
+  takes the next id, so ids say nothing about who is a player.
+- **A `Character`** (Fort Frenzy's `Unit` style) = body + `rig: 'citizen'` + `outfit` + `facing` +
+  `gait` + `pose` + `activity` (free, browsing, grabbing, pickpocketing, tossing, pointing, caught,
+  marched, stocks, handsUp, entering, leaving) + **`control`**: `player | npc | takeover | walkOn`
+  (§6.18). An NPC mind (`npc`) is present on NPCs and on every player character too, so takeover and
+  walk-on drive the same character with NPC behavior. `Merchant`, `Guard`, `Stall`, `Hold` are their own
+  kinds. A player's money and pack live in the **ledger** keyed by `Side`, not on the character (§9 prep).
+- **Inputs and commands:** everything that changes the round enters at the start of a step as either a
+  **`PlayerInput`** sample (`move`, `hold`, `catch`; §12.5) or a **`SimCommand`** (discrete phone
+  events: grab, browse, dialog, buy, sell, toss, tip open/send/cancel; and lifecycle: join, disconnect,
+  reconnect, leave). Commands carry the `PlayerId`; the sim maps it to a character.
+- **Fixed step order** (`sim/systems.ts`, frozen; each subsystem exports `step(ctx: StepContext): void`):
+  1. `input`: apply commands, sample inputs (staleness, rising/falling edges)
+  2. `holds`: start, time, complete or cancel GRAB and PICKPOCKET holds (host-measured, §3)
+  3. `npc`: NPC minds (wish list, state machine, steering goals, churn), takeover and walk-on minds
+  4. `merchants`: attention, walk along the counter, glance wind-up and look, suspicion, dialog, fetch,
+     bring forward, coin pick-up; merchant catches → alert
+  5. `guards`: patrol, view cones and line of sight, spots, chase and escape, collect (tip), march to
+     the stocks, reinforcements through the gate
+  6. `pickpocket`: NPC victim glance wind-up and look; NPC catches → alert
+  7. `distractions`: the handler list (coin toss first, §9 prep): throw, coin flight, nearest merchant
+  8. `catches`: in-person Catch! (mid-steal + grace), guard catches on arrival, pots and payouts, stocks
+  9. `economy`: stock and restock, pawnbroker rate of the moment, NPC buying, phone buy and sell
+  10. `lifecycle`: NPC count within tolerance, walk-on hand-off, takeover, leave, phase changes
+  11. `movement`: integrate velocities (gait speeds, guard alley slowdown), walkable bounds
+  12. `separation`: soft separation over the spatial hash
+  13. `timers`: hot hands, immunity, stocks countdowns, round timer
+- **Determinism rules** (as in Fort Frenzy): timers are whole ticks (config ms → ticks at load); all
+  randomness comes from seeded streams `rngStream(seed, label)` (labels: `outfits`, `stock`,
+  `npc:<id>`, `churn`, `merchant:<stall>`, `pawn`, `loot`, `guards`, `glance:<id>`); no wall clock in the
+  sim (lint); arrays iterate in id order and every sort breaks ties by id. A **state hash** (`fnv1a` over a
+  canonical serialization of `World`) checks determinism in tests.
+- **Luck rolls (§6.4):** one helper, `roll(rng, [min, max], skew) = min + (max − min) × r^skew`, rounded
+  down where the result is money. Pickpocket rolls on success; each NPC rolls its sale rate at spawn;
+  the pawnbroker re-rolls its rate every `pawn.rerollMs` from the round's `pawn` stream.
+- **Navigation and line of sight:** `layout.ts` gives walkable polygons (the lanes, alleys and end
+  passages) and blocker rectangles (stall footprints, the stocks, the closed gate). A small waypoint graph
+  (lane centers, alley and passage mouths, entries, stall customer spots) plus steering gets NPCs around;
+  guards follow the same graph on a patrol loop (upper lane → alley → lower lane → end passage). **Line of
+  sight** is a segment test against the blocker rectangles; a view cone is range + half-angle + LOS.
+- **Holds (§3, §6.7, §6.8):** a hold is host state `{ id, kind, actor, target, startTick, endTick }`.
+  GRAB starts when a `grab {stall, slot}` command arrives while the actor's `hold` bit is set; PICKPOCKET
+  starts when the `hold` bit rises while the host's context for that phone is PICKPOCKET (the host picks
+  the target behind the actor). Either completes at `endTick` if the bit is still set, and cancels when
+  the bit clears, the actor moves or turns away, the target leaves reach, or (back shelf) the merchant
+  returns. The host sends `holdStart` and `holdEnd` (§12.5); the phone's bar is an estimate.
+- **Hot hands, grace, immunity** are per-character tick stamps: `hotUntil` (start of any steal +
+  `catch.hotMs`), `holdEndedAt` (for the in-person grace), `immuneUntil` (stocks release + immunity).
+- **`SimEvent`s are tagged** `ch: 'tv'` or `ch: 'phone'` (`sim/events.ts`, append-only). The scene, the
+  audio and the TV HUD consume **only `tv` events**, which carry entity ids and never a player id. `phone`
+  events carry the `PlayerId` they're for and are routed privately by `host/net` (TF12). There is **no
+  `tv` event for a successful grab, a successful pickpocket or a tip payout**: a grab only changes the
+  stall's counter in `WorldView` (`stallChanged`, which identifies a stall, not a player; NPC purchases
+  do the same).
+- **Views:** `snapshot.ts` builds `WorldView` each frame for the renderer (`CharacterView` has no
+  `playerId`, `isPlayer` or controller field: checked by a type test and an `Object.keys` allowlist),
+  `RevealView` only in `handsUp`, and a debug-only `DebugView` (controllers, hot flags, NPC states) for
+  the dev overlay behind `?debug=1`.
+- **Disguise invariants** (tests, TF7, TF12, TF21): `WorldView` and every `tv` event are identical in
+  shape for a player-controlled character and an NPC; `SfxCue` has no grab or pickpocket cue; player
+  characters walk with NPC gait speeds below jog; outfits for players and NPCs come from one `assignOutfit`
+  over one pool.
+
+### 12.4 Data and config
+
+- **TS data modules** typed with `satisfies` against `src/content/types.ts` (as in Fort Frenzy):
+  - `balance.ts`: **every §7 value** plus the build's own tuning numbers (merchant glance wind-up and
+    look, NPC purse range and personalities, gait speeds, guard speeds, cone range and angle, reaches,
+    tip snapshot TTL, crowd steering weights, input staleness), each with a comment naming its §. Units:
+    times in ms, distances in tiles, speeds in tiles/s, rates as fractions, money in denarii. Values are
+    never frozen; the names are.
+  - `items.ts`: the 34 starter items from `art/forum/items/items.json` (id, shop, name, value, weight,
+    rarity, placement, icon path). `grabMs(item)` computes §6.5's rule from `balance.grab`; there is no
+    stored grab time. A test checks every item against `items.json` and the §6.5 table.
+  - `shops.ts`: the 10 shops (pawnbroker buys only), canopy color by brand token name (`theme.canopy.*`),
+    stock rules (counter and shelf slots, §6.5 placement and fallback) and restock rules (common always,
+    uncommon slowly, rare never; times in `balance.stock`).
+  - `layout.ts`: the one map (§6.3) as config, never constants in sim or render code: 10 stall slots in
+    two rows (footprint, counter front, customer line, merchant counter and shelf lines, which lane it
+    faces), two lanes, two alleys, two end passages, four lane entries (with a phone label such as "top
+    left"), the top gate beside the center stall, the stocks with standing slots, walkable polygons,
+    line-of-sight blockers and the guard patrol loop. Positions come from
+    `art/forum/map/market-layout-reference.svg` (640 × 360, ×3 to screen pixels, then to tiles).
+  - `index.ts`: the content bundle the sim and the phone-facing code import.
+- **Outfits (§6.11):** an `Outfit` is `{ tunic, mantle }` (fabric token names, `theme.fabric.*`) plus
+  `hair` and `skin` tone **indices**; the brand kit has no hair or skin palette, so the tone colors are a
+  render table (TF1) and the sim only rolls indices (`balance.outfit`).
+- **Open-stall rule (§6.3, settled):** once per match from the match seed: pawnbroker + jewelry + one of
+  bakery/pottery, then the rest drawn at random from the remaining shops until `players + 2`, clamped
+  5–10. Fixed for the match, so mid-match joins never open stalls.
+
+### 12.5 Network protocol
+
+Relay envelope, rooms, tokens, reconnect and heartbeats are unchanged (relay SPEC §3). Game messages
+ride in `send.data` and are defined in `src/shared/messages.ts` with runtime guards `isPhoneMsg` and
+`isHostMsg`. Every message is a JSON object with a `t` tag; every frame stays far below the relay's
+16 KB `maxPayloadBytes` (blob chunks are the largest, §12.6).
+
+- **Room:** game ID `thieves-forum`, relay `maxPlayers` from `game.meta.ts` (8).
+- **Handshake:** the phone sends `join { name, proto }` after every (re)connect. `proto` is
+  `PROTOCOL_VERSION`; a mismatch gets `outdated { proto }` (an older phone reloads once; an older TV
+  shows "Refresh the TV"). Otherwise the host answers `joined { name }` and then the phone's current
+  `screen` plus its private state (`bag`, `outfit`, `context`, an open `stallView`), so a reconnect
+  heals itself.
+- **Input state (phone → host):** `input { x, y, bits }`: stick ints −100..100 with the dead zone
+  applied on the phone, `bits` = `1 hold` (the main button is held) | `2 catch` (Catch! is down; the
+  phone keeps it set for at least `CATCH_MIN_MS` so a tap spans a sample). Sent at 30 Hz while a control
+  is touched, 5 Hz idle and on every bit change (`createInputSender` from `@pcg/controller-kit`). The
+  host stamps each sample on receipt; older than `balance.net.inputStaleMs`, the stick reads zero, and
+  the `hold` bit reads released after `balance.net.holdStaleMs`.
+- **Discrete events (phone → host):** `browse` (main button tap: BROWSE opens the stall view or the
+  pawnbroker sheet, SELL opens the sell sheet), `grab { stall, slot }` (arms GRAB; the `hold` bit times
+  it), `dialog { pick }` (`browsing`, `leave`, or `ask` with a shelf slot), `buy { item }`, `sell { item,
+  to }` (`to` is `'pawn'` or the buyer token from `sellSheet`), `toss { x, y }` (aim, or 0,0 = facing),
+  `tipOpen`, `tipSend { target }`, `tipCancel`, `color { color }` and `ready { ready }` (lobby), `leader {
+  action }` (`start`, `howToPlay`, `next`, `skip`, `playAgain`), `leave`, and `blobAck { blobId }`.
+- **Screens (host → phone):** `screen { s }` where `s` is one of `joining`, `lobby`, `rules`,
+  `roundStart`, `play`, `handsUp`, `stocks`, `walkOn`, `matchEnd`, `waiting`, each with the data that
+  screen shows. **Timers ride as `endsInMs`** and the phone sets its deadline on receipt (no clock
+  handshake, as in Say Cheese).
+- **Private events (host → phone, only to that player):** `stallView { view | null }`, `holdStart`,
+  `holdEnd { result: complete | cancelled | caught }`, `toast`, `bag`, `outfit`, `context` (the main
+  button's label, toss cooldown, whether Tip guard and Catch! are live), `dialog`, `sellSheet`,
+  `pawnSheet`, `caught`, `tipSnapshot` (header + hit areas, §12.6), `tipResult`, and blob `chunk`s.
+- **Hold correction (`src/shared/hold.ts`):** `holdStart { id, kind, durationMs, elapsedMs }` re-anchors
+  the phone's estimate (`start = receipt − elapsedMs`); `holdEnd` ends it. `HoldEstimator` is the phone
+  side: `press(now)`, `correct(event, now)`, `progress(now)` (0..1), `release(now)`.
+- **Room events:** the host decides everything; a phone's private state never reaches another phone or
+  the TV.
+
+### 12.6 Viewer formats
+
+`src/shared/viewer/types.ts` (no game imports; the platform's viewer rule, §2):
+
+- **Stall view (state, not pixels):** `StallView { stall, canopy, title, counter[], shelf[] }`, each row
+  of `{ slot, item, name, price, grabMs, rarity, state }` with `state` one of `free`, `takenByOther`,
+  `tooHeavy`, `outOfReach` (the dimmed back shelf). `grabMs` already includes the reach penalty when the
+  shelf is reachable. Sent when a player browses and again whenever that stall's contents or
+  reachability change; `null` closes it (the player walked away).
+- **Tip-off snapshot (one still frame, §6.13):** on `tipOpen` the TV renders the market once to an
+  offscreen canvas at 960 × 540 and encodes a JPEG (quality from `balance.tip`, target ≤ 60 KB). The
+  host records the hot set at that tick and sends `tipSnapshot { header, hits, endsInMs }`, then the
+  image through blob transfer. `TipSnapshot { id, w, h, mime, bytes }`; `HitArea { targetId, x, y, w, h }`
+  in snapshot pixels for every character but the tipper's own (`targetId` is opaque, mapped to an entity
+  host-side). The snapshot expires after `balance.tip.snapshotTtlMs`.
+- **Blob transfer (`src/shared/blob-transfer/`, from Say Cheese):** base64 `chunk { blobId, i, n, b64 }`
+  with `CHUNK_B64_MAX = 12000` so every envelope stays under `RELAY_MAX_PAYLOAD = 16384`;
+  `blobAck { blobId }` when all chunks arrived. Chunks may arrive in any order.
+
+### 12.7 Controller app
+
+- **Shell:** `@pcg/controller-kit`'s app shell (Wake Lock, full-screen button, overlays, landscape lock
+  and rotate overlay), the scaffold's join screen, and a screen router driven by `screen` messages.
+- **Play screen (§6.17):** floating joystick on the left; on the right the context main button (label
+  from the host's `context`: BROWSE, SELL, PICKPOCKET or blank), Toss coin (cooldown ring), Tip guard and
+  Catch!. Sheets (stall view, dialog, sell, pawn, pack, tip-off) open over the play screen and keep the
+  joystick (except the tip-off, which disables it). Toasts use the kit's `showToast`; nothing flashes.
+- **Holds:** the main button and item tiles drive the `hold` bit; the bar shows `HoldEstimator.progress`.
+- **Dev mode** (`/play?dev=1`): `src/controller/dev.ts` with the kit's harness and a fake client that
+  plays canned host messages for every screen (TF5).
+- **Mode routing (TF0):** `src/host/main.ts` dispatches `?gallery=1` → `host/gallery/index.ts` (TF1),
+  `?spike=tipoff` → `host/spike/index.ts` (TF4), `?ui=<screen>` → `host/ui/preview.ts` (TF6), else the
+  game. `src/controller/main.ts` dispatches `?dev=1` → `controller/dev.ts` (TF5), `?spike=tipoff` →
+  `controller/tipoff/spike.ts` (TF4), else the app. Each target exports `mount(root: HTMLElement): void`.
+- **The phone is silent** (§6.20) and never imports Phaser or host code.
+
+### 12.8 Audio
+
+- **TV only.** A small Web Audio module in `src/shared/audio/` (no game imports): a seamless bed loop
+  with a crossfade at the loop point and fixed gain, a one-shot scheduler (random interval, pan, pitch,
+  gain, no immediate repeat), ducking, and scenes (`play`, `reveal`, `podium`: the ambience drops out
+  under the reveal and podium).
+- **Config, not code:** an `AudioMap` (`src/shared/audio/types.ts`) names the bed file, the one-shot pool,
+  each cue's file and gain, and the duck rules. The forum map lives in `src/host/audio/` (TF11).
+  Placeholders are synthesized until the licensed files arrive (TF19).
+- **`Sfx` interface** (`src/shared/sfx.ts`): `play(cue, opts?)` and `scene(name)`, with `noopSfx` for
+  tests and phones. `SfxCue` is the §6.20 list (`coinClink`, `glanceSwoosh`, `thiefShout`,
+  `guardWhistle`, `gateCreak`, `stocksClank`, `roundBell`, `revealPop`, `fanfare`, `firework`): **no grab
+  or pickpocket cue exists**, so none can be played. Cues fire only from `tv` events.
+
+### 12.9 Testing
+
+- **Headless sim:** `src/host/sim` and `src/host/match` run in Node under Vitest with no Phaser and no DOM.
+- **Disguise invariants** (§12.3): the `CharacterView` type and key allowlist test (TF0), the scene
+  consumes only `tv` events (TF7), no `tv` event or cue for grab success, pickpocket success or tip
+  payout (TF12, TF14), and a full-match audit (TF21).
+- **Latency tests** (TF3): a simulated link (delay, jitter, loss) between a fake phone and the host hold
+  machine; holds complete, cancel and catch correctly, and the estimator's error stays within a frame
+  budget after correction.
+- **Seeded crowd run** (TF2): the same seed and inputs, run twice, give identical state hashes; the NPC
+  count stays within tolerance; `scripts/crowd.ts` and `scripts/bench.ts` for numbers.
+- **Economy harness** (TF17): seeded bots play whole matches headless (`scripts/economy.ts`) and report
+  earnings per minute by action, which sets the §7 fees by the fee-setting rule.
+- **Unit tests:** content (items vs `items.json` and §6.5, grab times, every §7 row in `balance.ts`, the
+  placement rule, the layout), protocol guards, licenses (§12.10); each subsystem tests its own rules.
+- **E2E (Playwright):** own relay on 8794 and Vite on 5178 (`package.json` `pcg.e2e`); `?timeScale=` and
+  `window.__pcg` hooks run rounds fast. One spec file per milestone (`e2e/tf<N>-*.spec.ts`).
+
+### 12.10 Assets and licensing
+
+- **Art:** `art/forum/**` SVG sources are inputs and never edited (§6.21). TF1 adds `rigs/<id>.json` and
+  `sprites.json` beside them and copies Fort Frenzy's atlas script to `scripts/build-atlases.ts`
+  (`@resvg/resvg-js` + `maxrects-packer`, run with `tsx`): parts rasterized at 1× and 2×, packed into
+  Phaser JSON atlases; output gitignored; a missing piece gets a dev-only shape and a `BUILD_PLAN.md` §8
+  line.
+- **Audio:** licensed `.mp3` files under `audio/forum/` (bed, one-shots, SFX), delivered by the user.
+- **Licensing:** `assets/LICENSES.json` has one entry per file or pack (path glob or font family,
+  source, author, license, commercial). `src/__tests__/licenses.test.ts` fails if any file under `art/`
+  or `audio/`, or any font in `brand/head.html`, lacks an entry that allows commercial use. The art is
+  `owned`; the fonts are OFL.
+
+### 12.11 Contracts and decision log
+
+**Frozen contracts** (headers say "Frozen at TF0"; additive changes only, each logged as
+`- [TF#] contract+: …` in `BUILD_PLAN.md` §8 and reflected here):
+
+| File | Holds |
+| --- | --- |
+| `src/shared/messages.ts` | `GAME_ID`, `PROTOCOL_VERSION`, phone → host input and events, host → phone screens and private events, guards |
+| `src/shared/hold.ts` | `HoldKind`, `holdStart` / `holdEnd`, `HoldEstimator` |
+| `src/shared/viewer/types.ts`, `src/shared/blob-transfer/types.ts` | `StallView`, `TipSnapshot`, `HitArea`; `Chunk`, `Ack`, limits |
+| `src/shared/sfx.ts`, `src/shared/audio/types.ts` | `SfxCue`, `Sfx`, `noopSfx`; `AudioMap` |
+| `src/content/types.ts` | items, shops, rarity, balance, layout |
+| `src/host/sim/types.ts`, `snapshot.ts`, `events.ts`, `systems.ts` | `World` and its entities, `PlayerInput`, `SimCommand`, `RoundStart`; `WorldView`, `RevealView`, `DebugView`; `SimEvent`; the step order and `StepContext` |
+| `src/host/sim/<subsystem>/{index,types}.ts` | each subsystem's step and API (`raiseAlert`, the ledger keyed by `Side`, the distraction handler list, `assignOutfit`, …) |
+| `src/host/match/types.ts`, `src/host/ui/types.ts` | `MatchPhase`, `Side`, `MatchState`, `RoundResult`; `TvView` |
+| Mode entries (`host/{gallery,spike}/index.ts`, `host/ui/preview.ts`, `controller/dev.ts`, `controller/tipoff/spike.ts`) | `mount(root)` |
+
+Later freezes: the renderer API and asset manifest (TF1), the hold machine and blob-transfer APIs (TF3,
+TF4), the host handler registry (TF12). Tuning values in `src/content/` are never frozen.
+
+| # | Date | Decision | Choice | Why |
+|---|---|---|---|---|
+| 1 | 2026-11-25 | Shared code | Copy Fort Frenzy's rig/atlas/sim helpers and Say Cheese's blob transfer into extraction-ready folders; no package changes | User decision; each extraction is a post-v1 PR migrating both games |
+| 2 | 2026-11-25 | World units | Tiles on the ground plane, 48 px wide, ground factor 0.6, one `Camera` | Fort Frenzy's projection and numbers carry over unchanged |
+| 3 | 2026-11-25 | Entity model | ECS-lite arrays, pure systems in a fixed 13-step order | As Fort Frenzy; trivial to hash and test headless |
+| 4 | 2026-11-25 | Sim scope | One deterministic sim per round from `RoundStart`; match flow outside it | Rounds are independent (fresh purse, outfits); smaller state |
+| 5 | 2026-11-25 | Disguise by construction | `WorldView` has no player field; events tagged `tv` / `phone`; the scene, HUD and audio read only `tv` | The invariant becomes a type and a tag the tests check |
+| 6 | 2026-11-25 | Holds | Host-measured from the `hold` bit; GRAB armed by a discrete `grab {stall, slot}`; PICKPOCKET target picked by the host | §3 "measured on the host"; a grab names an item, a pickpocket names nobody |
+| 7 | 2026-11-25 | Hold estimate | `holdStart` carries `elapsedMs`; the phone re-anchors on receipt | Corrects for latency without a clock handshake |
+| 8 | 2026-11-25 | Timers on phones | Screens carry `endsInMs`; deadline set on receipt | Say Cheese decision; no clock sync |
+| 9 | 2026-11-25 | Input | `input {x, y, bits}` (hold, catch) at 30 Hz while touched, 5 Hz idle, on every bit change | Pure input state (PLATFORM §2); Catch! held ≥ `CATCH_MIN_MS` so a tap spans a sample |
+| 10 | 2026-11-25 | Main button context | Host sends `context` (label, cooldowns) per phone | Only the host knows who is behind whom or beside which stall |
+| 11 | 2026-11-25 | Private views | Stall view as state; tip-off as one JPEG via blob transfer with hit areas | The platform viewer rule (§2); a still frame keeps traffic small |
+| 12 | 2026-11-25 | Tip snapshot | 960 × 540 JPEG, overlay excludes the tipper, TTL 20 s, hot set recorded at the snapshot tick | §6.13's two judging moments; a forgotten sheet can't land a late tip |
+| 13 | 2026-11-25 | Ledger | Money and pack keyed by `Side` (`{kind: 'player', id}` in v1) | §9 pairs-mode prep |
+| 14 | 2026-11-25 | Distractions | A handler list, coin toss first | §9 noisy-distraction prep |
+| 15 | 2026-11-25 | Outfits | One `assignOutfit(rng, pool)` callable mid-round; hair and skin as tone indices | §9 outfit-stall prep; the brand kit has no hair or skin palette |
+| 16 | 2026-11-25 | Config | TS data with `satisfies`; items, shops, layout and audio map are data | §6.5 and §9: more items and maps are content |
+| 17 | 2026-11-25 | Open stalls | Pawnbroker + jewelry + bakery or pottery, then random to players + 2 (5–10), once per match | Spans the value range (§6.3); joins never reopen stalls |
+| 18 | 2026-11-25 | Stocks | Several standing slots | Two catches within 20 s are likely with 8 players |
+| 19 | 2026-11-25 | Catches | In-person: mid-steal + 300 ms grace; tip-offs: hot hands 5 s | §6.13 as written |
+| 20 | 2026-11-25 | Takeover | A disconnected player's character stays catchable and robbable; the reveal includes them | Behaving differently would expose them |
+| 21 | 2026-11-25 | Audio | Web Audio module in `shared/audio/`, `AudioMap` config, `SfxCue` without grab or pickpocket cues | §6.20; a missing cue can't be played by mistake |
+| 22 | 2026-11-25 | Testing | Headless sim, disguise invariants, latency simulator, seeded crowd, economy harness, e2e with `?timeScale=` | Risks first: the crowd, holds under latency, the snapshot |
+| 23 | 2026-11-25 | e2e speed | `?timeScale=` on the host (debug only); holds driven through `__pcg` hooks in e2e | Real-time holds on a phone page would be flaky |
