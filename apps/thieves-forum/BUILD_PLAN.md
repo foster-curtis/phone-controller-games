@@ -1020,7 +1020,7 @@ Rules:
 
 ## 6. Progress checklist
 
-- [ ] Pre-flight green (S1)
+- [x] Pre-flight green (S1)
 - **TF0**
   - [ ] SPEC §12 written; §6.17, §10.4, §11 updated
   - [ ] Content data: balance (every §7 value), items, shops, layout + tests
