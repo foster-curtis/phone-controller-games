@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { content } from '../../../content';
 import { memorySnapshotStore } from '../../net/resume';
+import { growthFor } from '../../net/views';
 import { createCatalog } from '../catalog';
 import { offerFor } from '../cards';
 import { createSim, stateHash, ScriptedInputSource } from '../index';
@@ -139,6 +140,9 @@ describe('resume snapshot: round trip', () => {
         p.meter,
         p.growth,
       ]);
+      // The pop-up's growth header (and its amounts, RD4-fix-2) reads back the same.
+      expect(growthFor(content, r, q)).toEqual(growthFor(content, w, p));
+      expect(growthFor(content, r, q)?.pct).toBeDefined();
     }
     expect(r.soldiers.map((u) => [u.owner, u.index, u.veterans, u.hp])).toEqual(
       w.soldiers.map((u) => [u.owner, u.index, u.veterans, u.hp]),
