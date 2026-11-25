@@ -129,7 +129,7 @@ export interface StateExtras {
   readonly addSoldier: (owner: number, x: number, y: number, index?: number) => SoldierEnt;
   /** Recomputes a unit's stats from its base block, mods and effects (a changed base, RD9). */
   readonly refreshUnit: (u: Unit) => void;
-  /** A build on the map (tooling: the bench's placeholder builds until RD3 places real ones). */
+  /** A landed build on the map, outside the rules (tooling: the bench's peak builds, resume tests). */
   readonly addBuild: (kind: BuildId, x: number, y: number, owner: number) => BuildEnt;
   /** A player at their respawn point (run start, a late join, FF14). */
   readonly addPlayer: (slot: RunSlot) => PlayerEnt;

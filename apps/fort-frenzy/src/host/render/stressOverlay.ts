@@ -10,6 +10,8 @@ export interface StressSim {
   /** Mean and p99 step time over the recent window, ms. */
   meanMs: number;
   p99Ms: number;
+  /** Builds on the map (RD14: the peak's 24 real builds). */
+  builds: number;
   /** One line of entity counts. */
   counts: string;
 }
@@ -82,6 +84,7 @@ export class StressOverlay {
       gpuTimer: this.timer !== null,
       simMs: sim?.meanMs ?? null,
       simP99Ms: sim?.p99Ms ?? null,
+      builds: sim?.builds ?? null,
       fallbacks: this.world.lib.fallbacks,
     };
   }

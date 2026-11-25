@@ -55,7 +55,7 @@ export interface Sim {
    * rules and the command log, so a replay can't reproduce them: the host uses commands.
    */
   spawnEnemy(kind: EnemyId, x: number, y: number): EnemyEnt;
-  /** A build at (x, y) for `slot` (the bench's placeholder builds until RD3 places real ones). */
+  /** A landed build at (x, y) for `slot`, outside the rules (the bench's peak builds, resume tests). */
   addBuild(kind: BuildId, x: number, y: number, slot: number): BuildEnt;
   addSoldier(owner: number, x: number, y: number): SoldierEnt;
   /** The debug panel's forced hot side (the `hot` debug command, RD6), or null. */

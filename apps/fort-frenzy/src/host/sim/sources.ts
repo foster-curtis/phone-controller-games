@@ -134,11 +134,18 @@ export class AutopilotInputSource implements InputSource {
     if (w.phase !== 'combat') return out;
 
     // Only what the main attack can hit: a melee knight under a Flyer would stand there forever
-    // (FF15 soak: invincible, it holds the Flyers' aggro and the wave never ends).
+    // (FF15 soak: invincible, it holds the Flyers' aggro and the wave never ends). Same for an enemy
+    // outside the field further than the main attack reaches from its edge: a Siege that set up
+    // before walking in shells a melee knight at the edge forever (RD14 solo soak); left alone, it
+    // loses its target and walks in.
     let nearest = null as (typeof w.enemies)[number] | null;
     let nd = Infinity;
+    const reach = def.main.range * 0.8;
     for (const e of w.enemies) {
       if (e.hp <= 0 || (e.flying && !def.main.hitsFlyers)) continue;
+      const ox = e.x - Math.min(Math.max(e.x, 0), map.cols);
+      const oy = e.y - Math.min(Math.max(e.y, 0), map.rows);
+      if (ox * ox + oy * oy > reach * reach) continue;
       const d = dist(p.x, p.y, e.x, e.y);
       if (d < nd) {
         nd = d;

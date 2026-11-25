@@ -1956,7 +1956,8 @@ interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: num
   Xe class) at 1080p: whole frame ≤ 16.7 ms, one sim step ≤ 2 ms, bloom ≤ 2 ms. The TV measures it in
   its stress mode, `?debug=1&stress=1` (FF15): the real sim and World scene with no phones, six
   autopilot knights (every knight) on wave 15 against the Colossus Mk III held in its final phase,
-  Swarm packs topping the crowd up to 150, 24 builds, 30 footmen and 100 projectiles
+  Swarm packs topping the crowd up to 150, 24 real builds (each knight's own, 4 apiece: mines,
+  shield generators, beacons, rally flags), 30 footmen and 100 projectiles
   (`&peak=synthetic` scatters the whole roster instead), with an overlay of frame time, CPU render
   submit, bloom (GPU timer query, else bloom on − off) and the sim step's mean and p99. Agents can't
   judge GPU performance (headless software GL); the stress mode is for a real TV.
@@ -3036,20 +3037,26 @@ export interface RunSnapshot {
 - **Autopilot:** `AutopilotInputSource` walks toward the nearest enemy, fires on cooldown, falls back
   toward the base when hurt, and **places its build** by a per-knight policy (an append-only registry,
   `src/host/sim/autopilot/builds.ts`: where and when each knight places, throws or recalls). It seeds
-  the squad-solo bots (§13).
+  the squad-solo bots (§13). It only chases enemies its main attack can hit: no Flyers for a melee
+  knight, nothing outside the field beyond its main attack's reach from the edge (a Siege that set up
+  before walking in; left alone, it walks in) (§15.11 #177).
 - **Soak** (`sim/soak.ts`): the autopilot plays waves 1–15 headless with invincible knights and the
   Citadel held at full HP, so every mix reaches wave 15; each player confirms a card from every offer
   (or lets the deadline pick) and tries one team-shop item a wave (in a rotation), so card, growth,
   build and shop hooks run. The full form (`pnpm --filter @pcg/fort-frenzy soak`) plays two seeds ×
   (**1 player with each of the 4 knights**, 2 players in all 10 knight pairs, 6 players in the 4
-  rotations of the knight list), each run twice: it fails on an exception, a run that doesn't end in
-  victory at wave 15, or a rerun whose state hashes differ. Vitest runs a short form (one whole solo
-  run, one whole 2-player run and the 6-player boss waves, twice).
+  rotations of the knight list), each run twice; each solo knight also plays a run **saved and
+  resumed** at wave 8's build phase (`resumeAt`), twice: the restored world must give the same
+  snapshot back and a second restore must hash the same. It fails on an exception, a run that doesn't
+  end in victory at wave 15, a resume that doesn't round-trip, or a rerun whose state hashes differ.
+  Vitest runs a short form (one whole solo run, one whole 2-player run, the 6-player boss waves and a
+  solo run resumed at wave 8, twice). The full form took about 6 minutes at RD14 (44 pairs of runs).
 - **Benchmark** (`pnpm --filter @pcg/fort-frenzy bench`): holds the §15.2 peak counts (6 knights, 30
-  soldiers, 150 enemies, 100 projectiles, 24 builds) at the real peak (wave 15, the Colossus Mk III in
-  its final phase, Swarm packs) and with the whole roster scattered, and times whole runs; it fails when
-  a peak's p99 step (or any mean) is over 2 ms. Scenarios run one per process. Numbers swing ±50% under
-  machine load; rerun once before reporting a miss. On demand, not in the CI gate.
+  soldiers, 150 enemies, 100 projectiles, 24 real builds: each knight's own, 4 apiece) at the real peak
+  (wave 15, the Colossus Mk III in its final phase, Swarm packs) and with the whole roster scattered,
+  and times whole runs (1, 2 and 6 players); it fails when a peak's p99 step (or any mean) is over
+  2 ms. Scenarios run one per process. Numbers swing ±50% under machine load; rerun once before
+  reporting a miss. On demand, not in the CI gate.
 - **Balance harness** (§2's balance rule; a report, never a gate, §15.11 #72):
   `pnpm --filter @pcg/fort-frenzy balance` runs each knight alone (autopilot with its build policy) on
   the `balance.harness` content: the standard wave of 12 Grunts, 4 Runners, 1 Swarm group and 1 Brute
@@ -3080,15 +3087,20 @@ export interface RunSnapshot {
     caps, class multipliers and growth, each effect stacking policy
   - config validation (§15.4), presentation key whitelist (§15.4), the icon lists of §2.6 against the
     files on disk
-  - snapshot round trip: save, restore, same state hash at the build phase (builds, meters, growth,
-    squads)
+  - snapshot round trip: save, restore, same state hash at the build phase and the same snapshot back
+    (builds with HP or charges, mines, the flag, meters, growth, squads), also from a real autopilot
+    run of every knight; an older `v` is discarded and removed
+  - late joins: a full meter, a Commander's 2 soldiers, an offer, no cards or growth; a phone joining
+    in combat waits for the build phase
   - protocol guards (tuple v2, intents, views), the combat layout rules and the gesture state machines
   - asset license coverage (§15.10)
 - **E2E (Playwright, as in Sunny Side):** smoke (RD6: a solo Warden starts alone, the wave 1 pop-up
   ends with the phase's random pick, combat with portal flares, a thrown shield generator with the TV's
   preview, wave 2's card Confirm and the shop, on to wave 2), phone reconnect (the same pop-up and
   meter), late join (a full meter and a card offer), team pause (also in combat), host reload and
-  resume, expired room resumed by device ID, controller layout screenshots. E2E drives time with `__pcg.speed(0)` + `advance` and
+  resume (builds, a rally flag, meters, cards and a Commander's squad come back, and the restored run
+  saves the snapshot it came from), expired room resumed by device ID, the stress mode (24 real
+  builds), controller layout screenshots. E2E drives time with `__pcg.speed(0)` + `advance` and
   `?bloom=0&fps=15`, never sleeps.
 
 ### 15.10 Hosting, assets and licensing
@@ -3313,3 +3325,4 @@ states, then RD0's own.
 | 174 | 2026-11-25 | Warden jump slam width (RC3) | The jump slam's arc is 85° (was 102°) at the same 4.7-tile reach: wider than the main's 68°, longer, less damage. Its aim preview, the TV effect and Fault Line read the same content. This settles #127's open "as wide as the main's" line; REDESIGN.md's knight table is the old record and stays as is (§8.2) | User, RC3: "The Warden's jump slam should now be 85 degrees" (RD3-fix-4) |
 | 175 | 2026-11-25 | No waiting on an empty map (RC3) | With no enemy alive and groups pending, the next spawn pulse is pulled forward: it flares that step and spawns 1 s (`flareMs`) later, and every later pulse moves by the same amount. Portals, groups, hot sides, budgets and the cap are untouched; deterministic (state only). Not moved: a pulse already flared, or a plan held past the wave's duration (test and bench holds). Applies at wave start too. Solo autopilot combat: mean wave 62 → 51 s (§9.3, §9.4, §15.3) | User, RC3: "long gaps between each group of enemies… If all enemies are cleared, it should immediately trigger the next wave of enemies"; the flare tell is kept (RD3-fix-4) |
 | 176 | 2026-11-25 | Growth header amounts (RD4-fix-2) | `MeGrowth` gains an optional `pct` (percent each listed stat grew at the last wave end, from the class list's `addPct`; 1 decimal). The pop-up header reads "Wave 4 cleared: +3% HP  +1% DMG" (boss waves show the bigger numbers); no `pct` falls back to bare labels. `PROTOCOL_VERSION` stays 2 (§10.2, §15.6) | Growth is a percentage in the sim, so percent is the honest unit; HP points would need the knight's base stats on the view |
+| 177 | 2026-11-25 | Resume, soak and bench (RD14) | The snapshot shape needed nothing new (v stays 3): RD3–RD11's builds, meters, mines, flags, squads with Veterans gains, growth counts, cards and the fractional coin pool were already saved, and a real autopilot run of every knight now round-trips (same snapshot back, two restores hash the same). The soak adds each knight solo (4 mixes) and, for each solo knight, a run saved and resumed at wave 8's build phase; the bench's 24 builds are real (each knight's own, 4 apiece) and it times a solo run too; the stress overlay counts builds. The autopilot skips enemies outside the field beyond its main attack's reach (§15.9) | A solo Commander soak stalled forever on a Siege that set up below the map's edge (it stops for any target in range while still walking in), out of a melee knight's reach; the tooling must not hang on it. Whether a Siege may set up outside the field is gameplay, left for RC4 |

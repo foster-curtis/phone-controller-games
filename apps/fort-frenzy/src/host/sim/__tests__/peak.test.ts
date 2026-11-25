@@ -1,5 +1,5 @@
 // Peak loads (FF15, sim/peak.ts): the bench and the TV's stress mode hold the SPEC §15.2 counts, and
-// the real peak keeps the Colossus Mk III in its final phase, alive.
+// the real peak keeps the Colossus Mk III in its final phase, alive; the builds are real (RD14).
 import { describe, expect, it } from 'vitest';
 import { PEAK, peakLoad } from '../peak';
 
@@ -16,6 +16,11 @@ describe('peak loads', () => {
       expect(w.players).toHaveLength(PEAK.knights);
       expect(w.soldiers).toHaveLength(PEAK.footmen);
       expect(w.builds).toHaveLength(PEAK.builds);
+      // Real builds (RD14): each one its owner's own, and every kit's build is on the map.
+      const own = (slot: number) =>
+        load.sim.content.knights.find((k) => k.id === w.players[slot]!.classId)!.build;
+      for (const b of w.builds) expect(b.kind).toBe(own(b.owner));
+      expect(new Set(w.builds.map((b) => b.kind)).size).toBe(4);
       expect(w.enemies.length).toBeGreaterThanOrEqual(PEAK.enemies - 10);
       expect(w.projectiles.length).toBeGreaterThanOrEqual(PEAK.projectiles);
       expect(w.phase).toBe('combat');

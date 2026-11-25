@@ -1,6 +1,7 @@
 // Resume snapshot (SPEC §11.5, §15.8, §15.9): a build phase saved and restored is the same run state
 // (same state hash for every restore of it, and the same snapshot back), a restored card offer is
-// identical, and stale or other-version snapshots are discarded.
+// identical, and stale or other-version snapshots are discarded; a real autopilot run (thrown builds,
+// spent mines, squads, cards, growth) round-trips too (RD14).
 import { describe, expect, it } from 'vitest';
 import { content } from '../../../content';
 import { memorySnapshotStore } from '../../net/resume';
@@ -17,6 +18,7 @@ import {
   type SnapshotMeta,
 } from '../snapshot';
 import type { ClassId } from '../../../shared/ids';
+import { soakRun } from '../soak';
 import { harness } from './harness';
 
 const CLASSES: ClassId[] = ['ranger', 'warden', 'artificer', 'commander'];
@@ -49,7 +51,7 @@ function busyBuild() {
   for (const item of ['archer_third', 'archer_damage', 'base_hp', 'base_armor'] as const)
     sim.command({ c: 'buy', slot: 0, item });
   h.run(1);
-  // Builds (placeholder bodies until RD3 places them): a damaged generator, a spent-down mine.
+  // Builds (real behaviors, placed outside the rules): a damaged generator, a spent-down mine.
   sim.addBuild('shield_gen', 12.25, 9.5, 1).hp -= 7;
   sim.addBuild('mine', 20.5, 15.75, 0).charges = 1;
   sim.addBuild('beacon', 8.5, 12.5, 2);
@@ -207,4 +209,31 @@ describe('resume snapshot: discarding', () => {
     expect(store.load(meta.savedAt + SNAPSHOT_MAX_AGE_MS + 1)).toBeNull();
     expect(store.raw()).toBeNull();
   });
+
+  it('an older version (a TD or RD1 save) is discarded and removed, never migrated', () => {
+    for (let v = 1; v < SNAPSHOT_VERSION; v++) {
+      const old = JSON.stringify({ ...(JSON.parse(good()) as RunSnapshot), v });
+      expect(parseSnapshot(old, meta.savedAt)).toBeNull();
+      const store = memorySnapshotStore(old);
+      expect(store.load(meta.savedAt)).toBeNull();
+      expect(store.raw()).toBeNull();
+    }
+  });
+});
+
+describe('resume snapshot: real play (RD14)', () => {
+  it('an autopilot run of every knight saved at wave 6 round-trips with its builds and squad', () => {
+    // Builds thrown and placed in play, mines spent, a Commander's squad after Reinforcements, real
+    // card picks, purchases, growth and coins. soakResume throws unless the restored world gives the
+    // same snapshot back and two restores hash the same.
+    const r = soakRun({ seed: 1, classes: CLASSES, resumeAt: 6, maxSteps: 40_000 });
+    const snap = r.resumed!;
+    expect(snap.wave).toBe(6);
+    expect(snap.builds.length).toBeGreaterThanOrEqual(2);
+    expect(snap.slots.every((s) => s.growth.regular + s.growth.boss === 5)).toBe(true);
+    expect(
+      snap.slots.find((s) => s.classId === 'commander')?.squad?.soldiers.length,
+    ).toBeGreaterThan(0);
+    expect(snap.slots.every((s) => Object.keys(s.cards).length > 0)).toBe(true);
+  }, 60_000);
 });

@@ -849,8 +849,8 @@ Rules:
   - [x] SFX + cues + LICENSES; summary awards; lobby copy; merged
 - [ ] **User approved RC3** (gallery on the TV, solo play)
 - RD14 Lifecycle + resume + soak
-  - [ ] Snapshot with builds, meters, squad; late join; resume e2e
-  - [ ] Soak (solo, pairs, six) + bench + stress; merged
+  - [x] Snapshot with builds, meters, squad; late join; resume e2e
+  - [x] Soak (solo, pairs, six) + bench + stress; merged
 - [ ] **User approved RC4** (full run + resume)
 - [ ] Final checks green on `redesign/fort-frenzy`
 - [ ] Final handoff printed
@@ -1172,6 +1172,12 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD6-fix-2] decision: no debug-panel e2e spec exists, so none was added; the panel is covered by a jsdom Vitest file (`src/host/__tests__/debugPanel.test.ts`) driving a real runtime, which also checks that only `main.ts` loads `debug.ts`, behind `debugEnabled`.
 - [RD4-fix-2] contract+: `MeGrowth.pct` (optional, percent per stat) added in messages.ts and filled by `growthFor` in net/views.ts; `PROTOCOL_VERSION` stays 2; SPEC §10.2/§15.6 updated, decision #176.
 - [RD4-fix-2] decision: amounts are percent ("+3% HP +1% DMG"), since class growth is `addPct` in the sim and nothing else on the phone shows HP points for growth; two spaces between stats, and the centered header wraps cleanly at 644×300.
+- [RD14] decision: no frozen contract changed and the snapshot keeps `v: 3`: RD3–RD11 already saved builds (HP or charges, owner, seq, the flag), meters, squads with Veterans gains, growth counts, cards and the fractional coin pool; a real autopilot run of every knight saved at wave 6 round-trips (same snapshot back, two restores hash the same), so there was no gap to fill (#177).
+- [RD14] decision: the soak's resume (`resumeAt`) saves 90 steps into the chosen build phase (after the soak's card picks at 30 and buys at 60), through JSON, restores it twice (both must hash the same, and the first must give the same snapshot back) and plays on from the first; the full soak resumes each solo knight at wave 8 (#177).
+- [RD14] decision: the bench and stress peak's 24 builds are real: 24 lattice spots, owners in slot turns, each spot its owner's own build (8 mines for the two Rangers, 4 generators, 4 beacons, 8 flags for the two Commanders); a spot whose build is gone (a mine burst, a newer build replaced it) is refilled while the map holds under 24, the autopilot's own builds included. Flags placed this way don't move the squads (no `placed` hook), like any tooling build.
+- [RD14] decision: the autopilot skips enemies outside the field further than 0.8 × its main range from the edge (same rule as Flyers for melee knights): the new solo Commander soak (seed 1) hung forever at wave 11–12 on Sieges that set up below the map edge, shelling him (invincible) while he stood at the edge. Tooling only; whether a Siege may set up outside the field is gameplay, noted for RC4 (#177).
+- [RD14] note: full soak (2 seeds × 4 solo + 4 solo resumed at wave 8 + 10 pairs + 4 six-player rotations, each twice) passed: 44 pairs, 0 failed, 364.7 s.
+- [RD14] note: perf, no fix needed: the real builds cost less than the old placeholders (boss peak, interleaved in one window, mean 0.81–0.89 ms vs 0.99–1.14 ms on the base). The bench ran under 84–99% machine CPU (other agents): boss p99 4.53 then 6.85 ms (means 0.91 / 1.01), synthetic peak p99 7.83 then 5.98 ms (means 1.43 / 1.29); the quietest in-process run gave boss mean 0.67 / p99 1.98 ms. Allocation is about 350 KB a step (about 5% of peak steps include a scavenge), spread over movement, squads and AI, with no single hot spot; it's the place to look if the TV's stress mode misses. Peak p99 to be re-measured on a quiet machine at RC4.
 
 ## 9. Final handoff
 

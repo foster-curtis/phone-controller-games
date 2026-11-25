@@ -122,6 +122,31 @@ describe('late joins (§11.2)', () => {
     expect(lastMe(env.sent, 'c').screen).toBe('build');
     expect(env.s.party.member('c')?.slot).toBe(2);
   });
+
+  it('a late Commander gets a full meter, his 2 soldiers, an offer, no cards or growth (#99)', () => {
+    const env = toBuild();
+    toCombat(env);
+    // Wave 1 cleared: the knights in the run get their growth bump; the joiner won't.
+    env.s.sim!.world.spawns.length = 0;
+    env.s.sim!.world.enemies.length = 0;
+    while (env.s.sim!.world.phase !== 'build') step(env, 30);
+    expect(env.s.sim!.world.wave).toBe(2);
+    hello(env.s, 'c', 'key-c', 'dev-c');
+    intent(env.s, 'c', { k: 'name', name: 'Cy' });
+    intent(env.s, 'c', { k: 'class', classId: 'commander' });
+    const r = intent(env.s, 'c', { k: 'ready', ready: true });
+    step(env);
+    expect(ackOf(env.sent, r)?.ok).toBe(true);
+    const w = env.s.sim!.world;
+    const p = w.players.find((x) => x.name === 'Cy')!;
+    expect(p.meter).toBe(1);
+    expect(w.soldiers.filter((u) => u.owner === p.slot)).toHaveLength(2);
+    expect(p.offer).toHaveLength(3);
+    expect(p.cards).toEqual({});
+    expect(p.growth).toEqual({ regular: 0, boss: 0 });
+    expect(w.players.find((x) => x.name === 'Ann')!.growth.regular).toBe(1);
+    expect(lastMe(env.sent, 'c').build).toMatchObject({ meter: 1, full: true, id: 'rally_flag' });
+  });
 });
 
 describe('end of the run (§4)', () => {
