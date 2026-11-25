@@ -561,8 +561,9 @@ export const flyer = {
   radius: 0.3,
   flying: true,
   // Hull and head (rotors, masts and the thruster glow left out) at its flight height: the hull's
-  // underside flies 1.37 tiles over its shadow (C4: half of FF10's 2.74; render/clips/wasp.ts).
-  body: { radius: 0.43, bottom: 1.37, top: 1.76 },
+  // underside flies 1.23 tiles over its shadow (RD10-fix-3: 90% of C4's 1.37; render/clips/wasp.ts).
+  // Drawn 1.4× since RD10-fix-3, so the body is C4's 0.43 radius and 0.39 height × 1.4.
+  body: { radius: 0.6, bottom: 1.23, top: 1.78 },
   budget: 2,
   ai: 'flyer',
   field: 'none',
@@ -704,8 +705,9 @@ export const colossus = {
       // Stagger: damage fills `staggerPerHp` meters per max HP; a counted stun adds `staggerStun`,
       // at most one per `stunLockMs`; full = `staggerMs` on one knee taking +`staggerBonus` damage.
       // Back on its feet, stuns don't count for `stunImmuneMs` (FF11-fix-1: no Warden stun-lock).
-      staggerPerHp: 3,
-      staggerStun: 0.25,
+      // RD10-fix-3 (RC3): both fill 15% slower (× 0.85; were 3 and 0.25), `staggerMs` unchanged.
+      staggerPerHp: 2.55,
+      staggerStun: 0.2125,
       stunLockMs: 2500,
       stunImmuneMs: 4000,
       staggerMs: 3000,

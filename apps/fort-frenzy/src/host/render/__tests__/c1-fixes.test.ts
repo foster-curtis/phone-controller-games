@@ -13,7 +13,7 @@ import {
   smokeLayers,
 } from '../citadelFx';
 import { applyOrder, REST, sampleClip, type PartPose } from '../clip';
-import { WASP_HOVER_TILES } from '../clips/wasp';
+import { WASP_DEATH_DROP } from '../clips/wasp';
 import { bodyBurstPoints, PROJECTILE_SPEEDS } from '../effectsMath';
 import { clipLandedMs, collapsePoses, ridesParent } from '../fall';
 import { GAUGE_CELLS_BOTTOM_UP, gaugeGroups } from '../gauge';
@@ -244,7 +244,7 @@ describe('note 4: down pile and enemy deaths', () => {
   it('collapses every enemy and the Colossus into a pile, then fades every part out', () => {
     for (const e of ENEMIES) {
       const c = clips[`${e}/death`]!;
-      groundCheck(e, 'death', e === 'wasp' ? WASP_HOVER_TILES * 80 : 0);
+      groundCheck(e, 'death', e === 'wasp' ? WASP_DEATH_DROP : 0);
       const end = sampleClip(c, c.durationMs);
       const set = views(e)[0]!.rv;
       for (const name of Object.keys(set.parts))

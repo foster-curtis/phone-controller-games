@@ -8,6 +8,7 @@ import { addBloom, type Bloom } from './bloom';
 import { CANVAS_H, CANVAS_W, FixedCamera, UNIT_PX } from './camera';
 import type { RenderContext } from './context';
 import { Effects } from './effects';
+import { RIG_INFO } from './gallery/rigInfo';
 import { GroundMarks } from './groundMarks';
 import { RigSprite } from './rig';
 import { rigPartCount } from './rigMath';
@@ -50,18 +51,17 @@ export class RenderWorld implements RenderContext {
     this.marks = new GroundMarks(this);
   }
 
-  /** A rig on the world layer (`<rig>/<clip>` clips from the theme). */
+  /**
+   * A rig on the world layer (`<rig>/<clip>` clips from the theme), at its RIG_INFO `scale` unless the
+   * options set one (the Wasp, RD10-fix-3).
+   */
   rig(rigId: string, opts: RigOptions = {}): RigSprite {
     const def = this.theme.rigs[rigId];
     if (!def) throw new Error(`render: unknown rig ${rigId}`);
-    const rig = new RigSprite(
-      this.lib,
-      this.layers.world,
-      def,
-      this.theme.clips,
-      this.unitPx,
-      opts,
-    );
+    const rig = new RigSprite(this.lib, this.layers.world, def, this.theme.clips, this.unitPx, {
+      ...opts,
+      scale: opts.scale ?? RIG_INFO[rigId]?.scale,
+    });
     this.rigs.add(rig);
     const destroy = rig.destroy.bind(rig);
     rig.destroy = () => {

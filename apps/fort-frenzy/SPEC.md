@@ -971,7 +971,7 @@ Each enemy type is designed as a problem that specific classes solve.
 | Runner (Skitter) | Fast and fragile; ignores knights and builds and bursts on the base. Caught in transit (mines, stuns, knockback) | Ranger (bow, mines in its path), Warden (super stun), Commander (shield bash, squad at a flag on its route), Artificer (cone) |
 | Brute | **Build hunter:** goes straight for the nearest targetable build, **at any distance.** With none on the map (or once it has destroyed them all) it walks toward the base and attacks knights like a Grunt | Warden (HP, stun), Ranger (kiting at range), Commander (squad); any targetable build pulls it off course |
 | Siege (Bombard) | Paths toward the base and **stops only when something is in range.** Target priority: **base > players (and soldiers) > builds**, nearest within each; it retargets the moment a higher-priority target enters range. Keeps the red landing marker before each shell. The team's main ranged threat to knights | Ranger (outranges it), Commander (flag thrown beside it, squad dives in), Warden (HP to walk in) |
-| Flyer (Wasp drone) | Flies straight; **range slightly increased** over the tower-defense value. Ignores ground trap builds (never sets off mines) but still shoots knights and HP builds in its aggro radius; melee can't hit it | Ranger, Artificer, the sentries (spawns only for teams that can hit it) |
+| Flyer (Wasp drone) | Flies straight; **range slightly increased** over the tower-defense value. Ignores ground trap builds (never sets off mines) but still shoots knights and HP builds in its aggro radius; melee can't hit it. Drawn 1.4× its art so it reads next to a Grunt (RC3, §9.6) | Ranger, Artificer, the sentries (spawns only for teams that can hit it) |
 | Swarm (Scrap mites) | Many weak units, in packs of 8 | Warden (arc), Artificer (spread), Ranger (mines) |
 | Hunter (Stalker) | Hunts players; **senses hidden builds** (sees and avoids mines' trigger radii) and **stays out of range of damage-dealing builds and the sentries**; **speeds up once it locks on** to its quarry | Warden (HP, stun), Commander (squad blocks it), Artificer (healing) |
 | Boss (Colossus, §9.2) | Appears at waves 5, 10 and 15 | Everyone (the stagger meter) |
@@ -1068,6 +1068,9 @@ walker mech with a glowing core in its chest (§2.1); its art is in §9.6.
   lock the boss down.
 - When the meter is full, the Colossus is staggered for about 3 seconds and takes bonus damage. Then the
   meter resets.
+- **Fill rate (RC3, §15.11 #171):** damage fills 2.55 meters per max HP of damage and a counted stun
+  0.2125 of the meter, 15% slower than the first values (3 and 0.25), so it staggers a little less
+  often; the stagger still lasts 3 s.
 - **Stun resistance:** for 4 seconds after it gets back up, Warden stuns don't fill the meter at all
   (damage still does), so a Warden-only team can stagger it now and then but never keep it down
   (§15.11 #55). The TV shows nothing for this window.
@@ -1217,7 +1220,9 @@ before each shot, and a red landing marker shows where the shell will hit.
 violet rotor discs each spinning on its own mast, a stinger cannon and a down-thruster glow under the
 rear of the body; its shadow stays on the ground below. Bobs at a fixed height and never drops toward
 the ground, so it always reads as out of melee reach. **Flight height (C4, Foster):** its hull's
-underside flies 1.37 tiles over its shadow, half its first height (2.74).
+underside flies 1.37 tiles over its shadow, half its first height (2.74). **Size (RC3, §15.11 #170):**
+drawn 1.4× its art with its shadow, so it is easier to see, and a little lower: its hull's underside
+flies 1.23 tiles over its shadow (90% of 1.37); its body hitbox grows with it (§9).
 
 **Scrap mites (Swarm):** tiny beetle bugs, about a fifth of a knight's height: a round split shell, a
 small head with antennae, six short legs and one violet eye, in packs of 8. Packs are scattered and
@@ -1575,6 +1580,7 @@ Ideas deferred from v1. Build v1 so these can be added without rewrites.
 | Music | v1 ships sound effects only (§12) | The presentation layer carries an audio map (§15.4), so music is more entries plus a player |
 | Enemy back views | Back views for the common walkers (§2.4) | Rig views are looked up per rig from data, so a new view is data, not code (§15.2) |
 | Hunter v2 behavior | Walks in and waits where nothing that shoots can hit it; attacks a player within the Ranger's range; otherwise waits for a player below 50% HP (always targeted) or a Brute to shelter behind (Foster, C3) | The Hunter is its own `ai` module with a threat map (`ai/threat.ts`) |
+| Smarter enemies | Smarter enemy AI (user, RC3), for example flanking, focus-firing low-HP knights, avoiding hazards; no design yet | Each enemy behavior is its own `ai` module (§15.3) |
 | End-of-run stats banners | The summary shows **all** of the run stats for each player in a per-player banner, like a fighting-game results screen (user, RC0). v1 keeps the §4 summary: waves survived, per-player stats and one award card per player | `RunStats` already holds every per-player stat (§15.6), so this is summary layout only |
 
 **Build idea pool** (from REDESIGN §C5, with Foster's mechanics notes; best-fit class):
@@ -1919,8 +1925,10 @@ interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: num
   Side), keyed by entity id; spawned entities draw at their current position, removed ones disappear.
   A body drawn at its ground point (every enemy, the Wasp included: its hover height is art, not the
   sim's `z`) lerps on the ground at both ends; heights lerp only between heights (C3, §15.11 #44).
-  The Wasp's flight height is `render/clips/wasp.ts` `WASP_FLIGHT_TILES` (its art's own lift plus the
-  render hover `WASP_HOVER_TILES`), and its content body's `bottom` matches it (C4, §15.11 #50).
+  The Wasp's flight height is `render/clips/wasp.ts` `WASP_FLIGHT_TILES` (its art's own lift at its
+  `WASP_SCALE` draw scale plus the render hover `WASP_HOVER_TILES`, negative since RC3: the rig's
+  empty foot point is drawn below the ground point), and its content body's `bottom` matches it (C4,
+  §15.11 #50, #170). A rig's draw scale is its `RIG_INFO.scale`, set once when it is made.
   Thrown builds and soldiers draw along their sim `Flight` (§15.3) with a code-drawn arc height.
 - **Per frame,** render code changes only alpha, crop and scale of existing objects (HP bars, rings,
   meters); it never re-uploads text or rebuilds graphics (the TD plan's FF7-fix-1, FF8, FF9 lessons).
@@ -3276,3 +3284,6 @@ states, then RD0's own.
 | 167 | 2026-11-24 | Warden cards (RD11) | Challenger: `taunt` in combat; an aggro-leash enemy picks a taunting knight in its aggro radius first and turns from its current target to him (its leash and other rules unchanged; Siege, Hunters, the Brute's build hunt and the Colossus keep their own targeting). Fault Line: a strip from his feet along the jump slam's aim (not its curved edge), reach × 1, 0.9 wide, 4 s, 50% slow lingering 0.5 s, ground enemies only; drawn with `slam-cracks` marks. Wide Field +25% field radius; Reinforced Generator +40% HP and +20% guard per stack; Earthshaker unchanged (+30% stun, no boss stagger by the Colossus's fixed stun fill) (§6.1) | "Nearby enemies target him first" as the existing aggro rule's first pick; a straight strip is the simplest long fissure "along its arc" and needs no new art |
 | 168 | 2026-11-25 | Portal flare flicker (RD5-fix-2) | The `portal-flare` sparks flicker over their 1 s life: three uneven waves multiply alpha (floor 0.4) and scale (±7%), enveloped from full at the start to 35% at the end, phases seeded by the flare's place and start order. Constants in `render/effectsMath.ts` (`FLARE_FLICKER`); one effects hook, so the map and gallery pages match (§2.5) | RC3 note: "more of a flicker"; alpha/scale only, no rebuild (§15.2 frame cost) |
 | 169 | 2026-11-25 | Footman slash (RD9-fix-3) | The footman's attack is a sword slash: the blade hand turns about its wrist pivot (the rig's `hand`, the blade its child) with the torso leaning in: wind-up raised back at 50 ms, through the aim at 90 ms (the old stab's peak; the sim's hit and timing unchanged), follow-through at 140 ms, back at rest by 300 ms, about 120° of blade turn. Solved per view (`attack@<view>`): side cuts from raised-back to low-forward, level along the aim at the impact; front and back cut across the body, the tip crossing his centre line at the impact, the free hand pulling the other way. His facing holds on the slash's angle while it plays (`heldAim`, as the knights since RD5-fix-1). No trail: the rig has none and the Commander's is drawn for his sword's reach | User, RC3: "slash their sword in an arc, not just a simple push"; the existing `hand` pivot carries the arc, so no art change |
+| 170 | 2026-11-25 | Wasp size (RD10-fix-3) | The Wasp is drawn 1.4× its art (`WASP_SCALE`, `RIG_INFO.scale`; the gallery too), its shadow, status sizes and tell glow scaled with it, and flies a little lower: its hull's underside 1.23 tiles over its shadow (90% of #50's 1.37). The scaled art lift (1.59) is above that, so the render hover is negative (the empty foot point is drawn below the ground point). Its content body grows in proportion (radius 0.43 → 0.6, 1.23 to 1.78 tiles up, was 1.37 to 1.76) since bodies match the drawn art (§9); its feet circle (0.3, walking and collisions) is unchanged (§9, §9.6, §15.2) | User, RC3: "Wasp drone needs to be larger so it can be seen better. Keep it about the same height though, or even make it a little lower." |
+| 171 | 2026-11-25 | Colossus stagger pace (RD10-fix-3) | The stagger meter fills 15% slower from both sources: `staggerPerHp` 3 → 2.55, `staggerStun` 0.25 → 0.2125; a stream of equal hits needs about 18% more damage (67 → 79 hits of 0.5% HP); `staggerMs` stays 3 s (§9.2) | User, RC3: "fill a little slower, or stagger shouldn't last as long"; the orchestrator chose the slower fill |
+| 172 | 2026-11-25 | Smarter enemies (v2 note) | §13 gets a v2 row: smarter enemy AI (flanking, focus-firing low-HP knights, avoiding hazards); no v1 behavior changes | User, RC3: "I would like to make the enemies a bit smarter" |

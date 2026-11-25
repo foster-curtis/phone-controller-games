@@ -841,7 +841,8 @@ export class WorldView {
           speed: locomotionSpeed(looks) * en.clipSpeed,
         });
       en.status?.update(f.dtMs, at.sx, at.sy - fly);
-      const k = fly > 0 ? 0.75 : 1; // the shadow far below reads smaller
+      // The shadow far below a flyer reads smaller (its hover can be negative since RD10-fix-3).
+      const k = en.info.fly !== undefined ? 0.75 : 1;
       this.w.marks.shadow(at.sx, at.sy, en.info.shadow[0] * 2 * k, en.info.shadow[1] * 2 * k);
       if (!stunned) this.drawEnemyLooks(w, e, en, f.dtMs);
       this.drawEnemyBar(e, en, fly);
@@ -877,7 +878,8 @@ export class WorldView {
       if (age > en.tell.ms + 100) en.tell = null;
       const spec = TELL_GLOW[rigId];
       const p = spec && this.tellPoint(en, spec.at);
-      if (spec && p) drawGlow(this.glow, p.sx, p.sy, spec.r * k1, level * 1.2);
+      if (spec && p)
+        drawGlow(this.glow, p.sx, p.sy, spec.r * k1 * (en.info.scale ?? 1), level * 1.2);
     }
     if (rigId === 'skitter') {
       const d = rectDistToBase(w, e.x, e.y);
