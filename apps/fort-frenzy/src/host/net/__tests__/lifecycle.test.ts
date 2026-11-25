@@ -245,6 +245,29 @@ describe('resume snapshot on the host (§11.5, §15.8)', () => {
     expect(lastMe(env.sent, 'a').screen).toBe('build');
   });
 
+  it('the saved leader leads the resumed run even when another phone is back first (RD14)', () => {
+    const before = toBuild();
+    step(before);
+    expect(before.store.load(before.clock.wall)?.leaderKey).toBe('key-a');
+    const env = setup(before.store);
+    env.s.handleRoom({
+      reclaimed: true,
+      roster: [
+        { playerId: 'b', playerKey: 'key-b', connected: true },
+        { playerId: 'a', playerKey: 'key-a', connected: true },
+      ],
+    });
+    // Bob's phone says hello before Ann's.
+    env.s.handleMessage('b', { t: 'hello', proto: PROTOCOL_VERSION, deviceId: 'dev-b' });
+    env.s.handleMessage('a', { t: 'hello', proto: PROTOCOL_VERSION, deviceId: 'dev-a' });
+    expect(env.s.party.leaderId).toBe('a');
+    expect(intent(env.s, 'a', { k: 'leader', action: 'resume' })).toBeGreaterThan(0);
+    expect(env.s.sim?.world.phase).toBe('build');
+    step(env);
+    // The restored run saves the leader it came from.
+    expect(env.store.load(env.clock.wall)?.leaderKey).toBe('key-a');
+  });
+
   it('a new room: phones match by device ID, an unknown phone claims a free slot', () => {
     const before = toBuild();
     step(before);

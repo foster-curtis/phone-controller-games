@@ -133,7 +133,8 @@ export interface Party<Color extends string, Cls extends string> {
   endRun(): void;
   /**
    * FF14 (§11.5, §15.8): a resumed run. The members become the snapshot's slots, away until a phone
-   * matches one (playerId, key, then device ID); the stage is `build`; `leaderKey` picks the leader.
+   * matches one (playerId, key, then device ID); the stage is `build`; `leaderKey` picks the leader,
+   * who leads again once their phone matches even if another phone came back first and led (RD14).
    * With `claimable`, unmatched slots can be claimed by an unknown phone (resume into a new room).
    */
   restore(
@@ -170,6 +171,11 @@ export function createParty<Color extends string, Cls extends string>(
   let stage: PartyStage = 'lobby';
   /** Restored slots still open to a claim (FF14). */
   const open = new Set<number>();
+  /**
+   * The saved leader's restored slot until its phone matches (RD14, §11.5): another phone may lead
+   * until then (the handoff rule), and the saved leader takes it back when their phone comes in.
+   */
+  let savedLead: M | null = null;
   /** Highest run slot a player left this run (RD6-fix-1): late joins go above it, never into it. */
   let leftSlot = -1;
 
@@ -217,7 +223,8 @@ export function createParty<Color extends string, Cls extends string>(
       }
       if (m) {
         // Known ids are kept; a device-ID match is a new room, so it takes the new relay key.
-        if (leaderId === m.playerId) leaderId = playerId;
+        if (leaderId === m.playerId || savedLead === m) leaderId = playerId;
+        if (savedLead === m) savedLead = null;
         m.playerId = playerId;
         m.key = newRoom && key ? key : (m.key ?? key);
         m.deviceId = m.deviceId ?? deviceId;
@@ -364,6 +371,7 @@ export function createParty<Color extends string, Cls extends string>(
       stage = 'lobby';
       open.clear();
       leftSlot = -1;
+      savedLead = null;
       for (const m of members) {
         m.slot = null;
         m.ready = false;
@@ -391,7 +399,8 @@ export function createParty<Color extends string, Cls extends string>(
       }
       stage = 'build';
       const lead = leaderKey === null ? undefined : members.find((m) => m.key === leaderKey);
-      leaderId = (lead ?? members[0])?.playerId ?? null;
+      savedLead = lead ?? members[0] ?? null;
+      leaderId = savedLead?.playerId ?? null;
     },
 
     claimable: () => members.filter((m) => m.slot !== null && open.has(m.slot)),
@@ -403,7 +412,9 @@ export function createParty<Color extends string, Cls extends string>(
       const target = members.find((m) => m.slot === slot);
       if (!target || !open.has(slot)) return no('invalid');
       members.splice(members.indexOf(fresh), 1);
-      if (leaderId === target.playerId || leaderId === fresh.playerId) leaderId = playerId;
+      if (leaderId === target.playerId || leaderId === fresh.playerId || savedLead === target)
+        leaderId = playerId;
+      if (savedLead === target) savedLead = null;
       target.playerId = playerId;
       target.key = fresh.key ?? target.key;
       target.deviceId = fresh.deviceId ?? target.deviceId;

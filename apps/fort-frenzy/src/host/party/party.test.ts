@@ -494,6 +494,29 @@ describe('resume (FF14, §11.5, §15.8)', () => {
     expect(p.claimable().map((m) => m.slot)).toEqual([2]);
   });
 
+  it('the saved leader takes the lead back when their phone comes in after another (RD14)', () => {
+    const p = party();
+    p.restore(slots(3), 'old1', { claimable: true });
+    // Another phone back first leads for now (the handoff rule) ...
+    p.connect({ playerId: 'a', key: 'old0' });
+    expect(p.leaderId).toBe('a');
+    // ... and the saved leader takes it back when theirs matches, by key or by a claim.
+    p.connect({ playerId: 'b', key: 'old1' });
+    expect(p.leaderId).toBe('b');
+    // From then on the usual rule: a returning leader doesn't snap back.
+    p.disconnect('b');
+    expect(p.leaderId).toBe('a');
+    p.connect({ playerId: 'b', key: 'old1' });
+    expect(p.leaderId).toBe('a');
+
+    const q = party();
+    q.restore(slots(2), 'old1', { claimable: true });
+    q.connect({ playerId: 'x', key: 'old0' });
+    q.connect({ playerId: 'y', key: 'unknown', deviceId: 'dy' });
+    expect(q.claim('y', 1)).toEqual({ ok: true });
+    expect(q.leaderId).toBe('y');
+  });
+
   it('an unknown phone claims a free slot, even with every color held', () => {
     const p = party();
     p.restore(slots(6), null, { claimable: true });
