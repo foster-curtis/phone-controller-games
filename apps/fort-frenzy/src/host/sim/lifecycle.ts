@@ -1,6 +1,6 @@
 // Steps 8–11 (SPEC §15.3): status effects and `onTick` hooks, deaths (coins, destroyed builds), the
-// wave spawner with portal flares `rules.flareMs` ahead, and the phase checks: wave cleared, base
-// destroyed, build timer and ready-up. Also the phase transitions the commands reuse.
+// wave spawner with portal flares `rules.flareMs` ahead (the next pulse pulled forward when no enemy
+// is left alive, RC3), and the phase checks: wave cleared, base destroyed, build timer and ready-up. Also the phase transitions the commands reuse.
 import { tickEffects } from '../systems/effects';
 import { PORTAL_IDS, SIDE_IDS, type PortalId, type SideId } from '../../shared/ids';
 import { generateWave, waveRng } from '../systems/waves';
@@ -165,6 +165,7 @@ export function stepSpawner(s: FullState): void {
   if (w.phase !== 'combat' || w.spawns.length === 0) return;
   const t = w.tick;
   const flare = s.cat.steps(s.cat.rules.flareMs);
+  pullForward(s, t, flare);
   let write = 0;
   const flared: PortalId[] = [];
   for (const g of w.spawns) {
@@ -183,6 +184,25 @@ export function stepSpawner(s: FullState): void {
     spawnGroup(s, g.enemy, g.portal, g.count);
   }
   w.spawns.length = write;
+}
+
+/**
+ * No waiting on an empty map (RC3, §9.4): with no enemy alive and groups still to come, the next
+ * pulse comes in now: it flares this step and spawns `flare` steps later, and every later pulse moves
+ * by the same amount, keeping its spacing (portals, groups and hot sides stay as planned). Nothing
+ * moves once the next pulse has flared. A plan held past the wave's duration (test and bench holds)
+ * is left alone; every real pulse is due within it.
+ */
+function pullForward(s: FullState, t: number, flare: number): void {
+  const w = s.world;
+  for (const e of w.enemies) if (e.hp > 0) return;
+  let next = Infinity;
+  for (const g of w.spawns) if (g.atTick < next) next = g.atTick;
+  const shift = next - flare - t;
+  if (shift <= 0) return;
+  const def = s.cat.wave(w.wave);
+  if (!def || next - t > s.cat.steps(def.durationMs) + flare) return;
+  for (const g of w.spawns) g.atTick -= shift;
 }
 
 /** `count` units of `enemy` just outside `portal`'s edge, spread across it (combat stream jitter). */

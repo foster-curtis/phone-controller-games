@@ -68,7 +68,7 @@ describe('Warden stomp', () => {
     // Plain Grunts: a stun refreshes stats, which resets an inflated max HP.
     const near = h.sim.spawnEnemy('grunt', 12.5, 12);
     // Outside the arc (down, not right); FF7-fix-2's longer stomp reached the old (12.5, 15).
-    const far = h.sim.spawnEnemy('grunt', 10.5, 17); // RD3: the jump slam is as wide as the slam
+    const far = h.sim.spawnEnemy('grunt', 10.5, 17); // well outside the jump slam's 85° (RD3-fix-4)
     far.stats.moveSpeed = 0; // Holds still through the long wind-up (RC1).
     h.pads[0]!.tap('superFires', { superAim: { x: 1, y: 0 } });
     h.run(5);
@@ -274,5 +274,48 @@ describe('Warden slam cone (RC2, RD3-fix-3)', () => {
     expect(side.hp).toBe(side.maxHp);
     expect(inner.maxHp - inner.hp).toBe(warden.main.damage * TANK);
     expect(ahead.maxHp - ahead.hp).toBe(warden.main.damage * TANK);
+  });
+});
+
+describe('Warden jump slam cone (RC3, RD3-fix-4)', () => {
+  const DEG = Math.PI / 180;
+
+  it('85° at the same 4.7-tile reach, still wider than the slam', () => {
+    expect(warden.super).toMatchObject({ range: 4.7, arcDeg: 85 });
+    expect(warden.super.arcDeg).toBeGreaterThan(warden.main.arcDeg);
+  });
+
+  it('hits a body 42° off the aim, misses one 44° off; the aim preview is the hit cone', () => {
+    const h = combat();
+    h.put(0, 10, 12);
+    const { x: px, y: py } = h.p(0);
+    const reach = warden.super.range;
+    // The TV's aim preview and Fault Line read this cone (classes/hitShape.ts).
+    const shape = aimPreview(h.p(0), warden, 'super', content.rules);
+    expect(shape).toEqual({ kind: 'cone', range: reach, half: (warden.super.arcDeg / 2) * DEG });
+    const preview = shape as Extract<typeof shape, { kind: 'cone' }>;
+    // A Grunt north of the aim line (east), its body's near edge `edge` off the aim: its feet circle
+    // is the body's nearest part (the capsule reaches north, away from the cone).
+    const body = groundBody(grunt.body!);
+    const d = 3.5;
+    const still = (edge: number) => {
+      const a = edge * DEG + Math.asin(body.r / d);
+      const e = h.sim.spawnEnemy('grunt', px + Math.cos(a) * d, py - Math.sin(a) * d);
+      e.stats.moveSpeed = 0;
+      return e;
+    };
+    const inside = still(42);
+    const outside = still(44);
+    const sec = (half: number) => ({ x: px, y: py, angle: 0, half, range: preview.range });
+    // The old 102° cone caught both; the previewed 85° cone only the first.
+    expect(sectorHitsBody(sec(51 * DEG), outside.x, outside.y, body)).toBe(true);
+    expect(sectorHitsBody(sec(preview.half), inside.x, inside.y, body)).toBe(true);
+    expect(sectorHitsBody(sec(preview.half), outside.x, outside.y, body)).toBe(false);
+    h.p(0).superCharge = 1;
+    h.pads[0]!.tap('superFires', { superAim: { x: 1, y: 0 } });
+    h.run(1 + steps(warden.super.windupMs));
+    // The jump slam lands exactly what the preview showed.
+    expect(inside.maxHp - inside.hp).toBe(warden.super.damage * TANK);
+    expect(outside.hp).toBe(outside.maxHp);
   });
 });

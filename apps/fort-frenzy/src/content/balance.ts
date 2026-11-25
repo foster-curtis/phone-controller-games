@@ -349,13 +349,13 @@ export const warden = {
     hitsFlyers: false,
   },
   // Jump slam (§8.2, RD3): an airborne wind-up (RC2: lands at 1.1 s in a 1.35 s clip; RC1 had 1.8 s
-  // in 2.2 s), then a longer arc than the slam's (and, since RC2 narrowed the slam, a wider one),
-  // with less damage, that stuns.
+  // in 2.2 s), then a longer arc than the slam's, 85° wide (RC3, RD3-fix-4: was 102°; still wider
+  // than the slam's 68°), with less damage, that stuns.
   super: {
     shape: 'arc',
     damage: 25,
     range: 4.7,
-    arcDeg: 102,
+    arcDeg: 85,
     cooldownMs: 600,
     windupMs: 1100,
     hitsFlyers: false,
@@ -1047,8 +1047,8 @@ export const rangerCards: CardDef[] = [
 
 // ---- warden -------------------------------------------------------------------------------------
 // RD11 (the Warden's kit landed in the slice without cards): Heavy Slam on the main (68°, RD3-fix-3),
-// Earthshaker and Aftershock on the jump slam (102°), Wide Field and Reinforced Generator on the
-// shield generator, Challenger his passive card, Fault Line the combo (sim/cards/warden.ts).
+// Earthshaker and Aftershock on the jump slam (85°, RD3-fix-4), Wide Field and Reinforced Generator
+// on the shield generator, Challenger his passive card, Fault Line the combo (sim/cards/warden.ts).
 
 export const wardenCards: CardDef[] = [
   {

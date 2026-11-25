@@ -463,7 +463,7 @@ describe('shield generator (§7.4)', () => {
 
 describe('Warden jump slam (§8.2)', () => {
   it('stays a target while airborne; lands at least as wide as the slam, longer, with less damage', () => {
-    // RC2 narrowed the slam (RD3-fix-3); the jump slam kept its arc.
+    // RC2 narrowed the slam to 68° (RD3-fix-3); RC3 set the jump slam to 85° (RD3-fix-4).
     expect(warden.super.arcDeg).toBeGreaterThanOrEqual(warden.main.arcDeg);
     expect(warden.super.range).toBeGreaterThan(warden.main.range);
     expect(warden.super.damage).toBeLessThan(warden.main.damage);

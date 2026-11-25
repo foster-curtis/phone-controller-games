@@ -888,7 +888,7 @@ the baseline knight HP, and the damage band multiplies the damage of the knight'
 |---|---|---|---|---|
 | Class | Tank | Marksman | Support | Control |
 | Main | **Hammer smash:** damage in an arc spreading out in front of him (2.89 tiles: RC2 made it 1.65× longer; 68° wide: RC2 made it a third narrower, #127), with no knockback (RC2, #124) | **Longbow shot:** the longest range in the game | **Nanite blast:** about 5 nanites fired at random spots in a narrow cone over about 0.8 s (one burst per release; cooldown ≥ 0.8 s; spread from the seeded combat stream) | **Shield bash:** a solid rectangle from him along the aim (2.25 tiles long, 1.5 wide; every enemy whose body overlaps it is hit) with knockback (RC2, #156, #160) |
-| Super | **Jump slam:** an airborne wind-up (1.1 s in a 1.35 s clip; RC2, #125), then damage and stun in an arc longer than the main's and wider (102°; it kept its width when RC2 narrowed the main, #127); less damage than the main. The airborne pause is a tell for players (enemy AI doesn't dodge) | **Shockwave** from the Ranger: knockback and light damage in a wide circle | **Heal cone:** a wide nanite cone that heals himself and the allied knights it reaches (not builds, not soldiers) | **Reinforcements:** spawns one squad soldier, thrown a short distance. At the squad cap the button stays dimmed and the charge is held |
+| Super | **Jump slam:** an airborne wind-up (1.1 s in a 1.35 s clip; RC2, #125), then damage and stun in an arc longer than the main's and wider (85°: RC3, #174); less damage than the main. The airborne pause is a tell for players (enemy AI doesn't dodge) | **Shockwave** from the Ranger: knockback and light damage in a wide circle | **Heal cone:** a wide nanite cone that heals himself and the allied knights it reaches (not builds, not soldiers) | **Reinforcements:** spawns one squad soldier, thrown a short distance. At the squad cap the button stays dimmed and the charge is held |
 | Build | Shield generator (thrown) | Mines (at feet) | Healing beacon (thrown) | Rally flag (thrown); recall |
 | Passive | None built in; Challenger card | None built in; Steady Aim card | None built in; Field Medic card | None built in; Morale card |
 | Hits Flyers | No | Yes | Yes | No |
@@ -1097,7 +1097,8 @@ walker mech with a glowing core in its chest (§2.1); its art is in §9.6.
 - A generator spends the budget on allowed enemy types, using their budget costs, and spreads the groups
   across the wave's duration in **spawn pulses** and across the portals:
   - **Spawn pulse** (RD3, §15.11 #112): up to `players + 1` groups that spawn at the same moment, each
-    pulse in its own equal slice of the wave's duration.
+    pulse in its own equal slice of the wave's duration. That is the plan; with no enemy alive the
+    next pulse comes in early (§9.4, RC3).
   - **Active portal cap:** each pulse uses at most **`players + 1`** portals (capped at 6: 2 in solo, 6
     with 5 or 6 players, so a full team sees every portal). The active portals are chosen per pulse.
   - While a side is hot, every pulse includes at least one hot-side portal, and the hot side receives
@@ -1141,7 +1142,14 @@ walker mech with a glowing core in its chest (§2.1); its art is in §9.6.
   - Boss waves 5 and 10: the boss's side is the hot side for the whole wave.
 - **Portal flare:** a portal flares for about 1 s just before it spawns a group (§3.1). It shows where
   something is about to appear, never the wave's pattern.
-- **Combat length:** about 60–90 seconds per wave. A wave ends when every enemy is dead, except boss
+- **No waiting on an empty map (RC3, §15.11 #175):** when no enemy is alive and groups are still to
+  come, the next spawn pulse comes in at once: its portals flare that step and it spawns 1 s later.
+  Every later pulse moves forward by the same amount, keeping the spacing between pulses; portals,
+  groups, hot sides, budgets and the active-portal cap stay as planned (only timing moves). It
+  applies at every player count and from the wave's first step (combat opens on an empty map). A
+  pulse whose portal has already flared isn't moved. Solo combat runs about 17% shorter (autopilot,
+  5 seeds × 4 knights: a mean wave 62 → 51 s).
+- **Combat length:** about 60–90 seconds per wave (less when the team clears each pulse fast, above). A wave ends when every enemy is dead, except boss
   waves, which end when the boss dies (§9.2).
 - **Target run length:** about 20–24 minutes, including build phases (§4).
 - **Player-count table** (a lookup in the balance sheet, not a formula), counted from the players
@@ -2146,7 +2154,8 @@ export type SimCommand = (
   8. status effects, `onTick` hooks, auras (combat only)
   9. deaths: hooks, coins; destroyed builds removed; Hunter fields re-priced when a build appeared or
      went
-  10. wave spawner (portal flares `rules.flareMs` ahead)
+  10. wave spawner (portal flares `rules.flareMs` ahead; with no enemy alive the next pulse is pulled
+      forward to flare now, §9.4)
   11. phase checks: wave cleared, boss dead, base destroyed, build timer (on the deadline: random card
       picks, then combat)
 - **Determinism rules:** timers are whole steps; all randomness comes from seeded streams; no wall clock
@@ -3298,3 +3307,5 @@ states, then RD0's own.
 | 171 | 2026-11-25 | Colossus stagger pace (RD10-fix-3) | The stagger meter fills 15% slower from both sources: `staggerPerHp` 3 → 2.55, `staggerStun` 0.25 → 0.2125; a stream of equal hits needs about 18% more damage (67 → 79 hits of 0.5% HP); `staggerMs` stays 3 s (§9.2) | User, RC3: "fill a little slower, or stagger shouldn't last as long"; the orchestrator chose the slower fill |
 | 172 | 2026-11-25 | Smarter enemies (v2 note) | §13 gets a v2 row: smarter enemy AI (flanking, focus-firing low-HP knights, avoiding hazards); no v1 behavior changes | User, RC3: "I would like to make the enemies a bit smarter" |
 | 173 | 2026-11-25 | Debug panel card tools (RD6-fix-2) | The debug panel lists the knights in play (slot, color, knight, cards with counts) and gives any run knight one stack of any card it could hold (shared commons + its own), in the build phase or combat, through the pick's apply path (no offer, no `picked`, no `cardPicked` event). `requires` is bypassed (labeled "(needs X)"); a second unique card or combo and another knight's card are refused (`cap` / `invalid`) with a message. A logged `card` debug command, so replays keep it; `__pcg.giveCard(slot, cardId)` for e2e and the console (§9.5, §15.3) | User, RC3: "I can't test specific cards unless the debug panel knows what types of knights are in play and lets me add a card to the knight." |
+| 174 | 2026-11-25 | Warden jump slam width (RC3) | The jump slam's arc is 85° (was 102°) at the same 4.7-tile reach: wider than the main's 68°, longer, less damage. Its aim preview, the TV effect and Fault Line read the same content. This settles #127's open "as wide as the main's" line; REDESIGN.md's knight table is the old record and stays as is (§8.2) | User, RC3: "The Warden's jump slam should now be 85 degrees" (RD3-fix-4) |
+| 175 | 2026-11-25 | No waiting on an empty map (RC3) | With no enemy alive and groups pending, the next spawn pulse is pulled forward: it flares that step and spawns 1 s (`flareMs`) later, and every later pulse moves by the same amount. Portals, groups, hot sides, budgets and the cap are untouched; deterministic (state only). Not moved: a pulse already flared, or a plan held past the wave's duration (test and bench holds). Applies at wave start too. Solo autopilot combat: mean wave 62 → 51 s (§9.3, §9.4, §15.3) | User, RC3: "long gaps between each group of enemies… If all enemies are cleared, it should immediately trigger the next wave of enemies"; the flare tell is kept (RD3-fix-4) |

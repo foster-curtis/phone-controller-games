@@ -16,11 +16,11 @@ describe('C3 knight tuning', () => {
     // (sim/__tests__/warden.test.ts).
     expect(warden.main).toMatchObject({ range: 2.89, arcDeg: 68 });
     // The stomp's reach was retuned past C3's ~15% by the playtest balance (0fbe288): pin it as is.
-    // RD3's jump slam: longer than the slam (§8.2), and it kept C3's 102° when RC2 narrowed the slam.
-    expect(warden.super).toMatchObject({ range: 4.7, arcDeg: 102 });
+    // RD3's jump slam: longer than the slam (§8.2); RC3 set it to 85° (RD3-fix-4), C3's stomp width.
+    expect(warden.super).toMatchObject({ range: 4.7, arcDeg: 85 });
     expect(warden.super.range).toBeGreaterThan(warden.main.range);
     expect(warden.super.damage).toBeLessThan(warden.main.damage);
-    expect(warden.super.arcDeg / OLD.wardenMain.arcDeg).toBeCloseTo(0.85, 2);
+    expect(warden.super.arcDeg / OLD.wardenSuper.arcDeg).toBeCloseTo(0.85, 2);
     for (const [now, old] of [[warden.main, OLD.wardenMain]] as const) {
       expect(now.range / old.range).toBeGreaterThan(1.1);
     }
