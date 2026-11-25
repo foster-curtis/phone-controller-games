@@ -1833,8 +1833,9 @@ interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: num
     its art: it lifts the #262b33 stone to #62676f, enough for the violet-iron hulls and the ink
     outlines to stand off it, and still below the bloom (§15.11 #43).
   - Status effects (§6.1): `burn-1`/`2` and `corrosion-1`/`2` loop at about 8 fps, anchored
-    bottom-center on the body at the top of its legs, at 0.45 of its height, capped at 1.1× the
-    frame (RC2: a small flame on a mite, modest on the Colossus, §15.11 #159); `stun-1`…`4` loop
+    bottom-center on the body at the top of its legs, at 0.7 of its height, capped at 4× the
+    frame (RC2: about halfway between the old full-height flame and #159's 0.45, only the Colossus
+    capped, §15.11 #159, #161); `stun-1`…`4` loop
     centered on the enemy's `top` point.
   - Frames kept on file but unused (the tower-defense structures, `review/redesign/obsolete.md`) stay
     in `sprites.json` and the atlas until RD12 deletes the "removed outright" ones.
@@ -3207,3 +3208,4 @@ states, then RD0's own.
 | 158 | 2026-11-24 | Soldiers as targets | The Commander's soldiers are aggro targets like knights (same radius, leash, nearest wins; a knight on an exact tie); Siege ranks them with the players; a soldier in the air isn't a target until it lands. The Brute's build hunt, the Hunter's quarry and the Colossus's boulder and Charge lock-ons stay knight (or build) only (§9, §8.4) | User, RC2 (RD10-fix-1); the lock-ons are each enemy's own rule in §9 and §9.2, and the slam and Charge already hit soldiers |
 | 159 | 2026-11-24 | Burn size | The burn and corrosion looks are 0.45 of the body's height, capped at 1.1× the frame, with their bottom at the top of the legs (§15.2) | User, RC2 (RD10-fix-1): the flames were the body's full height, huge on the Colossus |
 | 160 | 2026-11-24 | Commander RC2 notes (RD9-fix-2) | Soldiers walk at 3.45 tiles/s, about 80% of his 4.3 (was 3.9); the hurry past 3 tiles goes from ×1.3 to ×1.45 (about 5 tiles/s, the old regroup pace) so they still catch him. The bash rectangle is 1.5 tiles wide (was 2, −25%), reach kept at 2.25; knockback 0.864 (×0.9); Heavy Bash still widens it by 20% from the new base (§8.2, §8.4) | RC2 notes (Foster): "Commander squad members should be even slower"; "Narrow the commander bash hit by about 25%, and decrease the knockback by about 10%" |
+| 161 | 2026-11-24 | Burn size, again | The burn and corrosion looks are 0.7 of the body's height, capped at 4× the frame (only the Colossus reaches it), bottom still at the top of the legs; flame height in sprite units, old / #159 / now: Grunt 80 / 36 / 56, Flyer 50 / 22.5 / 35, Brute 125 / 44 / 87.5, Colossus 280 / 44 / 160, each within 4% of halfway; corrosion keeps the same rule (§15.2; reverses #159's numbers) | User, RC2 (RD10-fix-2): "Flames are now too small. Find a happy medium." |
