@@ -3,7 +3,16 @@
 import { expect, type Page } from '@playwright/test';
 import { serveFonts, test } from './helpers';
 
-const PAGES = ['rigs', 'citadel', 'effects', 'icons', 'map', 'colossus'] as const;
+const PAGES = [
+  'rigs',
+  'citadel',
+  'builds',
+  'portals',
+  'effects',
+  'icons',
+  'map',
+  'colossus',
+] as const;
 
 test.use({ viewport: { width: 1920, height: 1080 } });
 
@@ -45,6 +54,19 @@ test('gallery rigs unlit, Colossus final, Mk III mortar', async ({ page }) => {
   const probe = await page.evaluate(() => window.__pcgGallery!);
   expect(probe.fallbacks).toBe(0);
   await page.screenshot({ path: 'e2e/__screens__/gallery-rigs-unlit.png' });
+  expect(errors).toEqual([]);
+});
+
+// RD12: the Commander's optional `sword` group and the Warden's `slam` group, and the jump slam's
+// replay loop (`super`), draw from the atlas with no fallback shapes.
+test('gallery rigs sword and slam groups', async ({ page }) => {
+  const errors = watchErrors(page);
+  await open(page, 'page=rigs&panel=0&sword=1&slam=1&clip=super');
+  await page.waitForTimeout(1200);
+  const probe = await page.evaluate(() => window.__pcgGallery!);
+  expect(probe.missing).toEqual([]);
+  expect(probe.fallbacks).toBe(0);
+  await page.screenshot({ path: 'e2e/__screens__/gallery-rigs-sword-slam.png' });
   expect(errors).toEqual([]);
 });
 

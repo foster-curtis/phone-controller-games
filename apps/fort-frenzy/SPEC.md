@@ -302,8 +302,8 @@ hits; feet circles still walk, collide and take enemy attacks.
   charges). Where space is tight (TV announcements, wishlist rows, inline text) the glyph is used
   without the tile. Knight badges are the knights' helms, so a knight looks the same everywhere.
 - **Icon files:** `art/neon-knights/icons/<id>.svg` with `.glyph` and `.glow` groups, plus
-  `badge-tile.svg` and `badge-tile-active.svg`. Every file on disk is in exactly one of the three lists
-  below (73 icon ids plus the two tiles); the manifest test checks the disk against them (§15.9).
+  `badge-tile.svg` and `badge-tile-active.svg`. Every file on disk is in exactly one of the two lists
+  below (66 icon ids plus the two tiles); the manifest test checks the disk against them (§15.9).
 - **In use (51):**
   - knights: `class-warden`, `class-ranger`, `class-commander`, `class-artificer`
   - classes: `role-tank`, `role-marksman`, `role-support`, `role-control`
@@ -323,9 +323,9 @@ hits; feet circles still walk, collide and take enemy attacks.
 - **On file, unused (15; the build idea pool and dropped shop items, kept in the atlas):** `turret`,
   `mortar`, `wall`, `net`, `fortify`, `turret-rate`, `mortar-radius`, `tower-hp`, `wall-hp`,
   `charged-walls`, `net-charges`, `act-place`, `emergency-kit`, `squad`, `card-supply`.
-- **Removed outright (7; deleted in RD12 with the rest of `review/redesign/obsolete.md`'s "Removed
-  outright" list):** `cell`, `act-pickup`, `act-deliver`, `act-buy`, `act-throw`, `act-give`,
-  `act-drop`.
+- **Removed (RD12):** the seven crate icons (`cell`, `act-pickup`, `act-deliver`, `act-buy`, `act-throw`,
+  `act-give`, `act-drop`) are deleted from the art folder and the atlas, with the Armory, repair-zone
+  pad, power-cell and carry-pip art.
 - **TV HUD layout (combat):** a thin top band split three ways: wave and phase top-left, base HP bar
   centered directly above the Citadel, team coins top-right. The boss bar runs along the bottom edge.
   Purchase announcements stack bottom-left (glyph + text, a bar in the buyer's color). During the build
@@ -3046,8 +3046,8 @@ export interface RunSnapshot {
   layout and conventions. `review/` holds assembled references, sheets and UI mockups, which no build
   reads. `.prettierignore` skips `apps/*/art/`. The redesign art came on `art/redesign`, which is already in `main` (PR #34), so the
   art on disk is the redesign set.
-  RD12 deletes exactly `review/redesign/obsolete.md`'s "Removed outright" files and their `sprites.json`
-  entries; "kept on file" art stays on disk and in the atlas, unused (§2.6, §15.11 #66).
+  RD12 deleted exactly `review/redesign/obsolete.md`'s "Removed outright" files (15) and their
+  `sprites.json` entries; "kept on file" art stays on disk and in the atlas, unused (§2.6, §15.11 #66).
 - **Atlas pipeline:** `scripts/build-atlases.ts` (`pnpm assets`) runs before every build, test and
   typecheck and in dev (watch mode). It rasterizes each SVG part with `@resvg/resvg-js` at 1× and 2×,
   **strips the review-only glow filters** (`#glow`, `#glowU`, `#glowS`), packs Phaser JSON atlases
@@ -3239,3 +3239,4 @@ states, then RD0's own.
 | 160 | 2026-11-24 | Commander RC2 notes (RD9-fix-2) | Soldiers walk at 3.45 tiles/s, about 80% of his 4.3 (was 3.9); the hurry past 3 tiles goes from ×1.3 to ×1.45 (about 5 tiles/s, the old regroup pace) so they still catch him. The bash rectangle is 1.5 tiles wide (was 2, −25%), reach kept at 2.25; knockback 0.864 (×0.9); Heavy Bash still widens it by 20% from the new base (§8.2, §8.4) | RC2 notes (Foster): "Commander squad members should be even slower"; "Narrow the commander bash hit by about 25%, and decrease the knockback by about 10%" |
 | 161 | 2026-11-24 | Burn size, again | The burn and corrosion looks are 0.7 of the body's height, capped at 4× the frame (only the Colossus reaches it), bottom still at the top of the legs; flame height in sprite units, old / #159 / now: Grunt 80 / 36 / 56, Flyer 50 / 22.5 / 35, Brute 125 / 44 / 87.5, Colossus 280 / 44 / 160, each within 4% of halfway; corrosion keeps the same rule (§15.2; reverses #159's numbers) | User, RC2 (RD10-fix-2): "Flames are now too small. Find a happy medium." |
 | 162 | 2026-11-24 | Pause menu: Leave game and End game (RD6-fix-1) | The paused card gets **Leave game** (every run player) and **End game** (the leader only), each behind a confirm step with Cancel (§10.5). Leave (`leave` intent) drops the player from the party at once (no reconnect into the slot, leadership passes, the phone is kicked back to the join screen); the knight stays on the map dazed for the rest of the run, its builds and squad as a dropped phone's, and late joiners never take its slot; the last player out ends the run (§11.3). End game (`leader` `endGame`) goes straight to the lobby, knights kept, snapshot cleared (§15.6). Revises §11.1 "nobody can leave" and §10.5 "no pause menus (quit)" | User, RC2. Keeping the knight is the simplest rule that matches §11.3's held slot: removing a knight mid-run would touch builds, squads, targeting, stats, the snapshot and the TV for little gain. End game goes to the lobby, not the summary: the summary is a win or a loss (`RunSummary.result`), and a forced end is neither |
+| 163 | 2026-11-24 | Art pass (RD12) | The 15 "Removed outright" art files are deleted (Armory kiosk and pad, repair-zone pad, power cell, `carry-pip`, `carry-pip-empty`, their two review sheets, seven crate icons) with six `sprites.json` frames; icons are 66 (§2.6). The gallery gains `builds` and `portals` pages and `slam` and `sword` rig toggles, and the jump slam's gallery loop is 1750 ms (clip + 400 ms) | Plan RD12 |

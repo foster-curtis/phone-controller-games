@@ -1,7 +1,16 @@
 // Gallery state, read from and written to the URL so every view is linkable and e2e can open pages.
 import { PLAYER_COLOR_IDS, type PlayerColorId } from '../../../shared/ids';
 
-export const PAGES = ['rigs', 'citadel', 'effects', 'icons', 'map', 'colossus'] as const;
+export const PAGES = [
+  'rigs',
+  'citadel',
+  'builds',
+  'portals',
+  'effects',
+  'icons',
+  'map',
+  'colossus',
+] as const;
 export type PageId = (typeof PAGES)[number];
 
 /**
@@ -34,6 +43,10 @@ export interface GalleryState {
   hitbox: boolean;
   bloom: boolean;
   banner: boolean;
+  /** Commander: the optional `sword` group (the drawn sword, off by default). */
+  sword: boolean;
+  /** Warden: the `slam` group (the hammer standing on its short end) on beside the hammer. */
+  slam: boolean;
   /** Artificer gauge steps, 0–8. */
   gauge: number;
   /** Colossus: 1 Mk I, 2 Mk II, 3 Mk III, 4 final phase. */
@@ -59,6 +72,8 @@ export function readState(search = location.search): GalleryState {
     hitbox: q.get('hitbox') === '1',
     bloom: q.get('bloom') !== '0',
     banner: q.get('banner') !== '0',
+    sword: q.get('sword') === '1',
+    slam: q.get('slam') === '1',
     gauge: clampInt(q.get('gauge'), 0, 8, 3),
     colossus: clampInt(q.get('colossus'), 1, 4, 1) as GalleryState['colossus'],
   };
@@ -73,6 +88,8 @@ export function writeState(s: GalleryState) {
   q.set('hitbox', s.hitbox ? '1' : '0');
   q.set('bloom', s.bloom ? '1' : '0');
   q.set('banner', s.banner ? '1' : '0');
+  q.set('sword', s.sword ? '1' : '0');
+  q.set('slam', s.slam ? '1' : '0');
   q.set('gauge', String(s.gauge));
   q.set('colossus', String(s.colossus));
   history.replaceState(null, '', `${location.pathname}?${q.toString()}`);

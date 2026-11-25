@@ -844,7 +844,7 @@ Rules:
 - RD11 Economy
   - [ ] Commons + card rules + marks; Warden cards; class growth; shop + pricing + coins; merged
 - RD12 Art pass
-  - [ ] Gallery pages; retired art deleted; asset checks; merged; gallery e2e green
+  - [x] Gallery pages; retired art deleted; asset checks (merge and gallery e2e: orchestrator)
 - RD13 Polish
   - [ ] SFX + cues + LICENSES; summary awards; lobby copy; merged
 - [ ] **User approved RC3** (gallery on the TV, solo play)
@@ -1136,6 +1136,9 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD6-fix-1] decision: both work in the countdown, build and combat phases (the pause button's phases), else `phase`; End game from a non-leader acks `notLeader` and changes nothing; the last slotted player to leave ends the run (lobby), so an empty run never sits paused.
 - [RD6-fix-1] decision: the confirm step lives on the paused card (title, one line, Cancel + a `--danger` action); after a confirm both buttons lock for 1.5 s (as the card Confirm, RD4) so a double tap sends one intent, and the menu returns if the host refuses. The kicked phone shows the room-code join screen with a "You left the game" toast (the app tracks the leave's seq; a refused leave clears it).
 - [RD6-fix-1] decision: `copy.ts` had no "Lobby and summary" banner yet; RD6-fix-1 adds it at the end of the file with the pause menu copy (`PAUSE_MENU`). The confirm buttons use `data-pause-confirm` / `data-pause-cancel` (the card pop-up already owns `data-confirm`).
+- [RD12] decision: new gallery pages `builds` (each real build view in all five states, the mine's trigger frame, the flag's flight parts, the beacon's pulse) and `portals` (idle and flare per side with the `portal-flare` sparks); the map page flares its six portals in turn; the effects page drops every `MARK_FRAMES` mark on a loop. No turret, autotile or other kept-on-file page existed in the gallery, so none was removed.
+- [RD12] decision: `sword` (Commander) and `slam` (Warden) are gallery checkboxes and URL params (`sword=1`, `slam=1`), off by default; `ONE_SHOTS.super` is 1750 ms.
+- [RD12] decision: 15 files deleted (8 art and review files, 7 icons) and 6 `sprites.json` frames; the art README's stale mentions stay (input, read-only).
 
 ## 9. Final handoff
 

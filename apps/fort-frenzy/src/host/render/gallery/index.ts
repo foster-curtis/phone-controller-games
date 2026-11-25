@@ -214,6 +214,16 @@ function panel(game: Phaser.Game) {
     () => s.banner,
     (v) => (s.banner = v),
   );
+  check(
+    'sword',
+    () => s.sword,
+    (v) => (s.sword = v),
+  );
+  check(
+    'slam',
+    () => s.slam,
+    (v) => (s.slam = v),
+  );
   select(
     'gauge',
     [0, 1, 2, 3, 4, 5, 6, 7, 8],

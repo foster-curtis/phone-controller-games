@@ -1,12 +1,12 @@
-// Gallery pages (BUILD_PLAN FF3): every rig × view × pose × clip, the Citadel at each stage with
-// sentries, effects and statuses, every icon
-// as a world-UI badge, and the map with its six portals.
+// Gallery pages (BUILD_PLAN FF3; RD12): every rig × view × pose × clip, the Citadel at each stage with
+// sentries, the builds in every state and the portals (buildsPage.ts), effects and statuses, every
+// icon as a world-UI badge, and the map with its six portals flaring in turn.
 import { manifest } from '../../../../generated/manifest';
 import { theme } from '../../../shared/theme';
 import { ART_SET, type ArtSetAssets, type ViewId } from '../../../presentation/types';
 import { placeFrame } from '../context';
-import { fk, iconFrame, scrapFrame, sentryFrame } from '../keys';
-import { MapView } from '../map';
+import { fk, iconFrame, MARK_FRAMES, scrapFrame, sentryFrame } from '../keys';
+import { MapView, PORTALS } from '../map';
 import type { RigSprite } from '../rig';
 import { drawBowString } from '../bowString';
 import { CITADEL_COLLAPSE_MS } from '../citadelFx';
@@ -18,17 +18,19 @@ import { PROJECTILE_SPEEDS } from '../effectsMath';
 import { clipLandedMs, spawnPile } from '../fall';
 import { locomotionSpeed, StatusSprites } from '../status';
 import { mitePack, mitePose } from '../swarm';
-import { Citadel, frameAt } from '../structures';
+import { Citadel } from '../structures';
 import {
   SENTRY_AIMS,
   SENTRY_LOADOUTS,
   type BurstKind,
   type IconKey,
+  type MarkKind,
   type ProjectileKind,
   type StatusLook,
 } from '../types';
 import type { RenderWorld } from '../world';
 import { RIG_INFO, type RigInfo } from './rigInfo';
+import { buildsPage, portalsPage } from './buildsPage';
 import { colossusPage } from './colossusPage';
 import { colossusGroups, gaugeGroups, type GalleryState, type PageId } from './state';
 
@@ -61,7 +63,8 @@ const ONE_SHOTS: Partial<Record<string, number>> = {
   hit: 1600,
   respawn: 2000,
   attack: 1200,
-  super: 1600,
+  // The Warden's jump slam is 1.35 s long; the loop holds 400 ms after it (RD3-fix-2).
+  super: 1750,
   build: 1600,
   slam: 2600,
   throw: 1900,
@@ -89,6 +92,8 @@ function addRig(
   const s = k.state;
   const groups: string[] = [];
   if (rigId === 'commander' && s.banner) groups.push('banner');
+  if (rigId === 'commander' && s.sword) groups.push('sword');
+  if (rigId === 'warden' && s.slam) groups.push('slam');
   if (rigId === 'artificer') groups.push(...gaugeGroups(s.gauge));
   if (rigId === 'colossus') groups.push(...colossusGroups(s.colossus));
   const rig = k.world.rig(rigId, {
@@ -421,9 +426,15 @@ function effectsPage(k: PageKit) {
       k.label(`scrap-${side}-${s}`, p.sx, p.sy + 20);
     }
   });
-  // Pieces that aren't rigs.
-  frameAt(w, fk('power-cell'), 'world', 2.5, 14);
-  k.label('power cell', at(2.5, 14).sx, at(2.5, 14).sy + 22);
+  // The redesign's marks (slam cracks, landing dust, portal sparks, Ranger super and mine, Brute and
+  // Charge tells), dropped on a loop; the builds' own effects are on the builds page.
+  (Object.keys(MARK_FRAMES) as MarkKind[]).forEach((kind, i) => {
+    const p = at(2 + i * 1.9, 14);
+    k.label(kind, p.sx, p.sy + 36, 10);
+    k.tick((dt, t) => {
+      if (Math.floor(t / 1500) !== Math.floor((t - dt) / 1500)) w.fx.mark?.(kind, p.sx, p.sy, 1300);
+    });
+  });
   // Rally flag: ring (ground), pole, cloth (player color), trim.
   const fp = at(21, 14);
   placeFrame(w, fk('rally-flag/ring'), 'groundOverlay', fp.sx, fp.sy);
@@ -525,10 +536,18 @@ function iconsPage(k: PageKit) {
 
 function mapPage(k: PageKit) {
   const w = k.world;
-  new MapView(w, w.theme.map);
+  const map = new MapView(w, w.theme.map);
   const c = new Citadel(w, 18, 2);
   c.setLoadout(false, false, true);
   k.tick((dt) => c.update(dt));
+  // The six portals flare in turn (SPEC §3.1), on the map where the lanes used to be.
+  const lap = 1800;
+  k.tick((dt, t) => {
+    if (Math.floor(t / lap) === Math.floor((t - dt) / lap)) return;
+    const n = PORTALS.length;
+    map.idle(PORTALS[(Math.floor(t / lap) + n - 1) % n]!.id);
+    map.flare(PORTALS[Math.floor(t / lap) % n]!.id, lap - 200);
+  });
   const a = w.camera.worldToScreen(18, 6);
   addRig(k, 'warden', a.sx - 60, a.sy, 'front');
   addRig(k, 'ranger', a.sx + 60, a.sy, 'side');
@@ -539,6 +558,8 @@ function mapPage(k: PageKit) {
 export const PAGE_BUILDERS: Record<PageId, (k: PageKit) => void> = {
   rigs: rigsPage,
   citadel: citadelPage,
+  builds: buildsPage,
+  portals: portalsPage,
   effects: effectsPage,
   icons: iconsPage,
   map: mapPage,

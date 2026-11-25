@@ -18,22 +18,15 @@ const SPEC_ICON_IDS = [
   // main attacks and supers
   ...['warden', 'ranger', 'commander', 'artificer'].flatMap((c) => [`main-${c}`, `super-${c}`]),
   // structures
-  'cell',
   'turret',
   'mortar',
   'wall',
   'net',
   'fortify',
   // action button
-  'act-pickup',
-  'act-deliver',
-  'act-buy',
   'act-place',
-  'act-throw',
   'act-flag',
   'act-recall',
-  'act-give',
-  'act-drop',
   // upgrade-card marks
   'card-vitality',
   'card-might',
