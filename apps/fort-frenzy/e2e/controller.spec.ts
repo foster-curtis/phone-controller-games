@@ -207,6 +207,18 @@ for (const vp of VIEWPORTS) {
       });
     });
 
+    test('a short swipe starting on the right of the card moves class select', async ({ page }) => {
+      await open(page, 'classSelect');
+      const card = (await page.locator('.class-card').first().boundingBox())!;
+      const y = card.y + card.height / 2;
+      const x0 = vp.width * 0.9;
+      await page.mouse.move(x0, y);
+      await page.mouse.down();
+      await page.mouse.move(x0 - vp.width * 0.18, y, { steps: 6 });
+      await page.mouse.up();
+      await expect(page.locator('.pick')).toHaveText('PICK WARDEN');
+    });
+
     test('knight cards show role, main, super, build and passive, inside the card', async ({
       page,
     }) => {

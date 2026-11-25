@@ -1241,3 +1241,5 @@ apps/fort-frenzy/REDESIGN_BUILD_PLAN.md (never source code) and follow it exactl
 
 {Optional: "Checkpoint approved: RC0" / "RC1 notes: …"}
 ```
+
+- [RD4-fix-3] decision: root cause was the swipe bound only to the card row (`.class-track`), so touches on the title, dots and Pick row did nothing, and `setPointerCapture` on pointerdown, with child scrollers (`.class-body`) free to re-allow horizontal browser pans, made swipes flaky. Fix: swipe binds the whole `.class-select`; `touch-action: pan-y` on it and its children; capture only after an 8 px horizontal-dominant drag (taps on buttons keep their click); a mostly vertical drag never changes the knight; threshold unchanged (min of 36 px or 12% of width, or a 12 px fast flick), no SPEC change needed.

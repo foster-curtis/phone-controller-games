@@ -26,8 +26,8 @@ function mount(sample: string) {
   return { view, intents, root: view.el };
 }
 
-const ptr = (el: HTMLElement, type: string, x: number, id = 1) => {
-  const e = new MouseEvent(type, { clientX: x, clientY: 10, bubbles: true });
+const ptr = (el: HTMLElement, type: string, x: number, id = 1, y = 10) => {
+  const e = new MouseEvent(type, { clientX: x, clientY: y, bubbles: true });
   Object.defineProperty(e, 'pointerId', { value: id });
   el.dispatchEvent(e);
 };
@@ -57,6 +57,61 @@ describe('class select swipe (note 2)', () => {
     ptr(track, 'pointerup', -2000);
     expect(dots.findIndex((d) => d.classList.contains('on'))).toBe(1);
     expect(root.querySelector('.pick')!.textContent).toBe('PICK WARDEN');
+  });
+});
+
+// RD4-fix-3: the whole select screen takes a short swipe, wherever it starts, and taps still work.
+describe.each([
+  [844, 390],
+  [390, 844],
+])('class select swipe anywhere (%ix%i)', (w, h) => {
+  const setup = () => {
+    Object.defineProperty(window, 'innerWidth', { value: w, configurable: true });
+    Object.defineProperty(window, 'innerHeight', { value: h, configurable: true });
+    const m = mount('classSelect');
+    const select = m.root.querySelector<HTMLElement>('.class-select')!;
+    Object.defineProperty(select, 'clientWidth', { value: w, configurable: true });
+    const on = () =>
+      [...m.root.querySelectorAll('.dot')].findIndex((d) => d.classList.contains('on'));
+    return { ...m, select, on };
+  };
+  const len = Math.round(w * 0.15);
+  const targets: [string, (r: HTMLElement) => HTMLElement, number][] = [
+    ['left', (r) => r.querySelector<HTMLElement>('.class-select')!, Math.round(w * 0.1)],
+    ['centre', (r) => r.querySelector<HTMLElement>('.class-select')!, Math.round(w * 0.5)],
+    ['right', (r) => r.querySelector<HTMLElement>('.class-select')!, Math.round(w * 0.9)],
+    ['on the card', (r) => r.querySelector<HTMLElement>('.class-card')!, Math.round(w * 0.8)],
+    ['on the title', (r) => r.querySelector<HTMLElement>('.select-title')!, Math.round(w * 0.8)],
+  ];
+  it.each(targets)('a short swipe starting %s moves the knight', (_n, pick, x0) => {
+    const { root, on } = setup();
+    const t = pick(root);
+    ptr(t, 'pointerdown', x0);
+    ptr(t, 'pointermove', x0 - Math.round(len / 2));
+    ptr(t, 'pointermove', x0 - len);
+    ptr(t, 'pointerup', x0 - len);
+    expect(on()).toBe(1);
+    ptr(t, 'pointerdown', 100);
+    ptr(t, 'pointermove', 100 + len);
+    ptr(t, 'pointerup', 100 + len);
+    expect(on()).toBe(0);
+  });
+  it('a vertical drag does not change the knight', () => {
+    const { select, on } = setup();
+    ptr(select, 'pointerdown', 200, 1, 50);
+    ptr(select, 'pointermove', 210, 1, 200);
+    ptr(select, 'pointerup', 215, 1, 300);
+    expect(on()).toBe(0);
+  });
+  it('a tap on the pick button still activates it', () => {
+    const { root, select, intents } = setup();
+    const pickBtn = root.querySelector<HTMLButtonElement>('.pick')!;
+    ptr(pickBtn, 'pointerdown', 200);
+    ptr(pickBtn, 'pointerup', 200);
+    pickBtn.click();
+    expect(select).toBeTruthy();
+    expect(intents).toHaveLength(1);
+    expect(intents[0]).toMatchObject({ k: 'class' });
   });
 });
 

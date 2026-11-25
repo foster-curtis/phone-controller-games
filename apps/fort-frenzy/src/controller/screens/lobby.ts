@@ -39,7 +39,7 @@ export function createLobby(ctx: ScreenCtx): View {
     pick.textContent = `PICK ${CLASS_INFO[CLASS_IDS[index]!].name.toUpperCase()}`;
   };
   // One card per swipe, however long (C1 note 2).
-  const swipe = bindSwipe(track, strip, { count: () => CLASS_IDS.length, onIndex: showIndex });
+  const swipe = bindSwipe(select, strip, { count: () => CLASS_IDS.length, onIndex: showIndex });
   const setIndex = (i: number) => {
     swipe.setIndex(i, false);
     showIndex(i);
