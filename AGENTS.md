@@ -14,6 +14,7 @@ every message goes through a shared, game-agnostic WebSocket **relay**.
 | `apps/sunny-side`         | `@pcg/sunny-side`     | Sunny Side Slam (Phaser + Matter.js). Vite multi-page app on Vercel.     |
 | `apps/fort-frenzy`        | `@pcg/fort-frenzy`    | Fort Frenzy (Phaser). Vite multi-page app on Vercel.                     |
 | `apps/say-cheese`         | `@pcg/say-cheese`     | Say Cheese!, the photo-tag party game (DOM, no Phaser). Vite on Vercel.  |
+| `apps/thieves-forum`      | `@pcg/thieves-forum`  | Thieves' Forum, the social-stealth market game (Phaser). Vite on Vercel. |
 | `apps/gallery`            | `@pcg/gallery`        | Game Gallery (games.fostercurtis.dev): one static page from the catalog. |
 | `packages/net-client`     | `@pcg/net-client`     | Relay protocol types plus host and controller clients (TS).              |
 | `packages/controller-kit` | `@pcg/controller-kit` | Phone platform, app shell, widgets, gestures, input sender, dev harness. |
@@ -73,7 +74,8 @@ that cites the spec section they implement (for example `// ... (SPEC §8)`). Fo
 Run everything from the repo root with pnpm 10 and Node ≥ 22. Shell commands in the docs are POSIX sh
 (Git Bash on Windows).
 
-Root scripts are per app. `<game>` is the app folder name (`sunny-side`, `fort-frenzy`, `say-cheese`).
+Root scripts are per app. `<game>` is the app folder name (`sunny-side`, `fort-frenzy`, `say-cheese`,
+`thieves-forum`).
 The gallery has its own set, listed after the block.
 
 ```sh
@@ -128,8 +130,8 @@ Never run `pnpm changeset version`: the release workflow does it (see Versioning
 - Ports used: dev 5173/8787 (every game and the gallery share them, so run one dev server at a time),
   preview 4173 (`check:routes`, `lighthouse:gallery`), Docker relay smoke 8789. E2E ports are per app
   in its `package.json` `pcg.e2e` (Sunny Side 8788/5174, Fort Frenzy 8790/5175, Say Cheese 8791/5176,
-  gallery 5177 with relay port 8792 reserved but unused), so suites can run side by side. Keep them
-  free.
+  gallery 5177 with relay port 8792 reserved but unused, Thieves' Forum 8794/5178; 8793 is the
+  `dev:https:<game>` relay's default), so suites can run side by side. Keep them free.
 
 ## Architecture rules
 

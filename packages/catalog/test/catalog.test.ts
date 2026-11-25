@@ -32,7 +32,12 @@ describe('the real catalog', () => {
   });
 
   it('lists every game in order', () => {
-    expect(GAMES.map((g) => g.id)).toEqual(['sunny-side', 'fort-frenzy', 'say-cheese']);
+    expect(GAMES.map((g) => g.id)).toEqual([
+      'sunny-side',
+      'fort-frenzy',
+      'say-cheese',
+      'thieves-forum',
+    ]);
     expect(gameById('say-cheese')?.title).toBe('Say Cheese!');
   });
 });
