@@ -175,3 +175,36 @@ describe('Leave game (RD6-fix-1)', () => {
     expect(env.rt.session.party.member('a')).not.toBeNull();
   });
 });
+
+describe('late joins around a leave (RD6-fix-1, §11.2)', () => {
+  /** Two players reach combat; Cy's phone joins mid-wave; the debug jump opens wave 2's build. */
+  function combatJoiner(leaver?: string) {
+    const env = pausedRun(['a', 'b']);
+    if (leaver) env.intent(leaver, { k: 'leave' });
+    env.intent('a', { k: 'pause', paused: false });
+    env.run(100);
+    env.join('c', 'Cy');
+    env.run(200);
+    expect(env.lastMe('c').screen).toBe('waiting');
+    env.rt.session.command({ c: 'debug', slot: -1, action: 'jumpWave', wave: 2 });
+    env.until('build');
+    const n = env.intent('c', { k: 'ready', ready: true });
+    env.run(200);
+    expect(env.ackOf(n)).toMatchObject({ ok: true });
+    return env;
+  }
+
+  it('a phone joining in combat takes the next slot at the build phase', () => {
+    const env = combatJoiner();
+    expect(env.rt.session.party.member('c')!.slot).toBe(2);
+    expect(env.rt.world!.players.find((p) => p.slot === 2)).toMatchObject({ connected: true });
+    expect(env.lastMe('c').screen).toBe('build');
+  });
+
+  it('after the highest slot left, the late joiner goes above it and joins the sim', () => {
+    const env = combatJoiner('b');
+    expect(env.rt.session.party.member('c')!.slot).toBe(2);
+    expect(env.rt.world!.players.map((p) => p.slot)).toEqual([0, 1, 2]);
+    expect(env.rt.world!.players.find((p) => p.slot === 1)!.connected).toBe(false);
+  });
+});
