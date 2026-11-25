@@ -852,8 +852,8 @@ Rules:
   - [x] Snapshot with builds, meters, squad; late join; resume e2e
   - [x] Soak (solo, pairs, six) + bench + stress; merged
 - [x] **User approved RC4** (full run + resume)
-- [ ] Final checks green on `redesign/fort-frenzy`
-- [ ] Final handoff printed
+- [x] Final checks green on `redesign/fort-frenzy`
+- [x] Final handoff printed
 
 ## 7. Blockers
 
