@@ -13,6 +13,7 @@ A series of same-room party games. A shared screen (TV/laptop browser) runs the 
 | Sunny Side Slam | `apps/sunny-side` | Shipped (v1) |
 | Fort Frenzy | `apps/fort-frenzy` | Shipped (v1) |
 | Say Cheese! | `apps/say-cheese` | Shipped (v1) |
+| Thieves' Forum | `apps/thieves-forum` | In development |
 
 The **Game Gallery** (`apps/gallery`, [games.fostercurtis.dev](https://games.fostercurtis.dev)) is the public home page: one static page with a card per listed game, built from the game catalog (decision #10; design in `apps/gallery/SPEC.md`).
 

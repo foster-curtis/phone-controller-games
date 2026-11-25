@@ -1,0 +1,214 @@
+/* Phone controller (SPEC §3, §6.17): landscape, full-bleed ink, travertine text, amber primary
+   action with the stamped coin edge. Colors, fonts and sizes come from brand.css only. */
+html,
+body,
+#app {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.screen-host {
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.screen {
+  box-sizing: border-box;
+  width: min(100%, 520px);
+  padding: var(--space-6);
+  display: grid;
+  gap: var(--space-3);
+  text-align: center;
+  color: var(--travertine);
+}
+
+.screen .banner {
+  margin: 0;
+  font-size: clamp(28px, 8vh, 56px);
+}
+
+.join input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-strong);
+  color: var(--foreground);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.join input.code {
+  text-transform: uppercase;
+}
+
+.join-error {
+  margin: 0;
+  min-height: 20px;
+  color: var(--danger);
+}
+
+.primary {
+  padding: var(--space-4) var(--space-6);
+  background: var(--gold);
+  color: var(--gold-on);
+  border: 0;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.primary:disabled {
+  opacity: 0.7;
+}
+
+.connected .name-phone {
+  margin: 0;
+  color: var(--accent-text);
+}
+
+.connected .body {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* Overlays (controller-kit hooks) */
+.overlay-host {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--scrim);
+  pointer-events: auto;
+  padding: var(--space-4);
+}
+.overlay-card {
+  background: var(--surface-strong);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-6);
+  text-align: center;
+  max-width: 320px;
+}
+.overlay-card h1 {
+  margin: 0 0 var(--space-2);
+  font: 900 24px/1.1 var(--font-display);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.overlay-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* Controller-kit compat hooks (full-screen button and sheet, keep-awake hint, toasts, diagnostics).
+   The kit sets layout only; the look is ours, from brand tokens. */
+.pcg-fullscreen-corner {
+  border: 2px solid var(--border-control);
+  border-radius: var(--radius-pill);
+  background: var(--scrim);
+  color: var(--foreground);
+  cursor: pointer;
+}
+.pcg-fullscreen-corner:focus-visible,
+.pcg-fullscreen-btn:focus-visible {
+  outline: 2px solid var(--select);
+  outline-offset: 2px;
+}
+.pcg-fullscreen-btn:not(.pcg-fullscreen-corner) {
+  align-self: center;
+}
+.pcg-sheet {
+  background: var(--scrim);
+}
+.pcg-sheet-card {
+  background: var(--surface-strong);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--foreground);
+  font: 400 16px/1.4 var(--font-sans);
+}
+.pcg-sheet-card h2 {
+  margin: 0 0 var(--space-2);
+  font: 900 24px/1.1 var(--font-display);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.pcg-sheet-card p {
+  margin: 0 0 var(--space-4);
+  color: var(--muted);
+}
+.pcg-sheet-card button,
+.pcg-hint-dismiss,
+.pcg-diag-panel button {
+  padding: var(--space-2) var(--space-4);
+  border: 2px solid var(--border-control);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--foreground);
+  font: 600 16px/1.2 var(--font-sans);
+}
+.pcg-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+  color: var(--foreground);
+  font: 400 14px/1.3 var(--font-sans);
+}
+.pcg-hint-title {
+  font-weight: 600;
+}
+.pcg-hint-body {
+  color: var(--muted);
+}
+.pcg-toast {
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-strong);
+  color: var(--foreground);
+  font: 600 14px/1.3 var(--font-sans);
+}
+.pcg-diag-pill {
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+.pcg-diag-panel {
+  background: var(--surface-strong);
+  color: var(--foreground);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  font: 12px/1.4 var(--font-mono);
+}
+.pcg-diag-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.pcg-diag-copy {
+  background: var(--surface);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  font: 12px/1.4 var(--font-mono);
+}

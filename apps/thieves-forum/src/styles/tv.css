@@ -1,0 +1,109 @@
+/* TV layout (SPEC §6.16): the Phaser canvas fills the window (Scale.FIT), the lobby sits over it as
+   DOM. Colors, fonts and sizes come from brand.css only. */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.tv-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+.lobby {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  box-sizing: border-box;
+  padding: var(--space-12);
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: var(--space-8);
+  align-items: center;
+  color: var(--travertine);
+}
+
+.lobby-brand {
+  text-align: center;
+}
+
+.lobby-mark {
+  width: min(22vh, 240px);
+  height: auto;
+}
+
+.lobby .title {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: clamp(40px, 6vw, 96px);
+  color: var(--travertine);
+}
+
+.lobby-tagline {
+  margin: 0;
+  color: var(--muted);
+}
+
+.lobby-join,
+.lobby-players {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.lobby-join .label {
+  margin: 0 0 var(--space-3);
+  color: var(--muted);
+}
+
+.lobby-qr .qr {
+  width: min(30vh, 280px);
+  height: auto;
+  border-radius: var(--radius);
+}
+
+.lobby-code {
+  margin-top: var(--space-4);
+  color: var(--accent-text);
+  font-size: clamp(32px, 4vw, 64px);
+}
+
+.lobby-players .h2 {
+  margin: 0 0 var(--space-4);
+  color: var(--travertine);
+}
+
+.lobby-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.lobby-list li {
+  background: var(--surface-strong);
+  border-radius: var(--radius-card);
+  padding: var(--space-3) var(--space-4);
+}
+
+.lobby-empty {
+  color: var(--muted);
+}
+
+.pcg-fullscreen-btn {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: 2;
+  background: transparent;
+  color: var(--travertine);
+  border: 1.5px solid var(--bronze);
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-4);
+  font: inherit;
+  cursor: pointer;
+}
