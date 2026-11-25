@@ -26,6 +26,16 @@ export const PICKS: Record<SfxId, string> = {
   wave_start: 'impact-sounds/impactBell_heavy_000',
   victory: 'interface-sounds/confirmation_004',
   defeat: 'sci-fi-sounds/doorClose_000',
+  // RD13
+  mine_trigger: 'interface-sounds/tick_001',
+  mine_blast: 'sci-fi-sounds/explosionCrunch_001',
+  shield_hit: 'sci-fi-sounds/forceField_001',
+  beacon_tick: 'interface-sounds/pluck_001',
+  portal_flare: 'sci-fi-sounds/spaceEngineSmall_000',
+  brute_lock: 'interface-sounds/glitch_001',
+  charge_windup: 'sci-fi-sounds/engineCircular_000',
+  slam_land: 'impact-sounds/impactPlate_heavy_000',
+  rally_double: 'interface-sounds/confirmation_003',
 };
 
 const outDir = join(root, 'audio', 'neon-knights');

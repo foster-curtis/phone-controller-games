@@ -1526,8 +1526,9 @@ from Sunny Side Slam. Everything else in this section is Fort Frenzy game logic 
 - **1–6 players,** solo included.
 - All 7 enemy types plus 1 boss that returns at waves 5, 10 and 15 (Mk I–III).
 - The developer debug panel (§9.5) and the balance harness (§15.9).
-- Audio: a small set of sound effects (for example the base alarm, hits, boss wind-ups, builds and
-  purchases). No music.
+- Audio: a small set of sound effects (for example the base alarm, hits, boss wind-ups, builds,
+  mines, the shield, beacon pulses, portal flares, the Brute's lock-on, the Charge wind-up, the jump
+  slam and Rally Cry, and purchases). No music.
 - Everything in §13 is out of scope for v1.
 
 ## 13. Later (v2+)
@@ -2206,7 +2207,11 @@ interface BossBehavior {
   `windupCancelled { source; slot }`: a knight's wound-up attack was cut short (down, dazed, phase
   end), so the TV calls off its impact and leaves the clip. RD9 appends
   `warcry { slot; targets; durationMs }`: the knights Warcry reached, which the TV flashes (the Morale
-  card has no visual, so the `morale` effect alone can't drive it). The thrown-build aim preview is
+  card has no visual, so the `morale` effect alone can't drive it). RD13 appends
+  `beaconPulse { build }` (a pulse healed someone), `chargeWindup { source; marker }` (the Colossus's
+  Charge began; replaces the generic `marker` cue for that marker) and `windupLanded { source; slot }`
+  (a wound-up attack landed; the jump slam is `super`), and adds the optional `kind` to `buildHit` (the
+  shield generator's hit cue). The thrown-build aim preview is
   `buildPreview(p, content, aim = p.buildAim)` in `sim/preview.ts`: `{ kind, from, landing, radius,
   range }` (tiles), null when not aiming or for at-feet builds. `soldierPreview(p, content, aim =
   p.superAim)` is the same for Reinforcements (radius: the soldier's body), and `superHeld(world, p,
@@ -2288,7 +2293,10 @@ export type ActIconId = (typeof ACT_ICON_IDS)[number];
 /** Sound cues (§12); RD13 may append. */
 export const SFX_IDS = ['base_alarm', 'base_hit', 'player_hit', 'enemy_hit', 'enemy_death',
   'build_placed', 'build_destroyed', 'boss_windup', 'purchase', 'card_pick', 'wave_start', 'victory',
-  'defeat'] as const;
+  'defeat',
+  // RD13: 'mine_trigger', 'mine_blast', 'shield_hit', 'beacon_tick', 'portal_flare', 'brute_lock',
+  // 'charge_windup', 'slam_land', 'rally_double'
+] as const;
 // Removed: STRUCTURE_IDS, LANE_IDS, THEME_IDS (and their types).
 ```
 
@@ -3240,3 +3248,4 @@ states, then RD0's own.
 | 161 | 2026-11-24 | Burn size, again | The burn and corrosion looks are 0.7 of the body's height, capped at 4× the frame (only the Colossus reaches it), bottom still at the top of the legs; flame height in sprite units, old / #159 / now: Grunt 80 / 36 / 56, Flyer 50 / 22.5 / 35, Brute 125 / 44 / 87.5, Colossus 280 / 44 / 160, each within 4% of halfway; corrosion keeps the same rule (§15.2; reverses #159's numbers) | User, RC2 (RD10-fix-2): "Flames are now too small. Find a happy medium." |
 | 162 | 2026-11-24 | Pause menu: Leave game and End game (RD6-fix-1) | The paused card gets **Leave game** (every run player) and **End game** (the leader only), each behind a confirm step with Cancel (§10.5). Leave (`leave` intent) drops the player from the party at once (no reconnect into the slot, leadership passes, the phone is kicked back to the join screen); the knight stays on the map dazed for the rest of the run, its builds and squad as a dropped phone's, and late joiners never take its slot; the last player out ends the run (§11.3). End game (`leader` `endGame`) goes straight to the lobby, knights kept, snapshot cleared (§15.6). Revises §11.1 "nobody can leave" and §10.5 "no pause menus (quit)" | User, RC2. Keeping the knight is the simplest rule that matches §11.3's held slot: removing a knight mid-run would touch builds, squads, targeting, stats, the snapshot and the TV for little gain. End game goes to the lobby, not the summary: the summary is a win or a loss (`RunSummary.result`), and a forced end is neither |
 | 163 | 2026-11-24 | Art pass (RD12) | The 15 "Removed outright" art files are deleted (Armory kiosk and pad, repair-zone pad, power cell, `carry-pip`, `carry-pip-empty`, their two review sheets, seven crate icons) with six `sprites.json` frames; icons are 66 (§2.6). The gallery gains `builds` and `portals` pages and `slam` and `sword` rig toggles, and the jump slam's gallery loop is 1750 ms (clip + 400 ms) | Plan RD12 |
+| 164 | 2026-11-24 | Audio cues for the redesign (RD13) | Nine new cues (§12, §15.4): mine trigger and blast, shield generator hit, beacon pulse (one a second at most), portal flare, Brute lock-on, Colossus Charge wind-up (replaces the generic boss marker cue for that marker), Warden jump-slam landing, Rally Cry double (`reinforce` count 2). Every cue has a tuning cap (§15.10); three events and one optional field were added to the sim events (contract+). No crate or structure cues exist | Redesign; the simplest mapping from existing events, adding an event only where none carried the fact |

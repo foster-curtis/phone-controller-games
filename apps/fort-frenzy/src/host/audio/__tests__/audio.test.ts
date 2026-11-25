@@ -89,3 +89,68 @@ describe('cues', () => {
     expect(played).toEqual(['base_alarm', 'player_hit', 'enemy_hit', 'defeat']);
   });
 });
+
+describe('redesign cues (RD13)', () => {
+  const run = (events: Parameters<typeof playCues>[0]) => {
+    const played: string[] = [];
+    playCues(
+      events,
+      (id) => played.push(id),
+      () => 'other',
+    );
+    return played;
+  };
+
+  it('maps the build, mine, portal, Brute, Charge, slam and Rally Cry events', () => {
+    expect(
+      run([
+        { e: 'mineTrigger', build: 1 },
+        { e: 'mineBurst', build: 1 },
+        { e: 'buildHit', build: 2, kind: 'shield_gen' },
+        { e: 'buildHit', build: 3, kind: 'mine' },
+        { e: 'buildHit', build: 3 },
+        { e: 'beaconPulse', build: 4 },
+        { e: 'portalFlare', portal: 'bottom-w' },
+        { e: 'bruteTarget', enemy: 5, build: 2 },
+        { e: 'windupLanded', source: 6, slot: 'super' },
+        { e: 'windupLanded', source: 6, slot: 'main' },
+        { e: 'reinforce', slot: 0, count: 1 },
+        { e: 'reinforce', slot: 0, count: 2 },
+      ]),
+    ).toEqual([
+      'mine_trigger',
+      'mine_blast',
+      'shield_hit',
+      'beacon_tick',
+      'portal_flare',
+      'brute_lock',
+      'slam_land',
+      'rally_double',
+    ]);
+  });
+
+  it('plays the Charge wind-up instead of the generic boss marker', () => {
+    expect(
+      run([
+        { e: 'marker', id: 9, source: 1, landsAtTick: 100 },
+        { e: 'chargeWindup', source: 1, marker: 9 },
+        { e: 'marker', id: 10, source: 1, landsAtTick: 100 },
+      ]),
+    ).toEqual(['charge_windup', 'boss_windup']);
+  });
+
+  it('caps every cue fired 20 times in one step', async () => {
+    for (const id of SFX_IDS) {
+      const { audio, started } = fake();
+      const sfx = createSfx(
+        { [id]: '/x.mp3' },
+        { audio, now: () => 1000, fetchBytes: async () => new ArrayBuffer(1) },
+      );
+      await sfx.preload();
+      sfx.unlock();
+      for (let i = 0; i < 20; i++) sfx.play(id);
+      expect(started.length, id).toBe(TUNING[id].max);
+      expect(TUNING[id].max, id).toBeLessThanOrEqual(3);
+    }
+  });
+});

@@ -134,6 +134,6 @@ export function stepBuilds(s: FullState): void {
 
 /** A build that took damage: the TV's HP bar data (§7.5; state.ts `afterDamage`). */
 export function buildDamaged(s: SimState, b: BuildEnt): void {
-  s.emit({ e: 'buildHit', build: b.id });
+  s.emit({ e: 'buildHit', build: b.id, kind: b.kind });
   emitHp(s, b);
 }

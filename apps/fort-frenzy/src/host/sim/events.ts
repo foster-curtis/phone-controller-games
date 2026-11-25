@@ -57,7 +57,8 @@ export type SimEvent =
   // ---- redesign (RD2, SPEC §15.3): builds, portals, Hunter lock-on, Reinforcements, growth ----
   | { e: 'buildPlaced'; slot: number; build: EntityId; kind: BuildId }
   | { e: 'buildLanded'; build: EntityId }
-  | { e: 'buildHit'; build: EntityId }
+  /** `kind` (RD13, additive) lets the audio tell a shield generator's hit from the rest. */
+  | { e: 'buildHit'; build: EntityId; kind?: BuildId }
   | { e: 'buildGone'; build: EntityId; kind: BuildId; destroyed: boolean }
   | { e: 'mineTrigger'; build: EntityId }
   | { e: 'mineBurst'; build: EntityId }
@@ -90,6 +91,13 @@ export type SimEvent =
   | { e: 'windupCancelled'; source: EntityId; slot: 'main' | 'super' }
   // ---- RD9 ----
   /** Warcry gave these knights morale for `durationMs`: the TV flashes them (§6.1). */
-  | { e: 'warcry'; slot: number; targets: EntityId[]; durationMs: number };
+  | { e: 'warcry'; slot: number; targets: EntityId[]; durationMs: number }
+  // ---- RD13 (audio cues; additive) ----
+  /** A beacon pulse healed at least one knight (the cue is rate-limited). */
+  | { e: 'beaconPulse'; build: EntityId }
+  /** The Colossus started its Charge wind-up; `marker` is the lane marker it also announced. */
+  | { e: 'chargeWindup'; source: EntityId; marker: EntityId }
+  /** A wound-up attack landed (the Warden's jump slam is the `super`). */
+  | { e: 'windupLanded'; source: EntityId; slot: 'main' | 'super' };
 
 export type SimEventKind = SimEvent['e'];

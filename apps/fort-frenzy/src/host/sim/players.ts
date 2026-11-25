@@ -186,6 +186,7 @@ function landWindups(s: FullState, p: PlayerEnt): boolean {
     const aim = st.windupAim ?? st.aim;
     st.windupAim = null;
     fire(s, p, slot, def[slot], aim, true);
+    s.emit({ e: 'windupLanded', source: p.id, slot });
   }
   return false;
 }

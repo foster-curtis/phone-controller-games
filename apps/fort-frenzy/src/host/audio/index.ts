@@ -37,6 +37,16 @@ export const TUNING: Record<SfxId, CueTuning> = {
   wave_start: D(0.8, 1, 2000),
   victory: D(0.9, 1, 5000),
   defeat: D(0.9, 1, 5000),
+  // RD13: the beacon ticks and the mine tick are quiet and capped; the big ones are rare.
+  mine_trigger: D(0.5, 2, 200),
+  mine_blast: D(0.8, 2, 250),
+  shield_hit: D(0.5, 2, 150),
+  beacon_tick: D(0.35, 1, 800),
+  portal_flare: D(0.6, 2, 500),
+  brute_lock: D(0.6, 1, 600),
+  charge_windup: D(0.9, 1, 1500),
+  slam_land: D(0.9, 1, 500),
+  rally_double: D(0.8, 1, 1000),
 };
 
 /** The slice of the Web Audio API the player uses (a fake stands in under test). */

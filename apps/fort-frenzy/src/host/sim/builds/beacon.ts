@@ -30,5 +30,6 @@ export const beacon: BuildBehavior = {
     const heal = s.attackStat(owner, amount, 'buildPower', 'build');
     const healed = healKnights(s, owner, heal, (q) => dist(b.x, b.y, q.x, q.y) <= radius);
     chargeSuperFromHeal(s, owner, healed);
+    if (healed > 0) s.emit({ e: 'beaconPulse', build: b.id });
   },
 };

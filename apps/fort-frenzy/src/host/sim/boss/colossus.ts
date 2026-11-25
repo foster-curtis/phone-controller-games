@@ -528,6 +528,7 @@ function charge(
     },
     true,
   );
+  s.emit({ e: 'chargeWindup', source: e.id, marker });
   // Counted from the end of the run; a stagger that cuts it short keeps the cooldown.
   setReady(e, 'charge', t + windup + run + cooldown(s, e, T, T.chargeCooldownMs));
   begin(s, e, {

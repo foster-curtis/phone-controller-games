@@ -161,6 +161,16 @@ export const SFX_IDS = [
   'wave_start',
   'victory',
   'defeat',
+  // RD13
+  'mine_trigger',
+  'mine_blast',
+  'shield_hit',
+  'beacon_tick',
+  'portal_flare',
+  'brute_lock',
+  'charge_windup',
+  'slam_land',
+  'rally_double',
 ] as const;
 export type SfxId = (typeof SFX_IDS)[number];
 

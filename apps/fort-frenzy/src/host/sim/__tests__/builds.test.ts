@@ -353,7 +353,7 @@ describe('builds as targets (§7.3)', () => {
       for (const e of h.sim.world.events)
         if (e.e === 'buildHp' || e.e === 'buildHit' || e.e === 'buildGone') hits.push(e);
     }
-    expect(hits[0]).toEqual({ e: 'buildHit', build: b.id });
+    expect(hits[0]).toEqual({ e: 'buildHit', build: b.id, kind: b.kind });
     expect(hits[1]).toEqual({
       e: 'buildHp',
       build: b.id,
