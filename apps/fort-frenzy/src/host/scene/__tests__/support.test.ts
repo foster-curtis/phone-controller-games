@@ -85,13 +85,15 @@ describe('weapons, auras, circles', () => {
 });
 
 describe('clips (§2.4)', () => {
-  it('ships the support classes’ attack, super, throw, plant, stab and collapse clips', () => {
+  it('ships the support classes’ attack, super, throw, plant, slash and collapse clips', () => {
     for (const c of ['artificer/attack', 'artificer/super', 'artificer/throw'])
       expect(clips[c], c).toBeDefined();
     for (const c of ['commander/attack', 'commander/super', 'commander/plant'])
       expect(clips[c], c).toBeDefined();
     for (const c of [
       'footman/attack',
+      'footman/attack@front',
+      'footman/attack@back',
       'footman/death',
       'footman/death@front',
       'footman/death@back',

@@ -1152,6 +1152,8 @@ Format: `- [RD#] decision: one line, with the reason.` (`contract+:` for additiv
 - [RD11] decision: Wide Field +25% `buildRadius`; Reinforced Generator +40% `buildHp` and +20% `buildPower` per stack (rare, not unique, so no cap on the guard: three stacks give 0.48); Tinkerer +15% `buildCharge` for every knight; `HOLD_CONFIRM_PRICE` 10 → 20 so only tier II/III and the third sentry need the hold.
 - [RD11] decision: Earthshaker needs no code: the Colossus fills its stagger by a fixed `staggerStun` per stun whatever its length, so a longer stun adds none (tested).
 - [RD11] decision: the commons, Warden card copy and marks were already in `copy.ts` and `presentation/shared.ts` from RD2–RD4 (they match §6.1, now tested); the Commander's squad-stats shop item was already gone (RD2/RD9), so the shop is the six §6.2 items.
+- [RD9-fix-3] decision: the footman's attack is a sword slash on the rig's existing `hand` pivot (blade and guard its children, so no art change): wind-up 50 ms, through the aim at 90 ms (the old stab's forward peak; sim hit and timing untouched), follow-through 140 ms, rest at 300 ms (unchanged length), about 120° of blade turn with the torso leaning in; solved per view (`attack@<view>`) since front and back have no in-picture aim: there the cut crosses the body and the tip passes his centre line at the impact (SPEC #169).
+- [RD9-fix-3] decision: soldiers hold the slash's facing through the clip with the knights' `heldAim` (march velocity no longer turns them mid-cut); no slash trail, since the footman rig has no trail part and the Commander's code trail is sized to his own sword's reach and timing (simplest, no per-frame cost).
 
 ## 9. Final handoff
 

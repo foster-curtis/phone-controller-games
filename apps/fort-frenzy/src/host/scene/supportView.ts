@@ -3,14 +3,14 @@
 // the Commander's banner on his back while the flag isn't out (the flag itself is a build view,
 // scene/builds/rallyFlag.ts), the shield bash's sparks at the `shield` point (the slash trail only
 // while the optional `sword` group is on), Warcry's flash (amber parts and a soft aura on the knights
-// it reached) and the "×2" of a Rally Cry double spawn (commanderFx.ts); footmen (march, stab, thrown
-// in an arc, collapse into scrap); heal glints. Ring-adjacent marks stay unlike the super-ready pulse
-// (a stroked amber ring): the aura is a soft fill, the Field Medic circle dots. Reads the sim, never
-// writes.
+// it reached) and the "×2" of a Rally Cry double spawn (commanderFx.ts); footmen (march, sword slash
+// holding its facing, thrown in an arc, collapse into scrap); heal glints. Ring-adjacent marks stay
+// unlike the super-ready pulse (a stroked amber ring): the aura is a soft fill, the Field Medic circle
+// dots. Reads the sim, never writes.
 import type * as Phaser from 'phaser';
 import type { Content } from '../../content';
 import { theme } from '../../shared/theme';
-import { pickFacing, type Facing } from '../render/aim';
+import { heldAim, pickFacing, type Facing } from '../render/aim';
 import { flightProgress, throwHeight } from '../render/buildLook';
 import { TILE_W } from '../render/camera';
 import { BASH_IMPACT_MS, SLASH_CUT } from '../render/clips/commander';
@@ -37,6 +37,8 @@ export interface KnightRef {
 interface Soldier {
   rig: RigSprite;
   facing: Facing | null;
+  /** The last slash's angle: the facing holds on it while the clip plays (heldAim, RD9-fix-3). */
+  aim: number;
   sx: number;
   sy: number;
   dying: { t: number; landed: number; piled: boolean } | null;
@@ -123,6 +125,7 @@ export class SupportView {
       case 'attack': {
         const s = this.soldiers.get(e.source);
         if (s && !s.dying) {
+          s.aim = e.angle;
           s.facing = pickFacing(Math.cos(e.angle), Math.sin(e.angle), s.facing);
           s.rig.setView(s.facing.view, s.facing.mirror);
           s.rig.play('attack', { restart: true, fadeMs: 30 });
@@ -363,7 +366,7 @@ export class SupportView {
         clip: 'idle',
       });
       rig.play('idle', { offsetMs: (u.id * 131) % 900, fadeMs: 0 });
-      this.soldiers.set(u.id, { rig, facing: null, sx: 0, sy: 0, dying: null });
+      this.soldiers.set(u.id, { rig, facing: null, aim: 0, sx: 0, sy: 0, dying: null });
     }
     for (const [id, s] of this.soldiers) {
       const u = live.get(id);
@@ -406,7 +409,8 @@ export class SupportView {
       s.rig.setPosition(at.sx, at.sy);
       if (s.rig.clip === 'thrown') s.rig.play('idle', { fadeMs: 60 });
       const moving = Math.hypot(u.vx, u.vy) > 0.05;
-      if (moving || !s.facing) {
+      const held = heldAim(s.rig.clip, s.rig.clipDone, s.aim) !== null;
+      if (!held && (moving || !s.facing)) {
         const dir = moving
           ? { x: u.vx, y: u.vy }
           : { x: Math.cos(u.facing), y: Math.sin(u.facing) };
