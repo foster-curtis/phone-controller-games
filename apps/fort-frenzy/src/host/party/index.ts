@@ -106,6 +106,14 @@ export interface Party<Color extends string, Cls extends string> {
     by: string | null,
     target: string,
   ): { ok: true; removed: Readonly<Member<Color, Cls>> } | { ok: false; reason: PartyRefusal };
+  /**
+   * A player leaves for good, at any stage (the pause menu's Leave game, RD6-fix-1): the member goes,
+   * so no reconnect matches it again; leadership passes as on a disconnect. A run slot it held is
+   * never handed to a late joiner (the knight stays in the sim). Unknown player: `invalid`.
+   */
+  leave(
+    playerId: string,
+  ): { ok: true; removed: Readonly<Member<Color, Cls>> } | { ok: false; reason: PartyRefusal };
   /** Every connected player is ready, and at least `minPlayers` of them. */
   canAutoStart(): boolean;
   /** The leader may force-start once `minPlayers` connected players are ready. */
@@ -162,6 +170,8 @@ export function createParty<Color extends string, Cls extends string>(
   let stage: PartyStage = 'lobby';
   /** Restored slots still open to a claim (FF14). */
   const open = new Set<number>();
+  /** Highest run slot a player left this run (RD6-fix-1): late joins go above it, never into it. */
+  let leftSlot = -1;
 
   const find = (playerId: string) => members.find((m) => m.playerId === playerId) ?? null;
   // With every color held by restored slots, a phone that is about to claim one borrows the first
@@ -289,6 +299,18 @@ export function createParty<Color extends string, Cls extends string>(
       return { ok: true, removed: removed! };
     },
 
+    leave(playerId) {
+      const i = members.findIndex((m) => m.playerId === playerId);
+      if (i < 0) return no('invalid');
+      const [removed] = members.splice(i, 1);
+      if (removed!.slot !== null) {
+        leftSlot = Math.max(leftSlot, removed!.slot);
+        open.delete(removed!.slot);
+      }
+      updateLeader();
+      return { ok: true, removed: removed! };
+    },
+
     canAutoStart() {
       if (stage !== 'lobby') return false;
       const on = members.filter((m) => m.connected);
@@ -325,7 +347,7 @@ export function createParty<Color extends string, Cls extends string>(
       if (!m) return no('invalid');
       if (stage !== 'build') return no('phase');
       if (m.slot !== null || !m.name || m.classId === null) return no('invalid');
-      m.slot = members.reduce((hi, x) => Math.max(hi, x.slot ?? -1), -1) + 1;
+      m.slot = members.reduce((hi, x) => Math.max(hi, x.slot ?? -1), leftSlot) + 1;
       return { ok: true, slot: slotOf(m) };
     },
 
@@ -341,6 +363,7 @@ export function createParty<Color extends string, Cls extends string>(
     endRun() {
       stage = 'lobby';
       open.clear();
+      leftSlot = -1;
       for (const m of members) {
         m.slot = null;
         m.ready = false;
@@ -350,6 +373,7 @@ export function createParty<Color extends string, Cls extends string>(
     restore(slots, leaderKey, o = {}) {
       members.length = 0;
       open.clear();
+      leftSlot = -1;
       for (const s of [...slots].sort((a, b) => a.slot - b.slot)) {
         members.push({
           // Placeholder until a phone matches the slot (relay ids never look like this).

@@ -5,7 +5,8 @@
 // lifecycle (FF14): late joins at the build phase, the end-of-run options, and the resume snapshot
 // (§11.5, §15.8: saved at each build start and on build-phase changes, offered after a reload,
 // restored into the same or a new room), and the team pause (C4, FF14-fix-1: any run phone pauses or
-// resumes; the runtime stops stepping while `paused` is set). No Phaser, no relay client: the runtime
+// resumes; the runtime stops stepping while `paused` is set) with its menu's Leave game and the
+// leader's End game (RD6-fix-1). No Phaser, no relay client: the runtime
 // passes `send` and `kick`.
 import { maxPlayers, minPlayers } from '../../../game.meta';
 import { content as defaultContent, type Content } from '../../content';
@@ -304,6 +305,29 @@ export function createSession(deps: SessionDeps): Session {
     return null;
   }
 
+  /** Run phases the pause menu's Leave game and End game work in (the pause's own, §10.5). */
+  const inRun = () => {
+    const phase = sim?.world.phase;
+    return phase === 'countdown' || phase === 'build' || phase === 'combat';
+  };
+
+  /**
+   * Leave game (RD6-fix-1, §10.5, §11.3): a deliberate leave frees the party slot (no reconnect into
+   * it; leadership passes on) and the phone is kicked back to the join screen. The knight stays in
+   * the sim, dazed like a dropped phone, for the rest of the run. The last player out ends the run.
+   */
+  function leave(from: string, seq: number) {
+    const m = party.member(from);
+    if (!m || m.slot === null || !inRun()) return ack(from, seq, 'phase');
+    const slot = m.slot;
+    party.leave(from);
+    mes.delete(from);
+    sim!.command({ c: 'presence', slot, connected: false });
+    ack(from, seq, null);
+    deps.kick(from);
+    if (!party.members.some((x) => x.slot !== null)) endRun();
+  }
+
   const maybeAutoStart = () => {
     if (!sim && !saved && party.canAutoStart()) startRun();
   };
@@ -382,6 +406,11 @@ export function createSession(deps: SessionDeps): Session {
             return ack(from, seq, resume());
           case 'newRun':
             return ack(from, seq, newRun());
+          case 'endGame':
+            // End game from the pause menu (RD6-fix-1): straight back to the lobby, knights kept.
+            if (!inRun()) return ack(from, seq, 'phase');
+            ack(from, seq, null);
+            return endRun();
           case 'difficulty':
             if (sim || saved) return ack(from, seq, 'phase');
             settings.difficulty = i.difficulty;
@@ -416,6 +445,8 @@ export function createSession(deps: SessionDeps): Session {
       }
       case 'pause':
         return ack(from, seq, setPause(from, i.paused));
+      case 'leave':
+        return leave(from, seq);
     }
   }
 

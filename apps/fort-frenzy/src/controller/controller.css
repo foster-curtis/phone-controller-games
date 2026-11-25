@@ -1492,6 +1492,45 @@ button {
   min-height: 56px;
 }
 
+/* Pause menu (RD6-fix-1): Leave game and the leader's End game, each behind a confirm step. */
+.paused-main,
+.paused-confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.paused-row {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.paused-opt {
+  min-width: 132px;
+  min-height: 48px;
+  font-size: 16px;
+}
+
+.paused-card .paused-ask {
+  font-size: 22px;
+}
+
+.paused-ask-body {
+  max-width: 340px;
+  margin: 0;
+  color: var(--muted);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: var(--danger-on);
+}
+
+.btn-danger::before {
+  display: none;
+}
+
 .coin-glyph {
   width: 32px;
   height: 32px;

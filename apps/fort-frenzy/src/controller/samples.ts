@@ -450,6 +450,27 @@ export const SAMPLES: Record<string, () => Sample> = {
     team: sampleTeam({ phase: 'build', paused: { playerId: 'dev', name: q.name, color: q.color } }),
     me: sampleMe({ screen: 'build' }),
   }),
+  // Pause menu (RD6-fix-1): a non-leader sees Leave game only; each option opens its confirm step.
+  'paused-member': () => ({
+    team: sampleTeam({
+      phase: 'combat',
+      paused: { playerId: 'p2', name: 'Riley', color: 'jade' },
+    }),
+    me: sampleMe({ isLeader: false }),
+  }),
+  'paused-leave': () => ({
+    team: sampleTeam({
+      phase: 'combat',
+      paused: { playerId: 'p2', name: 'Riley', color: 'jade' },
+    }),
+    me: sampleMe(),
+    after: (stage) => stage.querySelector<HTMLElement>('[data-leave]')?.click(),
+  }),
+  'paused-end': () => ({
+    team: sampleTeam({ phase: 'build', paused: { playerId: 'dev', name: q.name, color: q.color } }),
+    me: sampleMe({ screen: 'build' }),
+    after: (stage) => stage.querySelector<HTMLElement>('[data-end-game]')?.click(),
+  }),
   'summary-victory': () => ({
     team: sampleTeam({ phase: 'summary', summary: SUMMARY }),
     me: sampleMe({ screen: 'summary' }),

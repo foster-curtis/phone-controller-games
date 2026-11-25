@@ -240,3 +240,19 @@ export const STAT_LABEL: Record<string, string> = {
 };
 
 export const ROMAN = ['0', 'I', 'II', 'III', 'IV', 'V'] as const;
+
+// ==== Lobby and summary ===========================================================================
+
+/** The pause menu's Leave game and the leader's End game, each behind a confirm step (RD6-fix-1). */
+export const PAUSE_MENU = {
+  leave: 'LEAVE GAME',
+  end: 'END GAME',
+  cancel: 'CANCEL',
+  leaveAsk: 'Leave the game?',
+  leaveBody: 'Your knight stays behind, dazed. Join again with the room code as a new player.',
+  leaveConfirm: 'LEAVE',
+  endAsk: 'End the game for everyone?',
+  endBody: 'The run stops and everyone goes back to the lobby.',
+  endConfirm: 'END GAME',
+  left: 'You left the game',
+} as const;

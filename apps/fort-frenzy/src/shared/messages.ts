@@ -77,6 +77,8 @@ export type Intent =
   | { k: 'ready'; ready: boolean }
   | { k: 'color'; color: PlayerColorId } // lobby only; host validates, acks (`taken`)
   | { k: 'leader'; action: 'start' | 'resume' | 'newRun' }
+  /** Pause menu: End game for everyone, back to the lobby (RD6-fix-1, SPEC §10.5). */
+  | { k: 'leader'; action: 'endGame' }
   | { k: 'leader'; action: 'difficulty'; difficulty: DifficultyId }
   | { k: 'leader'; action: 'remove'; playerId: string } // lobby only
   | { k: 'leader'; action: 'end'; option: 'again' | 'classes' | 'home' } // 'classes' = Change Knight
@@ -84,7 +86,8 @@ export type Intent =
   | { k: 'request'; item: ShopItemId; on: boolean }
   | { k: 'card'; card: CardId } // Confirm on the card pop-up (§10.2)
   | { k: 'claim'; slot: number } // resume into a new room
-  | { k: 'pause'; paused: boolean }; // team pause from any run phone (C4, FF14-fix-1)
+  | { k: 'pause'; paused: boolean } // team pause from any run phone (C4, FF14-fix-1)
+  | { k: 'leave' }; // pause menu: Leave game, the party slot frees (RD6-fix-1, SPEC §10.5, §11.3)
 
 export type IntentKind = Intent['k'];
 
@@ -352,6 +355,7 @@ export function isIntent(v: unknown): v is Intent {
         case 'start':
         case 'resume':
         case 'newRun':
+        case 'endGame':
           return true;
         case 'difficulty':
           return isDifficultyId(v.difficulty);
@@ -372,6 +376,8 @@ export function isIntent(v: unknown): v is Intent {
       return isNat(v.slot);
     case 'pause':
       return isBool(v.paused);
+    case 'leave':
+      return true;
     default:
       return false;
   }

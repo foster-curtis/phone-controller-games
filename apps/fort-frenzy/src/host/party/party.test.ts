@@ -521,3 +521,43 @@ describe('resume (FF14, §11.5, §15.8)', () => {
     expect(p.claimable()).toEqual([]);
   });
 });
+
+describe('leave (RD6-fix-1: the pause menu`s Leave game)', () => {
+  it('frees the slot mid-run: the member goes, a reconnect is a new player, a new phone fits', () => {
+    const p = filled(6, { ready: true });
+    p.startRun();
+    expect(p.leave('p3')).toMatchObject({ ok: true, removed: { playerId: 'p3', slot: 2 } });
+    expect(p.member('p3')).toBeNull();
+    expect(p.members).toHaveLength(5);
+    // Its key no longer matches a slot: the same phone comes back as someone new.
+    expect(p.connect({ playerId: 'p3b', key: 'k3', deviceId: 'd3' })).toMatchObject({
+      kind: 'joined',
+      member: { slot: null, name: '' },
+    });
+    expect(p.leave('nobody')).toEqual({ ok: false, reason: 'invalid' });
+  });
+
+  it('the leader leaving passes leadership to the next-earliest connected player', () => {
+    const p = filled(3, { ready: true });
+    p.startRun();
+    p.disconnect('p2');
+    expect(p.leaderId).toBe('p1');
+    p.leave('p1');
+    expect(p.leaderId).toBe('p3');
+  });
+
+  it('a late joiner never takes a left slot (the knight stays in the run)', () => {
+    const p = filled(3, { ready: true });
+    p.startRun();
+    p.setStage('build');
+    p.leave('p3'); // the highest slot, 2
+    p.connect({ playerId: 'late' });
+    p.setName('late', 'Late');
+    p.setClass('late', 'warden');
+    expect(p.joinLate('late')).toMatchObject({ ok: true, slot: { slot: 3 } });
+    // A new run starts numbering from 0 again.
+    p.endRun();
+    expect(p.startRun()).toMatchObject({ ok: true });
+    expect(p.members.map((m) => m.slot)).toEqual([0, 1, 2]);
+  });
+});

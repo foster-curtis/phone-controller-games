@@ -1400,7 +1400,17 @@ a header line (title and a short hint, which is dropped on short screens), then 
   paused never fire after the resume, and menu actions that change the run (buy, request, card, Ready,
   a late join) are refused with "Not right now" until the resume. Resume starts at once (no 3-2-1):
   nothing held through the pause carries a press over.
-- Not in v1: a per-player pause, pause menus (settings, quit), TV-side pause controls.
+- **Pause menu (§15.11 #162):** under Resume, every run player's paused card has **Leave game**, and
+  the party leader's also has **End game** (hidden for everyone else). Each opens a confirm step on
+  the card ("Leave the game?" / "End the game for everyone?", one line on what happens, **Cancel** and
+  the action), so one tap never leaves or ends; Cancel sends nothing, and the confirm button sends one
+  intent (it locks for 1.5 s, so a double tap sends one).
+  - **Leave game** (`leave` intent): the player leaves the run for good (§11.3); their phone goes back
+    to the room-code join screen with "You left the game".
+  - **End game** (`leader` `endGame`, the leader only; the host refuses anyone else): the run stops
+    and the TV and every phone go to the lobby, knights kept and nobody Ready (as Change Knight on the
+    summary, §4). No summary: the run didn't end in a win or a loss. The resume snapshot is cleared.
+- Not in v1: a per-player pause, a settings menu, TV-side pause controls.
 
 ## 11. Lobby, join and reconnect
 
@@ -1426,10 +1436,12 @@ from Sunny Side Slam. Everything else in this section is Fort Frenzy game logic 
   and this range live in `game.meta.ts` (the game's catalog entry, `PLATFORM.md` decision #9): code
   reads them from there, so change them there.
 - **Removing players:** in the lobby, the party leader's phone or the TV can remove any other player
-  (as in Sunny Side Slam). Once a run starts, nobody can leave or be removed; a player whose phone drops
-  stays in the run, dazed (§11.3).
-- **Leader handoff:** if the leader disconnects, leadership passes to the next-earliest joined
-  connected player, and doesn't snap back when the original leader returns (as in Sunny Side Slam).
+  (as in Sunny Side Slam). Once a run starts, nobody can be removed; a player whose phone drops
+  stays in the run, dazed (§11.3). A player can leave the run on purpose from the pause menu's
+  **Leave game** (§10.5, §11.3), and the leader can end it for everyone with **End game**.
+- **Leader handoff:** if the leader disconnects or leaves the run, leadership passes to the
+  next-earliest joined connected player, and doesn't snap back when the original leader returns (as in
+  Sunny Side Slam).
 - **TV menus never need a mouse.** The home screen (difficulty, create room) works with keyboard or
   gamepad, with no hover-only interactions. Once a room exists, the party leader's phone drives the TV
   menus: changing difficulty in the lobby, and the end-of-run options (§4).
@@ -1453,6 +1465,14 @@ from Sunny Side Slam. Everything else in this section is Fort Frenzy game logic 
 - **The slot is held for the whole run.** A disconnected player is never removed mid-run; they stay
   dazed until they reconnect, at any time. Player-count scaling and the Flyer check count only players
   connected at the start of each wave (§9, §9.4).
+- **Leave game (§10.5, §15.11 #162):** a deliberate leave from the pause menu (countdown, build or
+  combat) is not a disconnect. The host drops the player from the party at once (no reconnect matches
+  that slot again, so the same phone comes back as a new player through the room code), passes
+  leadership on if they led, and kicks the phone (the relay forgets its token). Their knight stays
+  on the map dazed for the rest of the run, as a dropped phone's would: its builds stay and keep
+  working, a Commander's squad holds, and it stays in the summary. A late joiner takes a new slot,
+  never the left one. The run goes on paused; when the last player in the run leaves, it ends and the
+  TV goes to the lobby.
 - **What players see:**
   - On the phone: a "Reconnecting…" overlay.
   - On the TV: a reconnecting icon on that player's nametag.
@@ -2658,6 +2678,7 @@ export type Intent =
   | { k: 'ready'; ready: boolean }
   | { k: 'color'; color: PlayerColorId }              // lobby only (`taken`)
   | { k: 'leader'; action: 'start' | 'resume' | 'newRun' }
+  | { k: 'leader'; action: 'endGame' }                // pause menu: End game (§10.5, RD6-fix-1)
   | { k: 'leader'; action: 'difficulty'; difficulty: DifficultyId }
   | { k: 'leader'; action: 'remove'; playerId: string }           // lobby only
   | { k: 'leader'; action: 'end'; option: 'again' | 'classes' | 'home' } // 'classes' = Change Knight (§4)
@@ -2665,7 +2686,8 @@ export type Intent =
   | { k: 'request'; item: ShopItemId; on: boolean }
   | { k: 'card'; card: CardId }                       // Confirm on the card pop-up (§10.2)
   | { k: 'claim'; slot: number }                      // resume into a new room
-  | { k: 'pause'; paused: boolean };                  // team pause, any run phone (§10.5)
+  | { k: 'pause'; paused: boolean }                   // team pause, any run phone (§10.5)
+  | { k: 'leave' };                                   // pause menu: Leave game (§11.3, RD6-fix-1)
 // Removed: { k: 'build' } (select/place/cancel), { k: 'give' }, { k: 'leader'; action: 'theme' }.
 
 export type ControllerMsg =
@@ -2793,6 +2815,12 @@ export type HostMsg =
   commands, and a late join, ack `phase`. Input tuples still arrive while paused, and each
   `PhoneInputSource` subtracts the presses counted between the pause and the resume (`hold` /
   `release`), so nothing fires on resume. The summary's run time leaves the pause out.
+- **Pause menu** (§10.5, §11.3, RD6-fix-1): `leave` from a phone with a run slot in the countdown,
+  build or combat phase (else `phase`) acks `ok`, then the host calls `party.leave` (the member goes;
+  leadership passes; late joins skip the left slot), queues a `presence` `connected: false` for the
+  knight, and kicks the phone. The last slotted player leaving ends the run (lobby). `leader`
+  `endGame` from the leader (else `notLeader`) in the same phases (else `phase`) acks `ok` and ends the
+  run: the lobby, knights kept, the snapshot cleared.
 - `messages.ts` is a frozen contract (§15.11).
 
 **TV overlay view (v2, `src/host/ui/types.ts`).** Unchanged except: `HomeRow` loses its `theme` row
@@ -3210,3 +3238,4 @@ states, then RD0's own.
 | 159 | 2026-11-24 | Burn size | The burn and corrosion looks are 0.45 of the body's height, capped at 1.1× the frame, with their bottom at the top of the legs (§15.2) | User, RC2 (RD10-fix-1): the flames were the body's full height, huge on the Colossus |
 | 160 | 2026-11-24 | Commander RC2 notes (RD9-fix-2) | Soldiers walk at 3.45 tiles/s, about 80% of his 4.3 (was 3.9); the hurry past 3 tiles goes from ×1.3 to ×1.45 (about 5 tiles/s, the old regroup pace) so they still catch him. The bash rectangle is 1.5 tiles wide (was 2, −25%), reach kept at 2.25; knockback 0.864 (×0.9); Heavy Bash still widens it by 20% from the new base (§8.2, §8.4) | RC2 notes (Foster): "Commander squad members should be even slower"; "Narrow the commander bash hit by about 25%, and decrease the knockback by about 10%" |
 | 161 | 2026-11-24 | Burn size, again | The burn and corrosion looks are 0.7 of the body's height, capped at 4× the frame (only the Colossus reaches it), bottom still at the top of the legs; flame height in sprite units, old / #159 / now: Grunt 80 / 36 / 56, Flyer 50 / 22.5 / 35, Brute 125 / 44 / 87.5, Colossus 280 / 44 / 160, each within 4% of halfway; corrosion keeps the same rule (§15.2; reverses #159's numbers) | User, RC2 (RD10-fix-2): "Flames are now too small. Find a happy medium." |
+| 162 | 2026-11-24 | Pause menu: Leave game and End game (RD6-fix-1) | The paused card gets **Leave game** (every run player) and **End game** (the leader only), each behind a confirm step with Cancel (§10.5). Leave (`leave` intent) drops the player from the party at once (no reconnect into the slot, leadership passes, the phone is kicked back to the join screen); the knight stays on the map dazed for the rest of the run, its builds and squad as a dropped phone's, and late joiners never take its slot; the last player out ends the run (§11.3). End game (`leader` `endGame`) goes straight to the lobby, knights kept, snapshot cleared (§15.6). Revises §11.1 "nobody can leave" and §10.5 "no pause menus (quit)" | User, RC2. Keeping the knight is the simplest rule that matches §11.3's held slot: removing a knight mid-run would touch builds, squads, targeting, stats, the snapshot and the TV for little gain. End game goes to the lobby, not the summary: the summary is a win or a loss (`RunSummary.result`), and a forced end is neither |
