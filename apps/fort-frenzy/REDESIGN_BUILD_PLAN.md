@@ -840,7 +840,7 @@ Rules:
 - RD10 Enemies
   - [x] Brute, Siege, Flyer, Hunter, `hitsFlyers`, wave multiplier
   - [x] Colossus Mk I–III + Charge + tells; merged
-- [ ] **User approved RC2** (kits, enemies, balance report)
+- [x] **User approved RC2** (kits, enemies, balance report)
 - RD11 Economy
   - [ ] Commons + card rules + marks; Warden cards; class growth; shop + pricing + coins; merged
 - RD12 Art pass
