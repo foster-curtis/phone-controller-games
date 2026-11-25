@@ -847,11 +847,11 @@ Rules:
   - [x] Gallery pages; retired art deleted; asset checks (merge and gallery e2e: orchestrator)
 - RD13 Polish
   - [x] SFX + cues + LICENSES; summary awards; lobby copy; merged
-- [ ] **User approved RC3** (gallery on the TV, solo play)
+- [x] **User approved RC3** (gallery on the TV, solo play)
 - RD14 Lifecycle + resume + soak
   - [x] Snapshot with builds, meters, squad; late join; resume e2e
   - [x] Soak (solo, pairs, six) + bench + stress; merged
-- [ ] **User approved RC4** (full run + resume)
+- [x] **User approved RC4** (full run + resume)
 - [ ] Final checks green on `redesign/fort-frenzy`
 - [ ] Final handoff printed
 
