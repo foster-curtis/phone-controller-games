@@ -1027,7 +1027,7 @@ Rules:
   - [x] Contracts: messages, hold, viewer, blob-transfer types, sim types/snapshot/systems/events, match + TvView, sfx + AudioMap
   - [x] Subsystem stubs, LICENSES.json + test, devDeps + lockfile
   - [ ] Full gate green
-  - [ ] Merged to `thieves-forum` and pushed
+  - [x] Merged to `thieves-forum` and pushed
   - [ ] User approved C0 (§12 + contracts)
 - **TF1**
   - [ ] Atlas script + manifest + keys
