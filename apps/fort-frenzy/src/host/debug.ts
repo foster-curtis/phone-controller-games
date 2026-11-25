@@ -1,10 +1,11 @@
 // Developer tools on the TV (SPEC §9.5, §15.9), dev or `?debug=1` only: the debug panel (jump to a
 // wave, spawn any enemy at any portal, invincible, add coins, fill one or every build meter, force a
 // hot side, portal activity and the hot side, 2× speed, show / set the seed, hitbox / range /
-// flow-field overlays, download a replay; an uncaught error offers the download), and the
-// `window.__pcg` hooks the e2e suite drives (builds, meters, the throw preview, portals). Never shown
-// to players.
+// flow-field overlays, download a replay, the knights in play and a card give (RD6-fix-2); an uncaught
+// error offers the download), and the `window.__pcg` hooks the e2e suite drives (builds, meters, the
+// throw preview, portals, cards). Never shown to players.
 import { installDebug } from '@pcg/game-kit';
+import { presentationShared } from '../presentation/shared';
 import {
   ENEMY_IDS,
   PORTAL_IDS,
@@ -16,7 +17,19 @@ import {
   type SideId,
 } from '../shared/ids';
 import type { TeamView } from '../shared/messages';
-import { hotLine, hotState, meterStates, type HotState, type MeterState } from './debugInfo';
+import {
+  cardChoices,
+  giveMessage,
+  hotLine,
+  hotState,
+  knightLine,
+  knightsInPlay,
+  meterStates,
+  type CardChoice,
+  type HotState,
+  type KnightRow,
+  type MeterState,
+} from './debugInfo';
 import type { Runtime } from './game';
 import { localSnapshotStore } from './net/resume';
 import { buildPreview, type BuildPreview } from './sim/preview';
@@ -101,6 +114,16 @@ export interface FfDebugApi {
   forceHot(side: SideId | null): void;
   /** Each run slot's cards and private offer (FF14 resume checks). */
   cards(): { slot: number; cards: Partial<Record<CardId, number>>; offer: CardId[] | null }[];
+  /** The knights in play (the run's, or the lobby's chosen knights), with their cards (RD6-fix-2). */
+  knights(): KnightRow[];
+  /** Every card run slot `slot`'s knight could hold (commons + its own), for the panel's picker. */
+  cardChoices(slot: number): CardChoice[];
+  /**
+   * Gives run slot `slot` one stack of `card` (a logged debug command, any phase, `requires`
+   * bypassed). Returns why it was refused (another knight's card, a unique already owned), or null
+   * when the command was sent; it applies at the next sim step.
+   */
+  giveCard(slot: number, card: CardId): string | null;
   /** The resume snapshot in storage, or null (§15.8). */
   saved(): RunSnapshot | null;
   /** Canvas and overlay boxes in CSS px (they must match: one shared fit). */
@@ -195,6 +218,12 @@ export function installFfDebug(rt: Runtime, fallbacks: () => number): void {
         cards: { ...p.cards },
         offer: p.offer ? [...p.offer] : null,
       })),
+    knights: () => knightsInPlay(rt.session.party.members, rt.world),
+    cardChoices: (slot) => {
+      const p = rt.world?.players.find((x) => x.slot === slot);
+      return p ? cardChoices(rt.session.content, p.classId, p.cards, NAMES) : [];
+    },
+    giveCard: (slot, card) => giveCardNow(rt, slot, card),
     saved: () => localSnapshotStore().load(Date.now()),
     boxes: () => ({
       canvas: document.querySelector('#tv canvas')?.getBoundingClientRect() ?? null,
@@ -202,6 +231,15 @@ export function installFfDebug(rt: Runtime, fallbacks: () => number): void {
     }),
     fallbacks,
   });
+}
+
+const NAMES = presentationShared.names;
+
+/** The panel's and `__pcg.giveCard`'s give: the refusal in words, or null once the command is sent. */
+function giveCardNow(rt: Runtime, slot: number, card: CardId): string | null {
+  const no = giveMessage(rt.world, rt.session.content, slot, card, NAMES);
+  if (no === null) rt.session.command({ c: 'debug', slot: -1, action: 'card', target: slot, card });
+  return no;
 }
 
 /** Downloads the run's replay as gzipped JSON (§15.9), plain JSON where gzip isn't available. */
@@ -229,11 +267,16 @@ export async function downloadReplay(rt: Runtime): Promise<boolean> {
 const css = `
 #ff-debug{position:fixed;right:8px;top:8px;z-index:50;width:260px;font:12px var(--font-sans,sans-serif);
 color:var(--foreground,#fff);background:rgba(20,22,26,.9);border:1px solid var(--border,#2e333c);
-padding:8px;display:flex;flex-direction:column;gap:6px;pointer-events:auto}
+padding:8px;display:flex;flex-direction:column;gap:6px;pointer-events:auto;max-height:calc(100vh - 16px);
+overflow:auto}
 #ff-debug.min>:not(.hd){display:none}
 #ff-debug .hd{display:flex;justify-content:space-between;align-items:center;font-weight:600}
 #ff-debug .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 #ff-debug input[type=number]{width:72px}
+#ff-debug .sec{font-weight:600;border-top:1px solid var(--border,#2e333c);padding-top:6px}
+#ff-debug [data-debug=knights]{display:flex;flex-direction:column;gap:2px}
+#ff-debug .sw{display:inline-block;width:10px;height:10px;margin-right:4px;vertical-align:middle}
+#ff-debug select[data-debug=card],#ff-debug select[data-debug=card-slot]{max-width:190px}
 #ff-debug button,#ff-debug select,#ff-debug input{font:inherit}
 #ff-debug-offer{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:60;
 background:var(--danger,#e05252);color:#14161a;padding:8px 12px;font:13px var(--font-sans,sans-serif);
@@ -408,6 +451,76 @@ export function mountDebugPanel(rt: Runtime): DebugPanel {
       (v) => (rt.overlays.flow = v),
     ),
   );
+  // Cards (RD6-fix-2): the knights in play with their cards, and a give for one of them.
+  el.append(h('div', { class: 'sec' }, 'Cards'));
+  const knightList = h('div', { 'data-debug': 'knights' });
+  el.append(knightList);
+  const cardWho = h('select', { 'data-debug': 'card-slot' }) as HTMLSelectElement;
+  const cardPick = h('select', { 'data-debug': 'card' }) as HTMLSelectElement;
+  const cardMsg = h('div', { 'data-debug': 'card-msg' });
+  row(cardWho);
+  row(
+    cardPick,
+    button(
+      'Add',
+      () => {
+        if (cardWho.value === '' || cardPick.value === '') {
+          cardMsg.textContent = 'No knight in a run to give to';
+          return;
+        }
+        const slot = Number(cardWho.value);
+        const card = cardPick.value as CardId;
+        cardMsg.textContent = giveCardNow(rt, slot, card) ?? `Gave ${NAMES[card]} to slot ${slot}`;
+      },
+      'give-card',
+    ),
+  );
+  el.append(cardMsg);
+  let knightsKey = '';
+  let pickKey = '';
+  const syncCards = () => {
+    const rows = knightsInPlay(rt.session.party.members, rt.world);
+    const key = JSON.stringify(rows);
+    if (key !== knightsKey) {
+      knightsKey = key;
+      knightList.replaceChildren(
+        ...(rows.length === 0 ? [h('div', {}, 'no knights yet')] : []),
+        ...rows.map((r) => {
+          const line = h('div', { 'data-debug-knight': String(r.slot ?? '') });
+          const swatch = h('span', { class: 'sw' });
+          swatch.style.background = `var(--player-${r.color})`;
+          line.append(swatch, knightLine(r, NAMES));
+          return line;
+        }),
+      );
+      const keep = cardWho.value;
+      cardWho.replaceChildren();
+      for (const r of rows)
+        if (r.inRun && r.slot !== null)
+          cardWho.add(new Option(`${r.slot}: ${NAMES[r.classId]} (${r.name})`, String(r.slot)));
+      if ([...cardWho.options].some((o) => o.value === keep)) cardWho.value = keep;
+    }
+    const p = rt.world?.players.find((x) => String(x.slot) === cardWho.value);
+    const pk = p ? `${p.slot}:${p.classId}:${JSON.stringify(p.cards)}` : '';
+    if (pk === pickKey) return;
+    pickKey = pk;
+    const keep = cardPick.value;
+    cardPick.replaceChildren();
+    if (!p) return;
+    const groups = new Map<string, HTMLOptGroupElement>();
+    for (const c of cardChoices(rt.session.content, p.classId, p.cards, NAMES)) {
+      let g = groups.get(c.group);
+      if (!g) {
+        g = h('optgroup', { label: c.group }) as HTMLOptGroupElement;
+        groups.set(c.group, g);
+        cardPick.append(g);
+      }
+      g.append(new Option(c.label, c.id));
+    }
+    if ([...cardPick.options].some((o) => o.value === keep)) cardPick.value = keep;
+  };
+  cardWho.onchange = syncCards;
+  syncCards();
   row(button('Download replay', () => void downloadReplay(rt), 'replay'));
   document.body.append(el);
 
@@ -415,6 +528,7 @@ export function mountDebugPanel(rt: Runtime): DebugPanel {
     const s = rt.session.start?.seed;
     seedShow.textContent = `${s ?? '—'}${rt.nextSeed !== null ? ` (next ${rt.nextSeed})` : ''}`;
     syncMeterSlots();
+    syncCards();
     const w = rt.world;
     portalShow.textContent = w
       ? `${hotLine(hotState(w, rt.session.content, rt.session.sim?.debugHot ?? null))}\nmeters ${meterStates(

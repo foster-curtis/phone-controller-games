@@ -134,13 +134,51 @@ export function autoPickCards(s: FullState): void {
   }
 }
 
+/** One more stack of `card`: the apply path a pick and a debug give share. */
+function addStack(s: FullState, p: PlayerEnt, card: CardId): void {
+  p.cards[card] = (p.cards[card] ?? 0) + 1;
+  attachCard(s, p, card);
+}
+
 /** The `card` command: a private pick of one card from the player's offer (build phase). */
 export function pickCard(s: FullState, p: PlayerEnt, card: CardId): AckReason | null {
   if (s.world.phase !== 'build') return 'phase';
   if (p.picked !== null || !p.offer || !p.offer.includes(card)) return 'invalid';
-  p.cards[card] = (p.cards[card] ?? 0) + 1;
+  addStack(s, p, card);
   p.picked = card;
-  attachCard(s, p, card);
   s.emit({ e: 'cardPicked', slot: p.slot, card });
+  return null;
+}
+
+/** Unique per knight: marked unique, or a combo (two prerequisites, §6.1). */
+export function isUniqueCard(c: CardDef): boolean {
+  return c.unique === true || (c.requires?.length ?? 0) >= 2;
+}
+
+/**
+ * Can a knight of `classId` holding `owned` be given `card` by the debug panel (RD6-fix-2)? `invalid`:
+ * not a card this knight could ever hold (another knight's); `cap`: a unique card it already owns.
+ * `requires` is not checked: the panel labels those cards instead.
+ */
+export function giveRefusal(
+  cards: readonly CardDef[],
+  classId: string,
+  owned: Partial<Record<CardId, number>>,
+  card: CardId,
+): 'invalid' | 'cap' | null {
+  const def = cards.find((c) => c.id === card);
+  if (!def || (def.owner !== 'common' && def.owner !== classId)) return 'invalid';
+  if (isUniqueCard(def) && (owned[card] ?? 0) > 0) return 'cap';
+  return null;
+}
+
+/**
+ * The debug `card` command (§9.5, RD6-fix-2): one stack through the pick's apply path in any phase,
+ * leaving the offer and `picked` alone and emitting nothing (the phones and the TV show no pick).
+ */
+export function giveCard(s: FullState, p: PlayerEnt, card: CardId): AckReason | null {
+  const no = giveRefusal(s.cat.content.cards, p.classId, p.cards, card);
+  if (no) return no;
+  addStack(s, p, card);
   return null;
 }

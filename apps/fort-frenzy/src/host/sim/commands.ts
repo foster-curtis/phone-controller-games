@@ -2,7 +2,7 @@
 // a `ref` (the intent ack, BUILD_PLAN §8 FF1).
 import { SIDE_IDS } from '../../shared/ids';
 import type { AckReason } from '../../shared/messages';
-import { offerFor, pickCard } from './cards';
+import { giveCard, offerFor, pickCard } from './cards';
 import { buy, request } from './shop';
 import { forceHot, spawnGroup, startBuild } from './lifecycle';
 import { releaseAll } from './players';
@@ -88,6 +88,11 @@ function debug(s: FullState, cmd: Extract<SimCommand, { c: 'debug' }>): AckReaso
       s.debugHot = cmd.side;
       if (cmd.side) forceHot(s, cmd.side);
       return null;
+    case 'card': {
+      // A debug give (RD6-fix-2): the pick's apply path, outside the offer.
+      const p = s.player(cmd.target);
+      return p ? giveCard(s, p, cmd.card) : 'invalid';
+    }
     case 'spawn':
       // One group: a Swarm spawns its whole pack (§9.1). The Colossus has no content until FF11.
       if (!s.cat.content.enemies.some((e) => e.id === cmd.enemy)) return 'invalid';

@@ -616,6 +616,11 @@ export type SimCommand = (
    * every later wave's plan too, until `side` null clears it.
    */
   | { c: 'debug'; slot: number; action: 'hot'; side: SideId | null }
+  /**
+   * Give run slot `target` one stack of `card` (RD6-fix-2): the pick's apply path, any phase, no
+   * offer; `requires` is bypassed, uniqueness is not (a second copy is refused with `cap`).
+   */
+  | { c: 'debug'; slot: number; action: 'card'; target: number; card: CardId }
 ) & { ref?: number };
 
 export type SimCommandKind = SimCommand['c'];

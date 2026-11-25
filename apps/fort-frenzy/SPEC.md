@@ -1168,6 +1168,13 @@ Enabled on the TV build with a URL flag and never shown to players. It can:
 - force the hot side: this wave's spawn groups that haven't flared and every later wave's move to the
   forced side's portals until it's cleared (RD6, §15.11 #114)
 - run the simulation at 2× speed
+- list the knights in play (slot, player color, knight, cards owned with counts; the lobby's chosen
+  knights before a run, a player who left marked) and give any run knight a card: the picker lists
+  every card that knight could ever hold (the shared commons, then its own commons, rares with its
+  unique passive, and combos), labeled by tier, "unique" and "(needs X)" for an unmet `requires`.
+  Add applies one stack through the pick's own path (stacking, modifier, stats) in any phase, without
+  the offer; `requires` is bypassed, while a second copy of a unique card (or combo) or another
+  knight's card is refused with a message (RD6-fix-2, §15.11 #173)
 - show and set the run seed
 - show hitboxes, ranges, flow-field arrows, the current hot side, portal activity (groups queued per
   portal, flaring now, time to the next group) and each knight's build meter (RD6)
@@ -1176,7 +1183,9 @@ Enabled on the TV build with a URL flag and never shown to players. It can:
 The TV's `window.__pcg` hooks (dev or `?debug=1`, e2e) read the same: `builds()` (kind, owner,
 position, HP, flight state), `meters()` (each knight's meter, aim held, builds out), `preview(slot)`
 (the sim's `buildPreview`), `portals()` (activity and the hot side, forced or not), and drive
-`fillMeter(slot?)` and `forceHot(side)` as logged debug commands (RD6).
+`fillMeter(slot?)` and `forceHot(side)` as logged debug commands (RD6). `knights()` (the panel's
+knight list), `cardChoices(slot)` (its picker) and `giveCard(slot, cardId)` (the refusal message, or
+null once the logged `card` debug command is sent) cover the cards (RD6-fix-2).
 
 ### 9.6 Enemy art (neon knights, settled)
 
@@ -2114,6 +2123,7 @@ export type SimCommand = (
   | { c: 'debug'; slot: number; action: 'coins'; amount: number }
   | { c: 'debug'; slot: number; action: 'meter'; target?: number } // every knight's meter, or `target`'s (RD6)
   | { c: 'debug'; slot: number; action: 'hot'; side: SideId | null } // force the hot side; null clears (RD6)
+  | { c: 'debug'; slot: number; action: 'card'; target: number; card: CardId } // give one stack (RD6-fix-2, #173)
 ) & { ref?: number };
 // Removed: build (select/place/cancel), give.
 // `Sim.debugHot` reads the forced side (the debug panel's readout); the sim keeps it outside `World`.
@@ -3287,3 +3297,4 @@ states, then RD0's own.
 | 170 | 2026-11-25 | Wasp size (RD10-fix-3) | The Wasp is drawn 1.4× its art (`WASP_SCALE`, `RIG_INFO.scale`; the gallery too), its shadow, status sizes and tell glow scaled with it, and flies a little lower: its hull's underside 1.23 tiles over its shadow (90% of #50's 1.37). The scaled art lift (1.59) is above that, so the render hover is negative (the empty foot point is drawn below the ground point). Its content body grows in proportion (radius 0.43 → 0.6, 1.23 to 1.78 tiles up, was 1.37 to 1.76) since bodies match the drawn art (§9); its feet circle (0.3, walking and collisions) is unchanged (§9, §9.6, §15.2) | User, RC3: "Wasp drone needs to be larger so it can be seen better. Keep it about the same height though, or even make it a little lower." |
 | 171 | 2026-11-25 | Colossus stagger pace (RD10-fix-3) | The stagger meter fills 15% slower from both sources: `staggerPerHp` 3 → 2.55, `staggerStun` 0.25 → 0.2125; a stream of equal hits needs about 18% more damage (67 → 79 hits of 0.5% HP); `staggerMs` stays 3 s (§9.2) | User, RC3: "fill a little slower, or stagger shouldn't last as long"; the orchestrator chose the slower fill |
 | 172 | 2026-11-25 | Smarter enemies (v2 note) | §13 gets a v2 row: smarter enemy AI (flanking, focus-firing low-HP knights, avoiding hazards); no v1 behavior changes | User, RC3: "I would like to make the enemies a bit smarter" |
+| 173 | 2026-11-25 | Debug panel card tools (RD6-fix-2) | The debug panel lists the knights in play (slot, color, knight, cards with counts) and gives any run knight one stack of any card it could hold (shared commons + its own), in the build phase or combat, through the pick's apply path (no offer, no `picked`, no `cardPicked` event). `requires` is bypassed (labeled "(needs X)"); a second unique card or combo and another knight's card are refused (`cap` / `invalid`) with a message. A logged `card` debug command, so replays keep it; `__pcg.giveCard(slot, cardId)` for e2e and the console (§9.5, §15.3) | User, RC3: "I can't test specific cards unless the debug panel knows what types of knights are in play and lets me add a card to the knight." |
