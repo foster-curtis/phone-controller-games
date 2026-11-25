@@ -43,7 +43,12 @@ const GROWTH_LABEL: Record<MeGrowth['stats'][number], string> = {
 export function growthText(g: MeGrowth | null): string | null {
   if (!g) return null;
   const head = g.boss ? `Boss down, wave ${g.wave} cleared` : `Wave ${g.wave} cleared`;
-  return g.stats.length ? `${head}: ${g.stats.map((s) => GROWTH_LABEL[s]).join(' ')}` : head;
+  // Amounts in percent when the host sends them ("+3% HP"), else the bare label (RD4-fix-2).
+  const part = (s: MeGrowth['stats'][number]): string => {
+    const n = g.pct?.[s];
+    return n === undefined ? GROWTH_LABEL[s] : `+${n}% ${GROWTH_LABEL[s].slice(1)}`;
+  };
+  return g.stats.length ? `${head}: ${g.stats.map(part).join(g.pct ? '  ' : ' ')}` : head;
 }
 
 /** The pop-up shows while a hand is dealt and no pick is made yet. */

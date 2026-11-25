@@ -150,6 +150,7 @@ describe('the growth header (§10.2)', () => {
       wave: 1,
       boss: false,
       stats: ['maxHp', 'damage', 'healing'],
+      pct: { maxHp: 1.5, damage: 1.5, healing: 2 },
     });
   });
 });

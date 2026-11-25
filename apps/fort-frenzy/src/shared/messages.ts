@@ -255,6 +255,8 @@ export interface MeGrowth {
   wave: number;
   boss: boolean;
   stats: ('maxHp' | 'damage' | 'healing')[];
+  /** RD4-fix-2: what each stat grew by, in percent (3 = +3%, 1.5 = +1.5%); a stat missing here shows no number. */
+  pct?: Partial<Record<MeGrowth['stats'][number], number>>;
 }
 export const GROWTH_STATS = [
   'maxHp',
@@ -486,7 +488,13 @@ const isMeBuild = (b: unknown): b is MeBuild =>
   isNat(b.active);
 
 const isMeGrowth = (g: unknown): g is MeGrowth =>
-  isObj(g) && isNat(g.wave) && isBool(g.boss) && arrayOf(g.stats, oneOf(GROWTH_STATS));
+  isObj(g) &&
+  isNat(g.wave) &&
+  isBool(g.boss) &&
+  arrayOf(g.stats, oneOf(GROWTH_STATS)) &&
+  (g.pct === undefined ||
+    (isObj(g.pct) &&
+      Object.values(g.pct).every((v) => typeof v === 'number' && Number.isFinite(v))));
 
 export function isMeView(v: unknown): v is MeView {
   if (!isObj(v)) return false;

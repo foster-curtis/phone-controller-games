@@ -172,7 +172,14 @@ export function growthFor(content: Content, w: World, p: PlayerEnt): MeGrowth | 
   const stats = GROWTH_STATS.filter((st) =>
     mods.some((m) => m.stat === st && ((m.addPct ?? 0) > 0 || (m.add ?? 0) > 0)),
   );
-  return stats.length > 0 ? { wave: w.wave - 1, boss, stats: [...stats] } : null;
+  if (stats.length === 0) return null;
+  // The amounts the sim applied at wave end: the list's `addPct` per stat, as percent (RD4-fix-2).
+  const pct: NonNullable<MeGrowth['pct']> = {};
+  for (const st of stats) {
+    const sum = mods.filter((m) => m.stat === st).reduce((a, m) => a + (m.addPct ?? 0), 0);
+    if (sum > 0) pct[st] = Math.round(sum * 1000) / 10;
+  }
+  return { wave: w.wave - 1, boss, stats: [...stats], pct };
 }
 
 const NO_CARDS: MeView['cards'] = { offer: null, picked: null, owned: [], growth: null };

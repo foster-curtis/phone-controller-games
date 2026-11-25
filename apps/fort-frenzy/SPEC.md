@@ -1402,7 +1402,7 @@ melee stays a one-touch swing.
 
 The build phase has two phone screens in order, then Ready:
 
-1. **Card pop-up** (full screen, no stick): the class growth header ("Wave 4 cleared: +HP +DMG"; none
+1. **Card pop-up** (full screen, no stick): the class growth header with the amounts ("Wave 4 cleared: +3% HP  +1% DMG"; none
    before wave 1), the three cards with rarity frames, **tap a card to select it, then tap Confirm**, and
    the phase timer. Selecting is local to the phone; Confirm sends the pick. Once the pick is confirmed,
    the phone moves on to the shop.
@@ -2809,7 +2809,10 @@ export interface MeBuild {
 }
 
 /** Class growth for the pop-up header (§6.1): "Wave 4 cleared: +HP +DMG". */
-export interface MeGrowth { wave: number; boss: boolean; stats: ('maxHp' | 'damage' | 'healing')[] }
+export interface MeGrowth {
+  wave: number; boss: boolean; stats: ('maxHp' | 'damage' | 'healing')[];
+  pct?: Partial<Record<'maxHp' | 'damage' | 'healing', number>>;  // percent grown per stat (3 = +3%); RD4-fix-2
+}
 
 /** One phone's own state. Full snapshot, per phone on change, ≤ 10 Hz. */
 export interface MeView {
@@ -3309,3 +3312,4 @@ states, then RD0's own.
 | 173 | 2026-11-25 | Debug panel card tools (RD6-fix-2) | The debug panel lists the knights in play (slot, color, knight, cards with counts) and gives any run knight one stack of any card it could hold (shared commons + its own), in the build phase or combat, through the pick's apply path (no offer, no `picked`, no `cardPicked` event). `requires` is bypassed (labeled "(needs X)"); a second unique card or combo and another knight's card are refused (`cap` / `invalid`) with a message. A logged `card` debug command, so replays keep it; `__pcg.giveCard(slot, cardId)` for e2e and the console (§9.5, §15.3) | User, RC3: "I can't test specific cards unless the debug panel knows what types of knights are in play and lets me add a card to the knight." |
 | 174 | 2026-11-25 | Warden jump slam width (RC3) | The jump slam's arc is 85° (was 102°) at the same 4.7-tile reach: wider than the main's 68°, longer, less damage. Its aim preview, the TV effect and Fault Line read the same content. This settles #127's open "as wide as the main's" line; REDESIGN.md's knight table is the old record and stays as is (§8.2) | User, RC3: "The Warden's jump slam should now be 85 degrees" (RD3-fix-4) |
 | 175 | 2026-11-25 | No waiting on an empty map (RC3) | With no enemy alive and groups pending, the next spawn pulse is pulled forward: it flares that step and spawns 1 s (`flareMs`) later, and every later pulse moves by the same amount. Portals, groups, hot sides, budgets and the cap are untouched; deterministic (state only). Not moved: a pulse already flared, or a plan held past the wave's duration (test and bench holds). Applies at wave start too. Solo autopilot combat: mean wave 62 → 51 s (§9.3, §9.4, §15.3) | User, RC3: "long gaps between each group of enemies… If all enemies are cleared, it should immediately trigger the next wave of enemies"; the flare tell is kept (RD3-fix-4) |
+| 176 | 2026-11-25 | Growth header amounts (RD4-fix-2) | `MeGrowth` gains an optional `pct` (percent each listed stat grew at the last wave end, from the class list's `addPct`; 1 decimal). The pop-up header reads "Wave 4 cleared: +3% HP  +1% DMG" (boss waves show the bigger numbers); no `pct` falls back to bare labels. `PROTOCOL_VERSION` stays 2 (§10.2, §15.6) | Growth is a percentage in the sim, so percent is the honest unit; HP points would need the knight's base stats on the view |

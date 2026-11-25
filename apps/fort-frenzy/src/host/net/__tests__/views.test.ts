@@ -101,16 +101,27 @@ describe('card state and the growth header (§10.2)', () => {
     w.wave = 4;
     expect(growthFor(content, w, p)).toBeNull(); // no bump yet (a late joiner, #99)
     p.growth.regular = 3;
-    expect(growthFor(content, w, p)).toEqual({ wave: 3, boss: false, stats: ['maxHp', 'damage'] });
+    expect(growthFor(content, w, p)).toEqual({
+      wave: 3,
+      boss: false,
+      stats: ['maxHp', 'damage'],
+      pct: { maxHp: 5, damage: 4 },
+    });
     const bossWave = content.waves.find((x) => x.boss !== undefined)!.n;
     w.wave = bossWave + 1;
     p.growth.boss = 1;
-    expect(growthFor(content, w, p)).toEqual({ wave: bossWave, boss: true, stats: ['healing'] });
+    expect(growthFor(content, w, p)).toEqual({
+      wave: bossWave,
+      boss: true,
+      stats: ['healing'],
+      pct: { healing: 10 },
+    });
     // The real tank grows HP and damage after a boss (RD11).
     expect(growthFor(baseContent, w, p)).toEqual({
       wave: bossWave,
       boss: true,
       stats: ['maxHp', 'damage'],
+      pct: { maxHp: 8, damage: 3 },
     });
   });
 });

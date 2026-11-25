@@ -51,6 +51,17 @@ describe('growth header (SPEC §10.2)', () => {
     expect(growthText({ wave: 4, boss: false, stats: ['maxHp', 'damage'] })).toBe(
       'Wave 4 cleared: +HP +DMG',
     );
+    expect(
+      growthText({
+        wave: 4,
+        boss: false,
+        stats: ['maxHp', 'damage'],
+        pct: { maxHp: 3, damage: 1.5 },
+      }),
+    ).toBe('Wave 4 cleared: +3% HP  +1.5% DMG');
+    expect(growthText({ wave: 5, boss: true, stats: ['maxHp'], pct: { maxHp: 8 } })).toBe(
+      'Boss down, wave 5 cleared: +8% HP',
+    );
     expect(growthText({ wave: 5, boss: true, stats: ['maxHp', 'damage', 'healing'] })).toBe(
       'Boss down, wave 5 cleared: +HP +DMG +HEAL',
     );
@@ -61,7 +72,7 @@ describe('card pop-up', () => {
   it('shows while a hand is dealt and nothing is picked: header, three cards, Confirm, no stick', () => {
     open('cards');
     expect(root.matches('.build.popup-open')).toBe(true);
-    expect(root.querySelector('.growth')!.textContent).toBe('Wave 4 cleared: +HP +DMG');
+    expect(root.querySelector('.growth')!.textContent).toBe('Wave 4 cleared: +2% HP  +2% DMG');
     expect(root.querySelectorAll('.upgrade-card')).toHaveLength(3);
     expect(root.querySelector<HTMLElement>('.stick-zone')!.hidden).toBe(true);
     expect(root.querySelector<HTMLElement>('.build-panel')!.hidden).toBe(true);
