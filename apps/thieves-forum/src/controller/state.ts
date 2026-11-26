@@ -59,7 +59,7 @@ export interface PhoneState {
   caught: { pot: number; by: 'player' | 'guard'; at: number } | null;
   hold: HoldInfo | null;
   /** The hold this phone is pressing now (optimistic bar until the host's `holdStart` arrives). */
-  press: { kind: HoldKind; slot?: number } | null;
+  press: { kind: HoldKind; slot?: number; ended?: boolean } | null;
 }
 
 export function initialState(): PhoneState {
@@ -128,6 +128,8 @@ export function applyHostMsg(s: PhoneState, m: HostMsg, now: number): Effect {
       return {};
     case 'holdEnd':
       if (s.hold && s.hold.id === m.id) {
+        // The host ended it: a thumb still down shows no bar until it presses again.
+        if (s.press) s.press.ended = true;
         if (m.result === 'complete') {
           s.hold.result = m.result;
           s.hold.endedAt = now;

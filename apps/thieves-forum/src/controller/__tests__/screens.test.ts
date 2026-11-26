@@ -49,7 +49,10 @@ describe('screens', () => {
     const rig = mountApp();
     rig.emit({ t: 'screen', screen: SCREENS.lobby });
     expect(rig.q('.top-banner').hidden).toBe(true);
-    rig.emit({ t: 'screen', screen: SCREENS.play }, { t: 'bag', bag: 42, pack: [], weight: 0, cap: 15 });
+    rig.emit(
+      { t: 'screen', screen: SCREENS.play },
+      { t: 'bag', bag: 42, pack: [], weight: 0, cap: 15 },
+    );
     expect(rig.q('.top-banner').hidden).toBe(false);
     expect(rig.q('.top-banner').textContent).toContain('A');
     expect(rig.q('[data-role=coin-pill]').textContent).toBe('42 d');
@@ -61,7 +64,10 @@ describe('screens', () => {
       { name: 'A', color: 'crimson', ready: false, leader: true, connected: true },
       { name: 'B', color: 'cobalt', ready: false, leader: false, connected: true },
     ] as const;
-    rig.emit({ t: 'screen', screen: { s: 'lobby', players: [...players], you: 1, canStart: true } });
+    rig.emit({
+      t: 'screen',
+      screen: { s: 'lobby', players: [...players], you: 1, canStart: true },
+    });
     expect(rig.qa('[data-action=start], [data-action=howToPlay]')).toHaveLength(0);
     rig.q('[data-color=jade]').click();
     rig.q('[data-action=ready]').click();
@@ -69,9 +75,15 @@ describe('screens', () => {
     expect(rig.sent()).toContainEqual({ t: 'ready', ready: true });
     expect(rig.q<HTMLButtonElement>('[data-color=crimson]').disabled).toBe(true);
 
-    rig.emit({ t: 'screen', screen: { s: 'lobby', players: [...players], you: 0, canStart: false } });
+    rig.emit({
+      t: 'screen',
+      screen: { s: 'lobby', players: [...players], you: 0, canStart: false },
+    });
     expect(rig.q<HTMLButtonElement>('[data-action=start]').disabled).toBe(true);
-    rig.emit({ t: 'screen', screen: { s: 'lobby', players: [...players], you: 0, canStart: true } });
+    rig.emit({
+      t: 'screen',
+      screen: { s: 'lobby', players: [...players], you: 0, canStart: true },
+    });
     rig.q('[data-action=start]').click();
     rig.q('[data-action=howToPlay]').click();
     expect(rig.sent('leader')).toEqual([
@@ -94,7 +106,10 @@ describe('screens', () => {
     rig.emit({ t: 'screen', screen: SCREENS.matchEnd });
     expect(rig.qa('[data-action=playAgain]')).toHaveLength(0);
     expect(rig.q<HTMLAnchorElement>('[data-action=feedback]').href).toContain('docs.google.com');
-    rig.emit({ t: 'screen', screen: { s: 'matchEnd', place: 2, total: 5, tied: true, leader: true } });
+    rig.emit({
+      t: 'screen',
+      screen: { s: 'matchEnd', place: 2, total: 5, tied: true, leader: true },
+    });
     expect(rig.q('.banner').textContent).toBe('Tied for 2nd');
     rig.q('[data-action=playAgain]').click();
     expect(rig.sent('leader')).toEqual([{ t: 'leader', action: 'playAgain' }]);
@@ -115,7 +130,9 @@ describe('screens', () => {
     rig.advance(1500);
     expect(rig.q('.countdown').textContent).toBe('3');
     rig.emit({ t: 'screen', screen: SCREENS.walkOn });
-    expect(rig.q('[data-screen=walkOn] .banner').textContent).toBe("You're walking in at the top left");
+    expect(rig.q('[data-screen=walkOn] .banner').textContent).toBe(
+      "You're walking in at the top left",
+    );
     rig.advance(2500);
     expect(rig.q('[data-screen=walkOn] .banner').textContent).toBe('Your turn!');
   });

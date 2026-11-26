@@ -38,7 +38,7 @@ export function holdPct(
     if (hold.result === 'complete') return 100;
     return Math.min(99, Math.floor(ctx.estimator.progress(now) * 100));
   }
-  if (press && mine(press.kind, press.slot))
+  if (press && !press.ended && mine(press.kind, press.slot))
     return Math.min(99, Math.floor(ctx.estimator.progress(now) * 100));
   return null;
 }
