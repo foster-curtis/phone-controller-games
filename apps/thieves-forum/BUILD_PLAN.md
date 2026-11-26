@@ -1028,7 +1028,7 @@ Rules:
   - [x] Subsystem stubs, LICENSES.json + test, devDeps + lockfile
   - [ ] Full gate green
   - [x] Merged to `thieves-forum` and pushed
-  - [ ] User approved C0 (§12 + contracts)
+  - [x] User approved C0 (§12 + contracts)
 - **TF1**
   - [ ] Atlas script + manifest + keys
   - [ ] Rigs (citizen, merchant, guard) + pose clips + tests
