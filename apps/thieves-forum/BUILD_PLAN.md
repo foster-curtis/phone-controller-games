@@ -1068,9 +1068,9 @@ Rules:
   - [x] Stall theft + merchant catch + tests
   - [x] Merged to `thieves-forum` and pushed
 - **TF9**
-  - [ ] Patrol, cones, LOS, spot, alerts + tests
-  - [ ] Chase/escape, guard + in-person catches, pot, stocks, immunity + tests
-  - [ ] Activations, reinforcements, cap + tests
+  - [x] Patrol, cones, LOS, spot, alerts + tests
+  - [x] Chase/escape, guard + in-person catches, pot, stocks, immunity + tests
+  - [x] Activations, reinforcements, cap + tests
   - [ ] Merged to `thieves-forum` and pushed
 - **TF10**
   - [x] Match state machine + transition tests
@@ -1255,6 +1255,18 @@ Format: `- [TF#] decision: one line, with the reason.`
 - [TF8] decision: dialog Buy… isn't a dialog pick in `SimCommand`, so the phone's `buy` goes to TF13, which calls `endService(ctx, merchant, customer)` to close the dialog; a dialog with no pick for 8 s reads as Leave (no suspicion).
 - [TF8] decision: "called away by an NPC" = 20% of NPCs he serves call him out from behind the counter for ~1.2 s; coin pick-up removes the coin and emits `coinPicked` on arrival (TF13 sets `merchant.coin` and calls `callAway`). Build tuning (help time, dialog timeout, show time, shout time, away wait, NPC call chance, browse reach) is in `sim/merchants/tuning.ts`, to move into `balance.ts` when its owner next edits it.
 - [TF8] decision: stock cycles a shop's counter items over its 4 counter spots and its uncommons over the shelf spots after `raresPerRound` rare(s), so repeated items fill a row when a shop has few; a shelf with only rares stocks one and leaves the rest empty.
+
+- [TF9] decision: catches pay through a ledger attached per world (`attachLedger(world, ledger)` from `sim/catches`), because the frozen `StepContext` has no ledger; TF12 must call it once per round with TF10's ledger (no ledger = no money moves).
+- [TF9] decision: a pot leaves the thief with `ledger.debit(thief, pot, payee)` and reaches a player with an explicit `ledger.credit` (catcher's whole pot, tipper's `floor(pot × tip.share)`); TF10's `debit` must only record the payee, never credit it, or pots pay twice.
+- [TF9] decision: starting guards are placed by the guards step on the first `play` step from `startingGuards(players, round)` (spread over the patrol loop), because `createWorld` ignores `RoundStart.guards` and the sim core isn't TF9's; TF12 may switch it to `RoundStart.guards`.
+- [TF9] decision: TF12 wiring: `views.ts` should fill `WorldView.guards` with `guards.map(g => guardView(g, world.tick, content.balance))` (exported from `sim/guards`); `movement.ts` should skip blocker collision for characters in the `stocks` activity (the layout's stocks slots sit inside the stocks blocker; catches re-pins them each step) and for guards in `enter` mode (collide clamps y to the walkable box, so a reinforcement appears at the gate mouth instead of walking down the aisle).
+- [TF9] decision: build tuning in `sim/guards/tuning.ts` (bang 1.2 s, caught beat 0.9 s, march timeout 20 s, march gap, stocks front, arrive radius), because `src/content/` isn't TF9's; move into `balance.ts` when its owner next edits it.
+- [TF9] decision: a chasing guard sees the thief within cone range with LOS at any angle (he turns his head), all chasers of one thief share sight (the escape clock runs only while no chaser sees them) and head for the shared last-seen point; only patrolling guards spot, and a second guard spotting an already-chased thief joins without a new activation.
+- [TF9] decision: any chase (spot or alert) turns the cone red; only a spot shows "!" and emits `guardSpot`; an alert or collect aimed at an NPC does nothing and counts no activation.
+- [TF9] decision: the stolen item goes back if the catch lands while its grab is live (hold ends `caught`) or within the 300 ms grace after it completed (item back in its slot, `ledger.removeItem`, `stallChanged`); a guard catch after the steal is long done takes only the pot, and a pickpocket caught inside the grace keeps its take (TF14 may refund it).
+- [TF9] decision: Catch! with nobody in reach (≤ `catch.reach`, within 90° of facing) does nothing; a mid-steal target who is immune (in the stocks or within 3 s of release) also does nothing (no penalty, no event); a right grab gives the thief a 0.9 s caught beat, then they are free.
+- [TF9] decision: a landed tip with no patrolling guard takes the nearest chasing guard, else waits for one; if every stocks slot is taken the guard keeps the pot and lets the thief go with the usual 3 s immunity; `stocksIn`/`stocks` `releaseAt` are ticks.
+- [TF9] decision: per-world bookkeeping (started flag, waiting collects, tracked grabs, march start) lives in module `WeakMap`s beside `World` like `derived.ts`, so the frozen `World` shape and state hash are unchanged.
 
 ## 9. Final handoff (and early setup)
 

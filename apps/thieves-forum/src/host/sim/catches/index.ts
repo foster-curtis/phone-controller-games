@@ -152,8 +152,7 @@ function inPerson(ctx: StepContext, catcherId: EntityId): void {
   const target = touched(ctx, catcher);
   if (!target) return;
   const catcherPlayer = playerOf(catcher);
-  const right =
-    target.side !== null && holds.isMidSteal(w, target.id, ctx.ticks(b.catch.graceMs));
+  const right = target.side !== null && holds.isMidSteal(w, target.id, ctx.ticks(b.catch.graceMs));
   if (right) {
     // A thief in the stocks or just out of them can't be caught again: the grab does nothing.
     if (!catchable(ctx, target.id)) return;

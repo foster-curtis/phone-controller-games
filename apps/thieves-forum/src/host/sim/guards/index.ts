@@ -5,7 +5,7 @@
 // reinforcement through the top gate, capped). Guards never grab NPCs and never react to browsing.
 // Frozen at TF0 (BUILD_PLAN §3): the exported names and signatures; the bodies are TF9's.
 import type { Balance, LaneId, Vec2 } from '../../../content/types';
-import { catches } from '../catches';
+import { catches, lockIn } from '../catches';
 import { dist } from '../geometry';
 import { findPath, navGraph } from '../nav';
 import type { GuardView } from '../snapshot';
@@ -14,7 +14,6 @@ import type {
   ActivationCause,
   Character,
   EntityId,
-  Gait,
   Guard,
   GuardMode,
   PlayerId,
@@ -71,14 +70,6 @@ function nearestPatrolPoint(ctx: StepContext, p: Vec2): number {
     }
   });
   return best;
-}
-
-function setMotion(g: Guard, vx: number, vy: number, gait: Gait, pose: PoseId): void {
-  g.vx = vx;
-  g.vy = vy;
-  g.gait = gait;
-  g.pose = pose;
-  if (vx * vx + vy * vy > 1e-8) g.facing = Math.atan2(vy, vx);
 }
 
 function stand(g: Guard, pose: PoseId = 'idle'): void {
@@ -161,7 +152,12 @@ function setGate(ctx: StepContext, open: boolean): void {
 export function spawnReinforcement(ctx: StepContext): Guard {
   const gate = ctx.content.layout.gate;
   setGate(ctx, true);
-  const g = newGuard(ctx.world, gate.spawn, { k: 'enter' }, ctx.content.balance.movement.bodyRadius);
+  const g = newGuard(
+    ctx.world,
+    gate.spawn,
+    { k: 'enter' },
+    ctx.content.balance.movement.bodyRadius,
+  );
   g.facing = Math.PI / 2;
   ctx.emit({ ch: 'tv', e: 'reinforcement', guard: g.id });
   return g;
@@ -323,7 +319,8 @@ function collect(ctx: StepContext, thiefId: EntityId, tipper: PlayerId): void {
   const thief = charOf(ctx.world, thiefId);
   if (!thief || !isThiefCandidate(thief)) return;
   activate(ctx, 'tipOff', thiefId);
-  if (!assignCollect(ctx, thief, tipper)) book(ctx.world).pendingCollects.push({ thief: thiefId, tipper });
+  if (!assignCollect(ctx, thief, tipper))
+    book(ctx.world).pendingCollects.push({ thief: thiefId, tipper });
 }
 
 // ---- the step (SPEC §12.3 step 5) --------------------------------------------------------------
@@ -335,7 +332,7 @@ function stepGuard(ctx: StepContext, g: Guard): void {
   switch (m.k) {
     case 'enter': {
       const at = content.layout.gate.at;
-      if (steerStraight(ctx, g, at, b.walkSpeed)) {
+      if (steerStraight(g, at, b.walkSpeed)) {
         backToPatrol(ctx, g);
         stand(g, 'patrol');
       } else {
@@ -395,7 +392,7 @@ function stepGuard(ctx: StepContext, g: Guard): void {
 }
 
 /** Straight line (the gate aisle is off the nav graph); true on arrival. */
-function steerStraight(ctx: StepContext, g: Guard, to: Vec2, speed: number): boolean {
+function steerStraight(g: Guard, to: Vec2, speed: number): boolean {
   const d = dist(g.x, g.y, to.x, to.y);
   if (d <= GUARD_TUNING.arrive) {
     g.vx = 0;
@@ -435,7 +432,7 @@ function stepMarch(ctx: StepContext, g: Guard, m: Extract<GuardMode, { k: 'march
   const timedOut = world.tick - since >= ctx.ticks(GUARD_TUNING.marchMaxMs);
   const thiefThere = dist(thief.x, thief.y, front.x, front.y) <= GUARD_TUNING.arrive * 2;
   if (thiefThere || timedOut) {
-    catches.lockIn(ctx, thief.id, m.slot);
+    lockIn(ctx, thief.id, m.slot);
     stand(g, 'patrol');
     backToPatrol(ctx, g);
     return;

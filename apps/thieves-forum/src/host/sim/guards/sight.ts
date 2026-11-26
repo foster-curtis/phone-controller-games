@@ -18,12 +18,24 @@ export function inWedge(g: Guard, p: Vec2, b: Balance): boolean {
 }
 
 /** In the cone with a clear line of sight (SPEC §6.12 spotting). */
-export function inCone(g: Guard, p: Vec2, layout: LayoutDef, b: Balance, gateOpen: boolean): boolean {
+export function inCone(
+  g: Guard,
+  p: Vec2,
+  layout: LayoutDef,
+  b: Balance,
+  gateOpen: boolean,
+): boolean {
   return inWedge(g, p, b) && lineOfSight(layout, g, p, gateOpen);
 }
 
 /** A chasing guard sees the thief: within cone range with a clear line of sight (SPEC §6.12 chase). */
-export function canSee(g: Guard, p: Vec2, layout: LayoutDef, b: Balance, gateOpen: boolean): boolean {
+export function canSee(
+  g: Guard,
+  p: Vec2,
+  layout: LayoutDef,
+  b: Balance,
+  gateOpen: boolean,
+): boolean {
   return dist(g.x, g.y, p.x, p.y) <= b.guards.coneRange && lineOfSight(layout, g, p, gateOpen);
 }
 
