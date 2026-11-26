@@ -6,6 +6,7 @@
 import type { EntryId, ItemId, Outfit, ShopId, StallId, Vec2 } from '../../content/types';
 import type { HoldKind, HoldResult } from '../../shared/hold';
 import type { SimEvent } from './events';
+import type { HoldMachineState } from './holds/types';
 import type { Side } from './ledger/types';
 
 export type { SimEvent } from './events';
@@ -318,6 +319,8 @@ export interface World {
   plannedNpcs: number;
   /** Cleared at the start of each step; views, audio and phones read them. */
   events: SimEvent[];
+  /** The hold machine's arms and hold-id counter (TF3); absent until the first arm. */
+  holdMachine?: HoldMachineState;
 }
 
 // ---- input, commands, round start --------------------------------------------------------------
