@@ -1,14 +1,24 @@
 // Outfit colors for the rigs (SPEC §6.11, §12.4): fabrics come from the brand kit (`theme.fabric`);
 // hair and skin are tone indices the sim rolls, mapped here because the brand kit has no hair or
-// skin palette (BUILD_PLAN §8, TF0 decision; flagged for the C0 look). The tones are the art
-// delivery's own values (ART_NOTES defaults and the reference files' --hair/--skin), widened.
+// skin palette (BUILD_PLAN §8, TF0 decision). The tables match the phone's outfit card (TF5) so
+// both screens agree; flag for C1.
 import type { Outfit } from '../../content/types';
 import { theme } from '../../shared/theme';
 import type { Tints } from './types';
 
-/** Index 0 is the art's default. */
-export const HAIR_TONES: readonly number[] = [0x3b2a20, 0x1f1a17, 0x5a3b26, 0x8a5a32, 0x6b6460];
-export const SKIN_TONES: readonly number[] = [0xc8946c, 0xe2b48c, 0x8d5a3b, 0xa8724e, 0x5e3b26];
+/**
+ * The same tables, in the same order, as the phone's outfit card (`src/controller/outfit.ts`, TF5),
+ * so a tone index reads the same color on the TV and the phone (BUILD_PLAN §8). The art's defaults
+ * are hair 1 (#3b2a20) and skin 2 (#c8946c).
+ */
+export const SKIN_TONES: readonly number[] = [
+  0xf0c8a0, 0xd9a577, 0xc8946c, 0xa8744f, 0x8a5a3c, 0x6b4429,
+];
+export const HAIR_TONES: readonly number[] = [
+  0x14100c, 0x3b2a20, 0x5a3b26, 0x8a5a2b, 0xb58a4a, 0xa8a8a8,
+];
+export const DEFAULT_HAIR = 1;
+export const DEFAULT_SKIN = 2;
 
 const tone = (tones: readonly number[], i: number) =>
   tones[((Math.trunc(i) % tones.length) + tones.length) % tones.length]!;

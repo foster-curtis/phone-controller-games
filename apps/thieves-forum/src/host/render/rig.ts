@@ -17,7 +17,7 @@ import {
 } from './atlas';
 import { blendSamples, sampleClip, type ClipSample } from './clip';
 import { attachPoint, composePose, decompose, viewForFacing, type Mat } from './rigMath';
-import { HAIR_TONES, SKIN_TONES, outfitTints } from './tones';
+import { DEFAULT_HAIR, DEFAULT_SKIN, HAIR_TONES, SKIN_TONES, outfitTints } from './tones';
 import {
   rigFrameName,
   type Clip,
@@ -39,8 +39,8 @@ const DEFAULT_FADE_MS = 120;
 export const DEFAULT_TINTS: Readonly<Tints> = {
   tunic: theme.fabric.woad.num,
   mantle: theme.fabric.linen.num,
-  hair: HAIR_TONES[0]!,
-  skin: SKIN_TONES[0]!,
+  hair: HAIR_TONES[DEFAULT_HAIR]!,
+  skin: SKIN_TONES[DEFAULT_SKIN]!,
   wrap: theme.fabric.terracotta.num,
 };
 
