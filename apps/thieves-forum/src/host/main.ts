@@ -1,72 +1,99 @@
-// TV entry (index.html, SPEC §4, §5): opens a room under game ID `thieves-forum`, boots the Phaser
-// canvas (placeholder forum) and shows the title / lobby over it as DOM. Wake Lock, the full-screen
-// button and, in dev or with `?debug=1`, `window.__pcg` (room code and roster, for e2e).
-// Mode routing (SPEC §12.7, TF0) so parallel milestones never share an entry file: `?gallery=1` →
-// gallery/ (TF1), `?spike=tipoff` → spike/ (TF4), `?ui=<screen>` → ui/preview.ts (TF6), else the game.
-// Setup shell: no match flow yet (BUILD_PLAN).
+// TV entry (index.html, SPEC §4, §5, §6.16, §12.2, §12.3): opens a room under game ID `thieves-forum`,
+// boots the market scene (Phaser renders only) and the TV DOM UI (`createTvUi`, TF6) over it, and runs
+// the crowd spike (game.ts, TF7): lobby → Start (leader phone or the TV's key) → a round of the sim.
+// The sim steps on a 60 Hz timer, not on render frames, and not while the tab is hidden. Wake Lock,
+// the full-screen button and, in dev or with `?debug=1`, `window.__pcg` (debug.ts, hook groups in
+// debugHooks/), `?timeScale=<n>` and the dev overlay (`D` / `?overlay=1`).
+// Mode routing (SPEC §12.7, TF0): `?gallery=1` → gallery/ (TF1), `?spike=tipoff` → spike/ (TF4),
+// `?ui=<screen>` → ui/preview.ts (TF6), `?stress=1` → stress.ts (TF7), else the game.
 import {
   createHostFullscreenButton,
   createHostWakeLock,
   debugEnabled,
-  installDebug,
-  relayUrl,
+  watchVisibility,
 } from '@pcg/game-kit';
-import { createHostClient } from '@pcg/net-client';
-import { GAME_ID, isPhoneMsg, MAX_PLAYERS, type HostMsg } from '../shared/messages';
 import { mountVersionTag } from '../shared/version';
 import '../styles/brand.css';
 import '../styles/tv.css';
-import { createLobby } from './lobby';
-import { createRoster } from './roster';
-import { createForumGame } from './scene/forumScene';
+import type * as Phaser from 'phaser';
+import { createRuntime } from './game';
+import { createRelayClient } from './net';
+import { createMarketGame } from './scene/market';
+import type { SceneOverlay } from './scene/types';
+import { createTvUi } from './ui/tvUi';
 
 const tv = document.getElementById('tv') ?? document.body;
+const params = new URLSearchParams(location.search);
+const debug = debugEnabled(import.meta.env.DEV);
 mountVersionTag();
 
-function bootGame(): void {
+async function bootGame(): Promise<void> {
+  const client = createRelayClient();
+  const rt = createRuntime({ client, origin: location.origin });
+  const timeScale = Number(params.get('timeScale'));
+  if (debug && timeScale > 0) rt.setTimeScale(timeScale);
+
+  // Debug-only modules load only behind the debug switch (scene/__tests__/disguise.test.ts).
+  let overlay: ((scene: Phaser.Scene) => SceneOverlay) | undefined;
+  if (debug) {
+    const [{ createDevOverlay }, { installHostDebug }] = await Promise.all([
+      import('./scene/overlay'),
+      import('./debug'),
+    ]);
+    overlay = (scene) =>
+      createDevOverlay(scene, () => {
+        const d = rt.debugView();
+        return d ? { debug: d, names: rt.playerNames() } : null;
+      });
+    installHostDebug(rt);
+  }
+
   const stage = document.createElement('div');
   stage.className = 'tv-stage';
   tv.append(stage);
-  createForumGame(stage);
+  createMarketGame(stage, rt, overlay ? { overlay } : {});
 
-  const client = createHostClient({
-    url: relayUrl(import.meta.env.VITE_RELAY_URL),
-    game: GAME_ID,
-    maxPlayers: MAX_PLAYERS,
+  const ui = createTvUi(tv);
+  ui.onControl((c) => {
+    if (c === 'start') rt.start();
   });
-  const roster = createRoster();
-  const lobby = createLobby(tv, location.origin);
-  const render = () =>
-    lobby.update({ code: client.code, names: roster.players().map((p) => p.name) });
+  let lastPhase = '';
+  let lastAt = 0;
+  /** The DOM UI re-renders at 10 Hz, and at once when the phase changes. */
+  const render = (force = false) => {
+    const t = performance.now();
+    const view = rt.tvView();
+    if (!force && view.phase === lastPhase && t - lastAt < 100) return;
+    lastPhase = view.phase;
+    lastAt = t;
+    ui.render(view);
+  };
+  rt.onChange(() => render(true));
 
-  client.onMessage((from, data) => {
-    if (!isPhoneMsg(data) || data.t !== 'join') return;
-    const name = roster.join(from, data.name);
-    if (name === null) return;
-    client.send({ t: 'joined', name } satisfies HostMsg, from);
+  let last = performance.now();
+  setInterval(() => {
+    const t = performance.now();
+    rt.tick(t - last);
+    last = t;
     render();
-  });
-  client.onPeer((change) => {
-    roster.peer(change);
-    render();
-  });
-  client.onRoom(() => render());
+  }, 1000 / 60);
+  watchVisibility((v) => rt.setVisible(v));
 
   createHostFullscreenButton({ parent: tv });
   void createHostWakeLock().request();
-  if (debugEnabled(import.meta.env.DEV)) {
-    installDebug({ code: () => client.code, players: () => roster.players() });
-  }
-
-  render();
-  void client.start().then(render, (e: unknown) => {
+  render(true);
+  try {
+    await client.start();
+  } catch (e) {
     console.error("Thieves' Forum: could not open a room", e);
-  });
+  }
+  render(true);
 }
 
-const params = new URLSearchParams(location.search);
 const ui = params.get('ui');
 if (params.get('gallery') === '1') void import('./gallery/index').then((m) => m.mount(tv));
 else if (params.get('spike') === 'tipoff') void import('./spike/index').then((m) => m.mount(tv));
 else if (ui) void import('./ui/preview').then((m) => m.mount(tv, ui));
-else bootGame();
+else if (params.get('stress') === '1')
+  void import('./stress').then((m) => m.startStress(tv, debug));
+else void bootGame();

@@ -42,7 +42,21 @@ export interface MarketSceneOptions {
 interface CharSprite {
   rig: RigSprite;
   look: string;
+  /** The facing the rig's view was last picked from (view hysteresis). */
+  facing: number;
 }
+
+/**
+ * A rig's view changes only once the facing has turned this far (radians) from the facing it was
+ * picked from: steering wobble near a view boundary would otherwise rebuild the rig every frame
+ * (BUILD_PLAN §8 [TF7] perf).
+ */
+const FACE_HYSTERESIS = 0.35;
+
+const angleDiff = (a: number, b: number) => {
+  const d = Math.abs(a - b) % (Math.PI * 2);
+  return d > Math.PI ? Math.PI * 2 - d : d;
+};
 
 interface StallSlot {
   sprite: StallSprite;
@@ -57,6 +71,9 @@ interface StallSlot {
 
 const lookKey = (o: { tunic: string; mantle: string; hair: number; skin: number }) =>
   `${o.tunic}|${o.mantle}|${o.hair}|${o.skin}`;
+
+/** Screen px per floor-tile unit (80 units per 48 px tile, BUILD_PLAN §8 [TF1]). */
+const FLOOR_UNIT_PX = 0.6;
 
 const FABRICS = Object.keys(theme.fabric) as FabricId[];
 
@@ -95,11 +112,7 @@ export class MarketScene extends Phaser.Scene {
   create() {
     this.world = new RenderWorld(this, this.scale1);
     const { layout } = CONTENT;
-    for (const t of floorTiles(layout)) {
-      const p = this.world.lib.piece('floor-tile');
-      placePiece(p, t.x, t.y, 0.6);
-      addPiece(p, this.world.layers.ground);
-    }
+    this.buildFloor();
     for (const slot of layout.stalls) {
       const box = stallBox(slot);
       const sprite = this.world.stall(slot.shop, box.unitPx);
@@ -135,6 +148,33 @@ export class MarketScene extends Phaser.Scene {
     this.opts.onReady?.(this);
   }
 
+  /**
+   * The paving: one tile sprite repeating the floor tile over the market (one draw instead of ~1500
+   * images, BUILD_PLAN §8 [TF7] perf), or the per-tile images when the frame fell back to a shape.
+   */
+  private buildFloor() {
+    const { layout } = CONTENT;
+    const tile = this.world.lib.piece('floor-tile');
+    const img = tile.layers[0]!.img;
+    if (tile.layers.length === 1 && this.world.lib.has('floor-tile')) {
+      const w = layout.size.w * camera.tilePx;
+      const h = layout.size.h * camera.tilePx * camera.groundFactor;
+      const ts = this.add
+        .tileSprite(0, 0, w, h, img.texture.key, img.frame.name)
+        .setOrigin(0, 0)
+        .setTileScale(FLOOR_UNIT_PX / tile.ppuX, FLOOR_UNIT_PX / tile.ppuY);
+      this.world.layers.ground.add(ts);
+      img.destroy();
+      return;
+    }
+    img.destroy();
+    for (const t of floorTiles(layout)) {
+      const p = this.world.lib.piece('floor-tile');
+      placePiece(p, t.x, t.y, FLOOR_UNIT_PX);
+      addPiece(p, this.world.layers.ground);
+    }
+  }
+
   /** Rigs and stalls alive (stress readout). */
   get counts() {
     return { rigs: this.world.rigs.size, characters: this.chars.size };
@@ -160,7 +200,8 @@ export class MarketScene extends Phaser.Scene {
       let s = this.chars.get(c.id);
       const look = lookKey(c.outfit);
       if (!s) {
-        s = { rig: this.world.rig('citizen', { outfit: c.outfit }), look };
+        s = { rig: this.world.rig('citizen', { outfit: c.outfit }), look, facing: c.facing };
+        s.rig.face(c.facing);
         this.chars.set(c.id, s);
       } else if (s.look !== look) {
         s.rig.setOutfit(c.outfit);
@@ -172,7 +213,10 @@ export class MarketScene extends Phaser.Scene {
       const at = camera.toScreen({ x, y });
       // Y-sort by foot point; ties break by entity id (SPEC §12.2).
       s.rig.setPosition(at.x, at.y, at.y + c.id * 1e-6);
-      s.rig.face(c.facing);
+      if (angleDiff(c.facing, s.facing) > FACE_HYSTERESIS) {
+        s.facing = c.facing;
+        s.rig.face(c.facing);
+      }
       s.rig.play(c.pose, { speed: GAIT_RATE[c.gait] });
       this.feet.set(c.id, at);
     }

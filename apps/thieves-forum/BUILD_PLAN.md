@@ -1057,9 +1057,9 @@ Rules:
   - [x] Title, lobby, HUD, hands-up, reveal card, podium, rules host + tests
   - [x] Merged to `thieves-forum` and pushed
 - **TF7**
-  - [ ] Host loop, input, world scene, HUD, debug hooks, timeScale
-  - [ ] Dev overlay, stress mode, phone wiring
-  - [ ] Spike e2e + scene disguise test
+  - [x] Host loop, input, world scene, HUD, debug hooks, timeScale
+  - [x] Dev overlay, stress mode, phone wiring
+  - [x] Spike e2e + scene disguise test
   - [ ] Merged to `thieves-forum` and pushed
   - [ ] User approved C1 (crowd spike, tip-off spike, phone dev, gallery)
 - **TF8**
@@ -1267,6 +1267,18 @@ Format: `- [TF#] decision: one line, with the reason.`
 - [TF9] decision: Catch! with nobody in reach (≤ `catch.reach`, within 90° of facing) does nothing; a mid-steal target who is immune (in the stocks or within 3 s of release) also does nothing (no penalty, no event); a right grab gives the thief a 0.9 s caught beat, then they are free.
 - [TF9] decision: a landed tip with no patrolling guard takes the nearest chasing guard, else waits for one; if every stocks slot is taken the guard keeps the pot and lets the thief go with the usual 3 s immunity; `stocksIn`/`stocks` `releaseAt` are ticks.
 - [TF9] decision: per-world bookkeeping (started flag, waiting collects, tracked grabs, march start) lives in module `WeakMap`s beside `World` like `derived.ts`, so the frozen `World` shape and state hash are unchanged.
+- [TF7] decision: phones stay on the "Connected" screen in the lobby (no `screen lobby` yet), because `e2e/smoke.spec.ts` (not TF7's) expects it after joining; the host already accepts the leader phone's `leader start`, and the e2e sends it through the phone's debug hook `__pcg.send` (added to `controller/main.ts`). TF12/TF16 send the real lobby screen and update the smoke spec.
+- [TF7] decision: the spike's Start needs ≥ `MIN_PLAYERS` and ignores Ready; the round runs opening → play → hands up, then returns to the lobby after 6 s (`HANDS_UP_MS`), because the match flow is TF10/TF12/TF16. Phones get `roundStart`, `play` and `handsUp` screens plus `outfit` and a blank `context`.
+- [TF7] decision: the open-stall rule (§6.3, §11 #24) has a spike copy, `spikeOpenStalls(seed, players)` in `game.ts`, with a test, because the match layer is TF10's; TF12 swaps in TF10's.
+- [TF7] decision: the sim steps on a 60 Hz `setInterval` from wall time (as Fort Frenzy), not on render frames, and not while the tab is hidden; `?timeScale=n` (debug, max 8) feeds n × wall time to the fixed step, and phone `endsInMs` / the HUD timer are divided by it.
+- [TF7] decision: until TF8 fills `WorldView.merchants`, every open stall shows a placeholder merchant idling at its counter with a fixed per-stall look; once the sim has any merchant the scene draws only the sim's (depth from its y between the counter and shelf lines).
+- [TF7] decision: debug hook groups are `src/host/debugHooks/<group>.ts` default-exporting `(runtime, registerDebug) => void`, loaded in name order by `debug.ts`; `core.ts` (`code`, `players`, `phase`, `world`, `setTimeScale`, `timeScale`) and `sim.ts` (`debug`, `characterOf`, `stepStats`). `debug.ts` and `scene/overlay.ts` are only `import()`ed inside main.ts's debug branch (disguise test).
+- [TF7] decision: `src/host/lobby.ts` (TF6's shim) and `ui/lobby.ts` are no longer imported (main.ts drives `createTvUi` with `TvView`s from `game.ts`); deleting them is left to TF12, because they are TF6's files. `scene/forumScene.ts` (scaffold placeholder, TF7's folder) was deleted.
+- [TF7] decision: the hair/skin tone tables stay two copies (`render/tones.ts`, `controller/outfit.ts`): one shared module would be outside TF7's files, so `scene/__tests__/tones.test.ts` asserts they match (it reads the phone file as text). Flag for C1 / TF12: move both to one `src/shared/` table.
+- [TF7] decision: perf fixes in the scene: the floor is one `TileSprite` of the floor tile (not ~1500 images), and a rig's view changes only after its facing turns 0.35 rad from the facing it was picked from (steering wobble at a view boundary rebuilt rigs every frame).
+- [TF7] bench: `?stress=1&debug=1` (8 bots + 24 NPCs, 10 merchants, 42 rigs) at 1920 × 1080 in headless Chromium (software GL, sandbox load average 3–6 from parallel milestones): 12–18 fps, the TF1 gallery stress page measured 16–60 fps back to back in the same runs (load noise); sim step mean 0.08–0.3 ms, p99 0.6–8 ms. The real number is read on the TV at C1; below 50 fps, the FF15 fallbacks (less clip blending, batched shadows) apply.
+- [TF7] decision: the e2e suite stays non-exclusive: it passed with the default settings, and `timeScale` 2 leaves the sim well inside a frame.
+- [TF7] decision: TF11's Sound on / `installUnlock` is not wired into main.ts yet (TF11 merged during TF7); TF12 wires audio with the match events.
 
 ## 9. Final handoff (and early setup)
 

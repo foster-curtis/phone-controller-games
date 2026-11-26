@@ -41,6 +41,7 @@ export function frontAnchor(r: { x: number; y: number; w: number; h: number }) {
 export function floorTiles(layout: Pick<LayoutDef, 'size'>): { x: number; y: number }[] {
   const out: { x: number; y: number }[] = [];
   for (let ty = 0; ty < Math.ceil(layout.size.h); ty++)
-    for (let tx = 0; tx < Math.ceil(layout.size.w); tx++) out.push(camera.toScreen({ x: tx, y: ty }));
+    for (let tx = 0; tx < Math.ceil(layout.size.w); tx++)
+      out.push(camera.toScreen({ x: tx, y: ty }));
   return out;
 }

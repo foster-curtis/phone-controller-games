@@ -1,7 +1,7 @@
 // Phone entry (play.html, SPEC §3, §4, §12.7). With `?code=` the app joins that room through the relay;
 // without one it shows the join screen and reloads under the typed code. Mode routing (TF0): `?dev=1` →
 // dev.ts (TF5, offline), `?spike=tipoff` → tipoff/spike.ts (TF4). In dev or with `?debug=1`,
-// `window.__pcg` exposes the client.
+// `window.__pcg` exposes the client (and `send`, for e2e).
 // Never imports Phaser or host code (lint, check:bundle).
 import { createLocalClient, isDevMode } from '@pcg/controller-kit';
 import { debugEnabled, installDebug, relayUrl } from '@pcg/game-kit';
@@ -31,7 +31,12 @@ function boot(): void {
   });
   createApp({ root, client, code, goToRoom });
   if (debugEnabled(import.meta.env.DEV)) {
-    installDebug({ playerId: () => client.playerId, status: () => client.status });
+    // `send` lets e2e act as this phone (e.g. the leader's Start before TF12's lobby screen, BUILD_PLAN §8).
+    installDebug({
+      playerId: () => client.playerId,
+      status: () => client.status,
+      send: (msg: unknown) => client.send(msg),
+    });
   }
   client.connect().then(
     ({ playerId }) => (root.dataset.playerId = playerId),
