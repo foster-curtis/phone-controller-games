@@ -1048,7 +1048,7 @@ Rules:
   - [x] Blob transfer (host → phone) + 16 KB envelope test
   - [x] Snapshot encoder + tip viewer + tests
   - [x] Spike mode + tip-off e2e
-  - [ ] Merged to `thieves-forum` and pushed
+  - [x] Merged to `thieves-forum` and pushed
 - **TF5**
   - [ ] Shell, router, dev mode
   - [ ] Every §6.17 screen + jsdom tests + dev e2e
