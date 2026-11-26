@@ -122,7 +122,8 @@ function randomLanePoint(ctx: StepContext, rng: Rng): Vec2 {
 function chooseLeg(ctx: StepContext, c: Character, rng: Rng): void {
   const n = c.npc;
   const nav = n.nav!;
-  nav.passed = [];
+  // The stall it just left never counts as a fresh detour.
+  nav.passed = nav.stall !== null ? [nav.stall] : [];
   nav.detour = false;
   nav.look = null;
   nav.brisk = n.personality.hurried && rng.next() < T.briskLeg;
@@ -257,9 +258,10 @@ export function think(ctx: StepContext, c: Character, rng: Rng): boolean {
         // Technique 5: now and then, turn round and walk back a few steps.
         if (rng.next() < T.doubleBack / (4 * 60) && c.vx * c.vx + c.vy * c.vy > 0.5) {
           const sp = Math.sqrt(c.vx * c.vx + c.vy * c.vy);
+          const bx = graphOf(ctx).bounds;
           const back = {
-            x: c.x - (c.vx / sp) * T.doubleBackDist,
-            y: c.y - (c.vy / sp) * T.doubleBackDist,
+            x: Math.max(bx.x0 + 0.5, Math.min(bx.x1 - 0.5, c.x - (c.vx / sp) * T.doubleBackDist)),
+            y: Math.max(bx.y0 + 0.5, Math.min(bx.y1 - 0.5, c.y - (c.vy / sp) * T.doubleBackDist)),
           };
           if (clearPath(graphOf(ctx), c, back)) {
             nav.leg = 'back';
@@ -275,7 +277,9 @@ export function think(ctx: StepContext, c: Character, rng: Rng): boolean {
       if (nav.path.length === 0) {
         n.state = 'browsing';
         c.activity = { k: 'browsing', stall: nav.stall! };
-        const ms = n.personality.browseMs * (nav.detour ? T.detourBrowse : 1);
+        // Browse plus buy stays under the stand-still cap (C1 "never frozen").
+        const cap = T.maxStillMs - T.buyMs[1] - 500;
+        const ms = Math.min(cap, n.personality.browseMs * (nav.detour ? T.detourBrowse : 1));
         n.until = t + ctx.ticks(ms);
       }
       break;
@@ -298,7 +302,16 @@ export function think(ctx: StepContext, c: Character, rng: Rng): boolean {
     case 'browsing':
       faceStall(ctx, c);
       if (t >= n.until) {
-        if (nav.detour) {
+        if (
+          nav.detour &&
+          n.wishList.length > 0 &&
+          n.wishList[0] === ctx.world.stalls[nav.stall!]!.shop
+        ) {
+          // Browsed on a whim at the very stall it wanted: buy here.
+          nav.detour = false;
+          n.state = 'buying';
+          n.until = t + ctx.ticks(between(rng, T.buyMs));
+        } else if (nav.detour) {
           releaseSpot(nav);
           free(c);
           n.state = 'wandering';
@@ -340,6 +353,16 @@ export function think(ctx: StepContext, c: Character, rng: Rng): boolean {
     nav.pauseUntil = t;
     n.until = Math.min(n.until, t);
     nav.still = 0;
+    if (n.state === 'browsing' || n.state === 'buying') {
+      if (!nav.detour && nav.stall !== null) {
+        NPC_HOOKS.buy(ctx, c, nav.stall);
+        n.wishList.shift();
+      }
+      releaseSpot(nav);
+      free(c);
+      n.state = 'wandering';
+      nav.leg = 'none';
+    }
   }
   return false;
 }
@@ -399,7 +422,8 @@ export function steer(ctx: StepContext, c: Character, rng: Rng): void {
   spatialOf(ctx.world).query(c.x, c.y, sepR, near);
   for (const id of near) {
     if (id === c.id) continue;
-    const o = ctx.world.characters.find((x) => x.id === id) ?? ctx.world.guards.find((x) => x.id === id);
+    const o =
+      ctx.world.characters.find((x) => x.id === id) ?? ctx.world.guards.find((x) => x.id === id);
     if (!o) continue;
     const dx = c.x - o.x;
     const dy = c.y - o.y;
@@ -440,7 +464,10 @@ export function steer(ctx: StepContext, c: Character, rng: Rng): void {
   if (nav.stuck > ctx.ticks(T.stuckMs)) {
     nav.stuck = 0;
     const end = nav.path[nav.path.length - 1]!;
-    nav.path = findPath(g, c, end);
+    // Nearly there (someone's standing on the spot), or an aside (doubling back, a roam, a coin)
+    // that can't be reached: count it as reached.
+    const aside = nav.leg === 'back' || nav.leg === 'roam' || nav.leg === 'coin';
+    nav.path = aside || (final && d < T.closeEnough) ? [] : findPath(g, c, end);
     nav.wander = angleDiff(rng.next() * 2 * Math.PI, 0) * 0.5;
     if (n.state === 'wandering' && nav.leg !== 'exit') {
       // Give way: a short sidestep pause, then on.
@@ -448,4 +475,3 @@ export function steer(ctx: StepContext, c: Character, rng: Rng): void {
     }
   }
 }
-

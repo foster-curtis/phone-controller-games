@@ -89,7 +89,12 @@ export function navGraph(layout: LayoutDef, radius: number): NavGraph {
   if (hit) return hit;
   const box = walkBox(layout);
   const pad = Math.max(NAV_PAD, radius + 0.1);
-  const bounds = { x0: box.x0 + radius, y0: box.y0 + radius, x1: box.x1 - radius, y1: box.y1 - radius };
+  const bounds = {
+    x0: box.x0 + radius,
+    y0: box.y0 + radius,
+    x1: box.x1 - radius,
+    y1: box.y1 - radius,
+  };
   const padded = layout.blockers.map((r) => inflate(r, pad - 0.05));
   const nodes: Vec2[] = [];
   // Lane centre points, plus points near the lane edges by every stall row.

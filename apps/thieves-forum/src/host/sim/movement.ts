@@ -18,7 +18,11 @@ const SEPARATION_STIFFNESS = 0.6;
 /** NPC walking speed range (tiles/s): every personality, plain walk to brisk (SPEC §6.10). */
 export function npcSpeedRange(b: Balance): { walkMin: number; walkMax: number; max: number } {
   const [lo, hi] = b.npcs.personality.speed;
-  return { walkMin: b.movement.walk * lo, walkMax: b.movement.walk * hi, max: b.movement.brisk * hi };
+  return {
+    walkMin: b.movement.walk * lo,
+    walkMax: b.movement.walk * hi,
+    max: b.movement.brisk * hi,
+  };
 }
 
 /**

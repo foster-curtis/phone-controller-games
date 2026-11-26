@@ -51,6 +51,8 @@ export const TUNING = {
     wanderMax: 1.1,
     /** Safety: nobody stands still longer than this (C1 "never frozen"), ms. */
     maxStillMs: 7000,
+    /** Stuck this close to the final waypoint counts as arrived (tiles). */
+    closeEnough: 1.2,
     /** Trying to walk but not moving for this long → pick a new path, ms. */
     stuckMs: 1500,
     /** Leaving: chance to use the nearest entry (else a random one). */
