@@ -1050,8 +1050,8 @@ Rules:
   - [x] Spike mode + tip-off e2e
   - [x] Merged to `thieves-forum` and pushed
 - **TF5**
-  - [ ] Shell, router, dev mode
-  - [ ] Every §6.17 screen + jsdom tests + dev e2e
+  - [x] Shell, router, dev mode
+  - [x] Every §6.17 screen + jsdom tests + dev e2e
   - [ ] Merged to `thieves-forum` and pushed
 - **TF6**
   - [x] Title, lobby, HUD, hands-up, reveal card, podium, rules host + tests
@@ -1189,6 +1189,13 @@ Format: `- [TF#] decision: one line, with the reason.`
 - [TF4] decision: the tip viewer and spike CSS sit beside their modules (`src/controller/tipoff/*.css`, `src/host/spike/spike.css`), because `src/styles/` is outside TF4's Owns.
 - [TF4] decision: measured on the local relay (e2e): three 960 × 540 snapshots of 33.8–34.0 KB at q0.6, 4 chunks each, 28–93 ms from tap to last chunk, no socket close. The deployed relay is unreachable from the sandbox (egress proxy 403 on relay.fostercurtis.dev), so the deployed-relay numbers are read at C1 from the spike page (phone shows KB, chunks, ms; TV logs encode ms and acks; `?edge=800` for the slow-relay fallback).
 - [TF4] decision: extraction candidates (no game imports, source named in headers): `src/shared/blob-transfer/{index,base64}.ts` (from Say Cheese, generalized to `blobId` and host → phone) and `src/shared/viewer/{hits,encode}.ts` join the `viewer/` candidate for `@pcg/net-client`.
+- [TF5] decision: the host sends one resolved `context.main`, so the phone's BROWSE > SELL > PICKPOCKET rule is the exported `resolveMain` (state.ts), tested and available to the host wiring, because the frozen `context` message carries a single action.
+- [TF5] decision: hair and skin tones are a phone-local 6-entry table in `src/controller/outfit.ts` (indices wrap), because TF1 owns the renderer's tone table and it isn't shared yet; wire both to one table when TF7 lands (flag for C1).
+- [TF5] decision: the outfit card inlines `citizen/front.svg?raw` (not `?url`), because CSS variables only tint an inline SVG; item icons and the merchant face are `?no-inline` URLs so play.html JS stays at 28.6 KB gzip.
+- [TF5] decision: the HoldEstimator and tip viewer are injected through `createApp({ estimator, tipViewer })`; defaults are `fakeHold.ts` (a local stand-in with the TF0 contract) and `devTipViewer`. TF4's `createTipViewer` brings its own fee/SEND/Cancel and `onSend`, while TF5's `TipViewerFactory` (`tipViewer.ts`) is a selection-only viewer (`onSelect`, optional `feed(chunk)`) inside the TF5 tip sheet; TF14 adapts one to the other when it wires the viewer.
+- [TF5] decision: the phone toasts "Tip missed −N" and "Tip-off expired" from `tipResult` itself; the host sends only gain toasts (grab, pickpocket, tip payout, Lucky!) and loss toasts that have no other message, because `tipResult` already carries the fee.
+- [TF5] decision: a hold bar shows only while the phone presses or the host's hold runs, reads at most 99% until `holdEnd complete` (then 100% for 500 ms), and stays hidden after the host ends a hold under a still-held thumb, because SPEC §3 makes the host the judge.
+- [TF5] decision: Sell and Pawnbroker sheets get a local Close (no wire message; the host's next sheet reopens them), and the in-person CAUGHT! banner shows over the controller for 3.5 s, because the frozen protocol has no close-sheet message and the spec bans full-screen flashes.
 
 ## 9. Final handoff (and early setup)
 
