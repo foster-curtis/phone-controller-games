@@ -1033,7 +1033,7 @@ Rules:
   - [x] Atlas script + manifest + keys
   - [x] Rigs (citizen, merchant, guard) + pose clips + tests
   - [x] `?gallery=1` + stress view + gallery e2e
-  - [ ] Merged to `thieves-forum` and pushed
+  - [x] Merged to `thieves-forum` and pushed
 - **TF2**
   - [ ] Sim core, nav, LOS + determinism test
   - [ ] NPC module (five techniques) + churn + tests
