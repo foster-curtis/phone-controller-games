@@ -1076,7 +1076,7 @@ Rules:
   - [x] Match state machine + transition tests
   - [x] Ledger (by side) + payout tests
   - [x] Party/leader + open-stall rule + tests
-  - [ ] Merged to `thieves-forum` and pushed
+  - [x] Merged to `thieves-forum` and pushed
 - **TF11**
   - [x] Audio engine (bed, one-shots, ducking, scenes) + fake-context tests
   - [x] Forum AudioMap + `Sfx` + synth fallbacks
