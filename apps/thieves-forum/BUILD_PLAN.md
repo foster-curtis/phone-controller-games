@@ -1043,7 +1043,7 @@ Rules:
 - **TF3**
   - [x] Latency simulator + host hold machine + tests
   - [x] Phone estimator + catch grace + hot hands + tests
-  - [ ] Merged to `thieves-forum` and pushed
+  - [x] Merged to `thieves-forum` and pushed
 - **TF4**
   - [x] Blob transfer (host → phone) + 16 KB envelope test
   - [x] Snapshot encoder + tip viewer + tests
