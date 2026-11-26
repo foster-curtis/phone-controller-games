@@ -1,0 +1,1119 @@
+{
+  "id": "citizen",
+  "viewBox": [
+    0,
+    0,
+    40,
+    60
+  ],
+  "foot": [
+    20,
+    55
+  ],
+  "ppu": 2,
+  "notes": [
+    "Players and NPCs share this rig (SPEC §6.11). Part names are viewer-relative: -l is the viewer's left in front and back views; in side views (facing right) -l is the far limb and -r the near one.",
+    "The side views draw no far arm: arm-l there is the near arm's drawing again, behind the tunic, so walk cycles can swing it (composed from parts, BUILD_PLAN §8).",
+    "Pose overrides are the delivered drawings: point (front, side, back), handsUp (front), run (side). Missing views are composed by clips (`<clip>@<view>`)."
+  ],
+  "views": {
+    "front": {
+      "defaultPose": "base",
+      "poses": {
+        "base": {
+          "file": "characters/citizen/front.svg",
+          "parts": {
+            "shadow": {
+              "src": {
+                "id": "shadow"
+              },
+              "pivot": [
+                20,
+                55
+              ]
+            },
+            "leg-l": {
+              "src": {
+                "id": "legs",
+                "pick": [
+                  0,
+                  2
+                ]
+              },
+              "pivot": [
+                16.5,
+                44
+              ]
+            },
+            "leg-r": {
+              "src": {
+                "id": "legs",
+                "pick": [
+                  1,
+                  3
+                ]
+              },
+              "pivot": [
+                23.5,
+                44
+              ]
+            },
+            "arm-l": {
+              "src": {
+                "id": "arm-left"
+              },
+              "pivot": [
+                12,
+                30
+              ],
+              "parent": "tunic"
+            },
+            "arm-r": {
+              "src": {
+                "id": "arm-right"
+              },
+              "pivot": [
+                28,
+                30
+              ],
+              "parent": "tunic"
+            },
+            "tunic": {
+              "src": {
+                "id": "tunic"
+              },
+              "pivot": [
+                20,
+                46
+              ]
+            },
+            "mantle": {
+              "src": {
+                "id": "mantle"
+              },
+              "pivot": [
+                20,
+                30
+              ],
+              "parent": "tunic"
+            },
+            "head": {
+              "src": {
+                "id": "head"
+              },
+              "pivot": [
+                20,
+                24.5
+              ],
+              "parent": "tunic"
+            },
+            "hair": {
+              "src": {
+                "id": "hair"
+              },
+              "pivot": [
+                20,
+                24.5
+              ],
+              "parent": "head"
+            }
+          },
+          "order": [
+            "shadow",
+            "leg-l",
+            "leg-r",
+            "arm-l",
+            "arm-r",
+            "tunic",
+            "mantle",
+            "head",
+            "hair"
+          ],
+          "attach": {
+            "hand": {
+              "part": "arm-r",
+              "at": [
+                30.8,
+                41.2
+              ]
+            },
+            "head-top": {
+              "part": "head",
+              "at": [
+                20,
+                7
+              ]
+            },
+            "feet": {
+              "part": "shadow",
+              "at": [
+                20,
+                55
+              ]
+            }
+          }
+        },
+        "point": {
+          "file": "characters/citizen/point-front.svg",
+          "parts": {
+            "shadow": {
+              "src": {
+                "id": "shadow"
+              },
+              "pivot": [
+                20,
+                55
+              ]
+            },
+            "leg-l": {
+              "src": {
+                "id": "legs",
+                "pick": [
+                  0,
+                  2
+                ]
+              },
+              "pivot": [
+                16.5,
+                44
+              ]
+            },
+            "leg-r": {
+              "src": {
+                "id": "legs",
+                "pick": [
+                  1,
+                  3
+                ]
+              },
+              "pivot": [
+                23.5,
+                44
+              ]
+            },
+            "arm-l": {
+              "src": {
+                "id": "arm-point"
+              },
+              "pivot": [
+                12,
+                30.5
+              ],
+              "parent": "tunic"
+            },
+            "arm-r": {
+              "src": {
+                "id": "arm-right"
+              },
+              "pivot": [
+                28,
+                30
+              ],
+              "parent": "tunic"
+            },
+            "tunic": {
+              "src": {
+                "id": "tunic"
+              },
+              "pivot": [
+                20,
+                46
+              ]
+            },
+            "mantle": {
+              "src": {
+                "id": "mantle"
+              },
+              "pivot": [
+                20,
+                30
+              ],
+              "parent": "tunic"
+            },
+            "head": {
+              "src": {
+                "id": "head"
+              },
+              "pivot": [
+                20,
+                24.5
+              ],
+              "parent": "tunic"
+            },
+            "hair": {
+              "src": {
+                "id": "hair"
+              },
+              "pivot": [
+                20,
+                24.5
+              ],
+              "parent": "head"
+            }
+          },
+          "order": [
+            "shadow",
+            "leg-l",
+            "leg-r",
+            "arm-r",
+            "tunic",
+            "arm-l",
+            "mantle",
+            "head",
+            "hair"
+          ],
+          "attach": {
+            "hand": {
+              "part": "arm-l",
+              "at": [
+                0.8,
+                29.3
+              ]
+            },
+            "head-top": {
+              "part": "head",
+              "at": [
+                20,
+                7
+              ]
+            },
+            "feet": {
+              "part": "shadow",
+              "at": [
+                20,
+                55
+              ]
+            }
+          }
+        },
+        "handsUp": {
+          "file": "characters/citizen/hands-up-front.svg",
+          "parts": {
+            "shadow": {
+              "src": {
+                "id": "shadow"
+              },
+              "pivot": [
+                20,
+                55
+              ]
+            },
+            "leg-l": {
+              "src": {
+                "id": "legs",
+                "pick": [
+                  0,
+                  2
+                ]
+              },
+              "pivot": [
+                16.5,
+                44
+              ]
+            },
+            "leg-r": {
+              "src": {
+                "id": "legs",
+                "pick": [
+                  1,
+                  3
+                ]
+              },
+              "pivot": [
+                23.5,
+                44
+              ]
+            },
+            "arm-l": {
+              "src": {
+                "id": "arms-up",
+                "pick": [
+                  0
+                ]
+              },
+              "pivot": [
+                13,
+                28
+              ],
+              "parent": "tunic"
+            },
+            "arm-r": {
+              "src": {
+                "id": "arms-up",
+                "pick": [
+                  1
+                ]
+              },
+              "pivot": [
+                27,
+                28
+              ],
+              "parent": "tunic"
+            },
+            "tunic": {
+              "src": {
+                "id": "tunic"
+              },
+              "pivot": [
+                20,
+                46
+              ]
+            },
+            "mantle": {
+              "src": {
+                "id": "mantle"
+              },
+              "pivot": [
+                20,
+                30
+              ],
+              "parent": "tunic"
+            },
+            "head": {
+              "src": {
+                "id": "head"
+              },
+              "pivot": [
+                20,
+                24.5
+              ],
+              "parent": "tunic"
+            },
+            "hair": {
+              "src": {
+                "id": "hair"
+              },
+              "pivot": [
+                20,
+                24.5
+              ],
+              "parent": "head"
+            }
+          },
+          "order": [
+            "shadow",
+            "leg-l",
+            "leg-r",
+            "arm-l",
+            "arm-r",
+            "tunic",
+            "mantle",
+            "head",
+            "hair"
+          ],
+          "attach": {
+            "hand": {
+              "part": "arm-r",
+              "at": [
+                31.8,
+                16
+              ]
+            },
+            "head-top": {
+              "part": "head",
+              "at": [
+                20,
+                7
+              ]
+            },
+            "feet": {
+              "part": "shadow",
+              "at": [
+                20,
+                55
+              ]
+            }
+          }
+        }
+      }
+    },
+    "side": {
+      "defaultPose": "base",
+      "poses": {
+        "base": {
+          "file": "characters/citizen/side.svg",
+          "parts": {
+            "shadow": {
+              "src": {
+                "id": "shadow"
+              },
+              "pivot": [
+                20,
+                55
+              ]
+            },
+            "leg-l": {
+              "src": {
+                "id": "legs",
+                "pick": [
+                  0,
+                  2
+                ]
+              },
+              "pivot": [
+                18,
+                44
+              ]
+            },
+            "leg-r": {
+              "src": {
+                "id": "legs",
+                "pick": [
+                  1,
+                  3
+                ]
+              },
+              "pivot": [
+                22,
+                44
+              ]
+            },
+            "arm-l": {
+              "src": {
+                "id": "arm"
+              },
+              "pivot": [
+                20,
+                30.5
+              ],
+              "parent": "tunic"
+            },
+            "arm-r": {
+              "src": {
+                "id": "arm"
+              },
+              "pivot": [
+                20,
+                30.5
+              ],
+              "parent": "tunic"
+            },
+            "tunic": {
+              "src": {
+                "id": "tunic"
+              },
+              "pivot": [
+                20,
+                46
+              ]
+            },
+            "mantle": {
+              "src": {
+                "id": "mantle"
+              },
+              "pivot": [
+                20,
+                30
+              ],
+              "parent": "tunic"
+            },
+            "head": {
+              "src": {
+                "id": "head"
+              },
+              "pivot": [
+                20.5,
+                24.5
+              ],
+              "parent": "tunic"
+            },
+            "hair": {
+              "src": {
+                "id": "hair"
+              },
+              "pivot": [
+                20.5,
+                24.5
+              ],
+              "parent": "head"
+            }
+          },
+          "order": [
+            "shadow",
+            "arm-l",
+            "leg-l",
+            "leg-r",
+            "tunic",
+            "arm-r",
+            "mantle",
+            "head",
+            "hair"
+          ],
+          "attach": {
+            "hand": {
+              "part": "arm-r",
+              "at": [
+                23.2,
+                41
+              ]
+            },
+            "head-top": {
+              "part": "head",
+              "at": [
+                20.5,
+                7.5
+              ]
+            },
+            "feet": {
+              "part": "shadow",
+              "at": [
+                20,
+                55
+              ]
+            }
+          }
+        },
+        "point": {
+          "file": "characters/citizen/point-side.svg",
+          "parts": {
+            "shadow": {
+              "src": {
+                "id": "shadow"
+              },
+              "pivot": [
+                20,
+                55
+              ]
+            },
+            "leg-l": {
+              "src": {
+                "id": "legs",
+                "pick": [
+                  0,
+                  2
+                ]
+              },
+              "pivot": [
+                18,
+                44
+              ]
+            },
+            "leg-r": {
+              "src": {
+                "id": "legs",
+                "pick": [
+                  1,
+                  3
+                ]
+              },
+              "pivot": [
+                22,
+                44
+              ]
+            },
+            "arm-l": {
+              "src": null,
+              "pivot": [
+                20,
+                30.5
+              ],
+              "parent": "tunic"
+            },
+            "arm-r": {
+              "src": {
+                "id": "arm-point"
+              },
+              "pivot": [
+                20,
+                31
+              ],
+              "parent": "tunic"
+            },
+            "tunic": {
+              "src": {
+                "id": "tunic"
+              },
+              "pivot": [
+                20,
+                46
+              ]
+            },
+            "mantle": {
+              "src": {
+                "id": "mantle"
+              },
+              "pivot": [
+                20,
+                30
+              ],
+              "parent": "tunic"
+            },
+            "head": {
+              "src": {
+                "id": "head"
+              },
+              "pivot": [
+                20.5,
+                24.5
+              ],
+              "parent": "tunic"
+            },
+            "hair": {
+              "src": {
+                "id": "hair"
+              },
+              "pivot": [
+                20.5,
+                24.5
+              ],
+              "parent": "head"
+            }
+          },
+          "order": [
+            "shadow",
+            "arm-l",
+            "leg-l",
+            "leg-r",
+            "tunic",
+            "arm-r",
+            "mantle",
+            "head",
+            "hair"
+          ],
+          "attach": {
+            "hand": {
+              "part": "arm-r",
+              "at": [
+                36.2,
+                29.3
+              ]
+            },
+            "head-top": {
+              "part": "head",
+              "at": [
+                20.5,
+                7.5
+              ]
+            },
+            "feet": {
+              "part": "shadow",
+              "at": [
+                20,
+                55
+              ]
+            }
+          }
+        },
+        "run": {
+          "file": "characters/citizen/run-side.svg",
+          "parts": {
+            "shadow": {
+              "src": {
+                "id": "shadow"
+              },
+              "pivot": [
+                20,
+                55
+              ]
+            },
+            "leg-l": {
+              "src": {
+                "id": "legs",
+                "pick": [
+                  0,
+                  2
+                ]
+              },
+              "pivot": [
+                18,
+                44
+              ]
+            },
+            "leg-r": {
+              "src": {
+                "id": "legs",
+                "pick": [
+                  1,
+                  3
+                ]
+              },
+              "pivot": [
+                22,
+                44
+              ]
+            },
+            "arm-l": {
+              "src": {
+                "id": "arm"
+              },
+              "pivot": [
+                20.5,
+                31.5
+              ],
+              "parent": "tunic"
+            },
+            "arm-r": {
+              "src": {
+                "id": "arm"
+              },
+              "pivot": [
+                20.5,
+                31.5
+              ],
+              "parent": "tunic"
+            },
+            "tunic": {
+              "src": {
+                "id": "tunic"
+              },
+              "pivot": [
+                20,
+                46
+              ]
+            },
+            "mantle": {
+              "src": {
+                "id": "mantle"
+              },
+              "pivot": [
+                20,
+                30
+              ],
+              "parent": "tunic"
+            },
+            "head": {
+              "src": {
+                "id": "head"
+              },
+              "pivot": [
+                21.5,
+                24.5
+              ],
+              "parent": "tunic"
+            },
+            "hair": {
+              "src": {
+                "id": "hair"
+              },
+              "pivot": [
+                21.5,
+                24.5
+              ],
+              "parent": "head"
+            },
+            "speed-lines": {
+              "src": {
+                "id": "speed-lines"
+              },
+              "pivot": [
+                8,
+                32
+              ]
+            }
+          },
+          "order": [
+            "shadow",
+            "arm-l",
+            "leg-l",
+            "leg-r",
+            "tunic",
+            "arm-r",
+            "mantle",
+            "head",
+            "hair",
+            "speed-lines"
+          ],
+          "attach": {
+            "hand": {
+              "part": "arm-r",
+              "at": [
+                29,
+                27
+              ]
+            },
+            "head-top": {
+              "part": "head",
+              "at": [
+                21.5,
+                7.5
+              ]
+            },
+            "feet": {
+              "part": "shadow",
+              "at": [
+                20,
+                55
+              ]
+            }
+          }
+        }
+      }
+    },
+    "back": {
+      "defaultPose": "base",
+      "poses": {
+        "base": {
+          "file": "characters/citizen/back.svg",
+          "parts": {
+            "shadow": {
+              "src": {
+                "id": "shadow"
+              },
+              "pivot": [
+                20,
+                55
+              ]
+            },
+            "leg-l": {
+              "src": {
+                "id": "legs",
+                "pick": [
+                  0,
+                  2
+                ]
+              },
+              "pivot": [
+                16.5,
+                44
+              ]
+            },
+            "leg-r": {
+              "src": {
+                "id": "legs",
+                "pick": [
+                  1,
+                  3
+                ]
+              },
+              "pivot": [
+                23.5,
+                44
+              ]
+            },
+            "arm-l": {
+              "src": {
+                "id": "arm-left"
+              },
+              "pivot": [
+                12,
+                30
+              ],
+              "parent": "tunic"
+            },
+            "arm-r": {
+              "src": {
+                "id": "arm-right"
+              },
+              "pivot": [
+                28,
+                30
+              ],
+              "parent": "tunic"
+            },
+            "tunic": {
+              "src": {
+                "id": "tunic"
+              },
+              "pivot": [
+                20,
+                46
+              ]
+            },
+            "mantle": {
+              "src": {
+                "id": "mantle"
+              },
+              "pivot": [
+                20,
+                30
+              ],
+              "parent": "tunic"
+            },
+            "head": {
+              "src": {
+                "id": "head"
+              },
+              "pivot": [
+                20,
+                24.5
+              ],
+              "parent": "tunic"
+            },
+            "hair": {
+              "src": {
+                "id": "hair"
+              },
+              "pivot": [
+                20,
+                24.5
+              ],
+              "parent": "head"
+            }
+          },
+          "order": [
+            "shadow",
+            "leg-l",
+            "leg-r",
+            "arm-l",
+            "arm-r",
+            "tunic",
+            "mantle",
+            "head",
+            "hair"
+          ],
+          "attach": {
+            "hand": {
+              "part": "arm-r",
+              "at": [
+                30.8,
+                41.2
+              ]
+            },
+            "head-top": {
+              "part": "head",
+              "at": [
+                20,
+                7
+              ]
+            },
+            "feet": {
+              "part": "shadow",
+              "at": [
+                20,
+                55
+              ]
+            }
+          }
+        },
+        "point": {
+          "file": "characters/citizen/point-back.svg",
+          "parts": {
+            "shadow": {
+              "src": {
+                "id": "shadow"
+              },
+              "pivot": [
+                20,
+                55
+              ]
+            },
+            "leg-l": {
+              "src": {
+                "id": "legs",
+                "pick": [
+                  0,
+                  2
+                ]
+              },
+              "pivot": [
+                16.5,
+                44
+              ]
+            },
+            "leg-r": {
+              "src": {
+                "id": "legs",
+                "pick": [
+                  1,
+                  3
+                ]
+              },
+              "pivot": [
+                23.5,
+                44
+              ]
+            },
+            "arm-l": {
+              "src": {
+                "id": "arm-point"
+              },
+              "pivot": [
+                12,
+                30.5
+              ],
+              "parent": "tunic"
+            },
+            "arm-r": {
+              "src": {
+                "id": "arm-right"
+              },
+              "pivot": [
+                28,
+                30
+              ],
+              "parent": "tunic"
+            },
+            "tunic": {
+              "src": {
+                "id": "tunic"
+              },
+              "pivot": [
+                20,
+                46
+              ]
+            },
+            "mantle": {
+              "src": {
+                "id": "mantle"
+              },
+              "pivot": [
+                20,
+                30
+              ],
+              "parent": "tunic"
+            },
+            "head": {
+              "src": {
+                "id": "head"
+              },
+              "pivot": [
+                20,
+                24.5
+              ],
+              "parent": "tunic"
+            },
+            "hair": {
+              "src": {
+                "id": "hair"
+              },
+              "pivot": [
+                20,
+                24.5
+              ],
+              "parent": "head"
+            }
+          },
+          "order": [
+            "shadow",
+            "leg-l",
+            "leg-r",
+            "arm-r",
+            "tunic",
+            "arm-l",
+            "mantle",
+            "head",
+            "hair"
+          ],
+          "attach": {
+            "hand": {
+              "part": "arm-l",
+              "at": [
+                0.8,
+                29.3
+              ]
+            },
+            "head-top": {
+              "part": "head",
+              "at": [
+                20,
+                7
+              ]
+            },
+            "feet": {
+              "part": "shadow",
+              "at": [
+                20,
+                55
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "optional": {
+    "speed": [
+      "speed-lines"
+    ]
+  }
+}

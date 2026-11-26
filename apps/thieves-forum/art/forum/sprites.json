@@ -1,0 +1,635 @@
+{
+  "notes": [
+    "Every frame that is not a rig part (SPEC §12.10). Key = frame name (path under its category folder, no .svg).",
+    "anchor: the placement and y-sort point in the file's own units. Stalls anchor at the counter's front edge (SPEC §12.2); characters stand at the rig foot (20, 55).",
+    "layer: ground, world (y-sorted) or overlay (SPEC §12.2). ppu: atlas px per unit at 1× (stalls, gate and stocks draw at 3 px per unit like the 640 × 360 layout reference ×3; characters and effects at about 1.8).",
+    "Tint variables (--canopy on the stall frame, --player on the reveal ring) become their own white layers, tinted at draw time.",
+    "Files with \"reference\" in the name are composed references, not frames."
+  ],
+  "frames": {
+    "alert-bang": {
+      "category": "effects",
+      "file": "effects/alert-bang.svg",
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "overlay",
+      "ppu": 2
+    },
+    "bakery/cheese-wheel": {
+      "category": "items",
+      "file": "items/bakery/cheese-wheel.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "bakery/honey-cake": {
+      "category": "items",
+      "file": "items/bakery/honey-cake.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "bakery/honey-jar": {
+      "category": "items",
+      "file": "items/bakery/honey-jar.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "bakery/loaf-of-bread": {
+      "category": "items",
+      "file": "items/bakery/loaf-of-bread.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "caught-burst": {
+      "category": "effects",
+      "file": "effects/caught-burst.svg",
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "overlay",
+      "ppu": 2
+    },
+    "clothing/fine-toga": {
+      "category": "items",
+      "file": "items/clothing/fine-toga.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "clothing/sandals": {
+      "category": "items",
+      "file": "items/clothing/sandals.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "clothing/tunic": {
+      "category": "items",
+      "file": "items/clothing/tunic.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "clothing/wool-cloak": {
+      "category": "items",
+      "file": "items/clothing/wool-cloak.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "coin": {
+      "category": "effects",
+      "file": "effects/coin.svg",
+      "anchor": [
+        5,
+        5
+      ],
+      "layer": "overlay",
+      "ppu": 2
+    },
+    "coin-flat": {
+      "category": "effects",
+      "file": "effects/coin-flat.svg",
+      "anchor": [
+        6,
+        3
+      ],
+      "layer": "ground",
+      "ppu": 2
+    },
+    "confetti-pieces": {
+      "category": "effects",
+      "file": "effects/confetti-pieces.svg",
+      "anchor": [
+        36,
+        8
+      ],
+      "layer": "overlay",
+      "ppu": 2
+    },
+    "crown-laurel": {
+      "category": "effects",
+      "file": "effects/crown-laurel.svg",
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "overlay",
+      "ppu": 2
+    },
+    "firework-gold": {
+      "category": "effects",
+      "file": "effects/firework-gold.svg",
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "overlay",
+      "ppu": 2
+    },
+    "firework-white": {
+      "category": "effects",
+      "file": "effects/firework-white.svg",
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "overlay",
+      "ppu": 2
+    },
+    "floor-tile": {
+      "category": "map",
+      "file": "map/floor-tile.svg",
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "ppu": 1
+    },
+    "forum-backdrop": {
+      "category": "ui",
+      "file": "ui/forum-backdrop.svg",
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "overlay",
+      "ppu": 1
+    },
+    "gate-closed": {
+      "category": "map",
+      "file": "map/gate-closed.svg",
+      "anchor": [
+        14,
+        90
+      ],
+      "layer": "world",
+      "ppu": 3
+    },
+    "gate-open": {
+      "category": "map",
+      "file": "map/gate-open.svg",
+      "anchor": [
+        14,
+        90
+      ],
+      "layer": "world",
+      "ppu": 3
+    },
+    "glance-swoosh": {
+      "category": "effects",
+      "file": "effects/glance-swoosh.svg",
+      "anchor": [
+        18.5,
+        0
+      ],
+      "layer": "overlay",
+      "ppu": 2
+    },
+    "glint": {
+      "category": "effects",
+      "file": "effects/glint.svg",
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "overlay",
+      "ppu": 2
+    },
+    "jewelry/bronze-ring": {
+      "category": "items",
+      "file": "items/jewelry/bronze-ring.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "jewelry/gem-ring": {
+      "category": "items",
+      "file": "items/jewelry/gem-ring.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "jewelry/glass-bead-necklace": {
+      "category": "items",
+      "file": "items/jewelry/glass-bead-necklace.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "jewelry/gold-necklace": {
+      "category": "items",
+      "file": "items/jewelry/gold-necklace.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "jewelry/silver-bracelet": {
+      "category": "items",
+      "file": "items/jewelry/silver-bracelet.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "merchant-face": {
+      "category": "ui",
+      "file": "ui/merchant-face.svg",
+      "anchor": [
+        20,
+        20
+      ],
+      "layer": "overlay",
+      "ppu": 2
+    },
+    "perfume/olive-oil-flask": {
+      "category": "items",
+      "file": "items/perfume/olive-oil-flask.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "perfume/perfume-vial": {
+      "category": "items",
+      "file": "items/perfume/perfume-vial.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "perfume/scented-oil": {
+      "category": "items",
+      "file": "items/perfume/scented-oil.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "player-ring": {
+      "category": "effects",
+      "file": "effects/player-ring.svg",
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "ground",
+      "ppu": 2
+    },
+    "podium": {
+      "category": "ui",
+      "file": "ui/podium.svg",
+      "anchor": [
+        180,
+        110
+      ],
+      "layer": "overlay",
+      "ppu": 1
+    },
+    "pottery/amphora": {
+      "category": "items",
+      "file": "items/pottery/amphora.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "pottery/clay-cup": {
+      "category": "items",
+      "file": "items/pottery/clay-cup.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "pottery/oil-lamp": {
+      "category": "items",
+      "file": "items/pottery/oil-lamp.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "pottery/painted-vase": {
+      "category": "items",
+      "file": "items/pottery/painted-vase.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "question-bubble": {
+      "category": "effects",
+      "file": "effects/question-bubble.svg",
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "overlay",
+      "ppu": 2
+    },
+    "rugs/grand-carpet": {
+      "category": "items",
+      "file": "items/rugs/grand-carpet.svg",
+      "anchor": [
+        18,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "rugs/reed-mat": {
+      "category": "items",
+      "file": "items/rugs/reed-mat.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "rugs/wool-rug": {
+      "category": "items",
+      "file": "items/rugs/wool-rug.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "smithy/bronze-helmet": {
+      "category": "items",
+      "file": "items/smithy/bronze-helmet.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "smithy/gladius": {
+      "category": "items",
+      "file": "items/smithy/gladius.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "smithy/hammer": {
+      "category": "items",
+      "file": "items/smithy/hammer.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "smithy/knife": {
+      "category": "items",
+      "file": "items/smithy/knife.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "speed-lines": {
+      "category": "effects",
+      "file": "effects/speed-lines.svg",
+      "anchor": [
+        12,
+        31
+      ],
+      "layer": "overlay",
+      "ppu": 2
+    },
+    "spices/cinnamon-bundle": {
+      "category": "items",
+      "file": "items/spices/cinnamon-bundle.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "spices/pepper-pouch": {
+      "category": "items",
+      "file": "items/spices/pepper-pouch.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "spices/sack-of-salt": {
+      "category": "items",
+      "file": "items/spices/sack-of-salt.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "spices/saffron-pouch": {
+      "category": "items",
+      "file": "items/spices/saffron-pouch.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "stall-back": {
+      "category": "stalls",
+      "file": "stalls/stall-back.svg",
+      "anchor": [
+        52,
+        87
+      ],
+      "layer": "world",
+      "ppu": 3
+    },
+    "stall-closed-shade": {
+      "category": "stalls",
+      "file": "stalls/stall-closed-shade.svg",
+      "anchor": [
+        52,
+        87
+      ],
+      "layer": "world",
+      "ppu": 3
+    },
+    "stall-counter": {
+      "category": "stalls",
+      "file": "stalls/stall-counter.svg",
+      "anchor": [
+        52,
+        87
+      ],
+      "layer": "world",
+      "ppu": 3
+    },
+    "stall-frame": {
+      "category": "stalls",
+      "file": "stalls/stall-frame.svg",
+      "anchor": [
+        52,
+        87
+      ],
+      "layer": "world",
+      "ppu": 3
+    },
+    "stocks": {
+      "category": "map",
+      "file": "map/stocks.svg",
+      "anchor": [
+        30,
+        58
+      ],
+      "layer": "world",
+      "ppu": 3,
+      "attach": {
+        "head": [
+          30,
+          33.5
+        ],
+        "hand-l": [
+          14,
+          33.5
+        ],
+        "hand-r": [
+          46,
+          33.5
+        ]
+      }
+    },
+    "thief-bubble": {
+      "category": "effects",
+      "file": "effects/thief-bubble.svg",
+      "anchor": [
+        0,
+        0
+      ],
+      "layer": "overlay",
+      "ppu": 2
+    },
+    "view-cone": {
+      "category": "effects",
+      "file": "effects/view-cone.svg",
+      "anchor": [
+        0,
+        30
+      ],
+      "layer": "ground",
+      "ppu": 1
+    },
+    "view-cone-alert": {
+      "category": "effects",
+      "file": "effects/view-cone-alert.svg",
+      "anchor": [
+        0,
+        30
+      ],
+      "layer": "ground",
+      "ppu": 1
+    },
+    "wine/fine-vintage": {
+      "category": "items",
+      "file": "items/wine/fine-vintage.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "wine/jug-of-cheap-wine": {
+      "category": "items",
+      "file": "items/wine/jug-of-cheap-wine.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    },
+    "wine/wine-amphora": {
+      "category": "items",
+      "file": "items/wine/wine-amphora.svg",
+      "anchor": [
+        16,
+        16
+      ],
+      "layer": "world",
+      "ppu": 1
+    }
+  }
+}

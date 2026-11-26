@@ -1,14 +1,23 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "types": ["vite/client", "node"],
+    "lib": [
+      "ES2023",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "vite/client",
+      "node"
+    ],
     "allowImportingTsExtensions": true
   },
   "include": [
     "src",
     "e2e",
     "game.meta.ts",
+    "scripts",
+    "generated",
     "vite.config.ts",
     "vitest.config.ts",
     "playwright.config.ts"

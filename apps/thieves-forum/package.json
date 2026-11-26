@@ -4,12 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "assets": "tsx scripts/build-atlases.ts",
+    "dev": "pnpm assets && vite",
+    "build": "pnpm assets && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run",
-    "e2e": "playwright test --pass-with-no-tests"
+    "typecheck": "pnpm assets && tsc -p tsconfig.json",
+    "test": "pnpm assets && vitest run",
+    "e2e": "pnpm assets && playwright test --pass-with-no-tests"
   },
   "dependencies": {
     "@pcg/controller-kit": "workspace:*",
