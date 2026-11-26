@@ -12,7 +12,7 @@ import {
   type RigPart,
   type RigView,
   type ViewId,
-} from '../../themes/types';
+} from '../../presentation/types';
 import type { ArtImage, ArtLibrary } from './atlas';
 import { applyOrder, blendSamples, clipTime, REST, sampleClip, type ClipSample } from './clip';
 import { attachPoint, composeView, decompose, partPoint, type Mat } from './rigMath';
@@ -49,18 +49,6 @@ interface Playing {
   name: string;
   t: number;
   speed: number;
-}
-
-/**
- * White fill on plain art images, or back (FF12: the structure upgrade flash). Lives here, beside
- * the rig's own flash, because this module already loads Phaser (structures.ts stays Node-safe).
- */
-export function whiteFlash(images: readonly ArtImage[], on: boolean): void {
-  for (const a of images) {
-    if (!a.img.active) continue;
-    if (on) a.img.setTintMode(Phaser.TintModes.FILL).setTint(0xffffff);
-    else a.img.setTintMode(Phaser.TintModes.MULTIPLY).clearTint();
-  }
 }
 
 export class RigSprite implements RigInstance {
@@ -407,7 +395,9 @@ export class RigSprite implements RigInstance {
     set.mats = composeView(set.rv, sample.parts);
     const [fx, fy] = set.rv.foot;
     for (const n of set.nodes.values()) {
-      const visible = n.groups.length === 0 || n.groups.some((g) => this.groupsOn.has(g));
+      // A clip's per-key group switch beats `setGroup` (the Warden's slam hammer, RD5).
+      const visible =
+        n.groups.length === 0 || n.groups.some((g) => sample.groups?.[g] ?? this.groupsOn.has(g));
       n.art.img.setVisible(visible);
       if (!visible) {
         n.boost?.img.setVisible(false);

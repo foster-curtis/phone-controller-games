@@ -1,21 +1,14 @@
 // Step 1 (SPEC §15.3): commands in logged order. Each answers with a `command` event when it carries
 // a `ref` (the intent ack, BUILD_PLAN §8 FF1).
+import { SIDE_IDS } from '../../shared/ids';
 import type { AckReason } from '../../shared/messages';
-import { buildAtFeet } from './building';
-import { offerFor, pickCard } from './cards';
-import { dropAll, give } from './crates';
+import { giveCard, offerFor, pickCard } from './cards';
 import { buy, request } from './shop';
-import { spawnGroup, startBuild } from './lifecycle';
+import { forceHot, spawnGroup, startBuild } from './lifecycle';
 import { releaseAll } from './players';
-import { fillSquads } from './squad';
+import { seedSquads } from './squad';
 import type { FullState } from './state';
-import type { PlayerEnt, SimCommand } from './types';
-
-function daze(s: FullState, p: PlayerEnt) {
-  dropAll(s, p);
-  releaseAll(p);
-  p.push = null;
-}
+import type { SimCommand } from './types';
 
 function apply(s: FullState, cmd: SimCommand): AckReason | null {
   const w = s.world;
@@ -29,7 +22,10 @@ function apply(s: FullState, cmd: SimCommand): AckReason | null {
       p.connected = cmd.connected;
       // The first sample after a (re)connect only re-baselines the counters (§15.3).
       s.inputs.get(p.slot)!.baseline = true;
-      if (!cmd.connected) daze(s, p);
+      if (!cmd.connected) {
+        releaseAll(s, p);
+        p.push = null;
+      }
       s.emit({ e: 'presence', slot: p.slot, connected: cmd.connected });
       return null;
     }
@@ -37,22 +33,6 @@ function apply(s: FullState, cmd: SimCommand): AckReason | null {
       if (w.phase !== 'build') return 'phase';
       p.ready = cmd.ready;
       return null;
-    case 'build': {
-      if (w.phase !== 'build') return 'phase';
-      if (cmd.action === 'cancel') {
-        p.ghost = null;
-        return null;
-      }
-      if (cmd.action === 'select') {
-        if (!s.cat.character(p.classId).build.includes(cmd.structure)) return 'invalid';
-        p.ghost = cmd.structure;
-        return null;
-      }
-      if (p.ghost === null || p.respawnAt !== null || !p.connected) return 'invalid';
-      const why = buildAtFeet(s, p, p.ghost);
-      if (why === null) p.ghost = null;
-      return why;
-    }
     case 'buy':
       // The phone shop (§6.2, §10.3; FF12).
       return buy(s, p, cmd.item);
@@ -60,9 +40,6 @@ function apply(s: FullState, cmd: SimCommand): AckReason | null {
       return request(s, p, cmd.item, cmd.on);
     case 'card':
       return pickCard(s, p, cmd.card);
-    case 'give':
-      if (p.respawnAt !== null || !p.connected) return 'invalid';
-      return give(s, p);
   }
 }
 
@@ -83,7 +60,7 @@ function join(s: FullState, cmd: Extract<SimCommand, { c: 'join' }>): AckReason 
   if (s.world.phase === 'build') {
     p.offer = offerFor(s.cat, s.world, p);
     p.picked = null;
-    fillSquads(s);
+    seedSquads(s);
   }
   s.emit({ e: 'lateJoin', slot: p.slot, classId: p.classId });
   return null;
@@ -98,10 +75,29 @@ function debug(s: FullState, cmd: Extract<SimCommand, { c: 'debug' }>): AckReaso
     case 'coins':
       w.team.coins = Math.max(0, w.team.coins + cmd.amount);
       return null;
+    case 'meter': {
+      // Every knight, or one run slot (RD6).
+      const t = cmd.target;
+      if (t !== undefined && !s.player(t)) return 'invalid';
+      for (const p of w.players) if (t === undefined || p.slot === t) p.meter = 1;
+      return null;
+    }
+    case 'hot':
+      // Forced until cleared: the pending plan now, and every later wave's at its combat start.
+      if (cmd.side !== null && !SIDE_IDS.includes(cmd.side)) return 'invalid';
+      s.debugHot = cmd.side;
+      if (cmd.side) forceHot(s, cmd.side);
+      return null;
+    case 'card': {
+      // A debug give (RD6-fix-2): the pick's apply path, outside the offer.
+      const p = s.player(cmd.target);
+      return p ? giveCard(s, p, cmd.card) : 'invalid';
+    }
     case 'spawn':
       // One group: a Swarm spawns its whole pack (§9.1). The Colossus has no content until FF11.
       if (!s.cat.content.enemies.some((e) => e.id === cmd.enemy)) return 'invalid';
-      spawnGroup(s, cmd.enemy, cmd.lane, s.cat.enemy(cmd.enemy).groupSize ?? 1);
+      if (!(cmd.portal in s.cat.map.portals)) return 'invalid';
+      spawnGroup(s, cmd.enemy, cmd.portal, s.cat.enemy(cmd.enemy).groupSize ?? 1);
       return null;
     case 'jumpWave': {
       const last = s.cat.waves[s.cat.waves.length - 1]?.n ?? 1;
@@ -109,7 +105,6 @@ function debug(s: FullState, cmd: Extract<SimCommand, { c: 'debug' }>): AckReaso
       for (const e of w.enemies) s.removeUnit(e.id);
       w.enemies.length = 0;
       w.spawns.length = 0;
-      if (w.fields.dirty) s.rebuildFields();
       startBuild(s, n);
       return null;
     }

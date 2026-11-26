@@ -4,14 +4,16 @@
 // leg in front; the body drops hard on each footfall while the planted foot stays on the ground.
 // Tier add-ons are children of their base parts, so they follow.
 // FF11 (§9.6 tells): `slam` (both fists raise over the 1.5 s wind-up, then come down on the impact
-// frame; the wall breaker plays it too), `throw` (the near fist tears up scrap, winds back and throws
-// at the wind-up's end), `call` (it rears up and the spires surge, the Runners launch at the end) and
-// `stagger` (drops to one knee for the 3 s stagger, then rises). The legs are single parts (no knee,
+// frame), `throw` (the near fist tears up scrap, winds back and throws at the wind-up's end), `call`
+// (it rears up and the spires surge, the Runners launch at the end) and `stagger` (drops to one knee
+// for the 3 s stagger, then rises). RD10 (art README "Redesign poses"): `charge` is the tell (yoke
+// down about 12° so the spires point forward, the head dropped in front, the near leg pawing back)
+// and `chargeRun` the low run. The legs are single parts (no knee,
 // BUILD_PLAN §8 FF3-fix-1), so the kneel is a body drop with the near leg swung forward and both
 // legs shortened. Code adds the head tracking, fist and spire flares and the core glow
 // (scene/colossusView.ts).
 import rig from '../../../../art/neon-knights/rigs/colossus.json';
-import type { Clip, Keyframe, RigDef } from '../../../themes/types';
+import type { Clip, Keyframe, RigDef } from '../../../presentation/types';
 import {
   each,
   enemyDeath,
@@ -33,6 +35,10 @@ export const COLOSSUS_THROW_MS = 1000;
 export const COLOSSUS_CALL_MS = 1000;
 /** The kneel lasts the sim's stagger (`staggerMs`). */
 export const COLOSSUS_STAGGER_MS = 3000;
+/** The Charge's tell lasts the sim's wind-up (`chargeWindupMs`). */
+export const COLOSSUS_CHARGE_MS = 1600;
+/** The near foot strikes the ground here in the tell (`landing-dust` puffs, colossusView). */
+export const COLOSSUS_PAW_MS = [640, 1020, 1400] as const;
 /** Head turn toward its aim, degrees at full sideways, and how far it slides (sprite units). */
 export const HEAD_TURN = { rot: 9, dx: 4, dy: 3 };
 
@@ -145,6 +151,61 @@ const call: Clip = once(C + 500, {
     { t: C + 500, dy: 0, rot: 0 },
   ],
 });
+
+const H = COLOSSUS_CHARGE_MS;
+/** The tell's lowered pose (art README), held through the run. */
+const YOKE_DOWN = { rot: 12, dy: 10 };
+const HEAD_DOWN = 9;
+const pawKeys = COLOSSUS_PAW_MS.flatMap((at) => [
+  { t: at - 170, rot: 16, dy: -8 },
+  { t: at, rot: 0, dy: 0 },
+]);
+const charge: Clip = once(H + 120, {
+  torso: [
+    { t: 0, rot: 0, dy: 0 },
+    { t: 260, rot: 5, dy: 4 },
+    { t: H + 120, rot: 5, dy: 4 },
+  ],
+  yoke: [
+    { t: 0, rot: 0, dy: 0 },
+    { t: 260, ...YOKE_DOWN },
+    { t: H + 120, ...YOKE_DOWN },
+  ],
+  head: [
+    { t: 0, dy: 0 },
+    { t: 260, dy: HEAD_DOWN },
+    { t: H + 120, dy: HEAD_DOWN },
+  ],
+  'leg-near': [{ t: 0, rot: 0, dy: 0 }, ...pawKeys, { t: H + 120, rot: -6, dy: 0 }],
+});
+
+const RUN_MS = 520;
+const chargeRun: Clip = loop(
+  RUN_MS,
+  {
+    torso: wave(RUN_MS, 16, (u) => ({ rot: 6, dy: 4 + 3 * Math.abs(Math.sin(u * Math.PI * 2)) })),
+    yoke: [
+      { t: 0, ...YOKE_DOWN },
+      { t: RUN_MS, ...YOKE_DOWN },
+    ],
+    head: [
+      { t: 0, dy: HEAD_DOWN },
+      { t: RUN_MS, dy: HEAD_DOWN },
+    ],
+    'leg-near': wave(RUN_MS, 16, (u) => ({
+      rot: 24 * Math.cos(u * Math.PI * 2),
+      dy: -8 * Math.max(0, Math.sin(u * Math.PI * 2)),
+    })),
+    'leg-far': wave(RUN_MS, 16, (u) => ({
+      rot: -24 * Math.cos(u * Math.PI * 2),
+      dy: -8 * Math.max(0, -Math.sin(u * Math.PI * 2)),
+    })),
+  },
+  each(
+    ['arm-near', 'arm-far'],
+    wave(RUN_MS, 16, (u) => ({ rot: -18 + 8 * Math.sin(u * Math.PI * 2) })),
+  ),
+);
 
 const K = COLOSSUS_STAGGER_MS;
 /** Body drop when kneeling, sprite units. */
@@ -298,6 +359,8 @@ export const clips: Record<string, Clip> = {
   throw: throwClip,
   call,
   stagger,
+  charge,
+  chargeRun,
 };
 
 export const COLOSSUS_ORDERS = { NEAR_FRONT, FAR_FRONT };

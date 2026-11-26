@@ -1,4 +1,4 @@
-// Plain TS DOM components (SPEC §15.7): Badge, RoundButton, ChargeRing, StatusStrip, KitTile,
+// Plain TS DOM components (SPEC §15.7): Badge, RoundButton, ChargeRing, StatusStrip,
 // UpgradeCard, ShopRow, HoldConfirm, Toast, LineupRow, ClassCard. No framework; each returns its
 // element plus a setter where it changes. Styled in controller.css from brand.css tokens only.
 import { createHoldToConfirm, el } from '@pcg/controller-kit';
@@ -8,11 +8,10 @@ import {
   type ClassId,
   type PlayerColorId,
   type ShopItemId,
-  type StructureId,
 } from '../shared/ids';
 import type { MeView, TeamRosterEntry, TeamShopRow, TeamView } from '../shared/messages';
 import { portraitUrl } from './assets';
-import { CARD_INFO, CLASS_INFO, ROMAN, SHOP_INFO, STRUCTURE_INFO, type ClassInfo } from './copy';
+import { CARD_INFO, CLASS_INFO, ROMAN, SHOP_INFO, type ClassInfo } from './copy';
 import { HIT_EXTRA } from './layout';
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -83,8 +82,20 @@ export function RoundButton(kind: string, iconId: string): RoundButton {
   };
 }
 
-/** The super's charge ring: fills clockwise, lights amber when full; the pulse is CSS (`.full`). */
-export function ChargeRing(): { el: HTMLElement; set(charge: number, full: boolean): void } {
+/** Ring state classes (RD4): `empty` at 0, `filling` between, `full` at 1. */
+export type RingState = 'empty' | 'filling' | 'full';
+export const ringState = (charge: number, full: boolean): RingState =>
+  full ? 'full' : charge > 0 ? 'filling' : 'empty';
+
+/**
+ * A charge ring: fills clockwise. The super's variant (default) lights amber when full, flashes once
+ * and pulses (CSS `.full`). The build variant is the meter: dimmed until full, then a steady amber, no
+ * flash and no pulse, so it reads differently from the super (SPEC §10.1).
+ */
+export function ChargeRing(variant: 'super' | 'build' = 'super'): {
+  el: HTMLElement;
+  set(charge: number, full: boolean): void;
+} {
   const svg = document.createElementNS(SVG, 'svg');
   svg.setAttribute('viewBox', '0 0 100 100');
   svg.setAttribute('class', 'ring-svg');
@@ -100,7 +111,7 @@ export function ChargeRing(): { el: HTMLElement; set(charge: number, full: boole
   arc.setAttribute('class', 'ring-arc');
   arc.setAttribute('stroke-dasharray', '100');
   svg.append(track, arc);
-  const node = el('div', { class: 'charge-ring' });
+  const node = el('div', { class: `charge-ring ${variant === 'build' ? 'build' : 'super'}` });
   node.append(svg);
   let wasFull = false;
   return {
@@ -108,9 +119,12 @@ export function ChargeRing(): { el: HTMLElement; set(charge: number, full: boole
     set(charge, full) {
       const p = Math.max(0, Math.min(1, full ? 1 : charge));
       arc.setAttribute('stroke-dashoffset', String(100 * (1 - p)));
+      const state = ringState(p, full);
+      node.classList.toggle('empty', state === 'empty');
+      node.classList.toggle('filling', state === 'filling');
       node.classList.toggle('full', full);
-      // The one-time flash (150 ms) on becoming full; the pulse follows in CSS.
-      if (full && !wasFull) {
+      // The one-time flash (150 ms) on becoming full; the pulse follows in CSS. Super ring only.
+      if (variant === 'super' && full && !wasFull) {
         node.classList.remove('flash');
         void node.offsetWidth;
         node.classList.add('flash');
@@ -123,19 +137,16 @@ export function ChargeRing(): { el: HTMLElement; set(charge: number, full: boole
 const pct = (n: number, max: number) =>
   `${Math.round(Math.max(0, Math.min(1, max > 0 ? n / max : 0)) * 100)}%`;
 
-/** Top-center strip: HP, cells carried (up to the cap), base HP, emergency kits (SPEC §10.1). */
+/** Top-center strip: own HP and base HP (SPEC §10.1). */
 export function StatusStrip(): { el: HTMLElement; update(me: MeView, team: TeamView): void } {
   const hp = el('span', { class: 'bar-fill hp' });
   const base = el('span', { class: 'bar-fill base' });
-  const cells = el('span', { class: 'cells' });
-  const kit = el('span', { class: 'kit' });
   const group = (label: string, ...kids: Node[]) =>
     el('div', { class: 'strip-group' }, el('span', { class: 'strip-label', text: label }), ...kids);
   const node = el(
     'div',
     { class: 'status-strip' },
     group('HP', el('span', { class: 'bar' }, hp)),
-    group('CELLS', cells, kit),
     group('BASE', el('span', { class: 'bar' }, base)),
   );
   return {
@@ -143,60 +154,38 @@ export function StatusStrip(): { el: HTMLElement; update(me: MeView, team: TeamV
     update(me, team) {
       hp.style.width = pct(me.hp, me.maxHp);
       base.style.width = pct(team.baseHp, team.baseMaxHp);
-      const pips: Node[] = [];
-      for (let i = 0; i < Math.max(me.carryCap, me.crates); i++) {
-        pips.push(el('i', { class: i < me.crates ? 'pip on' : 'pip' }));
-      }
-      cells.replaceChildren(...pips);
-      kit.replaceChildren(...(me.kits > 0 ? [icon('emergency-kit', 'kit-glyph')] : []));
     },
   };
 }
 
-/** A structure in the build kit: badge, name, cell cost; dimmed when the player can't pay. */
-export function KitTile(
-  id: StructureId,
-  opts: { selected: boolean; affordable: boolean },
-  onPick: () => void,
-): HTMLElement {
-  const info = STRUCTURE_INFO[id];
-  const tile = el(
-    'button',
-    { type: 'button', class: 'kit-tile', 'data-structure': id },
-    Badge(info.icon, opts.selected ? 'selected' : 'rest'),
-    el('span', { class: 'kit-name', text: info.name }),
-    el('span', { class: 'kit-cost', text: `${info.cost} ${info.cost === 1 ? 'CELL' : 'CELLS'}` }),
-  );
-  tile.classList.toggle('selected', opts.selected);
-  tile.classList.toggle('dimmed', !opts.affordable);
-  tile.addEventListener('click', onPick);
-  return tile;
-}
-
-/** Upgrade card: chamfered frame (common gunmetal, rare double amber), category mark, name, text. */
+/**
+ * Upgrade card: chamfered frame (common gunmetal, rare double amber), category mark, name, text. In the
+ * pop-up (SPEC §10.2) a tap selects it (amber edge); Confirm is a separate button.
+ */
 export function UpgradeCard(
   id: CardId,
-  opts: { onTake?: () => void; state?: 'offer' | 'picked' | 'passed' },
+  opts: { onSelect?: () => void; state?: 'offer' | 'selected' | 'picked' | 'passed' },
 ): HTMLElement {
   const info = CARD_INFO[id];
+  const state = opts.state ?? 'offer';
   const card = el(
     'div',
     {
-      class: `upgrade-card ${info.rare ? 'rare' : 'common'} ${opts.state ?? 'offer'}`,
+      class: `upgrade-card ${info.rare ? 'rare' : 'common'} ${state}`,
       'data-card': id,
     },
     el('span', { class: 'card-rarity', text: info.rare ? 'RARE' : 'COMMON' }),
-    Badge(info.mark, info.rare ? 'active' : 'rest'),
+    Badge(info.mark, info.rare || state === 'selected' ? 'active' : 'rest'),
     el('span', { class: 'card-name', text: info.name }),
     el('span', { class: 'card-text', text: info.text }),
   );
-  if (opts.onTake && (opts.state ?? 'offer') === 'offer') {
-    const take = el('button', { type: 'button', class: 'btn btn-primary take', text: 'TAKE' });
-    take.addEventListener('click', opts.onTake);
-    card.append(take);
-  } else if (opts.state === 'picked') {
-    card.append(el('span', { class: 'card-picked', text: 'PICKED' }));
+  if (opts.onSelect) {
+    card.setAttribute('role', 'button');
+    card.setAttribute('aria-pressed', String(state === 'selected'));
+    card.tabIndex = 0;
+    card.addEventListener('click', opts.onSelect);
   }
+  if (state === 'picked') card.append(el('span', { class: 'card-picked', text: 'PICKED' }));
   return card;
 }
 
@@ -344,34 +333,29 @@ export function Portrait(classId: ClassId, color: PlayerColorId | null): HTMLEle
 const modeText = (m: 'tap' | 'aim') => (m === 'aim' ? 'AIM' : 'TAP');
 
 /**
- * Class select card (SPEC §2.6, §8): portrait with name and role, then what each part does: main and
- * super (with tap/aim), the passive, and the build kit.
+ * Knight select card (SPEC §2.6, §8): portrait with name and the class's `role-*` badge, then what each
+ * part does: main, super and build (each with tap/aim) and the knight's passive card.
  */
 export function ClassCard(classId: ClassId, color: PlayerColorId | null): HTMLElement {
   const info: ClassInfo = CLASS_INFO[classId];
-  const attack = (kind: 'main' | 'super') =>
+  const part = (
+    kind: 'main' | 'super' | 'build',
+    glyph: string,
+    a: { name: string; text: string; mode: 'tap' | 'aim' },
+  ) =>
     el(
       'div',
       { class: 'cc-block attack', 'data-part': kind },
-      Badge(`${kind}-${info.rig}`),
+      Badge(glyph),
       el(
         'div',
         { class: 'attack-text' },
-        el('span', {
-          class: 'attack-sub',
-          text: `${kind.toUpperCase()} · ${modeText(info[kind].mode)}`,
-        }),
-        el('span', { class: 'attack-name', text: info[kind].name }),
-        el('span', { class: 'cc-desc', text: info[kind].text }),
+        el('span', { class: 'attack-sub', text: `${kind.toUpperCase()} · ${modeText(a.mode)}` }),
+        el('span', { class: 'attack-name', text: a.name }),
+        el('span', { class: 'cc-desc', text: a.text }),
       ),
     );
-  const part = (kind: string, label: string, ...kids: Node[]) =>
-    el(
-      'div',
-      { class: 'cc-block fact', 'data-part': kind },
-      el('span', { class: 'fact-k', text: label }),
-      ...kids,
-    );
+  const passive = CARD_INFO[info.passiveCard];
   return el(
     'article',
     { class: 'class-card', 'data-class': classId },
@@ -380,30 +364,25 @@ export function ClassCard(classId: ClassId, color: PlayerColorId | null): HTMLEl
       { class: 'class-head' },
       Portrait(classId, color),
       el('h2', { class: 'class-name h2', text: info.name }),
-      el('span', { class: 'class-role', text: info.role.toUpperCase() }),
+      el(
+        'span',
+        { class: 'class-role', 'data-role': info.role },
+        icon(info.roleIcon, 'role-glyph'),
+        el('span', { text: info.role.toUpperCase() }),
+      ),
     ),
     el(
       'div',
       { class: 'class-body' },
-      attack('main'),
-      attack('super'),
-      part(
-        'passive',
-        'PASSIVE',
-        el('span', { class: 'fact-v', text: info.passive }),
-        el('span', { class: 'cc-desc', text: info.passiveText }),
-      ),
-      part(
-        'builds',
-        'BUILDS',
-        ...info.kit.map((k) =>
-          el(
-            'span',
-            { class: 'cc-kit' },
-            el('b', { class: 'fact-v', text: k.name }),
-            el('span', { class: 'cc-desc', text: ` ${k.text}` }),
-          ),
-        ),
+      part('main', `main-${info.rig}`, info.main),
+      part('super', `super-${info.rig}`, info.super),
+      part('build', info.build.icon, info.build),
+      el(
+        'div',
+        { class: 'cc-block fact', 'data-part': 'passive' },
+        el('span', { class: 'fact-k', text: 'PASSIVE CARD' }),
+        el('span', { class: 'fact-v', text: passive.name }),
+        el('span', { class: 'cc-desc', text: passive.text }),
       ),
     ),
   );

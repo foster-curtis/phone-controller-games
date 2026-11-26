@@ -16,7 +16,10 @@ export interface Harness {
   until(pred: () => boolean, max?: number): number;
   /** Countdown → build of wave 1. */
   toBuild(): void;
-  /** Build → combat (everyone ready). */
+  /**
+   * Build → combat (everyone ready). Offers not picked are dropped first, so the phase end's random
+   * pick (§10.2) gives no one a card a test didn't ask for.
+   */
   toCombat(): void;
   /** Teleports a player (tiles). */
   put(slot: number, x: number, y: number): void;
@@ -33,10 +36,10 @@ export interface Harness {
   give(slot: number, card: CardId, n?: number): void;
 }
 
-export function startOf(players: number, seed = 1, classId: ClassId = 'engineer'): RunStart {
+export function startOf(players: number, seed = 1, classId: ClassId = 'ranger'): RunStart {
   return {
     seed,
-    settings: { theme: 'neon-knights', difficulty: 'normal' },
+    settings: { difficulty: 'normal' },
     slots: Array.from({ length: players }, (_, i) => ({
       slot: i,
       name: `P${i + 1}`,
@@ -48,7 +51,7 @@ export function startOf(players: number, seed = 1, classId: ClassId = 'engineer'
 }
 
 export interface HarnessOptions {
-  /** Class per slot (default: every slot the Engineer). */
+  /** Class per slot (default: every slot the Ranger). */
   classes?: ClassId[];
   /** Content override (custom enemies for a scenario). */
   content?: Content;
@@ -83,6 +86,7 @@ export function harness(players = 1, seed = 1, opts: HarnessOptions = {}): Harne
     },
     toCombat() {
       if (sim.world.phase === 'countdown') h.toBuild();
+      for (const p of sim.world.players) if (p.picked === null) p.offer = null;
       for (const p of sim.world.players) sim.command({ c: 'ready', slot: p.slot, ready: true });
       h.until(() => sim.world.phase === 'combat', 5);
     },

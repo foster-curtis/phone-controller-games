@@ -3,10 +3,10 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { engineer } from '../../../content/balance';
+import { ranger } from '../../../content/balance';
 import { theme } from '../../../shared/theme';
-import { neonKnightsHost } from '../../../themes/neon-knights/host';
-import { isPosed, type ViewId } from '../../../themes/types';
+import { presentationHost } from '../../../presentation/host';
+import { isPosed, type ViewId } from '../../../presentation/types';
 import { FixedCamera, UNIT_PX } from '../../render/camera';
 import { sampleClip } from '../../render/clip';
 import {
@@ -21,7 +21,7 @@ import { splitView } from '../../render/split';
 import { anchorToWorld, CATCHUP_MS, shotPos, shotTiming } from '../shot';
 import { SUPER_PULSE_HZ, SUPER_PULSE_SCALE, superPulse } from '../superPulse';
 
-const { rigs, clips } = neonKnightsHost;
+const { rigs, clips } = presentationHost;
 const attack = clips['ranger/attack']!;
 const part = (t: number, name: string) => sampleClip(attack, t).parts.get(name)!;
 
@@ -90,7 +90,7 @@ describe('C2 note 1: the Ranger draws, holds and releases', () => {
     expect(shotTiming('ranger', true).offsetMs).toBe(DRAW_END_MS);
     expect(shotTiming('warden', false)).toEqual({ offsetMs: 0, delayMs: 0 });
     // The clip is over before the next shot, so a repeat shot starts from full draw.
-    expect(ATTACK_MS).toBeLessThan(engineer.main.cooldownMs);
+    expect(ATTACK_MS).toBeLessThan(ranger.main.cooldownMs);
   });
 });
 
@@ -159,12 +159,14 @@ describe('C2 note 3: super ready pulses the ring amber, no head badge', () => {
     expect(peak.alpha).toBeGreaterThan(ready.alpha);
     expect(superPulse({ superCharge: 0.99, respawnAt: null }, 0)).toBeNull();
     expect(superPulse({ superCharge: 1, respawnAt: 120 }, 0)).toBeNull();
+    // The Commander at his squad cap holds the charge: no pulse (§8.4).
+    expect(superPulse({ superCharge: 1, respawnAt: null }, 0, true)).toBeNull();
   });
 
   it('draws the pulse on the ring and no badge over the head', () => {
     const src = readFileSync(join(import.meta.dirname, '..', 'worldView.ts'), 'utf8');
     expect(src).not.toMatch(/attach\('badge'\)|iconFor\.super|badgeTile/);
-    expect(src).toMatch(/superPulse\(p, this\.t\)/);
+    expect(src).toMatch(/superPulse\(p, this\.t, superHeld\(w, p, this\.content\)\)/);
     expect(src).toMatch(/marks\.superRing\(/);
     // The pulse goes under the colored ring.
     expect(src.indexOf('marks.superRing(')).toBeLessThan(src.indexOf('marks.ring('));

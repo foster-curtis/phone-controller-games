@@ -17,16 +17,17 @@ export function colossusGroupsFor(mk: 1 | 2 | 3, final: boolean): string[] {
 /** Every optional group of the rig, to switch the rest off. */
 export const COLOSSUS_GROUPS = ['mk2', 'mk3', 'final'] as const;
 
-/** The clip a boss attack (`BossAct.kind`) plays; the wall breaker is the slam's motion. */
+/** The clip a boss attack (`BossAct.kind`) plays. */
 export const CLIP_OF_ACT: Readonly<Record<string, string>> = {
   slam: 'slam',
-  breaker: 'slam',
+  charge: 'charge',
+  chargeRun: 'chargeRun',
   boulder: 'throw',
   call: 'call',
 };
 
 /** Clips the Colossus owns while they play: hits flash it but don't replace them. */
-export const COLOSSUS_ONE_SHOTS = new Set(['slam', 'throw', 'call', 'stagger']);
+export const COLOSSUS_ONE_SHOTS = new Set(['slam', 'throw', 'call', 'stagger', 'charge']);
 
 /** Spire attach points per Mk (spires 1, 2 and 4 arrive at Mk II, 3 and 5 at Mk III). */
 export function spiresFor(mk: 1 | 2 | 3): string[] {

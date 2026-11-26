@@ -489,6 +489,12 @@ button {
   gap: var(--space-2);
   padding: max(var(--space-3), env(safe-area-inset-top)) 0
     max(var(--space-3), env(safe-area-inset-bottom));
+  /* The whole screen takes the swipe (swipe.ts); children must not re-allow horizontal browser pans. */
+  touch-action: pan-y;
+}
+
+.class-select * {
+  touch-action: pan-y;
 }
 
 .select-title {
@@ -1047,7 +1053,8 @@ button {
 
 .round-label {
   position: absolute;
-  top: calc(50% + var(--face) / 2 + 6px);
+  /* ring reach 11 + gap 3, the same sum as layout.ts `labelTop` (RD4-fix-1) */
+  top: calc(50% + var(--face) / 2 + 14px);
   left: 50%;
   transform: translateX(-50%);
   white-space: nowrap;
@@ -1252,8 +1259,9 @@ button {
   min-height: 0;
 }
 
+/* Shop (SPEC §10.3): the right 2/3; the movement stick keeps the left third. */
 .build.shop-open .build-panel {
-  left: max(var(--space-4), env(safe-area-inset-left));
+  left: calc(33.333% + var(--space-2));
   width: auto;
 }
 
@@ -1381,15 +1389,23 @@ button {
   font-size: 20px;
 }
 
-.coin-box {
-  display: none;
+/* Top bar, right (SPEC §10.3): coins (shop only) and Ready, left of the pause button (FF14-fix-1). */
+.build-bar {
+  position: absolute;
+  top: max(var(--space-2), env(safe-area-inset-top));
+  right: calc(max(var(--space-4), env(safe-area-inset-right)) + 44px + var(--space-3));
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 
-.build.shop-open .coin-box {
-  position: fixed;
-  top: max(var(--space-2), env(safe-area-inset-top));
-  /* Left of the pause button (FF14-fix-1). */
-  right: calc(max(var(--space-4), env(safe-area-inset-right)) + 44px + var(--space-3));
+.build-bar .ready {
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  font-size: 18px;
+}
+
+.build .coin-box {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -1482,6 +1498,45 @@ button {
   min-height: 56px;
 }
 
+/* Pause menu (RD6-fix-1): Leave game and the leader's End game, each behind a confirm step. */
+.paused-main,
+.paused-confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.paused-row {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.paused-opt {
+  min-width: 132px;
+  min-height: 48px;
+  font-size: 16px;
+}
+
+.paused-card .paused-ask {
+  font-size: 22px;
+}
+
+.paused-ask-body {
+  max-width: 340px;
+  margin: 0;
+  color: var(--muted);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: var(--danger-on);
+}
+
+.btn-danger::before {
+  display: none;
+}
+
 .coin-glyph {
   width: 32px;
   height: 32px;
@@ -1492,8 +1547,33 @@ button {
   font-size: 34px;
 }
 
+/* One column: header line, then the scrolling rows (RD4-fix-1; "row" made each part a column of its own). */
 .shop-body {
-  flex-direction: row;
+  flex-direction: column;
+}
+
+.shop-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.shop-head .section-title {
+  margin: 0;
+  flex: none;
+  white-space: nowrap;
+}
+
+.shop-head .hint {
+  margin: 0;
+  min-width: 0;
+  flex: 1 1 auto;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .shop-cards {
@@ -1633,6 +1713,7 @@ button {
 
 .shop-name {
   font: 600 15px/1.1 var(--font-sans);
+  overflow-wrap: anywhere;
 }
 
 .shop-sub,
@@ -1650,7 +1731,9 @@ button {
 
 .price {
   position: relative;
-  min-width: 84px;
+  flex: none;
+  white-space: nowrap;
+  min-width: 96px;
   min-height: 40px;
   padding: 0 var(--space-2);
   background: var(--accent);
@@ -1690,6 +1773,7 @@ button {
 }
 
 .request {
+  flex: none;
   width: 40px;
   min-width: 40px;
   min-height: 40px;
@@ -1878,7 +1962,7 @@ button {
     font-size: 26px;
   }
 
-  .shop-list .hint {
+  .shop-head .hint {
     display: none;
   }
 
@@ -1890,10 +1974,6 @@ button {
   .cc-desc {
     font-size: 12px;
   }
-}
-
-.round-btn.super .round-label {
-  top: calc(50% + var(--face) / 2 + 16px);
 }
 
 .crate-count {
@@ -2034,9 +2114,6 @@ body:has(.screen.join, .screen.lobby) .pcg-fullscreen-corner {
 }
 
 /* Shop open: the footer spans the width, so leave the corner icon its space. */
-.build.shop-open .build-footer {
-  padding-left: 40px;
-}
 
 .pcg-sheet {
   background: var(--scrim);
@@ -2139,4 +2216,96 @@ body:has(.screen.join, .screen.lobby) .pcg-fullscreen-corner {
   color: var(--foreground);
   border: 1px solid var(--border);
   font: inherit;
+}
+
+/* ---- build meter ring (RD4, SPEC §10.1): dimmed until full, then a steady amber; no flash, no pulse ---- */
+
+.charge-ring.build .ring-arc {
+  opacity: 0.55;
+}
+
+.charge-ring.build.full {
+  animation: none;
+  filter: drop-shadow(var(--glow-sm));
+}
+
+.charge-ring.build.full .ring-arc {
+  opacity: 1;
+}
+
+.round-btn.action:not(.dimmed) .round-face {
+  border-color: var(--accent);
+}
+
+/* ---- knight select: the class badge, the build block ---- */
+
+.class-role {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.role-glyph {
+  width: 18px;
+  height: 18px;
+}
+
+/* ---- card pop-up (RD4, SPEC §10.2): full screen, no stick ---- */
+
+.build.popup-open .popup {
+  position: absolute;
+  top: calc(max(var(--space-2), env(safe-area-inset-top)) + 52px);
+  left: max(var(--space-4), env(safe-area-inset-left));
+  right: max(var(--space-4), env(safe-area-inset-right));
+  bottom: max(var(--space-3), env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 0;
+}
+
+.growth {
+  margin: 0;
+  color: var(--accent-text);
+  text-align: center;
+}
+
+.popup .section-title {
+  margin: 0;
+  text-align: center;
+}
+
+.popup .cards {
+  gap: var(--space-3);
+}
+
+.popup-footer {
+  display: flex;
+  justify-content: center;
+}
+
+.popup-footer .confirm {
+  min-width: 200px;
+  min-height: 44px;
+  font-size: 20px;
+}
+
+.upgrade-card[role='button'] {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* selected: the amber edge (the rare card already carries one) */
+.upgrade-card.selected {
+  background: var(--accent);
+  box-shadow: var(--glow-md);
+}
+
+.upgrade-card.selected::before {
+  background: var(--surface-strong);
+}
+
+/* The shop's stick takes the left third only; the rows own the rest (SPEC §10.3). */
+.build .stick-zone {
+  width: 33.333%;
 }

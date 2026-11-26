@@ -4,8 +4,8 @@
 import * as Phaser from 'phaser';
 import { manifest } from '../../../generated/manifest';
 import { theme } from '../../shared/theme';
-import { neonKnightsHost } from '../../themes/neon-knights/host';
-import type { ThemeAssets } from '../../themes/types';
+import { presentationHost } from '../../presentation/host';
+import { ART_SET, type ArtSetAssets } from '../../presentation/types';
 import type { Content } from '../../content';
 import { pickAtlasScale, preloadAtlases } from '../render/atlas';
 import { CANVAS_H, CANVAS_W } from '../render/camera';
@@ -25,7 +25,7 @@ export interface SceneHost {
   afterFrame?(): void;
 }
 
-const assets = manifest.themes['neon-knights'] as ThemeAssets;
+const assets = manifest.sets[ART_SET] as ArtSetAssets;
 
 export class WorldScene extends Phaser.Scene {
   private world: RenderWorld | null = null;
@@ -39,7 +39,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   preload() {
-    const fresh = neonKnightsHost.atlases.filter((a) => !this.textures.exists(a.key));
+    const fresh = presentationHost.atlases.filter((a) => !this.textures.exists(a.key));
     if (fresh.length > 0) this.load.on('progress', (p: number) => this.host.onLoading(p));
     preloadAtlases(this, fresh, this.scale1x2);
   }
@@ -48,7 +48,7 @@ export class WorldScene extends Phaser.Scene {
     this.host.onLoading(null);
     // `?bloom=0` turns the bloom off (e2e under software GL; the C1 quarter-res fallback lives in bloom.ts).
     const bloom = new URLSearchParams(location.search).get('bloom') !== '0';
-    this.world = new RenderWorld(this, neonKnightsHost, assets, this.scale1x2, { bloom });
+    this.world = new RenderWorld(this, presentationHost, assets, this.scale1x2, { bloom });
     this.view = null;
     this.runId = this.host.runId;
     this.host.onWorld?.(this.world);

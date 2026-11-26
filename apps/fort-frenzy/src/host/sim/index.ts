@@ -2,14 +2,22 @@
 // input sources and commands; record and replay runs; hash its state.
 export { createSim, type Sim, type SimOptions, type StepObserver } from './sim';
 export { stateHash } from './hash';
-export { buildTile, placementValid, tileAt } from './building';
-export { throwTarget } from './classes/quartermaster';
 export { inSector, type Sector } from './classes/sector';
 export { hitShape, type HitShape } from './classes/hitShape';
 export { groundBody, type GroundBody } from './body';
-export { aimPreview } from './preview';
-export { squadSize } from './squad';
-export { fieldMedicRadius } from './modules/fieldMedic';
+export {
+  aimPreview,
+  buildEffectRadius,
+  buildPreview,
+  fieldMedicRadius,
+  soldierPreview,
+  superHeld,
+  type BuildPreview,
+  type SoldierPreview,
+} from './preview';
+export { canPlace } from './builds';
+export { squadCapOf } from './squad';
+export { steadyOn } from './modules/steadyAim';
 export {
   AutopilotInputSource,
   FreshInputSource,
@@ -25,7 +33,7 @@ export {
   type ReplayResult,
   type RunRecording,
 } from './recorder';
-export { extraDischarges, itemState, shownTo, type ShopItemState } from './shop';
+export { itemState, type ShopItemState } from './shop';
 export { canSpawnFor, guaranteedRare, offerFor } from './cards';
 export { shieldOf } from './cards/effects';
 export {

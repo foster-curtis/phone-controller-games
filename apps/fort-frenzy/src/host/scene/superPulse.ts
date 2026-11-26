@@ -16,12 +16,16 @@ export interface SuperPulse {
   alpha: number;
 }
 
-/** The amber pulse for a knight at `tMs`, or null while the super charges or the knight is down. */
+/**
+ * The amber pulse for a knight at `tMs`, or null while the super charges, the knight is down, or
+ * the squad cap holds the Commander's charge (`held`, §8.4).
+ */
 export function superPulse(
   p: Pick<PlayerEnt, 'superCharge' | 'respawnAt'>,
   tMs: number,
+  held = false,
 ): SuperPulse | null {
-  if (p.superCharge < 1 || p.respawnAt !== null) return null;
+  if (p.superCharge < 1 || p.respawnAt !== null || held) return null;
   const u = 0.5 * (1 - Math.cos(tMs * 0.001 * SUPER_PULSE_HZ * Math.PI * 2));
   return { color: theme.color.amber.num, scale: 1 + SUPER_PULSE_SCALE * u, alpha: 0.5 + 0.5 * u };
 }

@@ -1,6 +1,6 @@
 // Color math for render readability checks (C3 floor contrast, BUILD_PLAN §8 FF3-fix-2): WCAG relative
 // luminance and contrast ratio, sRGB-space alpha blending (what Phaser's blend does) and the ADD tint
-// the map frames take (`ThemeHost.map.floorLift`). Pure: no Phaser.
+// the map frames take (`PresentationHost.map.floorLift`). Pure: no Phaser.
 
 /** 0–255 per channel. */
 export type Rgb = readonly [r: number, g: number, b: number];

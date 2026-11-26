@@ -1,93 +1,29 @@
-// Warden card modules (SPEC §6.1): Aftershock, Giant Slayer, Bodyguard, Unshakable and the Fault Line
-// combo. Heavy Slam, Earthshaker and Master Mason are plain stat cards (content/balance.ts). A slam or
-// stomp's `onAttack` runs when its wind-up lands (players.ts), so these hooks fire on the impact.
-import { circleTouchesTile, dist } from '../geometry';
+// Warden card modules (SPEC §6.1): Aftershock, Giant Slayer, Unshakable, Challenger (his passive card)
+// and Fault Line (the combo). Heavy Slam, Earthshaker, Wide Field and Reinforced Generator are plain
+// stat cards (content/balance.ts). A slam or jump slam's `onAttack` runs when its wind-up lands
+// (players.ts), so these hooks fire on the impact.
 import { state } from '../internal';
 import type { Modifier, ModuleDef, PlayerEnt } from '../types';
 import { num, stacksOf, vsEnemies } from './common';
 
-interface Zone {
-  x: number;
-  y: number;
-  until: number;
-}
-
-/** The slam leaves a slowing zone `reachPct` of its reach in front of the Warden for `zoneMs`. */
+/** Enemies the jump slam hits are slowed for `slowMs` (RC1: the super, not the main). */
 export const aftershock: ModuleDef = {
   id: 'aftershock',
   make(p) {
-    const radius = num(p, 'radius');
-    const slow = Math.min(num(p, 'maxSlow'), num(p, 'slow') * stacksOf(p));
-    const slowMs = num(p, 'slowMs');
-    const zoneMs = num(p, 'zoneMs');
-    const reachPct = num(p, 'reachPct');
-    // Zones live on the modifier (not a closure) so the state hash sees them.
-    const m: Modifier & { zones: Zone[] } = {
+    const strength = Math.min(num(p, 'maxSlow'), num(p, 'slow') * stacksOf(p));
+    const durationMs = num(p, 'slowMs');
+    return {
       id: 'card:aftershock',
-      zones: [],
       hooks: {
-        onAttack(ctx, self, atk) {
-          if (atk.slot !== 'main') return;
-          const s = state(ctx);
-          const pl = self as PlayerEnt;
-          const reach = s.attackStat(pl, s.cat.character(pl.classId).main.range, 'range', 'main');
-          m.zones.push({
-            x: pl.x + atk.aim.x * reach * reachPct,
-            y: pl.y + atk.aim.y * reach * reachPct,
-            until: s.tick() + s.cat.steps(zoneMs),
-          });
-        },
-        onTick(ctx, self) {
-          if (m.zones.length === 0) return;
-          const s = state(ctx);
-          const t = s.tick();
-          m.zones = m.zones.filter((z) => z.until > t && s.world.phase === 'combat');
-          for (const z of m.zones) {
-            for (const e of s.world.enemies) {
-              if (e.hp <= 0 || e.flying || dist(z.x, z.y, e.x, e.y) - e.r > radius) continue;
-              ctx.applyEffect(
-                e.id,
-                { effect: 'slow', strength: slow, durationMs: slowMs },
-                self.id,
-              );
-            }
-          }
+        onAttack(_ctx, _self, atk) {
+          if (atk.slot === 'super') atk.effects.push({ effect: 'slow', strength, durationMs });
         },
       },
     };
-    return m;
   },
 };
 
 export const giantSlayer = vsEnemies('giant_slayer', ['brute', 'colossus']);
-
-/** Allies (other players) within `radius` take `reduction` × stacks less damage (an aura, capped). */
-export const bodyguard: ModuleDef = {
-  id: 'bodyguard',
-  make(p) {
-    const radius = num(p, 'radius');
-    const strength = num(p, 'reduction') * stacksOf(p);
-    const auraMs = num(p, 'auraMs');
-    return {
-      id: 'card:bodyguard',
-      hooks: {
-        onTick(ctx, self) {
-          const s = state(ctx);
-          const me = self as PlayerEnt;
-          if (!s.targetable(me)) return;
-          for (const q of s.world.players) {
-            if (q === me || !s.targetable(q) || dist(me.x, me.y, q.x, q.y) > radius) continue;
-            ctx.applyEffect(
-              q.id,
-              { effect: 'aura_bodyguard', strength, durationMs: auraMs },
-              me.id,
-            );
-          }
-        },
-      },
-    };
-  },
-};
 
 /** Immune to slows and knockback. */
 export const unshakable: ModuleDef = {
@@ -104,44 +40,105 @@ export const unshakable: ModuleDef = {
 };
 
 /**
- * The stomp also shocks every wall on the map: every enemy touching a wall takes the stomp's damage
- * once and is slowed; the TV flashes every wall (`faultLine` event).
+ * Challenger, his passive card: in combat, while he can be targeted, he carries `taunt` (re-applied
+ * each step for `auraMs`), and aggro-leash enemies pick a taunting knight in their aggro radius
+ * before anything nearer (ai/path.ts `leash`).
  */
-export const faultLine: ModuleDef = {
-  id: 'fault_line',
+export const challenger: ModuleDef = {
+  id: 'challenger',
   make(p) {
-    const slow = num(p, 'slow');
-    const slowMs = num(p, 'slowMs');
-    const touch = num(p, 'touch');
+    const durationMs = num(p, 'auraMs');
     return {
-      id: 'card:fault_line',
+      id: 'card:challenger',
       hooks: {
-        onAttack(ctx, self, atk) {
-          if (atk.slot !== 'super') return;
+        onTick(ctx, self) {
           const s = state(ctx);
-          const pl = self as PlayerEnt;
-          const walls = s.world.structures.filter((st) => st.kind === 'wall' && st.hp > 0);
-          if (walls.length === 0) return;
-          const def = s.cat.character(pl.classId).super;
-          const damage = s.attackStat(pl, def.damage, 'damage', 'super');
-          for (const e of s.world.enemies.slice()) {
-            if (e.hp <= 0 || e.flying) continue;
-            const on = walls.some((w) =>
-              circleTouchesTile(e.x, e.y, e.r + touch, w.tile[0], w.tile[1]),
-            );
-            if (!on) continue;
-            ctx.damage({
-              source: pl.id,
-              target: e.id,
-              amount: damage,
-              kind: 'area',
-              tags: ['super', 'fault_line'],
-            });
-            ctx.applyEffect(e.id, { effect: 'slow', strength: slow, durationMs: slowMs }, pl.id);
-          }
-          ctx.emit({ e: 'faultLine', slot: pl.slot });
+          if (s.world.phase !== 'combat' || !s.targetable(self as PlayerEnt)) return;
+          ctx.applyEffect(self.id, { effect: 'taunt', strength: 1, durationMs }, self.id);
         },
       },
     };
   },
 };
+
+/** One fissure: a segment on the ground, until a tick. */
+export interface Fissure {
+  x: number;
+  y: number;
+  x2: number;
+  y2: number;
+  until: number;
+}
+
+/** Distance from (px, py) to the segment (ax, ay)–(bx, by). */
+function segDist(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const l2 = dx * dx + dy * dy;
+  const t = l2 > 0 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / l2)) : 0;
+  return Math.hypot(px - (ax + dx * t), py - (ay + dy * t));
+}
+
+/**
+ * Fault Line (Aftershock + Earthshaker): the jump slam leaves a fissure from his feet along its aim,
+ * `lengthPct` of the jump slam's reach and `width` wide, for `fissureMs` (combat only). Ground
+ * enemies whose feet touch it are slowed by `slow`, lasting `lingerMs` after they step off.
+ */
+export const faultLine: ModuleDef = {
+  id: 'fault_line',
+  make(p) {
+    const slow = num(p, 'slow');
+    const lingerMs = num(p, 'lingerMs');
+    const fissureMs = num(p, 'fissureMs');
+    const half = num(p, 'width') / 2;
+    const lengthPct = num(p, 'lengthPct');
+    // Fissures live on the modifier (not a closure), so the state hash sees them.
+    const m: Modifier & { fissures: Fissure[] } = {
+      id: 'card:fault_line',
+      fissures: [],
+      hooks: {
+        onAttack(ctx, self, atk) {
+          if (atk.slot !== 'super') return;
+          const s = state(ctx);
+          const pl = self as PlayerEnt;
+          const reach =
+            s.attackStat(pl, s.cat.knight(pl.classId).super.range, 'range', 'super') * lengthPct;
+          const len = Math.hypot(atk.aim.x, atk.aim.y);
+          const ax = len > 0 ? atk.aim.x / len : Math.cos(pl.facing);
+          const ay = len > 0 ? atk.aim.y / len : Math.sin(pl.facing);
+          m.fissures.push({
+            x: pl.x,
+            y: pl.y,
+            x2: pl.x + ax * reach,
+            y2: pl.y + ay * reach,
+            until: s.tick() + s.cat.steps(fissureMs),
+          });
+        },
+        onTick(ctx, self) {
+          if (m.fissures.length === 0) return;
+          const s = state(ctx);
+          const t = s.tick();
+          m.fissures = m.fissures.filter((f) => f.until > t && s.world.phase === 'combat');
+          for (const f of m.fissures)
+            for (const e of s.world.enemies) {
+              if (e.hp <= 0 || e.flying) continue;
+              if (segDist(e.x, e.y, f.x, f.y, f.x2, f.y2) - e.r > half) continue;
+              ctx.applyEffect(
+                e.id,
+                { effect: 'slow', strength: slow, durationMs: lingerMs },
+                self.id,
+              );
+            }
+        },
+      },
+    };
+    return m;
+  },
+};
+
+/** The fissures a Fault Line holder has open now (the TV draws them; tests read them). */
+export function fissuresOf(p: { mods: readonly Modifier[] }): readonly Fissure[] {
+  const m = p.mods.find((x) => x.id === 'card:fault_line') as
+    (Modifier & { fissures?: Fissure[] }) | undefined;
+  return m?.fissures ?? [];
+}

@@ -1,21 +1,15 @@
-// Lobby and class select (SPEC §11.1, §2.6): one view, so a thumb survives the switch. No class yet (or
-// "Change class") shows the swipeable class cards; otherwise the lobby: your knight, Ready, the lineup
-// with the leader mark, and for the party leader difficulty, theme, Start and remove.
+// Lobby and knight select (SPEC §11.1, §2.6): one view, so a thumb survives the switch. No knight yet (or
+// "Change Knight") shows the swipeable knight cards; otherwise the lobby: your knight, Ready, the lineup
+// with the leader mark, and for the party leader difficulty, Start and remove.
 import { createFullscreenButton, el } from '@pcg/controller-kit';
-import {
-  CLASS_IDS,
-  DIFFICULTY_IDS,
-  THEME_IDS,
-  type ClassId,
-  type PlayerColorId,
-} from '../../shared/ids';
+import { CLASS_IDS, DIFFICULTY_IDS, type ClassId, type PlayerColorId } from '../../shared/ids';
 import { ClassCard, ColorPicker, LineupRow, Portrait } from '../components';
 import { CLASS_INFO, DIFFICULTY_NAME } from '../copy';
 import { bindSwipe } from '../swipe';
 import { createKeyedList, playerTag, type ScreenCtx, type Snapshot, type View } from './common';
 
-/** Players needed Ready before the leader may force-start (SPEC §11.1). */
-export const MIN_READY_TO_START = 2;
+/** Players needed Ready before the leader may force-start: one, so a solo leader can start (SPEC §11.1, #100). */
+export const MIN_READY_TO_START = 1;
 
 export function createLobby(ctx: ScreenCtx): View {
   const root = el('section', { class: 'screen lobby' });
@@ -45,7 +39,7 @@ export function createLobby(ctx: ScreenCtx): View {
     pick.textContent = `PICK ${CLASS_INFO[CLASS_IDS[index]!].name.toUpperCase()}`;
   };
   // One card per swipe, however long (C1 note 2).
-  const swipe = bindSwipe(track, strip, { count: () => CLASS_IDS.length, onIndex: showIndex });
+  const swipe = bindSwipe(select, strip, { count: () => CLASS_IDS.length, onIndex: showIndex });
   const setIndex = (i: number) => {
     swipe.setIndex(i, false);
     showIndex(i);
@@ -60,7 +54,7 @@ export function createLobby(ctx: ScreenCtx): View {
   // ---- lobby ----
   const knight = el('div', { class: 'knight' });
   const className = el('h2', { class: 'h2 knight-name' });
-  const change = el('button', { type: 'button', class: 'link-btn', text: 'Change class' });
+  const change = el('button', { type: 'button', class: 'link-btn', text: 'Change Knight' });
   const ready = el('button', { type: 'button', class: 'btn btn-primary ready' });
   const hint = el('p', { class: 'hint body' });
   // Manual full screen (PLATFORM §3): never automatic, so the player chooses it here.
@@ -190,27 +184,12 @@ export function createLobby(ctx: ScreenCtx): View {
           );
           return b;
         }),
-        // One theme in v1: the switch appears when a second ships.
-        ...(THEME_IDS.length > 1
-          ? THEME_IDS.map((t) => {
-              const b = el('button', {
-                type: 'button',
-                class: `seg${team.theme === t ? ' on' : ''}`,
-                'data-theme': t,
-                text: t,
-              });
-              b.addEventListener('click', () =>
-                ctx.intent({ k: 'leader', action: 'theme', theme: t }),
-              );
-              return b;
-            })
-          : []),
       );
       const readyCount = team.roster.filter((p) => p.ready).length;
       start.disabled = counting || me.ready || readyCount < MIN_READY_TO_START;
       startHint.textContent =
         readyCount < MIN_READY_TO_START
-          ? `Start works once ${MIN_READY_TO_START} players are ready.`
+          ? 'Start works once someone is ready.'
           : 'Start now, or wait for everyone.';
     }
   };

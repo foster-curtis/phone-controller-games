@@ -4,8 +4,8 @@
 import type { GameMeta } from '@pcg/catalog';
 
 export const title = 'Fort Frenzy';
-/** SPEC §11.1, §12: 2–6 players. */
-export const minPlayers = 2;
+/** SPEC §11.1, §12: 1–6 players (solo play, RD3). */
+export const minPlayers = 1;
 export const maxPlayers = 6;
 
 export default {

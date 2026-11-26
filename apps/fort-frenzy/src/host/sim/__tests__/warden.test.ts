@@ -2,9 +2,14 @@
 // wind-up), the aimed stomp (longer arc, damage and a brief stun), and Mason (walls near him repair in
 // combat only, §5).
 import { describe, expect, it } from 'vitest';
-import { warden } from '../../../content/balance';
+import { content } from '../../../content';
+import { classes, grunt, warden } from '../../../content/balance';
+import { groundBody, sectorHitsBody } from '../body';
+import { aimPreview } from '../preview';
 import { harness } from './harness';
 
+// The tank's damage band multiplies the slam and the jump slam (§8.1).
+const TANK = classes.find((c) => c.id === 'tank')!.damage;
 const steps = (ms: number) => Math.max(1, Math.round((ms * 60) / 1000));
 
 function combat() {
@@ -36,9 +41,12 @@ describe('Warden slam', () => {
     for (const e of front) expect(e.hp).toBe(e.maxHp);
     expect(h.p(0).x).toBeCloseTo(10, 1);
     h.run(1);
-    for (const e of front) expect(e.maxHp - e.hp).toBe(warden.main.damage);
+    for (const e of front) expect(e.maxHp - e.hp).toBe(warden.main.damage * TANK);
     expect(behind.hp).toBe(behind.maxHp);
-    expect(h.p(0).superCharge).toBeCloseTo(3 * warden.main.damage * warden.superChargeRate, 6);
+    expect(h.p(0).superCharge).toBeCloseTo(
+      3 * (warden.main.damage * TANK) * warden.superCharge.perDamage,
+      6,
+    );
   });
 
   it('dying during the wind-up calls it off', () => {
@@ -60,7 +68,8 @@ describe('Warden stomp', () => {
     // Plain Grunts: a stun refreshes stats, which resets an inflated max HP.
     const near = h.sim.spawnEnemy('grunt', 12.5, 12);
     // Outside the arc (down, not right); FF7-fix-2's longer stomp reached the old (12.5, 15).
-    const far = h.sim.spawnEnemy('grunt', 12, 16.5);
+    const far = h.sim.spawnEnemy('grunt', 10.5, 17); // well outside the jump slam's 85° (RD3-fix-4)
+    far.stats.moveSpeed = 0; // Holds still through the long wind-up (RC1).
     h.pads[0]!.tap('superFires', { superAim: { x: 1, y: 0 } });
     h.run(5);
     expect(near.hp).toBe(near.maxHp);
@@ -70,7 +79,7 @@ describe('Warden stomp', () => {
     expect(h.events('attack')).toEqual([expect.objectContaining({ slot: 'super' })]);
     expect(h.p(0).superCharge).toBe(0);
     h.run(steps(warden.super.windupMs));
-    expect(near.maxHp - near.hp).toBe(warden.super.damage);
+    expect(near.maxHp - near.hp).toBe(warden.super.damage * TANK);
     expect(far.hp).toBe(far.maxHp);
     expect(near.effects.map((e) => e.def)).toContain('stun');
     // Stunned: no walking and no swings.
@@ -81,6 +90,8 @@ describe('Warden stomp', () => {
     // It wears off.
     h.run(steps(warden.super.effects[0]!.durationMs));
     expect(near.effects.some((e) => e.def === 'stun')).toBe(false);
+    // It walked up to him during the long wind-up (RC1): step away so it has somewhere to go.
+    h.put(0, 18, 12);
     h.run(30);
     expect(Math.abs(near.x - x) + Math.abs(near.y - 12)).toBeGreaterThan(0.05);
   });
@@ -96,39 +107,215 @@ describe('Warden stomp', () => {
   });
 });
 
-describe('Mason', () => {
-  it('repairs walls near the Warden in combat, never far ones', () => {
+describe('Warden jump slam wind-up (§8.2, RC1)', () => {
+  const WIND = steps(warden.super.windupMs);
+
+  function jumping() {
     const h = combat();
-    h.put(0, 10.5, 12.5);
-    const near = h.sim.place('wall', 11, 13, 0);
-    const far = h.sim.place('wall', 20, 13, 0);
-    near.hp = far.hp = 100;
-    h.run(60);
-    expect(near.hp).toBeCloseTo(100 + 10, 0);
-    expect(far.hp).toBe(100);
-    near.hp = near.maxHp - 1;
-    h.run(60);
+    h.put(0, 10, 12);
+    const near = h.sim.spawnEnemy('grunt', 12.5, 12);
+    h.p(0).superCharge = 1;
+    h.pads[0]!.tap('superFires', { superAim: { x: 1, y: 0 } });
+    h.run(1);
+    return { h, near };
+  }
+
+  it('lands 1/2 to 2/3 of RC1’s 1.8 s after the press, with its damage and stun together', () => {
+    expect(warden.super.windupMs).toBeGreaterThanOrEqual(1800 / 2);
+    expect(warden.super.windupMs).toBeLessThanOrEqual((1800 * 2) / 3);
+    const { h, near } = jumping();
+    h.run(WIND - 1);
+    expect(near.hp).toBe(near.maxHp);
+    expect(near.effects.some((e) => e.def === 'stun')).toBe(false);
+    h.run(1);
+    expect(near.maxHp - near.hp).toBe(warden.super.damage * TANK);
+    expect(near.effects.some((e) => e.def === 'stun')).toBe(true);
+  });
+
+  it('downed mid-jump: the slam never lands and the TV is told', () => {
+    const { h, near } = jumping();
+    h.run(30);
+    h.p(0).hp = 0;
+    h.run(1);
+    expect(h.events('windupCancelled')).toEqual([
+      { e: 'windupCancelled', source: h.p(0).id, slot: 'super' },
+    ]);
+    h.run(WIND);
     expect(near.hp).toBe(near.maxHp);
   });
 
-  it('is off during the build phase', () => {
-    const h = harness(1, 1, { classes: ['warden'] });
-    h.toBuild();
-    h.put(0, 10.5, 12.5);
-    const near = h.sim.place('wall', 11, 13, 0);
-    near.hp = 100;
-    h.run(120);
-    expect(h.sim.world.phase).toBe('build');
-    expect(near.hp).toBe(100);
+  it('dazed mid-jump: the slam never lands, even after he reconnects', () => {
+    const { h, near } = jumping();
+    h.run(30);
+    h.sim.command({ c: 'presence', slot: 0, connected: false });
+    h.run(1);
+    expect(h.events('windupCancelled')).toHaveLength(1);
+    h.sim.command({ c: 'presence', slot: 0, connected: true });
+    h.run(WIND);
+    expect(near.hp).toBe(near.maxHp);
   });
 
-  it('is off while he is down', () => {
+  it('in the air he is rooted, keeps his aim, and main and build presses are lost', () => {
+    const { h } = jumping();
+    h.pads[0]!.set({ move: { x: 0, y: 1 } });
+    h.pads[0]!.tap('mainFires');
+    h.run(2);
+    h.pads[0]!.tap('buildFires', { buildAim: { x: 1, y: 0 } });
+    h.run(WIND - 6);
+    expect(h.p(0).y).toBeCloseTo(12, 1);
+    expect(h.p(0).facing).toBeCloseTo(0, 6);
+    expect(h.p(0).main.queued).toBe(false);
+    expect(h.sim.world.builds).toHaveLength(0);
+    expect(h.p(0).meter).toBe(1);
+    h.pads[0]!.set({ move: { x: 0, y: 0 } });
+    expect(h.collect('attack', 12).filter((a) => a.source === h.p(0).id)).toEqual([]);
+  });
+
+  it('he can still be hit while airborne', () => {
+    const { h } = jumping();
+    const g = h.sim.spawnEnemy('grunt', 10, 12.7);
+    let hit = false;
+    for (let i = 0; i < WIND - 2 && !hit; i++) {
+      h.run(1);
+      hit = h.events('damage').some((d) => d.target === h.p(0).id && d.source === g.id);
+    }
+    expect(hit).toBe(true);
+  });
+});
+
+describe('Warden slam reach and knockback (RC2)', () => {
+  it('reaches 1.65× RC1’s 1.75 tiles, in the hit and in its aim preview', () => {
+    const reach = 1.75 * 1.65;
+    expect(warden.main.range).toBeCloseTo(reach, 2);
     const h = combat();
-    h.put(0, 10.5, 12.5);
-    const near = h.sim.place('wall', 11, 13, 0);
-    near.hp = 100;
-    h.p(0).hp = 0;
-    h.run(60);
-    expect(near.hp).toBe(100);
+    h.put(0, 10, 12);
+    const shape = aimPreview(h.p(0), warden, 'main', content.rules);
+    expect(shape).toMatchObject({ kind: 'cone', range: warden.main.range });
+    // A target past RC1's reach, inside the new one, is hit.
+    const e = tough(h, 10 + reach - 0.1, 12);
+    h.pads[0]!.tap('mainFires', { mainAim: { x: 1, y: 0 } });
+    h.run(1 + steps(warden.main.windupMs));
+    expect(e.maxHp - e.hp).toBe(warden.main.damage * TANK);
+  });
+
+  it('knocks nothing back, stunned or not', () => {
+    expect((warden.main as { knockback?: number }).knockback ?? 0).toBe(0);
+    const h = combat();
+    h.put(0, 10, 12);
+    const e = tough(h, 11.2, 12);
+    e.stats.moveSpeed = 0;
+    const x = e.x;
+    h.pads[0]!.tap('mainFires');
+    h.run(1 + steps(warden.main.windupMs));
+    expect(e.maxHp - e.hp).toBe(warden.main.damage * TANK);
+    expect(e.push).toBeNull();
+    expect(e.x).toBeCloseTo(x, 6);
+  });
+
+  it('damages a target that is already stunned without moving it', () => {
+    const h = combat();
+    h.put(0, 10, 12);
+    const e = h.sim.spawnEnemy('grunt', 11.2, 12);
+    h.p(0).superCharge = 1;
+    h.pads[0]!.tap('superFires', { superAim: { x: 1, y: 0 } });
+    h.run(1 + steps(warden.super.windupMs));
+    expect(e.effects.some((x) => x.def === 'stun')).toBe(true);
+    const hp = e.hp;
+    const x = e.x;
+    h.pads[0]!.tap('mainFires', { mainAim: { x: 1, y: 0 } });
+    h.run(1 + steps(warden.main.windupMs));
+    expect(hp - e.hp).toBe(warden.main.damage * TANK);
+    expect(e.push).toBeNull();
+    expect(e.x).toBeCloseTo(x, 6);
+  });
+});
+
+describe('Warden slam cone (RC2, RD3-fix-3)', () => {
+  /** The slam's opening before RC2's narrower cone. */
+  const OLD_ARC_DEG = 102;
+  const DEG = Math.PI / 180;
+
+  it('a third narrower than RC1, at the same 2.89-tile reach', () => {
+    expect(warden.main.range).toBe(2.89);
+    expect(warden.main.arcDeg / OLD_ARC_DEG).toBeCloseTo(2 / 3, 2);
+  });
+
+  it('misses a target just inside the old cone, hits one on the aim line at full reach; the aim preview is that cone', () => {
+    const h = combat();
+    h.put(0, 10, 12);
+    const { x: px, y: py } = h.p(0);
+    const reach = warden.main.range;
+    // The TV's aim preview: the new cone, at the same reach.
+    const shape = aimPreview(h.p(0), warden, 'main', content.rules);
+    expect(shape).toEqual({ kind: 'cone', range: reach, half: (warden.main.arcDeg / 2) * DEG });
+    const preview = shape as Extract<typeof shape, { kind: 'cone' }>;
+    const still = (x: number, y: number) => {
+      const e = tough(h, x, y);
+      e.stats.moveSpeed = 0;
+      return e;
+    };
+    // Aimed east. 45° off the aim, between the new half-angle (34°) and the old (51°), north of the
+    // line: bodies reach north (−y) of their feet, so the body leans away from the cone.
+    const ang = 45 * DEG;
+    const d = reach - 0.4;
+    const side = still(px + Math.cos(ang) * d, py - Math.sin(ang) * d);
+    // 25° off the aim, well inside the preview's edge.
+    const inner = still(px + Math.cos(25 * DEG) * d, py - Math.sin(25 * DEG) * d);
+    const ahead = still(px + reach - 0.05, py);
+    const body = groundBody(grunt.body!);
+    const sec = (half: number) => ({ x: px, y: py, angle: 0, half, range: preview.range });
+    // The old cone caught the side target, body and all; the previewed one doesn't.
+    expect(sectorHitsBody(sec((OLD_ARC_DEG / 2) * DEG), side.x, side.y, body)).toBe(true);
+    expect(sectorHitsBody(sec(preview.half), side.x, side.y, body)).toBe(false);
+    expect(sectorHitsBody(sec(preview.half), inner.x, inner.y, body)).toBe(true);
+    h.pads[0]!.tap('mainFires', { mainAim: { x: 1, y: 0 } });
+    h.run(1 + steps(warden.main.windupMs));
+    // The slam lands exactly what the preview showed.
+    expect(side.hp).toBe(side.maxHp);
+    expect(inner.maxHp - inner.hp).toBe(warden.main.damage * TANK);
+    expect(ahead.maxHp - ahead.hp).toBe(warden.main.damage * TANK);
+  });
+});
+
+describe('Warden jump slam cone (RC3, RD3-fix-4)', () => {
+  const DEG = Math.PI / 180;
+
+  it('85° at the same 4.7-tile reach, still wider than the slam', () => {
+    expect(warden.super).toMatchObject({ range: 4.7, arcDeg: 85 });
+    expect(warden.super.arcDeg).toBeGreaterThan(warden.main.arcDeg);
+  });
+
+  it('hits a body 42° off the aim, misses one 44° off; the aim preview is the hit cone', () => {
+    const h = combat();
+    h.put(0, 10, 12);
+    const { x: px, y: py } = h.p(0);
+    const reach = warden.super.range;
+    // The TV's aim preview and Fault Line read this cone (classes/hitShape.ts).
+    const shape = aimPreview(h.p(0), warden, 'super', content.rules);
+    expect(shape).toEqual({ kind: 'cone', range: reach, half: (warden.super.arcDeg / 2) * DEG });
+    const preview = shape as Extract<typeof shape, { kind: 'cone' }>;
+    // A Grunt north of the aim line (east), its body's near edge `edge` off the aim: its feet circle
+    // is the body's nearest part (the capsule reaches north, away from the cone).
+    const body = groundBody(grunt.body!);
+    const d = 3.5;
+    const still = (edge: number) => {
+      const a = edge * DEG + Math.asin(body.r / d);
+      const e = h.sim.spawnEnemy('grunt', px + Math.cos(a) * d, py - Math.sin(a) * d);
+      e.stats.moveSpeed = 0;
+      return e;
+    };
+    const inside = still(42);
+    const outside = still(44);
+    const sec = (half: number) => ({ x: px, y: py, angle: 0, half, range: preview.range });
+    // The old 102° cone caught both; the previewed 85° cone only the first.
+    expect(sectorHitsBody(sec(51 * DEG), outside.x, outside.y, body)).toBe(true);
+    expect(sectorHitsBody(sec(preview.half), inside.x, inside.y, body)).toBe(true);
+    expect(sectorHitsBody(sec(preview.half), outside.x, outside.y, body)).toBe(false);
+    h.p(0).superCharge = 1;
+    h.pads[0]!.tap('superFires', { superAim: { x: 1, y: 0 } });
+    h.run(1 + steps(warden.super.windupMs));
+    // The jump slam lands exactly what the preview showed.
+    expect(inside.maxHp - inside.hp).toBe(warden.super.damage * TANK);
+    expect(outside.hp).toBe(outside.maxHp);
   });
 });

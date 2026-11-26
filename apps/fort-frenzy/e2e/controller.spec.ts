@@ -91,10 +91,10 @@ for (const vp of VIEWPORTS) {
       const main = page.locator('.round-btn.main');
       const box = (await main.boundingBox())!;
       await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
-      // Engineer: main is aimed; a tap fires with aim 0,0 (mainFires is slot 7).
+      // Ranger: main is aimed; a tap fires with aim 0,0 (mainFires is slot 9, tuple v2).
       await expect
         .poll(async () => (await page.locator('.dev-readout').textContent()) ?? '')
-        .toMatch(/^\[0, 0, 0, 0, 0, 0, 0, 1, /);
+        .toMatch(/^\[0, 0, 0, 0, 0, 0, 0, 0, 0, 1, /);
     });
   });
 }
@@ -121,6 +121,52 @@ test.describe('dev toggle', () => {
   });
 });
 
+// RC1 notes (RD4-fix-1): the shop owns the right two-thirds; rows never overlap or overflow.
+for (const vp of [
+  { width: 644, height: 300 },
+  { width: 844, height: 390 },
+]) {
+  test.describe(`RD4-fix-1 shop ${vp.width}x${vp.height}`, () => {
+    test.use({ viewport: vp, hasTouch: true });
+
+    test('the shop fills the right two-thirds and each row fits', async ({ page }) => {
+      await open(page, 'shop');
+      const panel = (await page.locator('.build-panel').boundingBox())!;
+      expect(panel.x).toBeGreaterThanOrEqual(vp.width / 3 - 2);
+      expect(panel.x).toBeLessThanOrEqual(vp.width / 3 + 24);
+      expect(panel.x + panel.width).toBeGreaterThan(vp.width - 40);
+      const rowsBox = (await page.locator('.shop-rows').boundingBox())!;
+      expect(rowsBox.width).toBeGreaterThan(vp.width / 2);
+      // the header is one line above the rows, not a column beside them
+      const head = (await page.locator('.shop-head').boundingBox())!;
+      expect(head.y + head.height).toBeLessThanOrEqual(rowsBox.y + 1);
+      const rows = page.locator('.shop-row');
+      const count = await rows.count();
+      expect(count).toBeGreaterThan(2);
+      for (let i = 0; i < count; i++) {
+        const row = rows.nth(i);
+        const r = (await row.boundingBox())!;
+        const name = (await row.locator('.shop-name').boundingBox())!;
+        const price = (await row.locator('.price').boundingBox())!;
+        const req = (await row.locator('.request').boundingBox())!;
+        const badge = (await row.locator('.badge').boundingBox())!;
+        // left to right with nothing under anything else
+        expect(badge.x + badge.width).toBeLessThanOrEqual(name.x + 1);
+        expect(name.x + name.width).toBeLessThanOrEqual(price.x + 1);
+        expect(price.x + price.width).toBeLessThanOrEqual(req.x + 1);
+        expect(req.x + req.width).toBeLessThanOrEqual(r.x + r.width + 1);
+        // names are not squeezed to a letter per line (two lines at most)
+        expect(name.height).toBeLessThanOrEqual(15 * 1.1 * 2 + 4);
+        // the price label fits its button
+        const fits = await row
+          .locator('.price')
+          .evaluate((n) => n.scrollWidth <= n.clientWidth + 1);
+        expect(fits).toBe(true);
+      }
+    });
+  });
+}
+
 // C1 notes (FF4-fix-2): floating aimed joysticks, one-card swipes, the Ready-dimmed lobby, shop cards.
 for (const vp of VIEWPORTS) {
   test.describe(`FF4-fix-2 ${vp.width}x${vp.height}`, () => {
@@ -139,10 +185,10 @@ for (const vp of VIEWPORTS) {
       expect(Math.abs(r.y + r.height / 2 - y)).toBeLessThan(2);
       await page.mouse.move(x - 50, y, { steps: 4 });
       await page.mouse.up();
-      // mainFires is slot 7; 50 of 70 px left is about -71 on x.
+      // mainFires is slot 9 (tuple v2); 50 of 70 px left is about -71 on x.
       await expect
         .poll(async () => (await page.locator('.dev-readout').textContent()) ?? '')
-        .toMatch(/^\[0, 0, -7\d, 0, 0, 0, 0, 1, /);
+        .toMatch(/^\[0, 0, -7\d, 0, 0, 0, 0, 0, 0, 1, /);
     });
 
     test('one swipe of any length moves class select exactly one card', async ({ page }) => {
@@ -161,10 +207,25 @@ for (const vp of VIEWPORTS) {
       });
     });
 
-    test('class cards describe passive, builds and attacks, inside the card', async ({ page }) => {
+    test('a short swipe starting on the right of the card moves class select', async ({ page }) => {
+      await open(page, 'classSelect');
+      const card = (await page.locator('.class-card').first().boundingBox())!;
+      const y = card.y + card.height / 2;
+      const x0 = vp.width * 0.9;
+      await page.mouse.move(x0, y);
+      await page.mouse.down();
+      await page.mouse.move(x0 - vp.width * 0.18, y, { steps: 6 });
+      await page.mouse.up();
+      await expect(page.locator('.pick')).toHaveText('PICK WARDEN');
+    });
+
+    test('knight cards show role, main, super, build and passive, inside the card', async ({
+      page,
+    }) => {
       await open(page, 'classSelect');
       const card = page.locator('.class-card').first();
-      for (const part of ['main', 'super', 'passive', 'builds']) {
+      await expect(card.locator('.class-role .role-glyph')).toBeVisible();
+      for (const part of ['main', 'super', 'build', 'passive']) {
         await expect(card.locator(`[data-part="${part}"] .cc-desc`).first()).toBeVisible();
       }
       const over = await card
@@ -182,29 +243,85 @@ for (const vp of VIEWPORTS) {
       await expect(page.locator('.link-btn')).toBeDisabled();
     });
 
-    test('shop upgrade cards center their content; Take is narrower than the card', async ({
-      page,
-    }) => {
-      await open(page, 'shop');
+    test('pop-up cards center their content; selecting one lights Confirm', async ({ page }) => {
+      await open(page, 'cards');
       await page.waitForTimeout(100);
+      await expect(page.locator('.stick-zone')).toBeHidden();
       const cards = page.locator('.upgrade-card');
-      expect(await cards.count()).toBeGreaterThan(1);
-      for (let i = 0; i < (await cards.count()); i++) {
+      expect(await cards.count()).toBe(3);
+      for (let i = 0; i < 3; i++) {
         const m = await cards.nth(i).evaluate((card) => {
           const b = card.getBoundingClientRect();
           const kids = [...card.children].map((k) => k.getBoundingClientRect());
           return {
             top: Math.min(...kids.map((k) => k.top)) - b.top,
             bottom: b.bottom - Math.max(...kids.map((k) => k.bottom)),
-            take: (card.querySelector('.take') as HTMLElement | null)?.offsetWidth ?? 0,
-            w: b.width,
           };
         });
-        expect(m.top).toBeGreaterThanOrEqual(10);
-        expect(m.bottom).toBeGreaterThanOrEqual(10);
-        expect(Math.abs(m.top - m.bottom)).toBeLessThanOrEqual(6);
-        expect(m.take).toBeLessThan(m.w * 0.8);
+        expect(m.top).toBeGreaterThanOrEqual(8);
+        expect(m.bottom).toBeGreaterThanOrEqual(8);
+        expect(Math.abs(m.top - m.bottom)).toBeLessThanOrEqual(8);
       }
+      await expect(page.locator('.confirm')).toBeDisabled();
+      await cards.nth(1).click();
+      await expect(cards.nth(1)).toHaveClass(/selected/);
+      await expect(page.locator('.confirm')).toBeEnabled();
+      const confirm = (await page.locator('.confirm').boundingBox())!;
+      expect(confirm.y + confirm.height).toBeLessThanOrEqual(vp.height);
+    });
+
+    test('shop: rows fill the right 2/3, the stick keeps the left third, Ready is top right', async ({
+      page,
+    }) => {
+      await open(page, 'shop');
+      const panel = (await page.locator('.build-panel').boundingBox())!;
+      expect(panel.x).toBeGreaterThanOrEqual(vp.width / 3 - 1);
+      const stick = (await page.locator('.stick-zone').boundingBox())!;
+      expect(stick.x + stick.width).toBeLessThanOrEqual(vp.width / 3 + 1);
+      const ready = (await page.locator('.build-bar .ready').boundingBox())!;
+      expect(ready.y).toBeLessThan(60);
+      expect(ready.x).toBeGreaterThan(vp.width / 2);
+      expect(await page.locator('.shop-row').count()).toBeGreaterThan(2);
+    });
+
+    test('the build button is 60 px with a ring; its states render', async ({ page }) => {
+      for (const sample of [
+        'combat-build-empty',
+        'combat-build-charging',
+        'combat-build-ready',
+        'combat-commander',
+        'combat-build-aiming',
+      ]) {
+        await open(page, sample);
+        const face = (await page.locator('.round-btn.action .round-face').boundingBox())!;
+        expect(Math.round(face.width)).toBe(60);
+        await expect(page.locator('.round-btn.action .charge-ring.build')).toHaveCount(1);
+      }
+      await open(page, 'combat-build-charging');
+      await expect(page.locator('.round-btn.action')).toHaveClass(/dimmed/);
+      await expect(page.locator('.round-btn.action .charge-ring')).toHaveClass(/filling/);
+      await open(page, 'combat-build-ready');
+      await expect(page.locator('.round-btn.action')).not.toHaveClass(/dimmed/);
+      await expect(page.locator('.round-btn.action .charge-ring')).toHaveClass(/full/);
+    });
+
+    test('an aimed build drags out (flag 4) and fires on release (buildFires is slot 11)', async ({
+      page,
+    }) => {
+      await open(page, 'combat-warden-ready');
+      const face = (await page.locator('.round-btn.action .round-face').boundingBox())!;
+      const x = face.x + face.width / 2;
+      const y = face.y + face.height / 2;
+      await page.mouse.move(x, y);
+      await page.mouse.down();
+      await page.mouse.move(x - 50, y, { steps: 4 });
+      await expect
+        .poll(async () => (await page.locator('.dev-readout').textContent()) ?? '')
+        .toMatch(/^\[0, 0, 0, 0, 0, 0, -\d+, 0, 4, 0, 0, 0/);
+      await page.mouse.up();
+      await expect
+        .poll(async () => (await page.locator('.dev-readout').textContent()) ?? '')
+        .toMatch(/^\[0, 0, 0, 0, 0, 0, -\d+, 0, 0, 0, 0, 1/);
     });
   });
 }

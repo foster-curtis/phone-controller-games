@@ -1,21 +1,19 @@
-// Home (SPEC §2.6 TV screens, §11.1, §15.8): the focused row is lit amber, ◂ ▸ change theme and
+// Home (SPEC §2.6 TV screens, §11.1, §15.8): the focused row is lit amber, ◂ ▸ change
 // difficulty, "Resume wave N" appears only when a snapshot exists, and the audio loading bar has a slot.
 import { maxPlayers, minPlayers, title } from '../../../../game.meta';
 import type { Section } from '../render';
 import { esc, panel } from '../html';
-import { DIFFICULTY_NAME, THEME_NAME, fmtSavedAgo, shortUrl } from '../labels';
+import { DIFFICULTY_NAME, fmtSavedAgo, shortUrl } from '../labels';
 import type { HomeRow, TvView } from '../types';
 
 const arrows = (inner: string) =>
-  `<span class="arr l"></span><span class="val">${inner}</span><span class="arr r"></span>`;
+  `<span class="arr l" data-dir="-1"></span><span class="val">${inner}</span><span class="arr r" data-dir="1"></span>`;
 
 function row(r: HomeRow, focused: boolean): string {
   const cls = `row ${r.id === 'create' ? 'primary' : ''} ${focused ? 'focus' : ''}`;
   switch (r.id) {
     case 'create':
       return panel(`<span class="lbl">Create room</span>`, cls);
-    case 'theme':
-      return panel(`<span class="lbl">Theme</span>${arrows(esc(THEME_NAME[r.theme]))}`, cls);
     case 'difficulty':
       return panel(
         `<span class="lbl">Difficulty</span>${arrows(esc(DIFFICULTY_NAME[r.difficulty]))}`,
@@ -34,7 +32,9 @@ function row(r: HomeRow, focused: boolean): string {
 export function homeSections(view: TvView): Section[] {
   const home = view.home ?? { rows: [], focus: 0, loading: view.screen === 'loading' ? 0 : 1 };
   const loading = home.loading < 1;
-  const rows = home.rows.map((r, i) => row(r, i === home.focus)).join('');
+  const rows = home.rows
+    .map((r, i) => `<div class="hit" data-row="${i}">${row(r, i === home.focus)}</div>`)
+    .join('');
   const pct = Math.round(Math.min(Math.max(home.loading, 0), 1) * 100);
   // A saved run reclaims its room before the choice: phones rejoining a new room need the code (§15.8).
   const room = view.room

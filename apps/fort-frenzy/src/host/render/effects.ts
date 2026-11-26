@@ -6,12 +6,14 @@ import { theme } from '../../shared/theme';
 import type { ArtImage } from './atlas';
 import { GROUND_SQUASH } from './camera';
 import { placeFrame, type RenderContext } from './context';
-import { bodyBurstPoints } from './effectsMath';
-import { fk, scrapFrame } from './keys';
+import { bodyBurstPoints, flareFlicker } from './effectsMath';
+import { fk, MARK_FRAMES, scrapFrame, SHOCKWAVE_GROW } from './keys';
 import { Pool } from './pool';
+import { SHADOW_TEXTURE } from './textures';
 import type {
   BurstKind,
   EffectSpawner,
+  MarkKind,
   ProjectileKind,
   ProjectileSprite,
   ScrapSide,
@@ -30,15 +32,36 @@ const BURST_FRAMES = {
 const PROJECTILE_FRAMES = {
   bolt: fk('bolt'),
   'nanite-bolt': fk('nanite-bolt'),
-  'mortar-shell': fk('mortar-shell'),
   'bombard-shell': fk('bombard-shell'),
   boulder: fk('boulder'),
   'wasp-shot': fk('wasp-shot'),
-  'power-cell': fk('power-cell'),
 } as const satisfies Record<ProjectileKind, string>;
 
 /** Tumbling projectiles don't point along their heading. */
-const TUMBLES = new Set<ProjectileKind>(['boulder', 'power-cell', 'mortar-shell', 'bombard-shell']);
+const TUMBLES = new Set<ProjectileKind>(['boulder', 'bombard-shell']);
+
+/**
+ * How each mark plays (RD5): its layer, the fraction of its time spent fading in, the fraction held
+ * at full alpha before the fade out, and how much it grows (1 = none).
+ */
+const MARK_LOOK = {
+  'slam-cracks': { layer: 'groundOverlay', fadeIn: 0, hold: 0.15, grow: 1 },
+  'slam-cracks-wide': { layer: 'groundOverlay', fadeIn: 0, hold: 0.15, grow: 1 },
+  'landing-dust': { layer: 'groundOverlay', fadeIn: 0, hold: 0.1, grow: 1.35 },
+  'portal-flare': { layer: 'effects', fadeIn: 0.2, hold: 0.4, grow: 1 },
+  // Rolls out to `scale` × `grow` (worldView passes the hit radius ÷ `SHOCKWAVE_GROW`).
+  shockwave: { layer: 'groundOverlay', fadeIn: 0, hold: 0.55, grow: SHOCKWAVE_GROW },
+  'mine-blast-ring': { layer: 'groundOverlay', fadeIn: 0, hold: 0.25, grow: 1 },
+  'mine-blast': { layer: 'effects', fadeIn: 0, hold: 0.2, grow: 1.2 },
+  'brute-target': { layer: 'groundOverlay', fadeIn: 0.1, hold: 0.5, grow: 1 },
+  'brute-target-arrow': { layer: 'effects', fadeIn: 0.1, hold: 0.5, grow: 1 },
+  'charge-dust': { layer: 'groundOverlay', fadeIn: 0, hold: 0.2, grow: 1.15 },
+} as const satisfies Record<
+  MarkKind,
+  { layer: string; fadeIn: number; hold: number; grow: number }
+>;
+/** Marks lie over the map and under shadows, rings and units (layer 2). */
+const MARK_DEPTH = -3e5;
 
 /** Scrap shows this long before fading (default) and fades over this long. */
 const SCRAP_SHOW_MS = 960;
@@ -54,7 +77,7 @@ interface Live {
   delay?: number;
 }
 
-export const SHADOW_TEXTURE = '__ff-shadow';
+export { SHADOW_TEXTURE };
 
 /** A soft ink ellipse texture (64 × 38, 0.6 ratio) for shadows. */
 export function ensureShadowTexture(scene: Phaser.Scene) {
@@ -69,6 +92,8 @@ export class Effects implements EffectSpawner {
   private live: Live[] = [];
   /** Seeds bodyBurst placements (stable sequence, no randomness). */
   private seq = 0;
+  /** Seeds each portal flare's flicker by start order. */
+  private flares = 0;
   readonly pools = new Map<string, Pool<ArtImage>>();
   private readonly gfxPool: Pool<Phaser.GameObjects.Graphics>;
   private readonly shadowPool: Pool<Phaser.GameObjects.Image>;
@@ -98,7 +123,7 @@ export class Effects implements EffectSpawner {
   }
 
   /** Pool of images of one frame on one layer. */
-  private pool(name: string, layer: 'effects' | 'world'): Pool<ArtImage> {
+  private pool(name: string, layer: 'effects' | 'world' | 'groundOverlay'): Pool<ArtImage> {
     const key = `${layer}:${name}`;
     let p = this.pools.get(key);
     if (!p) {
@@ -138,6 +163,30 @@ export class Effects implements EffectSpawner {
       this.burst(kind, footSx + p.x * heightPx, footSy - p.y * heightPx, 0, p.delayMs);
   }
 
+  mark(kind: MarkKind, sx: number, sy: number, ms = 1000, scale = 1, flipX = false) {
+    const look = MARK_LOOK[kind];
+    const pool = this.pool(MARK_FRAMES[kind], look.layer);
+    const a = pool.get();
+    a.img.setPosition(sx, sy).setDepth(look.layer === 'effects' ? sy : MARK_DEPTH);
+    // The portal flare flickers (SPEC §9.6), seeded by its place and start order.
+    const flickerSeed =
+      kind === 'portal-flare' ? `${Math.round(sx)}:${Math.round(sy)}:${this.flares++}` : '';
+    this.add(
+      a.img,
+      ms,
+      () => pool.release(a),
+      (u) => {
+        const fadeOut =
+          1 - Math.max(0, (u - look.hold - look.fadeIn) / (1 - look.hold - look.fadeIn));
+        const fl = flickerSeed ? flareFlicker(u, flickerSeed) : null;
+        const shown = look.fadeIn > 0 ? Math.min(1, u / look.fadeIn) * fadeOut : fadeOut;
+        a.img.setAlpha(fl ? shown * fl.alpha : shown);
+        const k = scale * (1 + (look.grow - 1) * u) * (fl ? fl.scale : 1);
+        this.ctx.lib.setUnitScale(a, this.ctx.unitPx, flipX ? -k : k, k);
+      },
+    );
+  }
+
   tracer(side: ScrapSide, from: ScreenPoint, to: ScreenPoint, ms = 120) {
     const g = this.gfxPool.get();
     const color = side === 'ours' ? theme.color.amber.num : theme.color.hostile.num;
@@ -165,21 +214,6 @@ export class Effects implements EffectSpawner {
         const t = u * ttl;
         a.img.setAlpha(t < holdMs ? 1 : 1 - (t - holdMs) / SCRAP_FADE_MS);
       },
-    );
-  }
-
-  wallStrike(from: ScreenPoint, to: ScreenPoint) {
-    const pool = this.pool(fk('wall-strike'), 'effects');
-    const a = pool.get();
-    const len = Math.hypot(to.sx - from.sx, to.sy - from.sy);
-    // Runs (0,0)–(100,0) in units: stretch x only so the bolt stays thin.
-    this.ctx.lib.setUnitScale(a, this.ctx.unitPx, len / (100 * this.ctx.unitPx), 1);
-    a.img.setPosition(from.sx, from.sy).setRotation(Math.atan2(to.sy - from.sy, to.sx - from.sx));
-    this.add(
-      a.img,
-      140,
-      () => pool.release(a),
-      (u) => a.img.setAlpha(u < 0.5 ? 1 : 2 - 2 * u),
     );
   }
 

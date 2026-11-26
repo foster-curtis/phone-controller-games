@@ -1,17 +1,8 @@
-import {
-  SLOT_DOWN,
-  SLOT_LEFT,
-  SLOT_NONE,
-  SLOT_UP,
-  aimedGesture,
-  radialGesture,
-  type GestureInput,
-  type GestureMachine,
-} from '@pcg/controller-kit';
+import { aimedGesture, type GestureInput, type GestureMachine } from '@pcg/controller-kit';
 import { describe, expect, it } from 'vitest';
 import {
   INPUT_FLAG_MAIN_AIMING,
-  INPUT_FLAG_RADIAL_OPEN,
+  INPUT_FLAG_BUILD_AIMING,
   INPUT_FLAG_SUPER_AIMING,
   INPUT_TUPLE_LENGTH,
   isInputTuple,
@@ -21,8 +12,7 @@ import {
   createPhoneSender,
   encodeAimed,
   encodeAimedState,
-  encodeRadial,
-  encodeRadialState,
+  encodeBuildTap,
   encodeTapAttack,
 } from '../input';
 
@@ -52,10 +42,12 @@ function drive<S, O>(
 }
 
 describe('phone sender', () => {
-  it('has the 12-field tuple of SPEC §15.6 and a valid initial value', () => {
+  it('has the 12-field v2 tuple of SPEC §15.6 and a valid initial value', () => {
     const { sender } = setup();
     expect(TUPLE_LAYOUT).toHaveLength(INPUT_TUPLE_LENGTH);
-    expect(sender.tuple()).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1]);
+    expect(TUPLE_LAYOUT.indexOf('flags')).toBe(8);
+    expect(TUPLE_LAYOUT.indexOf('buildFires')).toBe(11);
+    expect(sender.tuple()).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     expect(isInputTuple(sender.tuple())).toBe(true);
   });
 
@@ -86,14 +78,14 @@ describe('gesture outcomes in the tuple', () => {
     expect([at('superX'), at('superY'), at('superFires')]).toEqual([100, -50, 1]);
     expect(sent).toHaveLength(1);
     expect(sent[0]!.slice(4, 6)).toEqual([100, -50]);
-    expect(sent[0]![8]).toBe(1);
+    expect(sent[0]![10]).toBe(1);
   });
 
   it('aimed cancel changes nothing', () => {
     const { sender, sent } = setup();
     encodeAimed(sender, 'main', { kind: 'cancel' });
     expect(sent).toHaveLength(0);
-    expect(sender.tuple().slice(7, 9)).toEqual([0, 0]);
+    expect(sender.tuple().slice(9, 12)).toEqual([0, 0, 0]);
   });
 
   it('aiming flag follows the press state (main 1, super 2)', () => {
@@ -158,142 +150,30 @@ describe('gesture outcomes in the tuple', () => {
     expect([at('mainFires'), at('mainX'), at('mainY')]).toEqual([2, 0, 0]);
   });
 
-  const slots = [true, true, null, true];
-  const radial = () =>
-    radialGesture({
-      slots,
-      tapMs: 150,
-      openMs: 400,
-      deadZonePx: 8.4,
-      hysteresisPx: 8,
-      repeatMs: 300,
-      repeatSlot: SLOT_DOWN,
-    });
-
-  it('radial tap = an action tap', () => {
-    const { sender, at } = setup();
-    drive(
-      radial(),
-      [
-        { type: 'down', t: 0 },
-        { type: 'up', t: 80, dx: 0, dy: 0 },
-      ],
-      (st) => encodeRadialState(sender, st, true),
-      (o, st) => encodeRadial(sender, o, st),
-    );
-    expect([at('actionTaps'), at('radialCommits'), at('radialSlot'), at('flags')]).toEqual([
-      1,
-      0,
-      SLOT_NONE,
-      0,
-    ]);
-  });
-
-  it('radial drag opens the arc (flag 4, slot follows), release commits the slot and clears', () => {
+  it('build tap: a build fire at index 11 with aim 0,0, flags untouched', () => {
     const { sender, sent, at } = setup();
-    const m = radial();
-    let s = m.initial();
-    const feed = (i: GestureInput) => {
-      const r = m.step(s, i);
-      if (r.state !== s) encodeRadialState(sender, r.state, true);
-      s = r.state;
-      for (const o of r.out) encodeRadial(sender, o, s);
-    };
-    feed({ type: 'down', t: 0 });
-    feed({ type: 'move', t: 30, dx: 0, dy: -40 });
-    expect(at('flags') & INPUT_FLAG_RADIAL_OPEN).toBe(INPUT_FLAG_RADIAL_OPEN);
-    expect(at('radialSlot')).toBe(SLOT_UP);
-    feed({ type: 'up', t: 60, dx: 0, dy: -40 });
-    expect(at('radialCommits')).toBe(1);
-    expect(at('radialSlot')).toBe(SLOT_NONE);
-    expect(at('flags')).toBe(0);
-    // The commit tuple carried the slot: find it among the sends.
-    expect(sent.some((t) => t[10] === 1 && t[11] === SLOT_UP)).toBe(true);
+    sender.update({ buildX: 50, buildY: 50 });
+    sent.length = 0;
+    encodeBuildTap(sender);
+    expect([at('buildFires'), at('buildX'), at('buildY'), at('flags')]).toEqual([1, 0, 0, 0]);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]![11]).toBe(1);
+    expect(sent[0]![8] & INPUT_FLAG_BUILD_AIMING).toBe(0);
   });
 
-  it('radial release in the dead zone after opening cancels: no commit', () => {
-    const { sender, at } = setup();
+  it('flags sit at index 8: main aiming sets bit 1 there', () => {
+    const { sender, sent } = setup();
+    const m = aimedGesture();
     drive(
-      radial(),
+      m,
       [
         { type: 'down', t: 0 },
-        { type: 'move', t: 450, dx: 0, dy: 0 },
-        { type: 'tick', t: 450 },
-        { type: 'up', t: 500, dx: 0, dy: 0 },
+        { type: 'move', t: 20, dx: 40, dy: 0 },
       ],
-      (st) => encodeRadialState(sender, st, true),
-      (o, st) => encodeRadial(sender, o, st),
-    );
-    expect([at('radialCommits'), at('radialSlot'), at('flags')]).toEqual([0, SLOT_NONE, 0]);
-  });
-
-  it('holding on Give repeats commits every 300 ms, then ends without an extra commit', () => {
-    const { sender, at } = setup();
-    drive(
-      radial(),
-      [
-        { type: 'down', t: 0 },
-        { type: 'move', t: 20, dx: 0, dy: 40 },
-        { type: 'tick', t: 650 },
-        { type: 'up', t: 650, dx: 0, dy: 40 },
-      ],
-      (st) => encodeRadialState(sender, st, true),
-      (o, st) => encodeRadial(sender, o, st),
-    );
-    // The arc opens at the first move (dragged out); Give's repeat timer runs from there (t=20):
-    // repeats at 320 and 620; the release after repeats only ends.
-    expect(at('radialCommits')).toBe(2);
-    expect(at('radialSlot')).toBe(SLOT_NONE);
-  });
-
-  it('a single Give slot: holding 0.4 s commits Give directly, no arc flag', () => {
-    const { sender, at } = setup();
-    const single = radialGesture({
-      slots: [null, null, null, true],
-      tapMs: 150,
-      openMs: 400,
-      deadZonePx: 8.4,
-      hysteresisPx: 8,
-      repeatMs: 300,
-      repeatSlot: SLOT_DOWN,
-    });
-    drive(
-      single,
-      [
-        { type: 'down', t: 0 },
-        { type: 'tick', t: 400 },
-        { type: 'tick', t: 700 },
-        { type: 'up', t: 710 },
-      ],
-      (st) => encodeRadialState(sender, st, true),
-      (o, st) => encodeRadial(sender, o, st),
-    );
-    expect(at('radialCommits')).toBe(2);
-    expect(at('flags')).toBe(0);
-    expect(at('radialSlot')).toBe(SLOT_NONE);
-  });
-
-  it('no slots: the flag is never set even if the machine opens', () => {
-    const { sender, at } = setup();
-    drive(
-      radialGesture({
-        slots: [null, null, null, null],
-        tapMs: 150,
-        openMs: 400,
-        deadZonePx: 8.4,
-        hysteresisPx: 8,
-        repeatMs: 300,
-        repeatSlot: SLOT_DOWN,
-      }),
-      [
-        { type: 'down', t: 0 },
-        { type: 'move', t: 20, dx: -40, dy: 0 },
-      ],
-      (st) => encodeRadialState(sender, st, false),
+      (st) => encodeAimedState(sender, 'main', st),
       () => {},
     );
-    expect([at('flags'), at('radialSlot')]).toEqual([0, SLOT_NONE]);
-    void SLOT_LEFT;
+    expect(sent.at(-1)![8]).toBe(INPUT_FLAG_MAIN_AIMING);
   });
 
   it('every tuple the sender produces passes the host guard', () => {
@@ -301,7 +181,7 @@ describe('gesture outcomes in the tuple', () => {
     encodeAimed(sender, 'main', { kind: 'fire', x: -70, y: 70 });
     encodeTapAttack(sender, 'super');
     sender.update({ moveX: -100, moveY: 100 });
-    sender.bump('actionTaps');
+    encodeBuildTap(sender);
     for (const t of sent) expect(isInputTuple(t)).toBe(true);
   });
 });

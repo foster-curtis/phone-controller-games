@@ -5,12 +5,12 @@ import * as Phaser from 'phaser';
 import { manifest } from '../../../../generated/manifest';
 import { content } from '../../../content';
 import { groundBody } from '../../sim/body';
-import { LANE_IDS, PLAYER_COLOR_IDS } from '../../../shared/ids';
+import { PLAYER_COLOR_IDS } from '../../../shared/ids';
 import { theme } from '../../../shared/theme';
-import { neonKnightsHost } from '../../../themes/neon-knights/host';
-import type { ThemeAssets } from '../../../themes/types';
+import { presentationHost } from '../../../presentation/host';
+import { ART_SET, type ArtSetAssets } from '../../../presentation/types';
 import { pickAtlasScale, preloadAtlases } from '../atlas';
-import { CANVAS_H, CANVAS_W } from '../camera';
+import { CANVAS_H, CANVAS_W, FixedCamera, UNIT_FIT } from '../camera';
 import { RenderWorld } from '../world';
 import { PAGE_BUILDERS, type PageKit, type Unit } from './pages';
 import { CLIP_NAMES, PAGES, readState, writeState, type GalleryState } from './state';
@@ -32,11 +32,11 @@ declare global {
   }
 }
 
-const assets = manifest.themes['neon-knights'] as ThemeAssets;
+const assets = manifest.sets[ART_SET] as ArtSetAssets;
 /** Content's enemy body hitboxes by rig id (C4), drawn with the hitbox toggle. */
 const ENEMY_BODIES = new Map(
   content.enemies.flatMap((e) =>
-    e.body ? [[neonKnightsHost.rigFor.enemy[e.id], groundBody(e.body)] as const] : [],
+    e.body ? [[presentationHost.rigFor.enemy[e.id], groundBody(e.body)] as const] : [],
   ),
 );
 const scale = pickAtlasScale();
@@ -55,7 +55,7 @@ class GalleryScene extends Phaser.Scene {
   }
 
   preload() {
-    const fresh = neonKnightsHost.atlases.filter((a) => !this.textures.exists(a.key));
+    const fresh = presentationHost.atlases.filter((a) => !this.textures.exists(a.key));
     preloadAtlases(this, fresh, scale);
   }
 
@@ -65,7 +65,10 @@ class GalleryScene extends Phaser.Scene {
     this.ticks = [];
     this.hitboxes = [];
     this.t = 0;
-    this.world = new RenderWorld(this, neonKnightsHost, assets, scale, { bloom: true });
+    this.world = new RenderWorld(this, presentationHost, assets, scale, {
+      bloom: true,
+      camera: new FixedCamera(UNIT_FIT),
+    });
     if (stress) {
       const s = runStress(this.world);
       this.ticks.push(s.tick);
@@ -115,13 +118,6 @@ class GalleryScene extends Phaser.Scene {
       if (w > 0) m.shadow(u.sx, u.sy, w * 2, h * 2);
       if (u.knight) {
         m.ring(u.sx, u.sy, u.info.ring ?? 0.6, u.color ?? color, u.aim);
-        m.carry(
-          u.sx,
-          u.sy,
-          u.info.ring ?? 0.6,
-          this.state.carry,
-          u.rig.rigId === 'artificer' ? 8 : 4,
-        );
       }
       if (this.state.hitbox) {
         m.hitbox(u.sx, u.sy, u.info.hitbox);
@@ -221,6 +217,16 @@ function panel(game: Phaser.Game) {
     () => s.banner,
     (v) => (s.banner = v),
   );
+  check(
+    'sword',
+    () => s.sword,
+    (v) => (s.sword = v),
+  );
+  check(
+    'slam',
+    () => s.slam,
+    (v) => (s.slam = v),
+  );
   select(
     'gauge',
     [0, 1, 2, 3, 4, 5, 6, 7, 8],
@@ -228,30 +234,11 @@ function panel(game: Phaser.Game) {
     (v) => (s.gauge = v),
   );
   select(
-    'carry',
-    [0, 1, 2, 3, 4, 5, 6, 7, 8],
-    () => s.carry,
-    (v) => (s.carry = v),
-  );
-  select(
     'colossus',
     ['1', '2', '3', 'final'],
     () => (s.colossus === 4 ? 'final' : String(s.colossus)),
     (v) => (s.colossus = v === 'final' ? 4 : (Number(v) as 1 | 2 | 3)),
   );
-  select(
-    'tier',
-    [0, 1, 2, 3],
-    () => s.tier,
-    (v) => (s.tier = v as 0 | 1 | 2 | 3),
-  );
-  for (const l of LANE_IDS)
-    select(
-      `lane ${l}`,
-      ['open', 'sealed'],
-      () => s.lanes[l],
-      (v) => (s.lanes[l] = v as 'open' | 'sealed'),
-    );
   document.body.append(el);
 }
 

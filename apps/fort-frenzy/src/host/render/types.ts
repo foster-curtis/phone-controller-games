@@ -3,7 +3,8 @@
 // drive from sim snapshots. Phaser stays behind these types; the sim never imports them.
 // Frozen at FF3 (BUILD_PLAN §3): additive changes only.
 import type { FrameName, IconName } from '../../../generated/keys';
-import type { ViewId } from '../../themes/types';
+import type { ViewId } from '../../presentation/types';
+import type { RenderContext } from './context';
 
 /** A frame name from the generated atlas keys (`pnpm assets`); code never names frames otherwise. */
 export type FrameKey = FrameName;
@@ -63,7 +64,7 @@ export interface PlayOptions {
   offsetMs?: number;
 }
 
-/** One composed rig on the world layer: a knight, footman, enemy, the Colossus or the mortar. */
+/** One composed rig on the world layer: a knight, footman, enemy or the Colossus. */
 export interface RigInstance {
   readonly rigId: string;
   readonly view: ViewId;
@@ -103,13 +104,6 @@ export interface RigInstance {
 
 // ---- structures and world pieces (§3.6, §7.2, §15.2) ----------------------------------------------
 
-/** Pulse-turret aims; `s` faces the camera. Order is counter-clockwise from east in screen space. */
-export const TURRET_AIMS = ['e', 'se', 's', 'sw', 'w', 'nw', 'n', 'ne'] as const;
-export type TurretAim = (typeof TURRET_AIMS)[number];
-
-/** 0 = unupgraded, then shop tiers I–III. */
-export type TowerTier = 0 | 1 | 2 | 3;
-
 export const SENTRY_AIMS = ['l', 'dl', 'c', 'dr', 'r'] as const;
 export type SentryAim = (typeof SENTRY_AIMS)[number];
 export const SENTRY_LOADOUTS = ['base', 'dmg', 'rng', 'max'] as const;
@@ -121,21 +115,12 @@ export type CitadelStage = 0 | 1 | 2 | 3;
 /** 4-bit same-type neighbor mask: N = 1, E = 2, S = 4, W = 8. */
 export type TileMask = number;
 
-export type LaneState = 'open' | 'sealed';
-
 /** Status looks (§6.1) the renderer draws on a unit. */
 export type StatusLook = 'burn' | 'poison' | 'stun' | 'slow';
 
 // ---- effects (§15.2 layer 4, pooled) --------------------------------------------------------------
 
-export type ProjectileKind =
-  | 'bolt'
-  | 'nanite-bolt'
-  | 'mortar-shell'
-  | 'bombard-shell'
-  | 'boulder'
-  | 'wasp-shot'
-  | 'power-cell';
+export type ProjectileKind = 'bolt' | 'nanite-bolt' | 'bombard-shell' | 'boulder' | 'wasp-shot';
 
 export type BurstKind =
   'spark-ours' | 'spark-theirs' | 'heal-glint' | 'nanite-mote' | 'muzzle-ours' | 'muzzle-theirs';
@@ -166,13 +151,19 @@ export interface EffectSpawner {
    */
   scrap(side: ScrapSide, size: 1 | 2 | 3 | 4 | 5, sx: number, sy: number, holdMs?: number): void;
   /** The charged-wall strike from a post to an attacker. */
-  wallStrike(from: ScreenPoint, to: ScreenPoint): void;
   /** Ground ring (AoE, blast, shockwave) at a world point, radius in tiles, expanding and fading. */
   ring(side: ScrapSide | 'danger', x: number, y: number, r: number, ms?: number): void;
   /**
    * Ground shockwave in a sector (FF8: the Warden's slam and stomp): a 0.6 band rolling out from
    * (x, y) to `r` tiles across `arcDeg` around the world-ground angle `angleRad`, fading.
    */
+  /**
+   * A ground or effect frame at a screen point that holds, then fades over `ms` (RD5): the Warden's
+   * slam cracks (about 1 s), the jump slam's landing dust and wide cracks, the portal flare sparks.
+   * `scale` multiplies the frame's unit scale.
+   */
+  /** `flipX` mirrors the frame about its anchor (the Charge's dust trails behind a left-facing run). */
+  mark?(kind: MarkKind, sx: number, sy: number, ms?: number, scale?: number, flipX?: boolean): void;
   arcWave?(
     side: ScrapSide,
     x: number,
@@ -191,3 +182,63 @@ export interface ProjectileSprite {
   set(x: number, y: number, z: number, headingRad: number): void;
   release(): void;
 }
+
+// ---- builds (RD5, SPEC §7.5, §15.2) -----------------------------------------------------------------
+
+/** A build's look: `flight` while thrown, `landed` until it switches on, then `active`; `damaged` below half HP. */
+export const BUILD_PHASES = ['flight', 'landed', 'active', 'damaged', 'destroyed'] as const;
+export type BuildPhase = (typeof BUILD_PHASES)[number];
+
+/** What a build view draws each frame, from the sim's `BuildEnt` (the scene fills it in place). */
+export interface BuildViewState {
+  phase: BuildPhase;
+  /** Ground point in world tiles (along the throw while in flight, lerped otherwise). */
+  x: number;
+  y: number;
+  /** Ground point in screen px (the camera's projection of x, y). */
+  sx: number;
+  sy: number;
+  /** Throw height in tiles (0 landed); the shadow stays at the ground point. */
+  z: number;
+  /** Progress along the throw, 0..1 (1 once landed). */
+  flightU: number;
+  /** HP fraction 0..1; builds without HP report 1. */
+  hpFrac: number;
+  /** Effect radius in tiles (the dotted ground ellipse). */
+  radius: number;
+  /** Time since the view was made, ms (cycles: the shimmer, the damaged flicker). */
+  clockMs: number;
+  /** A mine in its trigger delay (RD7): it shows its `trigger` frame at full opacity. */
+  triggered?: boolean;
+  /** The sim's next pulse tick (the beacon, RD8): a change means a pulse just went off. */
+  nextPulse?: number | null;
+  /** The owner's player color, for a tinted part (the rally flag's cloth, RD9). */
+  ownerTint?: number;
+}
+
+/** One build's drawing; the scene makes one per `BuildEnt` of its kind and calls `update` each frame. */
+export interface BuildView {
+  update(state: Readonly<BuildViewState>, dtMs: number): void;
+  destroy(): void;
+}
+
+/** What `scene/builds/<build>.ts` exports as `view` (found with `import.meta.glob`); freezes after RD6. */
+export interface BuildViewFactory {
+  /** The `BuildId` it draws. */
+  readonly id: string;
+  create(ctx: RenderContext): BuildView;
+}
+
+/** Ground and effect frames dropped at a screen point and faded (`EffectSpawner.mark`). */
+export type MarkKind =
+  | 'slam-cracks'
+  | 'slam-cracks-wide'
+  | 'landing-dust'
+  | 'portal-flare'
+  // RD7: the Ranger's super and a mine going off.
+  | 'shockwave'
+  | 'mine-blast-ring'
+  | 'mine-blast'
+  | 'brute-target'
+  | 'brute-target-arrow'
+  | 'charge-dust';

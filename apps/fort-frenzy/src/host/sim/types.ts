@@ -1,33 +1,25 @@
 // The run simulation's public types (SPEC §15.3): world, entities, phases, input sources, modifiers
 // and hooks, the damage pipeline, boss behaviors, commands and the run start.
-// Plain TS: no Phaser, no net-client, no themes, no DOM (lint, §15.1). Units: tiles, ticks (60 Hz
+// Plain TS: no Phaser, no net-client, no presentation, no DOM (lint, §15.1). Units: tiles, ticks (60 Hz
 // steps); config times in ms are converted to ticks at load.
-// Frozen at FF1 (BUILD_PLAN §3): additive changes only (new optional fields, new union members).
-// FF6 added `Unit.push` and `BaseState.stage`; FF9 added `ThrownCrate` and `World.thrown`; FF10 added
-// `EnemyEnt.wander`; FF8 added `AttackState.windupAim`; FF11 added `BossAct` and the optional
-// `EnemyEnt.boss` fields `act`, `ready` and `stunAt`; FF12 added `HealCalc` and `Hooks.modifyHeal`;
-// FF7-fix-4 added `AttackState.held`.
+// Frozen after RD2 (REDESIGN_BUILD_PLAN §3): additive changes only (new optional fields, new union
+// members). RD2 implemented the v2 shapes (SPEC §15.3): builds and flights, the meter, regen and
+// growth state, portals on enemies and spawns, the player-count scaling, input v2; the structures,
+// the supply system, the wall-smashing field and `TileGrid.occupant` are gone.
 import type { Rng } from '@pcg/game-kit';
+import type { EffectApply, ModuleRef, StatId, StatMod, TileKind, Vec2 } from '../../content/types';
 import type {
-  EffectApply,
-  ModuleRef,
-  StatId,
-  StatMod,
-  Tile,
-  TileKind,
-  Vec2,
-} from '../../content/types';
-import type {
+  BuildId,
   CardId,
   ClassId,
   DifficultyId,
   EffectId,
   EnemyId,
-  LaneId,
+  KnightId,
   PlayerColorId,
+  PortalId,
   ShopItemId,
-  StructureId,
-  ThemeId,
+  SideId,
 } from '../../shared/ids';
 import type { AckReason, RunStats } from '../../shared/messages';
 import type { SimEvent } from './events';
@@ -86,7 +78,7 @@ export interface Unit extends Body {
   push?: Vec2 | null;
 }
 
-/** One cooldown-gated attack slot (main, super, an enemy's or structure's attack). */
+/** One cooldown-gated attack slot (main, super, build, an enemy's attack). */
 export interface AttackState {
   /** Tick from which the attack can fire again. */
   readyAt: number;
@@ -106,6 +98,25 @@ export interface AttackState {
   held?: 'out' | 'cancelled' | null;
 }
 
+/** A nanite blast in progress (§8.2, RD8): what one release's remaining shots need. */
+export interface NaniteBurst {
+  /** The aim he released with, radians: the blast doesn't follow a later turn. */
+  angle: number;
+  startedAt: number;
+  fired: number;
+  count: number;
+  /** Steps from the first shot to the last. */
+  steps: number;
+  halfSpread: number;
+  minReach: number;
+  damage: number;
+  range: number;
+  speed: number;
+  pierce: number;
+  tags: string[];
+  effects: EffectApply[];
+}
+
 export interface PlayerEnt extends Unit {
   slot: number;
   classId: ClassId;
@@ -114,25 +125,34 @@ export interface PlayerEnt extends Unit {
   connected: boolean;
   /** Dead until `respawnAt` (tick), null when alive (§5). */
   respawnAt: number | null;
-  crates: number;
-  /** Emergency kits held (Quartermaster, 0 or 1). */
-  kits: number;
   /** 0..1. */
   superCharge: number;
   main: AttackState;
   super: AttackState;
+  /** The Artificer's blast still firing (null otherwise); never outlives combat, so never saved. */
+  burst: NaniteBurst | null;
+  /** Build meter 0..1 (§7.2); starts the run full (RD3). */
+  meter: number;
+  /** The build button: queued press, aim, held (§10.1). */
+  build: AttackState;
   /** Live aim while a button is held (TV aim line), null when not aiming. */
   mainAim: Vec2 | null;
   superAim: Vec2 | null;
-  radialOpen: boolean;
-  radialSlot: -1 | 0 | 1 | 2 | 3;
+  /** Live aim while a thrown build is held (TV preview). */
+  buildAim: Vec2 | null;
+  /** Regen (§5): none before `quietUntil` (5 s after the last damage, main or super); next tick at `nextRegen`. */
+  regen: { quietUntil: number; nextRegen: number };
+  /** Class growth bumps received (§6.1). */
+  growth: { regular: number; boss: number };
   /** Ticks the stick has been released (Steady Aim). */
   stillTicks: number;
-  lastBuilt: StructureId | null;
-  /** Build-phase ghost (§10.2). */
-  ghost: StructureId | null;
-  /** Commander's rally flag; persists across phases (BUILD_PLAN §8). */
+  /**
+   * Commander's rally flag: where it stands or is landing (its `BuildEnt` draws and saves it, RD9);
+   * persists across phases until recalled or replaced (§7.4).
+   */
   flag: Vec2 | null;
+  /** Commander: his starting soldiers were given (once per run, §8.4; RD9). */
+  squadSeeded?: boolean;
   cards: Partial<Record<CardId, number>>;
   offer: CardId[] | null;
   picked: CardId | null;
@@ -150,25 +170,69 @@ export interface SoldierEnt extends Unit {
   mode: 'follow' | 'rally';
   target: EntityId | null;
   attack: AttackState;
+  /** Thrown by Reinforcements; joins on landing (RD9). */
+  flight: Flight | null;
+}
+
+/** A thrown build or soldier in the air (§7.3): it lands at `to` on `landsAt`. */
+export interface Flight {
+  from: Vec2;
+  to: Vec2;
+  launchedAt: number;
+  landsAt: number;
+}
+
+/** A placed build (§7). A Unit so it takes damage through `applyDamage` and carries card mods. */
+export interface BuildEnt extends Unit {
+  kind: BuildId;
+  /** The knight's slot. */
+  owner: number;
+  /** Placement order per owner (the oldest mine goes first). */
+  seq: number;
+  /** A destroyed build is removed (event `buildGone`). */
+  state: 'flight' | 'landed' | 'active';
+  flight: Flight | null;
+  /** HP builds (BuildDef.traits.targetable). */
+  targetable: boolean;
+  /** Mines; null for HP builds and the flag. */
+  charges: number | null;
+  /** Tick it starts working (landing + switch-on, mine arming). */
+  liveAt: number;
+  /** Mines: a ground enemy set it off; bursts at this tick. */
+  triggerAt: number | null;
+  /** Beacon: next heal pulse tick. */
+  nextPulse: number | null;
 }
 
 export interface EnemyEnt extends Unit {
   kind: EnemyId;
   flying: boolean;
-  lane: LaneId | null;
+  /** Where it spawned (was `lane`); null for debug and tooling spawns. */
+  portal: PortalId | null;
   /** Spawn group: a Swarm pays its coins when the group's last unit dies (§9.1). */
   group: number;
+  /** `return` is no longer entered (RD10-fix-1: a leashed enemy goes on from where it stands). */
   ai: 'path' | 'aggro' | 'return' | 'attack' | 'siege' | 'hunt' | 'boss';
+  /** A knight, soldier, build or BASE_ID. */
   target: EntityId | null;
-  /** Where an aggro-leash enemy left its path. */
+  /** Where an aggro-leash enemy left its path (the leash is measured from here). */
   leashFrom: Vec2 | null;
+  /**
+   * Aggro leash (RD10-fix-1): the target it let go at the leash. It walks on toward the base from
+   * where it stands and won't take that target again until it leaves the aggro radius.
+   */
+  dropped?: EntityId;
   /** Hunter's quarry (slot). */
   hunting: number | null;
   /**
-   * Hunter only (FF10-fix-1): the tick it took its current quarry (first pick or a change), which
-   * drives the TV's ~2 s player-color flash at its feet. Absent for other enemies.
+   * The tick it locked on (RD10), which drives the TV's flash. Hunter: its quarry came within
+   * `hunt.lockRange`. Brute: it picked `huntBuild`. Absent until then.
    */
   huntSince?: number;
+  /** Hunter (RD10): locked on and sprinting, until its quarry changes. */
+  locked?: boolean;
+  /** Brute (RD10): the build it is going for. Absent while it has none. */
+  huntBuild?: EntityId;
   attack: AttackState;
   /**
    * Scrap-mite jitter (FF10; §15.3: in the sim, combat stream): sideways drift (−1..1), pace factor
@@ -191,8 +255,9 @@ export interface EnemyEnt extends Unit {
 }
 
 /**
- * A boss attack in progress (FF11, §9.2): what it is (`slam`, `breaker`, `boulder`, `call` for the
- * Colossus), when it started and lands, where it lands, what it aims at and its danger marker.
+ * A boss attack in progress (FF11, §9.2): what it is (`slam`, `boulder`, `charge` (the tell, RD10),
+ * `chargeRun` (the run), `call` for the Colossus), when it started and lands, where it lands, what it
+ * aims at and its danger marker.
  */
 export interface BossAct {
   kind: string;
@@ -202,23 +267,8 @@ export interface BossAct {
   y: number;
   target: EntityId | null;
   marker: EntityId | null;
-}
-
-/** Structures and the base are damage targets with mods (tower defense, base armor), so units. */
-export interface StructureEnt extends Unit {
-  kind: StructureId;
-  tile: Tile;
-  owner: number;
-  /** False for snares (no HP, §7.1). */
-  damageable: boolean;
-  /** Snares: discharges left and when it rearms (tick). */
-  discharges: number | null;
-  rearmAt: number | null;
-  /** Towers: a Fortify is attached (§8). */
-  fortified: boolean;
-  attack: AttackState | null;
-  /** 4-bit same-type neighbor mask (walls, snares; N1 E2 S4 W8), kept for render. */
-  mask: number;
+  /** `chargeRun` (RD10): who it already hit, so each takes one blow per run. */
+  hit?: EntityId[];
 }
 
 export type DamageKind = 'melee' | 'ranged' | 'area' | 'dot' | 'contact' | 'shell';
@@ -226,15 +276,14 @@ export type DamageKind = 'melee' | 'ranged' | 'area' | 'dot' | 'contact' | 'shel
 export interface ProjectileEnt extends Body {
   side: 'ours' | 'theirs';
   source: EntityId;
-  /** What fired it (render picks the frame): a class, structure, enemy or a base archer. */
-  from: ClassId | StructureId | EnemyId | 'archer';
+  /** What fired it (render picks the frame): a knight, build, enemy or a sentry. */
+  from: KnightId | EnemyId | BuildId | 'archer';
   slot: 'main' | 'super' | 'attack';
   damage: number;
   kind: DamageKind;
   tags: readonly string[];
   effects: EffectApply[];
   hitsFlyers: boolean;
-  blockedBy: readonly ('wall' | 'tower')[];
   /** Enemies it can still pass through (Piercing Shot). */
   pierce: number;
   hit: EntityId[];
@@ -243,41 +292,12 @@ export interface ProjectileEnt extends Body {
   arc: { from: Vec2; to: Vec2; launchedAt: number; landsAt: number; radius: number } | null;
 }
 
-export interface CratePile {
-  id: EntityId;
-  x: number;
-  y: number;
-  n: number;
-  /** The slot that dropped it can't pick it back up until `lockedUntil` (§10.1, ~1 s). */
-  lockedSlot: number | null;
-  lockedUntil: number;
-}
-
-/**
- * A crate a Quartermaster threw (§6, §10.1 row 6; FF9). It flies from the launch point to the
- * receiver, following them, and lands at `landsAt`: caught if they're still up with room, otherwise
- * dropped where it lands.
- */
-export interface ThrownCrate {
-  id: EntityId;
-  /** Thrower's and receiver's slots. */
-  from: number;
-  to: number;
-  /** Launch point (tiles). */
-  x0: number;
-  y0: number;
-  /** Landing point: the receiver's position, followed each step in flight. */
-  x: number;
-  y: number;
-  launchedAt: number;
-  landsAt: number;
-}
-
 /** A telegraphed attack (boss wind-ups): shape, position, when it lands, what it does (§9.2). */
 export interface DangerMarker {
   id: EntityId;
   source: EntityId;
-  shape: 'circle' | 'arc' | 'ring';
+  /** `lane` (RD10): the Charge's path from (x, y) to (x2, y2), `r` to each side; it deals nothing. */
+  shape: 'circle' | 'arc' | 'ring' | 'lane';
   x: number;
   y: number;
   r: number;
@@ -285,13 +305,17 @@ export interface DangerMarker {
   angle?: number;
   arcDeg?: number;
   inner?: number;
+  /** Lane end. */
+  x2?: number;
+  y2?: number;
   createdAt: number;
   landsAt: number;
   payload: {
     damage: number;
     kind: DamageKind;
     tags: readonly string[];
-    hitsStructures: boolean;
+    /** HP builds and the Citadel inside it are hit too. */
+    hitsBuilds: boolean;
     effects?: EffectApply[];
   };
 }
@@ -305,8 +329,6 @@ export interface TileGrid {
   cols: number;
   rows: number;
   kinds: readonly TileKind[];
-  /** Structure on each tile (EntityId), 0 = none. */
-  occupant: Int32Array;
 }
 
 /** SPEC §15.5. `next` is the tile index to step to; −1 = goal. */
@@ -318,12 +340,12 @@ export interface FlowField {
 }
 
 export interface FlowFields {
+  /** Built once per run (no rebuilds, §15.5). */
   ground: FlowField;
-  breaker: FlowField;
   /** One per hunted player, by slot (null = not hunted). */
   hunted: (FlowField | null)[];
-  /** Set when a blocking structure is placed or destroyed; rebuilt the same step. */
-  dirty: boolean;
+  /** Per targeted build, keyed by its tile index (§15.5; RD10). */
+  brute: Record<number, FlowField>;
 }
 
 /** Uniform grid for "who's near me" queries; rebuilt each step, not part of the state hash. */
@@ -355,20 +377,30 @@ export interface TeamState {
   shop: Record<ShopItemId, number>;
   wishlist: { item: ShopItemId; slot: number }[];
   /** Fixed at each wave start from the players connected then (§9.4, §11.3). */
-  scaling: { players: number; mult: number; flyers: boolean };
+  scaling: {
+    players: number;
+    budget: number;
+    bossHp: number;
+    respawnMs: number;
+    /** Portals used per spawn pulse, `min(players + 1, 6)` (RD3). */
+    activeCap: number;
+    flyers: boolean;
+  };
 }
 
 /** A wave group still to spawn. */
 export interface PendingSpawn {
   atTick: number;
-  lane: LaneId;
+  portal: PortalId;
   enemy: EnemyId;
   count: number;
-  warned: boolean;
+  /** The hot side at this pulse (debug only; null before RD3). */
+  hot: SideId | null;
+  /** Portal flare sent (§9.4, `rules.flareMs` ahead). */
+  flared: boolean;
 }
 
 export interface RunSettings {
-  theme: ThemeId;
   difficulty: DifficultyId;
 }
 
@@ -384,11 +416,9 @@ export interface World {
   players: PlayerEnt[];
   soldiers: SoldierEnt[];
   enemies: EnemyEnt[];
-  structures: StructureEnt[];
+  /** Placed and thrown builds (§7; RD3 places them). */
+  builds: BuildEnt[];
   projectiles: ProjectileEnt[];
-  cratePiles: CratePile[];
-  /** Crates in flight (FF9; the sim always sets it). */
-  thrown?: ThrownCrate[];
   /** Telegraphs: shape, position, landsAt, payload. */
   markers: DangerMarker[];
   spawns: PendingSpawn[];
@@ -411,15 +441,14 @@ export interface PlayerInput {
   /** −1..1; aim 0,0 on a fire = auto-aim. */
   mainAim: Vec2;
   superAim: Vec2;
+  buildAim: Vec2;
   mainAiming: boolean;
   superAiming: boolean;
-  radialOpen: boolean;
-  /** Left, up, right, down (Give). */
-  radialSlot: -1 | 0 | 1 | 2 | 3;
+  buildAiming: boolean;
+  /** Press counters. */
   mainFires: number;
   superFires: number;
-  actionTaps: number;
-  radialCommits: number;
+  buildFires: number;
 }
 
 /** PhoneInputSource (§15.6 staleness), AutopilotInputSource, ReplayInputSource (§15.9). */
@@ -439,7 +468,7 @@ export interface SimCtx {
   heal(target: EntityId, amount: number, source: EntityId | null): HealResult;
   /** Runs `beforeEffect` hooks, then the stacking policy; false = refused (immune). */
   applyEffect(target: EntityId, effect: EffectApply, source: EntityId | null): boolean;
-  /** Any unit by id (players, soldiers, enemies, structures, the base), or null if gone. */
+  /** Any unit by id (players, soldiers, enemies, builds, the base), or null if gone. */
   unit(id: EntityId): Unit | null;
 }
 
@@ -519,7 +548,7 @@ export interface Hooks {
 
 /** Passives, cards, status effects, auras and boss behaviors share this shape (§15.3). */
 export interface Modifier {
-  /** 'card:fire_arrows', 'passive:mason', 'effect:burn'. */
+  /** 'card:fire_arrows', 'passive:steady_aim', 'effect:burn', 'build:shield_gen'. */
   id: string;
   stats?: StatMod[];
   hooks?: Partial<Hooks>;
@@ -572,17 +601,26 @@ export type SimCommand = (
       classId: ClassId;
     }
   | { c: 'ready'; slot: number; ready: boolean }
-  | { c: 'build'; slot: number; action: 'select'; structure: StructureId }
-  | { c: 'build'; slot: number; action: 'place' | 'cancel' }
   | { c: 'buy'; slot: number; item: ShopItemId }
   | { c: 'request'; slot: number; item: ShopItemId; on: boolean }
   | { c: 'card'; slot: number; card: CardId }
-  | { c: 'give'; slot: number }
   /** Debug panel (§9.5), dev only. `slot` −1 = the TV. */
   | { c: 'debug'; slot: number; action: 'jumpWave'; wave: number }
-  | { c: 'debug'; slot: number; action: 'spawn'; enemy: EnemyId; lane: LaneId }
+  | { c: 'debug'; slot: number; action: 'spawn'; enemy: EnemyId; portal: PortalId }
   | { c: 'debug'; slot: number; action: 'invincible'; on: boolean }
   | { c: 'debug'; slot: number; action: 'coins'; amount: number }
+  /** Fill every knight's build meter, or only `target`'s (a run slot; RD6). */
+  | { c: 'debug'; slot: number; action: 'meter'; target?: number }
+  /**
+   * Force the hot side (RD6): the unflared spawn plan's hot-side groups move to `side`'s portals, and
+   * every later wave's plan too, until `side` null clears it.
+   */
+  | { c: 'debug'; slot: number; action: 'hot'; side: SideId | null }
+  /**
+   * Give run slot `target` one stack of `card` (RD6-fix-2): the pick's apply path, any phase, no
+   * offer; `requires` is bypassed, uniqueness is not (a second copy is refused with `cap`).
+   */
+  | { c: 'debug'; slot: number; action: 'card'; target: number; card: CardId }
 ) & { ref?: number };
 
 export type SimCommandKind = SimCommand['c'];

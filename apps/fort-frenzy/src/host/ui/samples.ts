@@ -27,7 +27,7 @@ const roster: TeamRosterEntry[] = [
     playerId: 'p1',
     name: 'Foster',
     color: 'cobalt',
-    classId: 'engineer',
+    classId: 'ranger',
     ready: true,
     connected: true,
   },
@@ -36,7 +36,7 @@ const roster: TeamRosterEntry[] = [
     playerId: 'p3',
     name: 'Dev',
     color: 'rose',
-    classId: 'quartermaster',
+    classId: 'artificer',
     ready: false,
     connected: true,
   },
@@ -57,9 +57,7 @@ const stats = (over: Partial<RunStats>): RunStats => ({
   damageTaken: 0,
   deaths: 0,
   healingDone: 0,
-  cratesDelivered: 0,
-  cratesGiven: 0,
-  structuresBuilt: 0,
+  buildsPlaced: 0,
   ...over,
 });
 
@@ -70,7 +68,6 @@ const team = (over: Partial<TeamView> = {}): TeamView => ({
   coins: 1240,
   baseHp: 640,
   baseMaxHp: 1000,
-  theme: 'neon-knights',
   difficulty: 'normal',
   leaderId: 'p1',
   roster,
@@ -94,7 +91,6 @@ const base = (over: Partial<TvView>): TvView => ({
   countdownMs: null,
   bossBar: null,
   announcements: [],
-  laneWarnings: [],
   lowHpAlarm: false,
   wishlist: [],
   readyStatus: [],
@@ -111,10 +107,9 @@ const combat = (over: Partial<TvView> = {}): TvView =>
     screen: 'combat',
     team: team(),
     announcements: [
-      { ...who(0), id: 1, item: 'arrow_rate', tier: 2 },
+      { ...who(0), id: 1, item: 'archer_damage', tier: 2 },
       { ...who(2), id: 2, item: 'repair', tier: 1 },
     ],
-    laneWarnings: ['right', 'bottom'],
     ...over,
   });
 
@@ -131,7 +126,7 @@ const summary = (result: 'victory' | 'defeat'): TvView => {
         wavesSurvived: w ? 15 : 8,
         durationMs: w ? 24 * 60_000 + 12_000 : 13 * 60_000 + 40_000,
         players: [
-          { ...who(0), classId: 'engineer', stats: stats({ kills: 212 }), award: 'kills' },
+          { ...who(0), classId: 'ranger', stats: stats({ kills: 212 }), award: 'kills' },
           {
             ...who(1),
             classId: 'warden',
@@ -140,15 +135,15 @@ const summary = (result: 'victory' | 'defeat'): TvView => {
           },
           {
             ...who(2),
-            classId: 'quartermaster',
-            stats: stats({ cratesDelivered: 38 }),
-            award: 'cratesDelivered',
+            classId: 'artificer',
+            stats: stats({ healingDone: 380 }),
+            award: 'healingDone',
           },
           {
             ...who(3),
             classId: 'commander',
-            stats: stats({ structuresBuilt: 17 }),
-            award: 'structuresBuilt',
+            stats: stats({ buildsPlaced: 17 }),
+            award: 'buildsPlaced',
           },
         ],
       },
@@ -169,7 +164,6 @@ export function sampleView(name: UiScreenName): TvView {
           loading: 0.7,
           rows: [
             { id: 'create' },
-            { id: 'theme', theme: 'neon-knights' },
             { id: 'difficulty', difficulty: 'normal' },
             { id: 'resume', wave: 7, savedAgoMs: 3 * 60_000 },
             { id: 'newRun' },
@@ -200,12 +194,10 @@ export function sampleView(name: UiScreenName): TvView {
       return combat({
         team: team({ baseHp: 190 }),
         lowHpAlarm: true,
-        laneWarnings: [],
       });
     case 'boss':
       return combat({
         team: team({ wave: 10 }),
-        laneWarnings: ['bottom'],
         bossBar: { enemy: 'colossus', hp: 14200, maxHp: 24000, mk: 2, staggered: false },
       });
     case 'build':
@@ -235,11 +227,10 @@ export function sampleView(name: UiScreenName): TvView {
         })),
         wishlist: [
           { item: 'repair', tier: 1, price: 150, by: [who(2)] },
-          { item: 'spiked_walls', tier: 1, price: 400, by: [who(0), who(1)] },
+          { item: 'archer_third', tier: 1, price: 400, by: [who(0), who(1)] },
           { item: 'archer_range', tier: 1, price: 300, by: [who(1)] },
         ],
-        announcements: [{ ...who(0), id: 3, item: 'wall_hp', tier: 2 }],
-        laneWarnings: [],
+        announcements: [{ ...who(0), id: 3, item: 'base_armor', tier: 2 }],
       });
     case 'victory':
       return summary('victory');

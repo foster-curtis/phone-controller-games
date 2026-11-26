@@ -3,17 +3,25 @@
 import type { Content } from '../../content';
 import type {
   BaseDef,
-  CharacterDef,
+  BuildDef,
+  ClassDef,
   DifficultyDef,
   EnemyDef,
+  KnightDef,
   MapDef,
+  PlayerCountRow,
   RulesDef,
-  ScalingDef,
   ShopItemDef,
-  StructureDef,
   WaveDef,
 } from '../../content/types';
-import type { ClassId, DifficultyId, EnemyId, ShopItemId, StructureId } from '../../shared/ids';
+import type {
+  BuildId,
+  DifficultyId,
+  EnemyId,
+  KnightId,
+  RoleId,
+  ShopItemId,
+} from '../../shared/ids';
 import { msToSteps } from '../systems/effects';
 import { groundBody, type GroundBody } from './body';
 import { SIM_HZ } from './types';
@@ -23,12 +31,15 @@ export interface Catalog {
   readonly map: MapDef;
   readonly base: BaseDef;
   readonly rules: RulesDef;
-  readonly scaling: ScalingDef;
   readonly difficulty: DifficultyDef;
   readonly waves: readonly WaveDef[];
-  character(id: ClassId): CharacterDef;
+  knight(id: KnightId): KnightDef;
+  /** A class (§8.1) by role. */
+  role(id: RoleId): ClassDef;
+  build(id: BuildId): BuildDef;
   enemy(id: EnemyId): EnemyDef;
-  structure(id: StructureId): StructureDef;
+  /** The player-count table row for `players` (clamped to 1–6, §9.4). */
+  playerCount(players: number): PlayerCountRow;
   shopItem(id: ShopItemId): ShopItemDef | undefined;
   wave(n: number): WaveDef | undefined;
   /** Config ms → whole steps (≥ 1 for any positive time). */
@@ -72,12 +83,18 @@ export function createCatalog(content: Content, difficulty: DifficultyId): Catal
     map: need(content.map, 'map'),
     base: need(content.base, 'base'),
     rules: need(content.rules, 'rules'),
-    scaling: need(content.scaling, 'scaling'),
     difficulty: byId(content.difficulties, 'difficulty')(difficulty),
     waves,
-    character: byId(content.characters, 'class'),
+    knight: byId(content.knights, 'knight'),
+    role: byId(content.classes, 'class'),
+    build: byId(content.builds, 'build'),
     enemy: byId(content.enemies, 'enemy'),
-    structure: byId(content.structures, 'structure'),
+    playerCount(players) {
+      const rows = content.scaling;
+      if (rows.length === 0) throw new Error('sim: content has no player-count table');
+      const n = Math.min(6, Math.max(1, players));
+      return rows.find((r) => r.players === n) ?? rows[rows.length - 1]!;
+    },
     shopItem: (id) => shop.get(id),
     wave: (n) => waves.find((w) => w.n === n),
     steps: (ms) => msToSteps(ms, SIM_HZ),

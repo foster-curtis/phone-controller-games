@@ -1,22 +1,18 @@
-// Phone input: the 12-field tuple schema on the kit's fixed-rate sender (SPEC §15.6) and the encoding
+// Phone input: the 12-field tuple v2 schema on the kit's fixed-rate sender (SPEC §15.6) and the encoding
 // of each gesture outcome into it (§10.1, §15.7). Gestures resolve on the phone; a release goes out at
 // once, so a fire and its aim arrive together.
 import {
   aimedGesture,
   createInputSender,
   isAiming,
-  isRadialOpen,
-  SLOT_NONE,
   type AimedOutput,
   type AimedState,
   type InputSender,
-  type RadialOutput,
-  type RadialState,
 } from '@pcg/controller-kit';
 import {
   AIM_DEAD_ZONE,
+  INPUT_FLAG_BUILD_AIMING,
   INPUT_FLAG_MAIN_AIMING,
-  INPUT_FLAG_RADIAL_OPEN,
   INPUT_FLAG_SUPER_AIMING,
 } from '../shared/messages';
 
@@ -27,12 +23,12 @@ export const TUPLE_LAYOUT = [
   'mainY',
   'superX',
   'superY',
+  'buildX',
+  'buildY',
   'flags',
   'mainFires',
   'superFires',
-  'actionTaps',
-  'radialCommits',
-  'radialSlot',
+  'buildFires',
 ] as const;
 export type TupleSlot = (typeof TUPLE_LAYOUT)[number];
 export type PhoneSender = InputSender<TupleSlot>;
@@ -76,9 +72,8 @@ export function createPhoneSender(send: (tuple: number[]) => void): PhoneSender 
     {
       layout: TUPLE_LAYOUT,
       analog: ['moveX', 'moveY'],
-      counters: ['mainFires', 'superFires', 'actionTaps', 'radialCommits'],
+      counters: ['mainFires', 'superFires', 'buildFires'],
       buttons: { slot: 'flags' },
-      initial: { radialSlot: SLOT_NONE },
       // 30 Hz while a control is touched, 5 Hz idle (SPEC §11.4).
       mode: { kind: 'fixedRate', activeHz: 30, idleHz: 5 },
     },
@@ -87,14 +82,17 @@ export function createPhoneSender(send: (tuple: number[]) => void): PhoneSender 
 }
 
 export type AttackKey = 'main' | 'super';
+/** Every aimed button: the attacks and a thrown build (flag 4, buildX/buildY, buildFires; SPEC §15.6). */
+export type AimKey = AttackKey | 'build';
 
 const ATTACK = {
   main: { x: 'mainX', y: 'mainY', fires: 'mainFires', flag: INPUT_FLAG_MAIN_AIMING },
   super: { x: 'superX', y: 'superY', fires: 'superFires', flag: INPUT_FLAG_SUPER_AIMING },
+  build: { x: 'buildX', y: 'buildY', fires: 'buildFires', flag: INPUT_FLAG_BUILD_AIMING },
 } as const;
 
 /** Aimed press state → the aiming flag (the TV draws the aim line while it is set). */
-export function encodeAimedState(sender: PhoneSender, key: AttackKey, state: AimedState): void {
+export function encodeAimedState(sender: PhoneSender, key: AimKey, state: AimedState): void {
   const aiming = isAiming(state);
   sender.setButton(ATTACK[key].flag, aiming);
   // The live aim rides along while aiming, so the TV's line follows the thumb (FF7: the sim reads
@@ -107,7 +105,7 @@ export function encodeAimedState(sender: PhoneSender, key: AttackKey, state: Aim
 }
 
 /** An aimed outcome: tap = fire with aim 0,0 (auto-aim), fire = the aim, cancel = nothing. */
-export function encodeAimed(sender: PhoneSender, key: AttackKey, out: AimedOutput): void {
+export function encodeAimed(sender: PhoneSender, key: AimKey, out: AimedOutput): void {
   const a = ATTACK[key];
   if (out.kind === 'tap') sender.bump(a.fires, { [a.x]: 0, [a.y]: 0 });
   else if (out.kind === 'fire') {
@@ -122,33 +120,10 @@ export function encodeTapAttack(sender: PhoneSender, key: AttackKey): void {
   sender.bump(a.fires, { [a.x]: 0, [a.y]: 0 });
 }
 
-/** Radial state → the radial-open flag and the slot being hovered (arc open only). */
-export function encodeRadialState(
-  sender: PhoneSender,
-  state: RadialState,
-  hasSlots: boolean,
-): void {
-  const open = hasSlots && isRadialOpen(state);
-  sender.setButton(INPUT_FLAG_RADIAL_OPEN, open);
-  sender.update({ radialSlot: open ? state.slot : SLOT_NONE });
+/** The build button as a tap: a release places or recalls, build aim 0,0 (an at-feet build, the recall). */
+export function encodeBuildTap(sender: PhoneSender): void {
+  sender.bump('buildFires', { buildX: 0, buildY: 0 });
 }
 
-/** A radial outcome: tap = the action button, commit = slot + counter, cancel/end = no slot. */
-export function encodeRadial(sender: PhoneSender, out: RadialOutput, state: RadialState): void {
-  switch (out.kind) {
-    case 'tap':
-      sender.bump('actionTaps');
-      break;
-    case 'commit':
-      sender.bump('radialCommits', { radialSlot: out.slot });
-      // The state is idle after a release commit; a repeat while held keeps its slot.
-      if (state.phase === 'idle') sender.update({ radialSlot: SLOT_NONE });
-      break;
-    case 'cancel':
-    case 'end':
-      sender.update({ radialSlot: SLOT_NONE });
-      break;
-    case 'open':
-      break;
-  }
-}
+/** The `touch` name of a button's finger-down (the build button is 'action'). */
+export const touchName = (key: AimKey): string => (key === 'build' ? 'action' : key);

@@ -5,11 +5,16 @@ import {
   MIN_EDGE,
   MIN_GAP,
   SUPER_D,
+  LABELS,
+  RING_REACH,
   ZONE_KEYS,
   ZONE_REACH,
   gapBetween,
+  labelRect,
   layoutCombat,
   pickZone,
+  rectHitsCircle,
+  rectsOverlap,
 } from '../layout';
 
 const VIEWPORTS: [number, number][] = [
@@ -91,6 +96,36 @@ describe('layoutCombat (SPEC §10.1)', () => {
     }
   }
 
+  it('the build button is 60 px, between its old 56 and the RD4 68, at (-134, +24) (#115)', () => {
+    expect(ACTION_D).toBe(60);
+    for (const [width, height] of VIEWPORTS) {
+      const l = layoutCombat({ width, height });
+      expect(l.action.d, `${width}x${height}`).toBe(60);
+      expect(l.action.cx - l.main.cx).toBe(-134);
+      expect(l.action.cy - l.main.cy).toBe(24);
+    }
+  });
+
+  // RD4-fix-1: no caption meets any button (grown by its ring reach) or another caption.
+  for (const [width, height] of VIEWPORTS) {
+    for (const insets of INSETS) {
+      it(`${width}x${height} insets ${insets.right}/${insets.bottom}: labels meet no button or label`, () => {
+        const l = layoutCombat({ width, height }, insets);
+        const keys = ['main', 'super', 'action'] as const;
+        const rects = keys.map((k) => labelRect(l[k], LABELS[k]));
+        rects.forEach((r, i) => {
+          for (const k of keys)
+            expect(rectHitsCircle(r, l[k], RING_REACH), `${keys[i]} label vs ${k}`).toBe(false);
+          rects.forEach((o, j) => {
+            if (j > i)
+              expect(rectsOverlap(r, o), `${keys[i]} label vs ${keys[j]} label`).toBe(false);
+          });
+          expect(r.y + r.h).toBeLessThanOrEqual(height - insets.bottom);
+        });
+      });
+    }
+  }
+
   it('matches the 844x390 reference positions', () => {
     const l = layoutCombat({ width: 844, height: 390 });
     expect(l.main.cx).toBeCloseTo(844 - 168.8, 1);
@@ -99,8 +134,8 @@ describe('layoutCombat (SPEC §10.1)', () => {
     expect(l.stick.cy).toBeCloseTo(390 - 117, 1);
     expect(l.super.cx - l.main.cx).toBe(-92);
     expect(l.super.cy - l.main.cy).toBe(-78);
-    expect(l.action.cx - l.main.cx).toBe(-118);
-    expect(l.action.cy - l.main.cy).toBe(20);
+    expect(l.action.cx - l.main.cx).toBe(-134);
+    expect(l.action.cy - l.main.cy).toBe(24);
   });
 
   it('applies safe-area insets (offsets are added to them)', () => {

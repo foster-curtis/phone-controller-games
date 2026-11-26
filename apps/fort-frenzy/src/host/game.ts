@@ -1,6 +1,6 @@
 // Host runtime (SPEC §15.3, §15.6): the relay client ↔ session (party, phones, intents) ↔ the run's
 // sim, driven by the fixed-step loop with render interpolation; the TV's home screen and room; the
-// run's transient UI state for the overlay (lane warnings, announcements). No Phaser here: the World
+// run's transient UI state for the overlay (announcements). No Phaser here: the World
 // scene calls `frame()` once per render frame and draws what it returns.
 import {
   catchUpSteps,
@@ -11,7 +11,7 @@ import {
   type QrMatrix,
 } from '@pcg/game-kit';
 import type { ConnectionStatus, HostClient } from '@pcg/net-client';
-import { DIFFICULTY_IDS, THEME_IDS, type LaneId } from '../shared/ids';
+import { DIFFICULTY_IDS } from '../shared/ids';
 import { GAME_ID, type TeamPause } from '../shared/messages';
 import {
   connectSession,
@@ -107,7 +107,6 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
   let client = opts.client ?? makeClient();
   let runId = 0;
   const stats: RunStats = { enemyDeaths: 0, shots: 0, playerDeaths: 0, steps: 0 };
-  const laneWarnings = new Map<LaneId, number>();
   let announcements: { a: Announcement; at: number }[] = [];
   let annId = 0;
 
@@ -122,7 +121,6 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
         loop.reset();
         prev.clear();
         events = [];
-        laneWarnings.clear();
         announcements = [];
         stats.enemyDeaths = stats.playerDeaths = stats.steps = stats.shots = 0;
       },
@@ -147,7 +145,7 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
 
   let room: { code: string; joinUrl: string; qr: QrMatrix | null } | null = null;
   const home: { rows: HomeRow[]; focus: number } = { rows: [], focus: 0 };
-  /** Home rows: Resume / New run while a saved run waits (§15.8), else create, theme, difficulty. */
+  /** Home rows: Resume / New run while a saved run waits (§15.8), else create, difficulty. */
   const homeRows = (): HomeRow[] => {
     const r = session.restoring;
     if (r) {
@@ -156,11 +154,7 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
         { id: 'newRun' },
       ];
     }
-    return [
-      { id: 'create' },
-      { id: 'theme', theme: session.settings.theme },
-      { id: 'difficulty', difficulty: session.settings.difficulty },
-    ];
+    return [{ id: 'create' }, { id: 'difficulty', difficulty: session.settings.difficulty }];
   };
   /** A saved run: reclaim the room at once so the phones stay joined (§11.5). */
   const offerResume = () => {
@@ -189,8 +183,7 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
     if (events.length > 4000) events = events.slice(-2000);
     for (const e of w.events) {
       events.push(e);
-      if (e.e === 'laneWarning') laneWarnings.set(e.lane, e.spawnsAtTick);
-      else if (e.e === 'attack' && e.slot !== 'attack') stats.shots++;
+      if (e.e === 'attack' && e.slot !== 'attack') stats.shots++;
       else if (e.e === 'death') {
         if (e.what === 'enemy') stats.enemyDeaths++;
         else if (e.what === 'player') stats.playerDeaths++;
@@ -259,12 +252,9 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
     onHome(intent) {
       if (intent.type === 'focus') home.focus = intent.index;
       else if (intent.type === 'cycle') {
-        if (intent.row === 'theme')
-          session.setSettings({ theme: cycle(THEME_IDS, session.settings.theme, intent.dir) });
-        else
-          session.setSettings({
-            difficulty: cycle(DIFFICULTY_IDS, session.settings.difficulty, intent.dir),
-          });
+        session.setSettings({
+          difficulty: cycle(DIFFICULTY_IDS, session.settings.difficulty, intent.dir),
+        });
       } else if (intent.row === 'resume') {
         session.resume();
         home.focus = 0;
@@ -353,7 +343,6 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
         home,
         room,
         announcements: announcements.map((x) => x.a),
-        laneWarnings,
         outdated: session.outdated,
       });
     },

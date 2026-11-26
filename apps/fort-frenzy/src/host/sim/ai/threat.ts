@@ -1,11 +1,11 @@
-// Tower threat for the Hunter's fields (C3 note, FF10-fix-1; SPEC §9, §15.5): the Hunter is smarter
-// than other units and takes routes that keep out of tower range where it can. Each tile counts the
-// attackers (towers that shoot, the Citadel's sentries) whose range covers it; the per-hunted-player
-// field adds content's `hunt.threatCost` per covering attacker to the ground cost, so a detour wins
-// whenever it's cheaper than the time spent under fire, and the Hunter still reaches a target
-// standing in range.
-// Rebuilt with the flow fields (a structure placed or destroyed, and each combat start, so range
-// cards and sentry upgrades bought in the build phase count).
+// Threat for the Hunter's fields (C3 note, FF10-fix-1, RD10; SPEC §9, §15.5): the Hunter is smarter
+// than other units and takes routes that keep out of range where it can. Each tile counts the
+// attackers (the Citadel's sentries, damage-dealing builds) whose range covers it, and separately the
+// hidden builds whose trigger radius does; the per-hunted-player field adds content's
+// `hunt.threatCost` and `hiddenCost` to the ground cost, so a detour wins whenever it's cheaper than
+// the time spent under fire, and the Hunter still reaches a target standing in range.
+// Rebuilt at each combat start (range cards and sentry upgrades bought in the build phase count) and
+// whenever a priced build lands or goes (state.ts).
 
 export interface Attacker {
   x: number;

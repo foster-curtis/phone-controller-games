@@ -35,7 +35,6 @@ export function resetRevs(state: HostState): HostState {
 
 export const ACK_TEXT: Record<AckReason, string> = {
   coins: 'Not enough coins',
-  crates: 'Not enough cells',
   cap: "You can't carry any more",
   phase: 'Not right now',
   invalid: "Can't do that",

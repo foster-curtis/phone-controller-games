@@ -1,14 +1,17 @@
-// The full soak (SPEC §15.9, FF15): the content's whole run headless (waves 1–15), autopilot and
-// invincible, the Citadel held, for two seeds × (2 players in every class pair, 6 players in every
-// class rotation), each run twice. Fails on an exception, a run that doesn't end in victory at wave
-// 15, or a rerun whose state hashes differ. Prints one fingerprint per run, so perf work can show the
-// hashes didn't move.
+// The full soak (SPEC §15.9, FF15, RD14): the content's whole run headless (waves 1–15), autopilot and
+// invincible, the Citadel held, for two seeds × (1 player with each knight, 2 players in every class
+// pair, 6 players in every class rotation), each run twice. Each solo knight also plays a run saved
+// and resumed at wave RESUME_AT's build phase (§11.5), twice. Fails on an exception, a run that
+// doesn't end in victory at wave 15, a resume that doesn't round-trip, or a rerun whose state hashes
+// differ. Prints one fingerprint per run, so perf work can show the hashes didn't move.
 //
 //   pnpm --filter @pcg/fort-frenzy soak [--quick]     (--quick: first seed, first mix of each count)
-import { soakMixes, soakRun, type SoakResult } from '../src/host/sim/soak';
+import { soakMixes, soakRun, type SoakOptions, type SoakResult } from '../src/host/sim/soak';
 
 const SEEDS = [1, 2];
-const COUNTS = [2, 6];
+const COUNTS = [1, 2, 6];
+/** The wave whose build phase the resumed solo runs reload at. */
+const RESUME_AT = 8;
 
 /** FNV-1a over the run's hashes: one number to compare across builds. */
 function fingerprint(r: SoakResult): string {
@@ -26,34 +29,49 @@ const quick = process.argv.includes('--quick');
 const t0 = process.hrtime.bigint();
 let failed = 0;
 let runs = 0;
+
+function pair(opts: SoakOptions, label: string) {
+  const t1 = process.hrtime.bigint();
+  let a: SoakResult;
+  let b: SoakResult;
+  try {
+    a = soakRun(opts);
+    b = soakRun(opts);
+  } catch (err) {
+    failed++;
+    console.log(`soak ${label}: threw`, err);
+    return;
+  }
+  runs++;
+  const s = Number(process.hrtime.bigint() - t1) / 1e9;
+  const same = a.hashes.length === b.hashes.length && a.hashes.every((x, i) => x === b.hashes[i]);
+  const resumed = opts.resumeAt === undefined || a.resumed?.wave === opts.resumeAt;
+  const ok = same && resumed && a.phase === 'summary' && a.result === 'victory' && a.wave === 15;
+  if (!ok) failed++;
+  const save = a.resumed
+    ? `, resumed w${a.resumed.wave} (${a.resumed.builds.length} builds)`
+    : opts.resumeAt !== undefined
+      ? ', NOT RESUMED'
+      : '';
+  console.log(
+    `soak ${label.padEnd(60)} ${a.steps} steps, wave ${a.wave} ${a.result}, ` +
+      `peak ${a.maxEnemies} enemies, ${a.cardsPicked} cards, ${a.purchases} buys, ${a.builds} builds` +
+      `${save}, ${a.hashes.length} hashes ${fingerprint(a)} ` +
+      `${same ? 'rerun identical' : 'RERUN DIFFERS'} (${s.toFixed(1)} s for both)` +
+      (ok ? '' : '  FAIL'),
+  );
+}
+
 for (const seed of quick ? SEEDS.slice(0, 1) : SEEDS) {
   for (const players of COUNTS) {
     const mixes = soakMixes(players);
     for (const classes of quick ? mixes.slice(0, 1) : mixes) {
-      const t1 = process.hrtime.bigint();
-      let a: SoakResult;
-      let b: SoakResult;
-      try {
-        a = soakRun({ seed, classes });
-        b = soakRun({ seed, classes });
-      } catch (err) {
-        failed++;
-        console.log(`soak seed ${seed} ${classes.join('/')}: threw`, err);
-        continue;
-      }
-      runs++;
-      const s = Number(process.hrtime.bigint() - t1) / 1e9;
-      const same =
-        a.hashes.length === b.hashes.length && a.hashes.every((x, i) => x === b.hashes[i]);
-      const ok = same && a.phase === 'summary' && a.result === 'victory' && a.wave === 15;
-      if (!ok) failed++;
-      console.log(
-        `soak seed ${seed} ${classes.join('/').padEnd(52)} ${a.steps} steps, wave ${a.wave} ` +
-          `${a.result}, peak ${a.maxEnemies} enemies, ${a.cardsPicked} cards, ${a.purchases} buys, ` +
-          `${a.hashes.length} hashes ${fingerprint(a)} ` +
-          `${same ? 'rerun identical' : 'RERUN DIFFERS'} (${s.toFixed(1)} s for both)` +
-          (ok ? '' : '  FAIL'),
-      );
+      pair({ seed, classes }, `seed ${seed} ${classes.join('/')}`);
+      if (players === 1)
+        pair(
+          { seed, classes, resumeAt: RESUME_AT },
+          `seed ${seed} ${classes.join('/')} resumed at ${RESUME_AT}`,
+        );
     }
   }
 }

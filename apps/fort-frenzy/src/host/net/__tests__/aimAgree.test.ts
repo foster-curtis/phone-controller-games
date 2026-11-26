@@ -24,8 +24,8 @@ type Untimed = Gesture extends infer G ? (G extends unknown ? Omit<G, 't'> : nev
 const turn = (a: number, b: number) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
 
 function rig(key: AttackKey) {
-  // Engineer (Ranger): aimed main; Quartermaster (Artificer): aimed super.
-  const h = harness(1, 1, { classes: [key === 'main' ? 'engineer' : 'quartermaster'] });
+  // Ranger (Ranger): aimed main; Artificer (Artificer): aimed super.
+  const h = harness(1, 1, { classes: [key === 'main' ? 'ranger' : 'artificer'] });
   h.toCombat();
   h.holdSpawns();
   const sender = createPhoneSender(() => {});

@@ -2,7 +2,7 @@
 // the tell is a low crouch (body and head drop, legs gather), then a lunge forward on the content
 // wind-up's end, and a recovery.
 import rig from '../../../../art/neon-knights/rigs/stalker.json';
-import type { Clip, RigDef } from '../../../themes/types';
+import type { Clip, RigDef } from '../../../presentation/types';
 import { each, enemyDeath, enemyHit, idleBob, once, sin, walkerWalk, wave } from '../clipKit';
 
 /** The Hunter's wind-up is 400 ms (content); the lunge lands then. */

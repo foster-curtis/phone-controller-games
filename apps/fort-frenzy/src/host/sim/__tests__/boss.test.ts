@@ -1,11 +1,11 @@
 // FF11 Colossus scenarios (SPEC §9.2, §9.4, §15.3): the slam's 1.5 s marker, the forms per boss wave
-// (Mk I slam + wall breaker; Mk II boulders and escorts; Mk III's final phase below half HP with
-// shockwave rings and Runner calls), the stagger meter against a Warden-only stun loop, HP scaling,
-// and the boss's death ending the wave.
+// (Mk I slam and boulder; Mk II escorts; Mk III's Runner calls and its final phase below half HP with
+// shockwave rings), the stagger meter against a Warden-only stun loop, HP scaling, and the boss's
+// death ending the wave. The Charge and the move set by Mk are in roster.test.ts (RD10).
 import { describe, expect, it } from 'vitest';
 import { content } from '../../../content';
 import { colossus as colossusDef } from '../../../content/balance';
-import type { ClassId } from '../../../shared/ids';
+import { PORTAL_IDS, type ClassId } from '../../../shared/ids';
 import { COLOSSUS_TUNING_KEYS, tuning } from '../boss/colossus';
 import type { EnemyEnt } from '../types';
 import { harness, type Harness } from './harness';
@@ -54,7 +54,7 @@ function park(h: Harness) {
 describe('Colossus content', () => {
   it('has every tuning param and is the boss of waves 5, 10 and 15', () => {
     for (const k of COLOSSUS_TUNING_KEYS) expect(typeof T[k], k).toBe('number');
-    expect(colossusDef.vsStructure.wall).toBe(3);
+    expect(T.baseMult).toBe(1.5);
     expect(content.waves.filter((w) => w.boss).map((w) => [w.n, w.boss!.mk])).toEqual([
       [5, 1],
       [10, 2],
@@ -120,16 +120,14 @@ describe('Colossus slam', () => {
 });
 
 describe('boss waves', () => {
-  it('wave 5: Mk I, only the slam and the wall breaker (walls take 3×)', () => {
+  it('wave 5: Mk I, slam and boulder only', () => {
     const h = waveCombat(5, { invincible: true });
-    for (let c = 0; c < 36; c++) h.sim.place('wall', c, 15, 0);
     h.put(0, 18.5, 9);
     h.put(1, 17.5, 9.5);
     const b = bossOf(h);
     expect(b.boss!.mk).toBe(1);
     expect(b.maxHp).toBe(colossusDef.hp);
     const kinds = new Set<string>();
-    let wallHit = 0;
     let lastStart = -1;
     for (let i = 0; i < 60 * 60 && b.hp > 0; i++) {
       h.run(1);
@@ -138,21 +136,16 @@ describe('boss waves', () => {
         lastStart = act.startedAt;
         kinds.add(act.kind);
       }
-      for (const d of h.events('damage'))
-        if (d.source === b.id && h.sim.world.structures.some((s) => s.id === d.target))
-          wallHit = Math.max(wallHit, d.amount);
-      expect(h.sim.world.projectiles.some((p) => p.from === 'colossus')).toBe(false);
       expect(h.sim.world.markers.some((m) => m.shape === 'ring')).toBe(false);
     }
-    expect([...kinds].sort()).toEqual(['breaker', 'slam']);
-    expect(wallHit).toBe(colossusDef.attack.damage * 3);
+    expect([...kinds].sort()).toEqual(['boulder', 'slam']);
     // No final phase below half HP before Mk III.
     b.hp = b.maxHp * 0.3;
     h.run(5);
     expect(b.boss!.finalPhase).toBe(false);
   });
 
-  it('wave 10: Mk II walks in with Grunt and Swarm escorts in its lane', () => {
+  it('wave 10: Mk II walks in at a seeded portal with Grunt and Swarm escorts beside it', () => {
     const h = waveCombat(10, { invincible: true });
     h.until(() => h.events('spawn').some((e) => e.enemy === 'colossus'), 60 * 10);
     const spawns = h.events('spawn');
@@ -163,7 +156,8 @@ describe('boss waves', () => {
     const escorts = spawns.filter((e) => e.enemy !== 'colossus');
     expect(escorts.filter((e) => e.enemy === 'grunt')).toHaveLength(T.escortGrunts);
     expect(escorts.filter((e) => e.enemy === 'swarm')).toHaveLength(8 * T.escortSwarms);
-    for (const e of escorts) expect(e.lane).toBe(boss.lane);
+    expect(PORTAL_IDS).toContain(boss.portal);
+    for (const e of escorts) expect(e.portal).toBe(boss.portal);
   });
 
   it('wave 10: throws a boulder at the largest group of players, landing with its marker', () => {
@@ -191,14 +185,12 @@ describe('boss waves', () => {
     expect(hits).toBe(2);
   });
 
-  it('wave 10: with no group, a tower is the boulder target', () => {
+  it('wave 10: with no group, the nearest single player is the boulder target', () => {
     const { h, b } = lone(10, 18, 18);
-    h.put(0, 12, 14);
-    h.put(1, 26, 14);
-    const tower = h.sim.place('arrow_tower', 18, 12, 0);
+    h.put(0, 12, 12);
+    h.put(1, 30, 4);
     h.until(() => b.boss!.act?.kind === 'boulder', 60 * 8);
-    expect(b.boss!.act!.target).toBe(tower.id);
-    expect(b.boss!.act!.x).toBe(tower.x);
+    expect(b.boss!.act!.target).toBe(h.p(0).id);
   });
 
   it('wave 15: Mk III goes into its final phase below 50% HP, moving and attacking faster', () => {
@@ -215,9 +207,12 @@ describe('boss waves', () => {
     b.hp = b.maxHp * 0.49;
     h.run(1);
     expect(b.boss!.finalPhase).toBe(true);
-    // Runner calls from the spires: the first right away, then on the shortened cooldown.
+    // Faster on the move.
+    h.until(() => b.boss!.act === null && Math.hypot(b.vx, b.vy) > 0, 120);
+    expect(Math.hypot(b.vx, b.vy) / v0).toBeCloseTo(T.finalSpeed, 2);
+    // Runner calls from the spires (every Mk III), on the final phase's shortened cooldown.
     const runners: number[] = [];
-    for (let i = 0; i < 60 * 9; i++) {
+    for (let i = 0; i < 60 * 14; i++) {
       h.run(1);
       const n = h.events('spawn').filter((e) => e.enemy === 'runner').length;
       if (n > 0) {
@@ -229,10 +224,6 @@ describe('boss waves', () => {
     expect(runners[1]! - runners[0]!).toBe(
       Math.round(((T.callCooldownMs * T.finalCooldown) / 1000) * 60) + T.callWindupMs * 0.06,
     );
-    // Faster on the move.
-    for (const e of h.sim.world.enemies) if (e !== b) e.hp = 0;
-    h.until(() => b.boss!.act === null && Math.hypot(b.vx, b.vy) > 0, 120);
-    expect(Math.hypot(b.vx, b.vy) / v0).toBeCloseTo(T.finalSpeed, 2);
   });
 
   it('wave 15: each final-phase slam sends out shockwave rings', () => {
@@ -242,7 +233,7 @@ describe('boss waves', () => {
     h.run(1);
     expect(b.boss!.finalPhase).toBe(true);
     // Past the first Runner call, then a player in reach.
-    h.until(() => b.boss!.act === null && (b.boss!.ready?.call ?? 0) > h.sim.world.tick, 300);
+    h.until(() => b.boss!.act === null && (b.boss!.ready?.call ?? 0) > h.sim.world.tick + 60, 600);
     for (const e of h.sim.world.enemies) if (e !== b) e.hp = 0;
     h.put(0, b.x, b.y + 2);
     h.until(() => b.boss!.act?.kind === 'slam', 60);
@@ -255,7 +246,7 @@ describe('boss waves', () => {
     ringsOut.forEach((m, k) => {
       expect(m.landsAt - landsAt).toBe((k + 1) * step);
       expect(m.r - m.inner!).toBeCloseTo(T.ringBand, 6);
-      expect(m.payload.hitsStructures).toBe(false);
+      expect(m.payload.hitsBuilds).toBe(false);
     });
   });
 });
@@ -265,7 +256,10 @@ describe('Colossus stagger', () => {
     const h = waveCombat(5, { classes: ['warden'], invincible: true });
     h.sim.world.spawns.length = 0;
     const b = h.sim.spawnEnemy('colossus', 18, 12);
-    const stomp = content.characters.find((c) => c.id === 'warden')!.super.damage;
+    // The jump slam after the tank's damage band (§8.1).
+    const stomp =
+      content.knights.find((c) => c.id === 'warden')!.super.damage *
+      content.classes.find((c) => c.id === 'tank')!.damage;
     const on: boolean[] = [];
     const hits = { staggered: new Set<number>(), standing: new Set<number>() };
     for (let i = 0; i < 60 * 60; i++) {
@@ -301,7 +295,10 @@ describe('Colossus stagger', () => {
 
   it('just back on its feet it ignores stuns for stunImmuneMs, then counts them again', () => {
     const { h, b } = lone(5, 18, 12, { classes: ['warden'], invincible: true });
-    const stomp = content.characters.find((c) => c.id === 'warden')!.super.damage;
+    // The jump slam after the tank's damage band (§8.1).
+    const stomp =
+      content.knights.find((c) => c.id === 'warden')!.super.damage *
+      content.classes.find((c) => c.id === 'tank')!.damage;
     /** One stomp from beside it; returns how much the stun (not the damage) filled the meter. */
     const stompOnce = (): number => {
       const before = b.boss!.stagger;
@@ -315,7 +312,7 @@ describe('Colossus stagger', () => {
         const hits = h.events('damage').filter((d) => d.target === b.id);
         for (const d of hits) dealt += d.amount;
         return hits.some((d) => d.amount === stomp);
-      }, 60);
+      }, 150); // past the jump slam's wind-up (1.8 s = 108 steps)
       return b.boss!.stagger - before - (dealt / b.maxHp) * T.staggerPerHp;
     };
     // A stagger ending now.
@@ -359,7 +356,7 @@ describe('Colossus stagger', () => {
 describe('boss HP and the wave end', () => {
   it('scales HP with the players connected at wave start', () => {
     expect(bossOf(waveCombat(5, { players: 4 })).maxHp).toBe(colossusDef.hp * 1.5);
-    expect(bossOf(waveCombat(5, { players: 1 })).maxHp).toBe(colossusDef.hp * 0.75);
+    expect(bossOf(waveCombat(5, { players: 1 })).maxHp).toBe(colossusDef.hp * 0.6);
   });
 
   it('its death ends the wave: the rest collapse with no coins and the build phase follows', () => {
@@ -379,7 +376,10 @@ describe('boss HP and the wave end', () => {
     expect(h.sim.world.phase).toBe('build');
     expect(h.sim.world.wave).toBe(6);
     expect(h.sim.world.enemies).toHaveLength(0);
-    expect(h.sim.world.team.coins - coins).toBe(colossusDef.budget);
+    expect(h.sim.world.team.coins - coins).toBeCloseTo(
+      colossusDef.budget * content.rules!.coinRate,
+      9,
+    );
   });
 
   it('the boss wave lasts while it lives, even with every escort dead', () => {

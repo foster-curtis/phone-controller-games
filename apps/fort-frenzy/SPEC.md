@@ -1,17 +1,17 @@
-# Fort Frenzy — Spec (working draft)
+# Fort Frenzy — Spec
 
-Working title: **Fort Frenzy** (formerly "Hold the Line", then "Stronghold"). The name must be cleared
-before any public release (§14).
+Co-op **players-only wave defense** for 1–6 players. Phones are controllers; the shared screen (TV or
+laptop) runs the game. The knights are the only defense of the Citadel: there are no towers or walls,
+and each knight carries a temporary **build** that controls the arena. This file records the decisions
+made so far. Items deferred past v1 are in §13; items still open are in §14.
 
-Co-op wave defense for 2–6 players. Phones are controllers; the shared screen (TV/laptop) runs the game.
-This file records **decisions made so far**. Items deferred past v1 are in §13. Items still open are in
-§14.
-
-**Status:** v1 game design and technical design are complete. §1–§14 are the game design; §15 is the
-technical design (repo, engine, simulation, data, pathfinding, protocol, controller, resume, testing,
-hosting) and its decision log. Next step: a build plan (`BUILD_PLAN.md`) made from this spec. Internal
-names in this spec (Engineer, Grunt, and so on) are code IDs; player-facing names come from the theme
-(§2.1).
+**Status:** redesigned 2026-11 from co-op tower defense (the tower-defense build is the git tag
+`fort-frenzy-td-final`). `REDESIGN.md` is the decision record for the redesign (groups A–G); this spec
+states the result on its own, and where the two ever disagree, `REDESIGN.md` wins until the redesign
+ships. §1–§14 are the game design; §15 is the technical design and its decision log (rows #58 onward
+are the redesign). The migration is planned in `REDESIGN_BUILD_PLAN.md`; `BUILD_PLAN.md` is the
+finished tower-defense plan, kept as history. Names in this spec (`ranger`, `grunt`, and so on) are
+code ids; the player-facing names are in §2.1.
 
 ---
 
@@ -27,155 +27,153 @@ names in this spec (Engineer, Grunt, and so on) are code IDs; player-facing name
 
 ## 2. Core identity
 
-- **Action-first with light strategy.** Every player controls a fighter avatar (twin-stick action).
-  Each class also has a build or role kit that carries the tower-defense strategy.
-- **Your character is the cursor.** Structures are placed at the player's feet. There is no separate
-  on-screen cursor.
-- **Design principle: roles amplify, never gate.** Any team composition must be able to play a full run.
-  Every enemy type must be answerable by at least two classes or by a baseline that every team has.
-- Classes are picks, not required slots. Duplicate classes are allowed.
+- **Players are the defense.** Nothing defends the base except the knights and the Citadel's sentry
+  guns (§3.5).
+- **Builds are tactics, not infrastructure.** Everything a knight places is temporary and exists to
+  control the arena: slow, stun, pull, block, heal, buff or draw fire (§7).
+- **Any knight can hold a side,** including alone in solo play.
+- **Action-first.** Every player controls one knight (twin-stick action). There is no separate
+  on-screen cursor: at-feet builds go down where the knight stands, and thrown builds aim with the
+  build button's stick (§10.1).
+- **Balance rule:** every knight's solo clear rate (one knight, alone, against a standard group from
+  one portal) is within **±20–25%** of every other knight's. It is checked by timing each knight alone
+  against the same wave (the balance harness, §15.9) and in playtesting. No knight is the team's damage.
+- **Class = playstyle, knight = method.**
+  - A **class** is a general focus: tank, marksman, support or control (§8.1). It sets an **HP tier**,
+    a **damage band** inside the ±20–25% rule (the support sits toward the low end and makes up for it
+    with healing) and its **per-wave growth** (§6.1).
+  - A **knight** is one character in a class. It sets everything else: how it attacks, its super, its
+    build and its passive card. Two knights in the same class do the same job in different ways.
+  - v1 ships **one knight per class:** Warden (tank), Ranger (marksman), Artificer (support) and
+    Commander (control). Classes and knights are modeled separately in data, so more knights per class
+    is content, not code (§13).
+- **Design principle: roles amplify, never gate.** Any team, including one knight alone, must be able
+  to play a full run. Every enemy type must be answerable by at least two classes or by a baseline that
+  every team has (§9).
+- Classes are picks, not required slots. Duplicate knights are allowed.
 
-### 2.1 Themes
+### 2.1 Look: neon knights
 
-The game is built **theme-agnostic**. A theme is a skin and never changes gameplay. Game code refers only
-to internal IDs (`engineer`, `arrow_tower`, `colossus`, and so on). A **theme pack** maps each ID to how
-it looks and sounds.
+The game has **one look, neon knights** (tech-medieval): classic fantasy shapes, but every ability comes
+from technology, not magic: powered armor, rail-bows and nanites. The look is clean sci-fi armor with
+glowing lines: dark backgrounds, bold silhouettes and emissive accents, which give strong contrast on a
+TV. There is no theme layer: code ids are the knights' names, and every other display name comes from
+one table (§15.4). v1 is built directly with this art; there is no placeholder greybox phase.
 
-| A theme pack can change | Every theme must keep the same |
-|---|---|
-| Sprites and animations | Hitbox sizes and attack shapes |
-| Sound effects and music | Attack wind-up timing (a 1.5 s slam lands at 1.5 s in every theme) |
-| Display names for classes, structures, enemies and the boss | Stats, costs and wave data |
-| UI colors and fonts, flavor text | What colors mean: red ground markers mean danger, and player and enemy colors stay distinct |
-| The map's look | Map layout, lanes and tile grid |
-
-- The spec and code use the internal class names (Engineer, Warden, Quartermaster, Commander). Each theme
-  supplies its own display names.
-- Players pick the theme on the TV home screen, before the lobby.
-- **v1 ships one theme: tech-medieval.** The second theme, Pillow Fort, ships in v2 (§13).
-- v1 is built directly with tech-medieval art. There is no placeholder greybox phase.
-
-**Tech-medieval (v1), neon knights style.** Classic fantasy shapes, but every ability comes from
-technology, not magic: powered armor, rail-bows and nanites. The look is clean sci-fi armor with glowing
-lines: dark backgrounds, bold silhouettes and emissive accents, which give strong contrast on a TV.
-- **Players and player structures glow amber,** matching the fostercurtis.dev brand amber (`--amber`,
-  `#e8a33d`, in the brand kit, §2.3). Every knight's armor glows amber, as do towers, walls and the
-  citadel core.
+- **Players and their builds glow amber,** matching the fostercurtis.dev brand amber (`--amber`,
+  `#e8a33d`, in the brand kit, §2.3). Every knight's armor glows amber, as do the builds, the squad and
+  the Citadel core.
 - **The Iron Tide glows violet** (`--hostile`, `#8f6bff`). Amber against violet sits on the yellow–blue
-  axis, which the common red–green forms of color blindness preserve, and the two also differ strongly in
-  lightness. (Changed from cyan on 2026-10-26: violet keeps the enemy glow clear of the blue and green
-  player colors.)
-- **Red is reserved for danger:** ground markers for incoming attacks and low-HP warnings. Neither side
-  uses red as its main glow.
+  axis, which the common red–green forms of color blindness preserve, and the two also differ strongly
+  in lightness. (Changed from cyan on 2026-10-26: violet keeps the enemy glow clear of the blue and
+  green player colors.)
+- **Red is reserved for danger:** ground markers for incoming attacks, the Colossus Charge lane and
+  low-HP warnings. Neither side uses red as its main glow.
 - **Player identity** (every knight glows amber, so identity never rides on the glow). Three layers,
   from most to least important:
   1. **Ring (primary):** a thin outline ellipse under the feet in the player's color (at the 0.6 ground
      ratio, §2.5), never a filled disc, so it never reads as a red ground danger marker. A small notch
-     on the ring points in the aim or facing direction. The ring also marks where structures are placed
-     (§7).
-  2. **Color part on the helmet (secondary):** each class carries the player's color on its helmet,
-     each in its own shape: the Warden's crest, the Ranger's feather and the Commander's horsehair plume,
-     and the Artificer's painted crown cap and lens bezel. The color part is drawn as a separate
+     on the ring points in the aim or facing direction. At-feet builds land at the ring's center (§7).
+  2. **Color part on the helmet (secondary):** each knight carries the player's color on its helmet,
+     each in its own shape: the Warden's crest, the Ranger's feather and the Commander's horsehair
+     plume, and the Artificer's painted crown cap and lens bezel. The color part is drawn as a separate
      grayscale layer tinted at runtime, so one sprite sheet serves every color.
   3. **Name and HP bar, above the sprite:** white Geist 600 with a thin ink outline, HP bar directly
-     under the name. Above, because the feet already carry the ring, the build ghost and danger markers.
-     Near the top edge of the map (by the Citadel) the label flips below the sprite.
+     under the name. Above, because the feet already carry the ring, the aim previews and danger
+     markers. Near the top edge of the map (by the Citadel) the label flips below the sprite.
 - Player colors (assigned on join, §11.1) must stay distinct from amber, enemy violet and danger red
   (palette in §2.3).
 
-Display names and visuals:
+Display names (the one table, `src/presentation/shared.ts`, §15.4):
 
-| Internal ID | Display name | Visual |
+| Code id | Display name | Visual |
 |---|---|---|
-| Base | Citadel | A citadel with a glowing power core |
-| Engineer | Ranger | Ranger with a rail-bow |
-| Warden | Warden | Heavy knight with a gravity hammer |
-| Quartermaster | Artificer | Artificer with a nanite projector |
-| Commander | Commander | Knight-captain leading a squad of automaton footmen |
-| Arrow tower | Pulse turret | Auto-turret |
-| Bomb tower | Mortar tower | Mortar emplacement |
-| Wall | Wall | Hard-light barrier |
-| Snare | Shock Net | Electrified net on the ground that zaps enemies crossing it |
-| Fortify | Fortify | Shield emitter attached to a tower |
-| Spiked walls (shop item) | Charged walls | Coils and crackling bolts on the wall |
-| Supply crate | Power cell | Glowing cell |
-| Supply depot | Armory | |
-| Base archers | Sentry guns | Wall-mounted sentry turrets |
-| Grunt | Drone | Drone soldier |
-| Runner | Skitter | Scuttler bot |
-| Brute | Brute | Heavy siege mech |
-| Siege | Bombard | Long-range artillery walker |
-| Flyer | Wasp drone | Hover drone |
-| Swarm | Scrap mites | Swarm of small bots |
-| Hunter | Stalker | Stalker bot |
-| Colossus | Colossus | A giant walker mech with a glowing core in its chest |
-| Enemy faction | The Iron Tide | The machine army |
+| `base` | Citadel | A citadel with a glowing power core |
+| `warden` | Warden | Heavy knight with a gravity hammer (class: tank) |
+| `ranger` | Ranger | Ranger with a rail-bow (class: marksman) |
+| `artificer` | Artificer | Artificer with a nanite projector (class: support) |
+| `commander` | Commander | Knight-captain with a shield, leading a squad of automaton footmen (class: control) |
+| `shield_gen` | Shield generator | Thrown emitter that projects a damage-reducing field (Warden's build) |
+| `mine` | Mine | Translucent proximity mine (Ranger's build) |
+| `beacon` | Healing beacon | Thrown beacon that heals knights around it (Artificer's build) |
+| `rally_flag` | Rally flag | Thrown flag the squad gathers at (Commander's build) |
+| archers (`archer_*` shop items) | Sentry guns | Wall-mounted sentry turrets |
+| `grunt` | Drone | Drone soldier |
+| `runner` | Skitter | Scuttler bot |
+| `brute` | Brute | Heavy siege mech |
+| `siege` | Bombard | Long-range artillery walker |
+| `flyer` | Wasp drone | Hover drone |
+| `swarm` | Scrap mites | Swarm of small bots |
+| `hunter` | Stalker | Stalker bot |
+| `colossus` | Colossus | A giant walker mech with a glowing core in its chest |
+| `faction` | The Iron Tide | The machine army |
+
+Enemy code ids stay as they were; only the knights' code ids took their display names (§15.11 #92).
 
 ### 2.2 Difficulty
 
-- Difficulty is a **separate setting**, chosen on the TV home screen: **Easy, Normal or Hard.** All three
-  are in v1.
-- Difficulty is independent of theme. Each theme has a default difficulty (tech-medieval: Normal), which
-  players can change.
-- Difficulty applies multipliers to existing config values:
+- Difficulty is chosen on the TV home screen: **Easy, Normal or Hard.** All three are in v1, and
+  **Normal is the default.**
+- Difficulty multiplies existing config values:
   - wave budget
   - enemy HP and damage
   - base HP
   - coin income
-- The difficulty multiplier stacks with player-count scaling (§9.4). Starting values are set in
-  playtesting.
-- The resume snapshot (§11.5) stores the run's theme and difficulty.
+  - **respawn time** (starting values: Easy 0.8, Normal 1, Hard 1.2; §5)
+- **Order of application:** difficulty × player-count table (§9.4) × the wave's own enemy multiplier
+  (§9.3). Enemy HP and damage are baked in at spawn, never applied per hit. Starting values are set in
+  playtesting (§14).
+- The resume snapshot (§11.5) stores the run's difficulty.
 
 ### 2.3 Branding (settled)
 
 Domain: `fort-frenzy.fostercurtis.dev`. Branding is in v1, from the brand kit:
 `src/styles/brand.css` (every visual token as a CSS custom property), `brand/` (SVG marks and the
-`<head>` snippet) and `public/` (favicon, PWA icons, manifest). Same layout as Sunny Side's kit; when
-code exists, mirror `brand.css` in a typed `src/shared/theme.ts` for the renderer, with a parity test.
+`<head>` snippet) and `public/` (favicon, PWA icons, manifest). Same layout as Sunny Side's kit;
+`src/shared/theme.ts` mirrors `brand.css` for the renderer, with a parity test. (`theme.ts` is the
+brand-token mirror, not a theme pack; it keeps its name.)
 
 - **Family core, unchanged:** ink `#14161a`, paper, amber `#e8a33d`, gray, and the shared dark surface,
   border and muted values, identical to fostercurtis.dev, Sunny Side and World Conquest. Body text is
   Geist; room codes are JetBrains Mono.
 - **Mark ("the keep"):** a white crenellated tower on the ink rounded tile with a lit amber gate whose
-  light spills onto the ground. Same grammar as the family marks: ink tile, white object, one amber point.
-  A pixel-snapped 16 px version (`mark-small.svg`) feeds the `.ico`.
+  light spills onto the ground. Same grammar as the family marks: ink tile, white object, one amber
+  point. A pixel-snapped 16 px version (`mark-small.svg`) feeds the `.ico`.
 - **Signature treatment:** chamfered (cut) corners and amber glow. No tilt and no hard offset shadow
   (Sunny Side's move). Glow is applied with `filter: drop-shadow`, since chamfers use `clip-path`.
-- **Color rule:** amber glow means ours (player armor, friendly structures; in the UI, ready, selected
+- **Color rule:** amber glow means ours (player armor, builds, the squad; in the UI, ready, selected
   and active states). Violet glow means the Iron Tide. Red means danger only.
 - **Display face:** Chakra Petch 700, uppercase, slight tracking. Its chamfered terminals match the UI
   shape.
-- **World tokens:** `stone` `#262b33` for panels and map ground, `stone-edge` `#3a404b` for walls,
+- **World tokens:** `stone` `#262b33` for panels and map ground, `stone-edge` `#3a404b` for edges,
   `ember` `#ffd08a` for glow cores, `hostile-core` `#c7b4ff` for enemy glow cores.
 - **Player colors (6):** cobalt, jade, sky, bone, rose and forest, from the shared family palette.
   Crimson (too close to danger red) and berry (too close to violet) are left out. Because every knight
   glows amber, player identity shows on nametags, rings and armor accents (for example plumes), never on
   the glow itself.
-- **Themes are skins on this brand.** The color rule carries into Pillow Fort: amber becomes fairy lights
-  and flashlights, violet becomes glowing eyes under the bed.
 - All assets must be commercially licensed. Chakra Petch, Geist and JetBrains Mono are OFL.
 
 ### 2.4 Character art (settled)
 
-Applies to every theme pack. Theme packs change the drawings, not these rules.
+The art is in `art/neon-knights/` (§15.10); its `README.md` holds the per-frame details. The rules:
 
 - **View:** oblique three-quarter top-down, defined exactly in §2.5. Every part shows its top face
   above its front face.
 - **Facing (4 directions):** each knight and each footman has three body views: side (mirrored for left
-  and right), front (facing the camera) and back. A unit faces where it's aiming while attacking, and
-  otherwise where it's moving; it picks the view from the stronger axis, with a small dead zone so it
+  and right), front (facing the camera) and back. A unit faces where it's aiming while attacking and
+  keeps that facing until the attack's clip ends (main, super, mine kneel and build throw, whatever it is
+  moving toward), and otherwise faces where it's moving; it picks the view from the stronger axis, with a small dead zone so it
   doesn't flicker on diagonals. Attack arcs, the aim line and the ring notch still rotate a full 360°.
   Enemies use the side view only (mirrored) in v1; back views for common walkers are a v2 candidate.
   The Artificer's backpack gauge only needs to read in the side and back views.
 - **Method:** vector cut-out rigs. Each character is a set of separate SVG parts (legs, torso, helm,
   color part, weapon, glow pieces) that code moves, rotates and scales to animate. The color part is
-  tinted per player. Each part's amber glow is its own piece (`<part>-glow`), drawn right after that part
-  and moving with it, so glow follows a swinging limb and never shows through what covers it; the bloom
-  picks it up, and code can brighten or pulse it during attacks. (Changed on 2026-10-27 from one
-  emissive layer drawn last, §15.11 #21.)
+  tinted per player. Each part's amber glow is its own piece (`<part>-glow`), drawn right after that
+  part and moving with it, so glow follows a swinging limb and never shows through what covers it; the
+  bloom picks it up, and code can brighten or pulse it during attacks (§15.11 #21).
 - **Readability:** every part has a dark ink outline; armor is cool gunmetal steel lit by amber seams.
-  Each class has a distinct silhouette, helmet and color-part shape, so classes are recognizable at TV
-  size before color is read.
+  Each knight has a distinct silhouette, helmet and color-part shape, so knights are recognizable at
+  TV size before color is read.
 - **Alignment and layering:** every attached part (spikes, horns, studs, plumes, ears, fins, emissive
   seams) sits on the edge or surface it belongs to; glows never cross onto a different part. Limbs
   attach under the body: far-side parts are drawn behind it, and near legs tuck under the body rather
@@ -185,105 +183,108 @@ Applies to every theme pack. Theme packs change the drawings, not these rules.
   isn't holding anything). Animation can then move any part into view without it looking cut off or
   disconnected. Straps and belts run edge to edge across the body so they read as wrapping around it.
   In the back view the backpack (the Artificer's) is the top layer, since it's nearest the camera.
-- **State on the body:** class mechanics show on the sprite, not only in a HUD (Ranger's bolt brightens
-  with Steady Aim, Commander's banner leaves his back when planted, Artificer's backpack gauge shows
-  crates carried).
-- **Carried cells:** every player's carried cells also show as pips at their feet, outside the ring on
-  its front arc: one slot per point of their carry cap (from config, §6), filled left to right, shown
-  only while they carry at least one. The pips stay put while the ring's notch turns. They're drawn by
-  code from two frames, not in the character art. The Artificer keeps the backpack gauge as well
-  (Foster, 2026-10-28).
+- **State on the body:** class mechanics show on the sprite, not only in a HUD: the Ranger's bolt
+  brightens with Steady Aim, the Commander's banner leaves his back when the flag is out, and the
+  Artificer's backpack gauge is his **build meter** (three cells fill as the meter charges; all three
+  lit means the beacon is ready).
 - **Shared animations:** hit (white flash, small lean), down (the emissive dims to gray, then every
   piece of armor falls to the ground into a pile with some scrap and stays there for the down timer;
   respawn countdown where the name was) and respawn (assemble, unhurried, in a column of amber light at
-  the base) are the same for every class (down changed at C1, 2026-11-02, §15.11 #35). Walks swing each
-  leg on its own in every view: side legs bend on the forward swing, front and back legs step toward
-  and away from the camera and trade which one is drawn in front each step.
+  the base) are the same for every knight (§15.11 #35). Walks swing each leg on its own in every view:
+  side legs bend on the forward swing, front and back legs step toward and away from the camera and
+  trade which one is drawn in front each step.
 - **Healing visuals:** all healing is amber (it's ours), marked with small white "+" glints. Never
   green, since jade and forest are player colors.
+- **Throws:** a thrown build or soldier leaves from the knight's hand (the Artificer's `pack`), arcs
+  with its own ground shadow and lands at the aimed spot; code draws the arc, spin and shadow.
 
 **Warden (neon knights):** widest and squattest silhouette; closed great helm with a glowing amber
 T-visor; front-to-back crest plume (crest shape is Warden-only); gravity hammer with the head centered
 on the haft and an amber gravity coil at the center of the head, which brightens during the slam
 wind-up. Amber seams: chest chevron, power core, belt, pauldron trim, knee.
-Animations: idle, walk, main (ground slam, toward the aim; while aiming the TV shows its cone,
-§10.1), super (stomp with shockwave), build (kneel and tap),
-Mason passive sparks to nearby walls.
+Animations: idle, walk, main (hammer smash toward the aim; at impact the `slam` group swaps in the
+hammer standing on its striking face, with no ground cracks (RC1: those are the super's); while aiming
+the TV shows its cone, §10.1), super (**jump slam**, about 1.35 s: crouch, an airborne wind-up with the
+hammer raised and the shadow left on the ground, then at 1.1 s the landing hits with the same impact
+pose, `landing-dust` at his feet and `slam-cracks-wide`; RC2, #125), throw (the shield generator).
 
 **Ranger (neon knights):** tall, narrow silhouette with a dark cloak behind and the bow in front;
 sallet helm with a narrow amber goggle slit; one long swept-back feather plume (feather shape is
 Ranger-only); recurve rail-bow with amber rails on both limbs, an amber string and a glowing bolt.
-The bolt and rails brighten in steps while Steady Aim builds, so the passive is visible. A dark leather
-quiver strap runs shoulder to hip with amber studs (the bowstring is the only amber line on him);
-amber knee; quiver bolts glow at the tips.
+The bolt and rails brighten in steps while Steady Aim builds (when he owns the Steady Aim card). A dark
+leather quiver strap runs shoulder to hip with amber studs (the bowstring is the only amber line on
+him); amber knee; quiver bolts glow at the tips.
 **Two poses in every facing:** standing (idle and walk: bow lowered in the bow hand, string relaxed and
 straight, draw arm at his side) and ready (Steady Aim and firing: string drawn to the hand, bolt nocked;
 from the front the bow is aimed at the camera, from the back the draw elbow rises past the cloak).
 Animations: idle, walk (quicker, lighter cadence than the Warden), Steady Aim (blends from standing to
 ready), main (longbow shot: he draws the string back, holds, and lets go with a string snap; the bolt
-leaves from the bow at the release, with an amber tracer; §15.11 #39), super (pulse ring sized exactly
-to the hit circle),
-build (kneel and place a deploy beacon; turrets unfold).
+leaves from the bow at the release, with an amber tracer; §15.11 #39), super (**shockwave**: the
+`shockwave` ring rolls out from him, sized exactly to the hit circle), place a mine (kneel and set it
+at his feet).
 
 **Commander (neon knights):** medium build; armet helm with an amber circlet across the brow (the only
 helm with a "crown"); horsehair plume that arcs up and back, then falls behind the helm (Commander-only
-shape); wedge-bladed sword with a chisel tip, set on the grip's center line, whose amber edge is a right
-triangle along the cutting edge, thickest at the base by the guard and thinning to the tip; amber
-diamond rank badge on the chest. The rally flag rides on his back as a banner; planting it moves it
-into the world, so "following" vs "holding" is visible at a glance.
-Animations: idle, walk, main (sword slash; the amber edge flares and leaves a trail tracing the exact
-hit arc, toward the aim; while aiming the TV shows that arc filled, §10.1), super (morale: amber pulse, and an amber aura on him and his squad that fades as the buff
-runs out, doubling as its timer; for the buff's whole duration every unit it affects flashes its amber
-parts and the aura circle under it brightly on and off, 250 ms each, timed from the sim's buff), plant
-flag / recall, Lead from the Front as small amber nanite motes that drift slowly from him to each
-footman the passive currently reaches (no link lines; §15.11 #40).
+shape); amber diamond rank badge on the chest. He fights with a **shield** on his arm (`shield`,
+`shield-glow`) and wears his sword sheathed at the hip (`scabbard`, `scabbard-glow`); the drawn sword
+stays in the rig as the optional group `sword`, off in v1. The rally flag rides on his back as a banner
+while it isn't out; throwing it moves it into the world, so "following" vs "holding" is visible at a
+glance.
+Animations: idle, walk, main (**shield bash** toward the aim: a short lunge with the shield, impact
+sparks at the `shield` point; while aiming the TV shows the bash rectangle filled, §10.1), super
+(**Reinforcements**: he throws a footman a short distance, which lands and joins the squad; "×2" pops
+over the soldiers on a Rally Cry double spawn), throw flag / recall. Morale (the card) has no visual of
+its own.
 
 **Automaton footmen:** about half the Commander's height; amber eye; mini plume swept back in their
 Commander's player color; straight blade, fully amber, with a dark crossguard. No ring and no name.
-Animations: march, short stab, collapse into scrap and fade.
+Animations: march, sword slash (wind-up, a cut of about 120° through the aim, follow-through; §15.11
+#169), thrown (tucked, arcing with a shadow), collapse into scrap and fade.
 
 **Rally flag:** the flag cloth is in the Commander's player color (a second tinted part), so two
-Commanders' flags and squads are never confused; a planted flag has an amber ring at its base.
+Commanders' flags and squads are never confused; a planted flag has an amber ring at its base. In
+flight it spins as `rally-flag/flight-*`.
 
-**Artificer (neon knights):** medium build with a boxy power-cell backpack, the only knight wider at the
-back than the front; rounded helm with a single round amber lens; no plume: his color is a painted
-crown cap and a bezel ring around the lens (the bezel deliberately breaks the helm's outline); arm-
-mounted nanite projector with an amber lens and a drifting cloud of amber nanites; amber hexagon
+**Artificer (neon knights):** medium build with a boxy power-cell backpack, the only knight wider at
+the back than the front; rounded helm with a single round amber lens; no plume: his color is a painted
+crown cap and a bezel ring around the lens (the bezel deliberately breaks the helm's outline);
+arm-mounted nanite projector with an amber lens and a drifting cloud of amber nanites; amber hexagon
 (nanite cell) emblem on the chest, never a cross; tool pouches on the belt; amber knee.
-**Backpack gauge:** three cells that fill bottom-up. Each cell is 2 crates; an odd count lights only the
-bottom half of the next cell; 6 or more crates shows all three full (the cap is 8).
-Animations: idle, walk, main (nanite bolts fanning in a narrow cone, stopped by walls and towers),
-super (wide amber nanite cone drawn over walls, since it passes through them; healed players and
-buffed towers get white "+" glints), Field Medic (faint dotted amber ground circle, never filled),
-carry and throw (gauge steps up or down a half cell per crate; a thrown cell lobs in an arc).
+**Backpack gauge = build meter:** three cells that fill bottom-up. Split the meter (0–1) into sixths,
+`k = floor(meter × 6)`: cell N shows full when k ≥ 2N and half when k = 2N − 1. All three full means
+the beacon is ready.
+Animations: idle, walk, main (**nanite blast**: about 5 nanites fly to random spots in a narrow cone
+over about 0.8 s), super (wide amber nanite heal cone; healed knights get white "+" glints), Field
+Medic (when he owns the card: a faint dotted amber ground circle, never filled), throw (the beacon
+leaves from the `pack` point).
 
 ### 2.5 Perspective and projection (settled)
 
-Every sprite, structure, effect and UI element drawn in the world follows one projection: oblique
+Every sprite, build, effect and UI element drawn in the world follows one projection: oblique
 three-quarter top-down (as in Zelda or Stardew Valley). Nothing is drawn straight from above, and
-nothing is drawn as a flat front view with no top. Applies to every theme pack.
+nothing is drawn as a flat front view with no top.
 
 **The rule**
 - **Ground is squashed vertically by 0.6.** Everything lying on the ground is drawn at width × 0.6
-  depth: tiles, shock nets, structure footprints, player rings, red danger markers, area-of-effect
+  depth: tiles, build footprints and effect radii, player rings, red danger markers, area-of-effect
   rings, shockwaves, auras, blast rings and shadows.
 - **Uprights keep full height and show a top face.** On chamfered shapes, the angled band above the
   front face is the top face: shade it lighter and draw a thin crease where it meets the front. Boxes
   get a top rectangle; cylinders and rings get an elliptical top at 0.6; domes and spheres sit in a 0.6
   base ellipse or socket.
 - **Shading:** tops lightest, fronts mid, left side darkest, light from above and slightly right.
-  Knights and structures: tops #7d8798 or #5c6676, fronts #4a5362, shade #3c4452. Iron Tide: tops
+  Knights and builds: tops #7d8798 or #5c6676, fronts #4a5362, shade #3c4452. Iron Tide: tops
   #6a5f8f or #4a4068, fronts #3a3150, shade #2a2340.
 - **Shadows:** a 0.6 ellipse sized to the footprint and centered on it (not on the bottom edge of the
   feet). Knight about 22 × 13 in sprite units; Colossus about 60 × 36.
 - **Height:** anything off the ground keeps its shadow on the ground directly beneath it; the gap
-  between object and shadow shows its height (Wasp drones, mortar shells, boulders, thrown power
-  cells, launched Skitters).
+  between object and shadow shows its height (Wasp drones, Bombard shells, boulders, thrown builds and
+  soldiers, launched Skitters, the Warden mid-jump).
 - **Draw order:** sort by foot point (lower on screen is drawn in front). Flyers and arcing
   projectiles sort by their shadow. Groups draw back-to-front.
 
 **Grid and scale:** a tile is W wide and 0.6 W deep on screen. On the 1920 × 1080 logical canvas,
-W = 48 px (48 × 28.8). Characters are about 1.6 W tall (about 77 px). Art is authored with a tile of
+the TV fits the map to the view width (§15.2), so W ≈ 52.3 px (k ≈ 1.089; 48 px is the art's reference scale at k = 1). Characters are about 1.6 W tall (about 77 px). Art is authored with a tile of
 80 × 48 sprite units.
 
 **Implementation:** the sim stays in square tile coordinates with circular hitboxes. Only the renderer
@@ -294,65 +295,76 @@ screen, so for our attacks an enemy's hitbox is its feet circle swept up the scr
 (a capsule on the ground, §9, §15.3). An aim line or cone that crosses the drawn body, head included,
 hits; feet circles still walk, collide and take enemy attacks.
 
-**Walls and nets in both directions:** a wall running across the screen shows its full light panel; a
-wall running into the screen is seen edge-on and shows as a glowing top strip between stacked posts.
-Walls and shock nets use autotile sets covering all 16 neighbor masks (isolated, end, across, into,
-corner, T-junction, cross), chosen from the four neighboring tiles.
-
 ### 2.6 UI art (neon knights)
 
 - **Icons: lit badge.** A solid bone glyph (24-unit grid) with ink cut-ins and amber parts that glow,
   set inside a chamfered gunmetal tile. The tile carries the state: rest (gunmetal edge), active,
-  selected or ready (amber edge with glow), dimmed (glyph at 35%, e.g. the action button with nothing
-  to do). Where space is tight (TV announcements, wishlist rows, inline text) the glyph is used without
-  the tile. Class badges are the class helms, so a class looks the same everywhere.
-- **Icon files:** `art/<theme>/icons/<id>.svg` with `.glyph` and `.glow` groups, plus `badge-tile.svg`
-  and `badge-tile-active.svg`. Theme packs replace them under the same names. The action button swaps
-  between the `act-*` icons per §10.1. Icon ids:
-  - classes: `class-warden`, `class-ranger`, `class-commander`, `class-artificer`
-  - main attacks and supers: `main-<class>` and `super-<class>` for each class
-  - structures: `cell`, `turret`, `mortar`, `wall`, `net`, `fortify`
-  - action button: `act-pickup`, `act-deliver`, `act-buy`, `act-place`, `act-throw`, `act-flag`,
-    `act-recall`, `act-give`, `act-drop` (dimmed to 35% when nothing applies)
+  selected or ready (amber edge with glow), dimmed (glyph at 35%, e.g. the build button while its meter
+  charges). Where space is tight (TV announcements, wishlist rows, inline text) the glyph is used
+  without the tile. Knight badges are the knights' helms, so a knight looks the same everywhere.
+- **Icon files:** `art/neon-knights/icons/<id>.svg` with `.glyph` and `.glow` groups, plus
+  `badge-tile.svg` and `badge-tile-active.svg`. Every file on disk is in exactly one of the two lists
+  below (66 icon ids plus the two tiles); the manifest test checks the disk against them (§15.9).
+- **In use (51):**
+  - knights: `class-warden`, `class-ranger`, `class-commander`, `class-artificer`
+  - classes: `role-tank`, `role-marksman`, `role-support`, `role-control`
+  - main attacks and supers: `main-<knight>` and `super-<knight>` for each knight (8)
+  - build button (§10.1): `act-shield` (Warden), `act-mine` (Ranger), `act-beacon` (Artificer),
+    `act-flag` (Commander, throw a flag), `act-recall` (Commander, recall the flag); dimmed to 35%
+    while the meter charges
   - upgrade-card marks (§6.1): `card-vitality`, `card-might`, `card-haste`, `card-reach`,
-    `card-swiftness`, `card-focus`, `card-toughness`, `card-recovery`, `card-attack`, `card-super`,
-    `card-passive`, `card-effect`, `card-hunter`, `card-ally`, `card-supply`, `card-squad`, `card-combo`
+    `card-swiftness`, `card-focus`, `card-toughness`, `card-recovery`, `card-tinkerer`,
+    `card-attack`, `card-super`, `card-passive`, `card-build`, `card-effect`, `card-hunter`,
+    `card-ally`, `card-squad`, `card-combo`
   - lobby and status: `leader` (the party leader's mark), `overflow-shield` (beside a player's HP bar
-    while the Overflow shield holds, §6.1)
-  - shop and HUD: `coins`, `ready`, `request`, `repair`, `emergency-kit`, `base-armor`, `sentry-damage`,
-    `sentry-range`, `sentry-third`, `squad`, `turret-rate`, `mortar-radius`, `tower-hp`, `wall-hp`,
-    `charged-walls`, `net-charges`
-  - status: `reconnecting` (on a disconnected player's TV nametag, §11.3)
+    while the Overflow shield holds, §6.1), `reconnecting` (on a disconnected player's TV nametag,
+    §11.3)
+  - shop and HUD: `coins`, `ready`, `request`, `repair`, `base-hp`, `base-armor`, `sentry-damage`,
+    `sentry-range`, `sentry-third`
+- **On file, unused (15; the build idea pool and dropped shop items, kept in the atlas):** `turret`,
+  `mortar`, `wall`, `net`, `fortify`, `turret-rate`, `mortar-radius`, `tower-hp`, `wall-hp`,
+  `charged-walls`, `net-charges`, `act-place`, `emergency-kit`, `squad`, `card-supply`.
+- **Removed (RD12):** the seven crate icons (`cell`, `act-pickup`, `act-deliver`, `act-buy`, `act-throw`,
+  `act-give`, `act-drop`) are deleted from the art folder and the atlas, with the Armory, repair-zone
+  pad, power-cell and carry-pip art.
 - **TV HUD layout (combat):** a thin top band split three ways: wave and phase top-left, base HP bar
-  centered directly above the Citadel, team coins top-right. The boss bar runs along the bottom edge,
-  where enemies enter. Purchase announcements stack bottom-left (glyph + text, a bar in the buyer's
-  color). During the build phase the wishlist shows on the right. Everything stays inside the 96 px
-  TV-safe margin.
+  centered directly above the Citadel, team coins top-right. The boss bar runs along the bottom edge.
+  Purchase announcements stack bottom-left (glyph + text, a bar in the buyer's color). During the build
+  phase the wishlist shows on the right. Everything stays inside the 96 px TV-safe margin. There is no
+  build-ready indicator on the TV (the meter lives on the phone).
+- **World HP bars (code-drawn):**
+  - **Enemy HP bars:** shown only once damaged (hidden at full HP); a thin bar above the sprite with a
+    violet fill (violet = enemy; red stays for danger markers); width scales with enemy size. Scrap
+    mites have none. The Colossus keeps its bottom-edge boss bar instead.
+  - **Build HP bars:** the same rule, with an amber fill, for HP builds (§7).
 - **Phone buttons:** round, at the §10.1 sizes, gunmetal fill with a gunmetal edge, the action icon
-  inside; the super's charge is a ring that fills clockwise and lights amber when full. The stick
-  is round.
-- **Phone screens:** join (code prefilled from the QR, name, one button); class select (swipeable cards:
-  the knight's front view in the player's color, role, main and super with tap/aim, passive, build kit);
-  lobby (big Ready, lineup with color, class helm and ready state, and the `leader` mark beside the party
-  leader; the party leader also sees difficulty and Start); combat controller with a status strip (HP, cells carried up to the carry cap, base HP);
-  build tab (stick stays; kit tiles with cell costs, Place, Cancel, Give, Ready; classes with no
-  structures see a "No buildings to build" note in place of the kit tiles, §10.2); shop tab (full
-  screen, the stick returns on the Build tab: team coins, the private pick-1-of-3 card with rarity on
-  the frame, team shop rows with price, hold-to-confirm fill on big buys, Request and "Requested by"
-  tags); down (respawn countdown only); reconnecting overlay; end of run (party leader's three options).
+  inside. The super's charge is a ring that fills clockwise and pulses amber when full; the build
+  meter is a ring that fills clockwise and turns a **steady** amber when full (no pulse), so the two
+  read differently. The stick is round.
+- **Phone screens:** join (code prefilled from the QR, name, one button); knight select (swipeable
+  cards: the knight's front view in the player's color, class with its `role-*` badge, main, super and
+  build with tap/aim, passive card); lobby (big Ready, lineup with color, knight helm and ready state,
+  and the `leader` mark beside the party leader; the party leader also sees difficulty and Start);
+  combat controller with a status strip (HP and base HP); **card pop-up** (full screen, no stick: the
+  class growth header, three cards, Confirm, the phase timer; §10.2); **shop** (right 2/3 of the
+  screen with the movement stick on the left third: team coins, team shop rows with price,
+  hold-to-confirm fill on big buys, Request and "Requested by" tags, Ready at the top right; §10.3);
+  down (respawn countdown only); reconnecting overlay; end of run (party leader's three options).
 - **Upgrade cards:** chamfered portrait cards; common has a gunmetal frame, rare a double amber frame.
   Each card shows its category mark (§6.1).
-- **TV screens:** home (keyboard and gamepad: the focused row is lit amber, ◂ ▸ change theme and
-  difficulty, "Resume wave N" only when a snapshot exists); lobby (URL, large mono room code, QR, six
-  slots showing each knight's front view in the player's color with a name band, class and ready state;
-  open slots dashed); combat HUD (see above; the Stalker's target flash is world UI, and a ready super
-  shows as an amber pulse on the knight's ring, §10.1); low-HP alarm (red vignette and "Citadel under attack" under the base bar);
-  build-phase HUD (the phase timer replaces COMBAT; the next-wave preview takes the boss bar's place at
-  the bottom with enemy portraits and counts, a newly introduced type framed in violet; ready status and
-  wishlist on the right; build ghosts dashed amber when valid, red with an X when blocked); victory and
-  defeat summary (banner over the keep, run stats, one award card per player in their color).
-- **Lane warnings:** the spawn-warning glow (§9.4) is a violet gradient band on the screen edge where
-  the lane enters.
+- **TV screens:** home (keyboard and gamepad: the focused row is lit amber, ◂ ▸ change difficulty,
+  "Resume wave N" only when a snapshot exists); lobby (URL, large mono room code, QR, six slots showing
+  each knight's front view in the player's color with a name band, knight and ready state; open slots
+  dashed); combat HUD (see above; the Stalker's lock-on flash is world UI, and a ready super shows as an
+  amber pulse on the knight's ring, §10.1); low-HP alarm (red vignette and "Citadel under attack" under
+  the base bar); build-phase HUD (the phase timer replaces COMBAT; the next-wave preview takes the boss
+  bar's place at the bottom with enemy portraits and counts, a newly introduced type framed in violet,
+  and **never the hot side**, §9.4; ready status and wishlist on the right); victory and defeat summary
+  (banner over the keep, run stats, one award card per player in their color).
+- **Portal flare:** about 1 s before a portal spawns a group, it flares (its `flare` frame plus the
+  `portal-flare` sparks, §3.1). It shows where something is about to appear, never the wave's pattern.
+  The sparks flicker: irregular alpha dips (never below 0.4) and a slight scale jitter, strongest at the
+  start and settling by the end, a fixed pattern seeded by the flare's place and start order.
 
 ## 3. Map, base and camera
 
@@ -360,11 +372,30 @@ corner, T-junction, cross), chosen from the four neighboring tiles.
 - The base sits on the **top edge** of the map, centered, with its gate facing down-field. In the §2.5
   view, tall sprites hide what's drawn behind them (above them on screen). At the top, the Citadel only
   hides off-map space, and players see its gate rather than its back.
-- Enemies arrive through lanes from the bottom and sides and march up the screen. More lanes open as
-  waves progress. A lane that isn't open yet shows a sealed entry on the map edge, which opens with the
-  lane (left at wave 3, right at wave 8). Open lanes show violet chevrons pointing in; sealed lanes are
-  drawn as an amber hard-light gate.
-- v1 has one map with 3 lanes.
+- **v1 has one map, an open field** of 36 × 24 tiles (§15.2) with **6 fixed portals**: 2 on the bottom
+  edge and 2 on each side edge. Side portals sit on the **lower two-thirds** of their edge, so nothing
+  spawns within a few tiles of the Citadel. Positions (a starting layout to tune in `map.ts`, §14):
+
+| Portal | Side | Tiles |
+|---|---|---|
+| `bottom-w` | bottom | cols 9–10, row 23 |
+| `bottom-e` | bottom | cols 25–26, row 23 |
+| `left-n` | left | col 0, rows 11–12 |
+| `left-s` | left | col 0, rows 18–19 |
+| `right-n` | right | col 35, rows 11–12 |
+| `right-s` | right | col 35, rows 18–19 |
+
+- A **side** is the 2 portals on one edge: `left`, `bottom` or `right`. Sides matter for the hot side
+  (§9.4).
+- **Every portal is live from wave 1.** There are no lane unlocks and no sealed entries; new enemy
+  types carry the progression instead. Enemies spawn just outside the edge at a portal and walk in.
+- **Portal look:** a slow violet swirl in a violet-iron collar on the map edge (`map/portal/<side>-idle`;
+  bottom-edge portals use the `bottom-*` frames, side portals their side's). About 1 s before it spawns
+  a group it **flares** (`<side>-flare`: vortex lit, a light column, `portal-flare` sparks).
+- **No walls in v1.** Nothing a knight places blocks movement, and the v1 map has no blocked tiles.
+  The map format keeps a `blocked` tile kind and flow fields price terrain, so v2 maps with permanent
+  walls are map data, not new systems (§13). Balance watch: an empty field can feel flat; a few small
+  blocked props are a data-only fix if playtests say so.
 
 ### 3.2 Camera
 - **v1: fixed camera showing the whole map.** Every player is always on screen, and there is no camera
@@ -384,30 +415,26 @@ corner, T-junction, cross), chosen from the four neighboring tiles.
 - **How enemies damage the base:**
   - Most enemies stop at the base and attack it continuously, so players can still run back and save it.
   - **Runners** deal one burst of damage on contact, then die.
-  - **Siege** enemies shell the base from range.
+  - **Siege** enemies shell the base first whenever it is in range (§9).
+- Attacks that used to target towers (Siege shells, the Colossus's boulder throw) now target players.
 - **Feedback:**
   - The HP bar flashes on every hit, and the screen shakes slightly on big hits.
   - At 25% HP, an alarm sounds and a red tint appears around the TV edges.
   - Base HP is also shown in each phone's status strip.
 
 ### 3.4 Repair
-There is no passive regeneration. Damage is permanent unless someone acts.
+- There is no passive base regeneration. Damage is permanent unless the team pays to repair it.
+- **Repair comes only from the team shop** (§6.2): anyone can buy it in the build phase, paid from team
+  coins, at a price that rises with each purchase. There is no other repair source.
 
-| Source | Who | When |
-|---|---|---|
-| Crate delivery: drop a crate at the base to repair a chunk of HP | Anyone (the Quartermaster is best at it) | Any time |
-| Shop repair, with a price that rises each purchase | Anyone, paid from team coins | Build phase |
-| Emergency repair kit | Quartermaster-only shop item, bought in the build phase; the Quartermaster holds one at a time | Used with the action button in the repair zone (§10.1), in either phase, including mid-combat |
-
-Crates therefore have two uses: building or repairing.
-
-### 3.5 Base archers
-- **2 archers** are always present. They are part of the base and can't be killed separately.
+### 3.5 Sentry guns
+- **2 sentry guns** (code: archers) are always present. They are part of the base and can't be killed
+  separately. They are what slows a front nobody is covering.
 - They target the nearest enemy in range, **including Flyers**.
-- **Shop upgrades, buyable by anyone:** three independent one-time purchases, in any order:
+- **Shop upgrades, buyable by anyone:** three independent one-time purchases, in any order (§6.2):
   - Damage
   - Range
-  - A third archer
+  - A third sentry
 
 ### 3.6 Citadel art (neon knights, settled)
 
@@ -418,16 +445,14 @@ Crates therefore have two uses: building or repairing.
   ramparts (merlons), so the ramparts overlap their bases.
 - **Power core:** a glowing amber sphere in a three-prong cradle on the keep's roof, the brightest point
   on our side. It flickers on every hit and dims at the lowest damage stage.
-- **Repair zone:** a dashed amber pad with chevrons pointing into the lit gate, on the ground in front of
-  it. Cells are carried into the gate.
-- **Sentry guns (base archers, §3.5):** one swivelling unit per tower: a drum head on a fixed pedestal,
-  with the barrel coming out of an amber-ringed collar. The head is modeled in 3D and projected per §2.5
-  so the drum, collar and barrel always line up (pre-rendered frames, not a separately rotated barrel).
-  Five aim frames: left, down-left, at camera, down-right, right (the window sentry uses at camera). A
-  sentry snaps to the frame nearest its target. Damage swaps in twin barrels; Range adds a laser scope on
-  top of the collar with a fading amber sight line; both can stack (4 loadouts × 5 aims). The third
-  sentry leans out of a window above the gate, so it never blocks the core. Sentries fire amber tracers,
-  including at Wasp drones.
+- **Sentry guns (§3.5):** one swivelling unit per tower: a drum head on a fixed pedestal, with the
+  barrel coming out of an amber-ringed collar. The head is modeled in 3D and projected per §2.5 so the
+  drum, collar and barrel always line up (pre-rendered frames, not a separately rotated barrel). Five
+  aim frames: left, down-left, at camera, down-right, right (the window sentry uses at camera). A
+  sentry snaps to the frame nearest its target. Damage swaps in twin barrels; Range adds a laser scope
+  on top of the collar with a fading amber sight line; both can stack (4 loadouts × 5 aims). The third
+  sentry leans out of a window above the gate, so it never blocks the core. Sentries fire amber
+  tracers, including at Wasp drones.
   Mounts, in Citadel sprite units (anchor (170, 234), the front-center of the footprint): left tower
   (40, 106), right tower (300, 106), window (170, 150). The window sentry uses the at-camera frames at
   0.62 scale, so it takes the Damage and Range loadouts too. Draw order: body, glow, core, corner
@@ -437,86 +462,95 @@ Crates therefore have two uses: building or repairing.
   base); 33% adds fire (flames on the keep and walls); 10% adds heavy smoke (tall plumes that pour
   upward and flicker, dimmed core and gate). Stages reverse as HP is repaired back over each threshold.
 - **Animations:** hit (core flickers, keep shakes, HP bar flashes); siege shells (red landing marker on
-  the footprint first); repair delivery (amber pulse climbs the keep to the core); shop repair and the
-  emergency kit (an amber wave over the whole Citadel, brighter and faster for the kit); low HP at 25%
-  (core pulses with the alarm); destroyed (core implodes, glow cuts out, keep collapses into its
-  footprint, ending on the rubble frame with a dull core).
-- **Armory pad (supply depot):** a kiosk racked with glowing power cells under an amber hex sign with a
-  cell icon, on a solid-outlined 1 × 1 tile pad with the same icon on the ground. Drawn per §2.5 (pad
-  top face plus front lip, kiosk with a top face). It reads as "get cells here", while the repair zone
-  (dashed, chevrons, at the gate) reads as "bring cells here".
+  the footprint first); shop repair (an amber wave over the whole Citadel); low HP at 25% (core pulses
+  with the alarm); destroyed (core implodes, glow cuts out, keep collapses into its footprint, ending on
+  the rubble frame with a dull core).
+- The Citadel's ground plate is its only ground frame (the TD build's pads at the gate are removed,
+  §2.6, §15.10).
 
 ## 4. Run structure
 
-- **Fixed run of 15 waves.** Bosses at waves 5, 10 and 15. Target length is about 22–27 minutes,
-  including build phases (§9.4).
+- **Fixed run of 15 waves.** Bosses at waves 5, 10 and 15. Target length is about **20–24 minutes**,
+  including build phases (tune in playtesting).
 - **Loss:** the team loses when the base reaches 0 HP. The base plays a collapse animation, then the
   summary screen appears.
 - **Win:** the run is won when the wave 15 boss is defeated. A victory screen appears, then the summary
   screen.
-- **Summary screen:** shows waves survived and fun per-player stats, such as most damage dealt and most
-  crates delivered.
+- **Summary screen:** shows waves survived and per-player stats with one award card per player
+  (§15.6 `RunStats`: damage dealt, boss damage, kills, damage taken, deaths, healing done, builds
+  placed).
   - **Feedback (#57):** a QR to the feedback form pre-filled for this game in the top-right corner
     (PLATFORM decision #11); every phone's summary has **Give feedback**, which opens it in a new tab.
 - **End-of-run options** (chosen by the party leader's phone, §11.1):
-  1. **Play again** (default): every player keeps their class and goes straight to Ready.
-  2. **Change classes:** players return to class select.
+  1. **Play again** (default): every player keeps their knight and goes straight to Ready.
+  2. **Change Knight:** players return to knight select (they choose a knight, not a class).
   3. **Return to home:** the TV goes back to the pre-lobby home page. The room closes, and players
      rejoin through a new room code.
   - (FF14) Play again marks every connected player Ready in the lobby, so the 3-second countdown
-    starts at once with two or more of them. Return to home removes every phone from the room (they
-    show "The TV went home" with a button back to the code screen) and forgets the room, so the next
-    Create gets a new code.
+    starts at once. Return to home removes every phone from the room (they show "The TV went home"
+    with a button back to the code screen) and forgets the room, so the next Create gets a new code.
 - The resume snapshot (§11.5) is cleared when the run ends.
-- Each wave has two phases:
-  - **Build/shop phase:** no enemies. Players build, shop and pick upgrades.
+- **Wave flow:** combat ends → **card pop-up** (full screen on each phone; a private pick-1-of-3 with
+  the class growth header) → **shop** (team items, with the movement stick) → Ready → next wave's
+  combat. The run opens the same way: a build phase (card pop-up with no growth header, then the shop)
+  before wave 1.
+  - **Build phase:** no enemies. Cards, shopping and moving. **No builds are placed in the build
+    phase.** It is capped at **20 s** and ends early when every connected player is Ready; a card not
+    confirmed by the deadline is picked at random for that player (§10.2).
   - **Combat phase:** pure action. No menus.
-- The upcoming wave's composition is shown during the build phase.
+- The upcoming wave's enemy types and counts are shown during the build phase, never its hot side.
 - Enemy count scales with player count (§9.4) and difficulty (§2.2).
 
-## 5. Death and respawn
+## 5. Death, respawn and regen
 
-- Players have HP. When they die, they respawn at the base after 10 seconds.
-- **HP carries over between waves;** the build phase doesn't reset it. Healing and mending auras
-  (Field Medic, Mason) are off during the build phase (§8).
-- Players who are dead when combat ends respawn at once, at the start of the build phase.
-- Nothing is lost on death: upgrade cards and team purchases persist.
-- On death, a player drops any supply crates they were carrying. The crates stay on the ground, where
-  any player can pick them up. (Coins are never carried; they go straight to the team pool.)
+- Knights have HP. When a knight dies, it respawns at the base after the respawn time:
+
+| Players | 1 | 2 | 3 | 4 | 5 | 6 |
+|---|---|---|---|---|---|---|
+| Respawn time | 6 s | 10 s | 10 s | 10 s | 15 s | 15 s |
+| Coin factor (RD11-fix-1) | 1.8 | 1.0 | 0.95 | 0.85 | 0.8 | 0.7 |
+
+  multiplied by the difficulty's respawn multiplier (§2.2). Quick Recovery (§6.1) subtracts 2 s per
+  stack but never takes the respawn below **4 s solo, 5 s otherwise**; that floor never raises a
+  respawn that is already shorter.
+- **Delayed regen** for every knight: **5 s after the knight last took damage or used its main attack
+  or super** (RC1, §15.11 #120), it heals **8% of max HP every 1 s** (in ticks, not a smooth trickle)
+  until full or until one of those happens again. A wound-up attack restarts the wait at the press and
+  again when it lands. Placing a build doesn't restart it.
+  - **Regen runs in the build phase too.** HP still carries over between waves, but a 20 s build phase
+    (about 17 s to refill from 1 HP, the wait included) is always enough to refill, so there is no
+    separate full-heal rule.
+  - Regen isn't a heal from anyone: it charges nothing, counts in no stats and triggers no heal cards
+    (§15.11 #98). A down or dazed knight doesn't regen.
+  - Balance watch: 8%/s also applies in combat. If support healing feels pointless, lower the
+    percentage or lengthen the delay (§14).
+- Knights who are down when combat ends respawn at once, at the start of the build phase.
+- **Nothing is lost on death:** upgrade cards, class growth, the build meter and team purchases
+  persist. A down knight's builds stay on the map. The meter doesn't fill while the knight is down or
+  dazed (§7).
+- Coins are never carried; kills pay the team pool directly.
 
 ## 6. Economy
 
-- Kills add **coins** directly to a **shared team pool**. Players never carry coins.
-- **Coins** buy things: supply crates and team shop items (§6.2).
-- **Supply crates** are what structures cost. Every structure (towers, walls, snares and Fortify)
-  costs crates; the rally flag is free. Crates are also used to repair the base (§3.4).
-  - The **supply depot** is a pad beside the base. It sells crates to any player at full price, during
-    both phases. The depot pad and the base's repair zone are separate areas, so the action button is
-    never ambiguous (§10.1).
-  - **Crates are personal inventory.** Coins stay in the team pool, but each player carries their own
-    crates. Crates bought from the phone shop go straight into the buyer's inventory.
-  - **Carry cap:** non-Quartermasters carry up to the crate cost of the most expensive structure
-    (starting value: 4), so any builder can afford any structure alone.
-  - **Carry slowdown:** non-Quartermasters move more slowly the more crates they carry. The penalty
-    grows faster than linearly: 1 crate is barely noticeable and a full load is a significant slowdown.
-    This keeps the Quartermaster busy as the team's crate runner.
-  - **Any player can hand over or drop crates,** in either phase (§10.1, §10.2), so crates are never
-    stuck with a player who can't use them.
-- **Quartermaster supply perks:**
-  - Buys crates at a discount.
-  - Carries up to 8 crates with no slowdown.
-  - Can throw crates.
-  - Has access to Quartermaster-only shop items, for example base armor and an emergency repair kit.
+- **Team coins are the only currency.** Kills add coins to the **shared team pool**. Players never
+  carry anything.
+- **Coin income is low on purpose:** coins per kill = the enemy's budget cost (§9.1) × the coin rate in
+  the balance sheet, times the difficulty's coin multiplier (§2.2), times the player-count table's coin
+  factor (§9.4: higher for fewer players, 2 players = 1). A Swarm group pays when its last
+  unit dies. Starting values are set with the shop prices (§6.2, §14): a coin rate of 0.25 and no
+  starting coins (RD11). The pool keeps the fraction (a Grunt pays a quarter coin); phones and the TV
+  show whole coins, and a purchase needs the whole price (§15.11 #165).
+- **Personal power** comes only from upgrade cards and per-wave class growth (§6.1). There is no
+  personal shop and no personal currency in v1 (§13).
 - **Between waves:**
-  - Each player privately picks 1 of 3 upgrade cards for their own character (§6.1). Cards are free.
+  - Each player privately picks 1 of 3 upgrade cards for their own knight (§6.1). Cards are free.
   - The team shop spends from the shared pool (§6.2).
 
-### 6.1 Upgrade cards
+### 6.1 Upgrade cards and class growth
 
 **Rules**
-- Cards are **specific to each character**. Each card upgrades only the player's own character: its
-  attacks, super, passive or personal role. Cards never raise raw stats for structures or the Commander's
-  squad; those upgrades come from the shop.
+- **Cards upgrade your knight; the shop upgrades the base.** A card can upgrade its knight's attacks,
+  super, build, squad and passive. The team shop holds only base items.
 - **Offer:** 3 cards per build phase, with no duplicates within one offer.
 - **Rarity:** common and rare.
   - About 15% of offers include one rare (never more than one).
@@ -524,43 +558,72 @@ Crates therefore have two uses: building or repairing.
 - **Stacking:** cards can be picked more than once unless marked unique. A stack shows as "×N."
 - **Stat math:** stacks add percentages of the base value (three +10% cards give +30%), never
   multiplicatively. Range, movement speed and damage reduction have caps (starting value: +40% total).
+- **Passive cards:** each knight has one **rare, unique passive card** (§8). Cards that improve a
+  passive appear only once the player owns it, through the same prerequisite check as combos; unlike
+  combos they stack unless marked unique (#122).
+- **Build cards:** each knight has two cards that upgrade its build.
 - **Combo cards** appear only once the player owns both of the combo's prerequisite cards. Combo cards
   are unique.
 - **The card picker excludes:**
   - unique cards the player already owns
-  - combo cards whose prerequisites the player doesn't own
+  - cards whose prerequisites (one or two cards) the player doesn't own
   - favored-enemy cards whose enemy can't spawn for this team, for example Skyhunter when Flyers are
     replaced (§9)
-  - any card that depends on a class not on the team (none in v1, but the rule applies to future cards)
+  - any card that depends on a knight not on the team (none in v1, but the rule applies to future
+    cards)
 - **Status effects:** burn and poison use the same timed-effect system as stun, slow, morale and the
-  tower defense bonus.
-- **How they look** (neon knights; every one keeps the color rule, §2.3):
+  shield generator's guard.
+- **How they look** (every one keeps the color rule, §2.3):
   - **Burn:** amber flames on the body. **Poison:** amber nanite corrosion. Every burn or poison
     damage tick flashes the whole body white for about 60 ms, like a hit.
   - **Stun:** the enemy's glow goes dark (its unlit frames, §15.10), and amber chevrons orbit above it.
     A stunned enemy always plays its idle clip, never its walk, even while it slides (§15.11 #36).
-  - **Slow:** arcs crawl up the legs, climbing and flickering (§7.2), and the walk plays slower.
+  - **Slow:** arcs crawl up the legs, climbing and flickering (`shock-crawl`), and the walk plays
+    slower.
   - **Overflow shield:** the `overflow-shield` icon beside that player's HP bar; no world sprite.
-  - **Tower defense bonus** (the Artificer's super): amber shield pips on the front edge of the tower's
-    plate.
-- **Card marks:** each card shows a category mark from the icon set (§2.6). The 8 shared commons have
-  their own marks (`card-vitality`, `card-might`, `card-haste`, `card-reach`, `card-swiftness`,
-  `card-focus`, `card-toughness`, `card-recovery`). Character cards:
+  - **Guard** (inside a shield generator's field): the generator's shimmer dome shows it; no per-unit
+    sprite.
+
+**Per-wave class growth**
+- At the end of every wave each knight gets an automatic stat bump **set by its class** (§8.1): the
+  tank's growth is mostly HP, the marksman's mostly damage, the support's split between HP, damage and
+  healing, the control's HP and damage. Boss waves give a bigger bump.
+- Growth uses the cards' stat math: additive percentages of the base value.
+- **Growth only raises uncapped stats** (max HP, damage, healing), so it never uses up the shared caps
+  on range, movement speed and damage reduction.
+- It shows as a header on the card pop-up, for example "Wave 4 cleared: +HP +DMG", above the three
+  cards. The build phase before wave 1 has no header.
+- **Starting values per wave cleared** (balance sheet; a boss wave's list replaces the regular one, so
+  waves 5 and 10 give the boss list; wave 15 ends the run). A knight down at the wave end grows too
+  (RD11, §15.11 #166):
+
+| Class | Regular wave | Boss wave |
+|---|---|---|
+| Tank | +3% HP, +1% damage | +8% HP, +3% damage |
+| Marksman | +1% HP, +3% damage | +3% HP, +8% damage |
+| Support | +1.5% HP, +1.5% damage, +2% healing | +4% HP, +4% damage, +6% healing |
+| Control | +2% HP, +2% damage | +5% HP, +5% damage |
+
+**Card marks:** each card shows a category mark from the icon set (§2.6):
 
 | Mark | Cards |
 |---|---|
-| `card-attack` | Quick Draw, Piercing Shot, Volley, Heavy Slam, Bladework |
+| `card-vitality` … `card-recovery` | the 8 original shared commons, one mark each (Vitality, Might, Haste, Reach, Swiftness, Focus, Toughness, Quick Recovery) |
+| `card-tinkerer` | Tinkerer |
+| `card-attack` | Quick Draw, Piercing Shot, Volley, Heavy Slam, Heavy Bash |
 | `card-super` | Blast Radius, Earthshaker, Rally Cry |
-| `card-passive` | Deadeye, Master Mason, Wide Aura |
+| `card-passive` | Steady Aim, Challenger, Field Medic, Morale, Deadeye, Wide Aura |
+| `card-build` | Shrapnel Charge, Minefield, Wide Field, Reinforced Generator, Booster Beacon, Strong Arm |
 | `card-effect` | Fire Arrows, Venom Bolts, Aftershock |
 | `card-hunter` | Skyhunter, Giant Slayer, Siege Breakers |
-| `card-ally` | Bodyguard, Overflow, Triage |
-| `card-supply` | Strong Arm, Bulk Buyer, Light Load |
-| `card-squad` | Forced March, Veterans, Last Stand |
-| `card-toughness` | Unshakable, Vanguard |
+| `card-ally` | Overflow, Triage |
+| `card-squad` | Forced March, Veterans, Last Stand, Drillmaster, Reinforced Ranks |
+| `card-toughness` | Unshakable, Vanguard (and the common Toughness) |
 | `card-combo` | Wildfire, Fault Line, Plague, Warcry |
 
-**Shared commons (every character, with numbers tuned per character)**
+`card-supply` stays on file, unused (§2.6).
+
+**Shared commons (9; every knight, with numbers tuned per knight)**
 
 | Card | Effect |
 |---|---|
@@ -571,21 +634,25 @@ Crates therefore have two uses: building or repairing.
 | Swiftness | +movement speed (capped) |
 | Focus | +super charge rate |
 | Toughness | Take less damage (capped) |
-| Quick Recovery | −2 s respawn time (minimum 5 s) |
+| Quick Recovery | −2 s respawn time (floor 4 s solo, 5 s otherwise, §5) |
+| Tinkerer | +build charge rate (§7.2): its passive fill and its fill from actions |
 
-**Character cards** (2 commons, 5 rares and 1 combo each)
+**Knight cards**
 
-*Engineer*
+*Ranger*
 
 | Card | Tier | Effect |
 |---|---|---|
 | Quick Draw | Common | Faster arrows |
-| Blast Radius | Common | Larger super radius |
+| Blast Radius | Common | Larger shockwave (his super) |
+| Shrapnel Charge | Common | Mines trigger faster and hit a wider area (build card) |
 | Fire Arrows | Rare | Arrows apply burn |
 | Piercing Shot | Rare | Arrows pass through the first enemy |
 | Skyhunter | Rare | +50% damage vs Flyers |
-| Deadeye | Rare | Steady Aim activates faster |
 | Volley | Rare | Every 4th shot fires 3 arrows in a spread |
+| Steady Aim | Rare, unique | Passive card: standing still (movement stick released) for a short time boosts damage and range |
+| Deadeye | Rare | Steady Aim activates faster. Requires Steady Aim |
+| Minefield | Rare, unique | +1 active mine (build card) |
 | Wildfire (Fire Arrows + Piercing Shot) | Combo | Burning enemies burst into flames when they die, igniting enemies nearby |
 
 *Warden*
@@ -593,237 +660,311 @@ Crates therefore have two uses: building or repairing.
 | Card | Tier | Effect |
 |---|---|---|
 | Heavy Slam | Common | Wider slam arc |
-| Earthshaker | Common | Longer super stun. Doesn't add stagger on the boss |
-| Aftershock | Rare | Slam leaves a brief slowing zone |
+| Earthshaker | Common | Longer jump slam stun. Doesn't add stagger on the boss (the Colossus counts a stun by a fixed amount, whatever its length) |
+| Wide Field | Common | Larger shield generator radius (build card) |
+| Aftershock | Rare | The jump slam slows every enemy it hits for about 5 s (`slowMs` in the card's params; RC1, #118: on his super, not his main) |
 | Giant Slayer | Rare | +50% damage vs Brutes and the Colossus |
-| Master Mason | Rare | Mason repairs faster and over a larger area |
-| Bodyguard | Rare | Allies near the Warden take 20% less damage |
 | Unshakable | Rare | Immune to slows and knockback |
-| Fault Line (Aftershock + Master Mason) | Combo | Super stomp sends a shockwave through every wall on the map: every enemy touching any wall takes stomp damage and is briefly slowed, and every wall flashes on the TV |
+| Challenger | Rare, unique | Passive card: nearby enemies target the Warden first. In combat he carries `taunt`: an aggro-leash enemy (§9) picks a taunting knight in its aggro radius before anything nearer, and one already chasing someone else turns on him (a swing already wound up lands first); the leash is unchanged (§15.11 #167) |
+| Reinforced Generator | Rare | More shield generator HP and a stronger damage reduction (build card) |
+| Fault Line (Aftershock + Earthshaker) | Combo | The jump slam leaves a long slowing fissure along its arc: a strip from his feet along the aim, as long as the jump slam's reach and about 0.9 tiles wide, open 4 s in combat; ground enemies on it are slowed 50%, lingering 0.5 s after they step off. The TV lays `slam-cracks` along it, fading with it (§15.11 #167) |
 
-*Quartermaster*
+*Artificer*
 
 | Card | Tier | Effect |
 |---|---|---|
-| Light Load | Common | Allies inside the Field Medic aura suffer half the crate carry slowdown (§6). Unique |
-| Strong Arm | Common | Longer, faster crate throws |
-| Venom Bolts | Rare | Bolts apply poison |
+| Strong Arm | Common | Longer, faster build throws (build card) |
+| Booster Beacon | Common | The healing beacon heals faster and has more HP (build card) |
+| Venom Bolts | Rare | Nanites apply poison |
 | Overflow | Rare | Healing beyond full HP becomes a temporary shield |
-| Bulk Buyer | Rare | Larger crate discount |
-| Wide Aura | Rare | Larger Field Medic radius |
-| Triage | Rare | Double healing on players below 30% HP |
-| Plague (Venom Bolts + Wide Aura) | Combo | Poisoned enemies spread poison when they die |
+| Triage | Rare | Double healing on knights below 30% HP |
+| Field Medic | Rare, unique | Passive card: a small healing aura for nearby knights (combat only) |
+| Wide Aura | Rare | Larger Field Medic radius. Requires Field Medic |
+| Plague (Venom Bolts + Field Medic) | Combo | Poisoned enemies spread poison when they die |
 
 *Commander*
 
 | Card | Tier | Effect |
 |---|---|---|
-| Bladework | Common | Wider sword arc |
-| Forced March | Common | Squad moves faster, both when following and when moving to the rally flag |
-| Rally Cry | Rare | Longer super duration |
+| Heavy Bash | Common | Wider shield bash, stronger knockback |
+| Forced March | Common | The squad moves faster, both when following and when going to the flag |
+| Drillmaster | Common | Soldiers get more HP and damage (stacks) |
 | Siege Breakers | Rare | Squad deals +50% damage vs Siege |
 | Veterans | Rare | Soldiers who survive a wave permanently gain stats |
-| Last Stand | Rare | Squad deals more damage the fewer soldiers are left |
-| Vanguard | Rare | The Commander takes less damage while his squad is nearby |
-| Warcry (Rally Cry + Vanguard) | Combo | Super also briefly buffs nearby players |
+| Last Stand | Rare | The squad deals more damage the fewer soldiers are left |
+| Vanguard | Rare | The Commander takes less damage while his squad is near |
+| Rally Cry | Rare | Reinforcements has a **50% chance** to spawn 2 soldiers instead of 1 (rolled from the seeded combat stream). Stacks: +25% per extra copy, up to 100%. The TV shows "×2" on a double spawn |
+| Morale | Rare, unique | Passive card: allied knights and soldiers inside the rally flag's area or near the Commander gain damage, attack rate and movement speed. Inside both areas they still get one effect; the two don't stack |
+| Reinforced Ranks | Rare, unique | +1 squad cap |
+| Warcry (Rally Cry + Vanguard) | Combo | Reinforcements also briefly gives nearby knights the morale effect (with its flash) |
 
-That is 16 cards per character (64 in total). Exact numbers are set during playtesting.
+That is 9 commons plus 11 Ranger, 9 Warden, 8 Artificer and 11 Commander cards: 48 in total. Exact
+numbers are set during playtesting (§14). Removed from the tower-defense list: Master Mason,
+Bodyguard, Light Load, Bulk Buyer, Bladework, the old Fault Line and the Lead from the Front passive
+(merged into Morale).
 
 ### 6.2 Team shop
 
-Coins belong to the team, not to individual players. Personal power comes only from upgrade cards, so
-every coin purchase is a choice between team purchases.
+The shop is **team-only,** paid from the shared coin pool. Personal power comes only from cards and
+growth, so every coin purchase is a team choice.
 
 **What's sold**
 
-| Item | Details |
-|---|---|
-| Supply crates | Same price as the depot (§6), including the Quartermaster discount, so crates can be bought from the phone during the build phase. They go into the buyer's inventory, up to their carry cap |
-| Base repair | Price rises with each purchase (§3.4) |
-| Base archer upgrades | 3 independent upgrades, bought in any order: damage, range, a third archer (§3.5) |
-| Commander squad stats | After regular waves. Squad size grows after waves 5 and 10 (§8) |
-| Arrow towers: fire rate | 3 tiers |
-| Bomb towers: blast radius | 3 tiers |
-| Tower HP (all towers) | 3 tiers |
-| Wall HP | 3 tiers |
-| Snare charges | 3 tiers. More discharges per snare (§7.1) |
-| Spiked walls | 1 tier. Enemies that attack walls take damage |
-| Quartermaster-only items | For example base armor and the emergency repair kit |
+| Item | Tiers | Details |
+|---|---|---|
+| Base repair | Repeatable | Restores a chunk of base HP; the price rises with each purchase (§3.4) |
+| Sentry damage | 1 | §3.5 |
+| Sentry range | 1 | §3.5 |
+| Third sentry | 1 | §3.5 |
+| Base max HP | 3 | Each tier raises the Citadel's max HP and its current HP by the same amount |
+| Base armor | 3 | The Citadel takes less damage |
 
-- Building upgrades apply to every structure of that type, including structures built later.
-- Prices rise with each tier.
-- **Items are shown only when the team can use them.** For example, tower upgrades are hidden if no
-  Engineer is on the team, and squad upgrades are hidden if there's no Commander.
+- Prices rise with each tier. Every item is always shown (every team can use them).
+- **Pricing target (starting values in the balance sheet, tuned with coin income):** about 10
+  purchases per run, and the team **can't afford much in the first couple of waves:** the cheapest
+  item (repair) becomes affordable after wave 2, a sentry upgrade or a tier I after about wave 3–4, and
+  the third sentry and tier III items need saving across several waves.
+- **Starting prices (RD11, §15.11 #165):** repair 6, 9, 12, 15, 18 (then 18; restores 150 HP);
+  sentry damage 12; sentry range 12; third sentry 30; base max HP 12 / 20 / 28 (+150 each); base
+  armor 14 / 22 / 30 (+0.1 damage reduction each). Press-and-hold from 20 coins. Measured with the
+  economy run (an autopilot team that repairs below 75% base HP and otherwise saves for a fixed want
+  list; `sim/economy.ts`, seed 1, Normal): 2 players have 3 coins before wave 2 and 7 before wave 3,
+  buy their first item before wave 4 and 9 items in the run. Every team size earns about as much
+  (RD11-fix-1, §15.11 #181): the player-count table's coin factor (§9.4) pays more a kill to smaller
+  teams, so with seed 1 solo buys 8, 3 players 8, 4 players 8, 5 players 9 and 6 players 9 (seed 2:
+  10/8/8/8/9/9 for 1/2/3/4/5/6), every size first before wave 4, with 3–4 coins before wave 2 and 7–9
+  before wave 3.
+- The shop is thin in v1 on purpose; more items are a v2 addition (§13).
 
 **Purchasing rules**
 - **Any player can buy any team item.** There is no approval step.
 - **Every purchase is announced on the TV,** with the buyer's name and color, for example "Foster bought
-  Arrow Towers II."
+  Base Armor II."
 - Items above a price threshold need a **press-and-hold to confirm** (about 0.6 s), to prevent accidental
   purchases.
 - **Request button:** any player can tap "Request" on a shop item. The item appears on a wishlist on the
   TV, tagged with the player's color, until someone buys it or the wave starts. This lets quieter players
   join the negotiation without shouting.
 
-## 7. Building and pathing
+## 7. Builds
 
-- Structures snap to a **tile grid** and are 1×1 tiles. Player movement is free and does not snap.
-- **Pathfinding uses a flow field.** The game runs one breadth-first search outward from the base over the
-  grid. Every enemy follows the resulting "next step" arrows. The flow field is rebuilt only when a
-  structure that affects pathing is placed or destroyed. Snares don't affect pathing (§7.1).
-- **Walls have a high path cost instead of being impassable.** Enemies route around walls when they can.
-  If no route exists, they stop and break through. **Towers block enemies the same way,** with the same
-  high path cost.
-- **Brutes and the Colossus prefer to smash through walls** rather than route around them: they follow
-  their own flow field in which walls are cheap (§15.5).
-- **Build phase:** the player opens the build menu on their phone. A ghost preview appears at their feet
-  on the TV. They confirm or cancel. The ghost turns red on invalid tiles, for example occupied tiles.
-- **Combat phase:** no phone menus. A tap on the action button places the last-used structure; holding
-  it opens the build arc on the TV to pick another (§10.1).
-- **Placement validity:** a tile must be on the map, buildable (not a lane entry, the Citadel, the repair
-  zone or the Armory pad) and free of other structures. Walls and towers also can't be placed on a tile
-  with an enemy or player on it; snares can.
+Every knight has one **build**: a temporary placement that controls the arena (§2). Builds replace the
+tower-defense structures entirely.
 
-### 7.1 Snares
+### 7.1 Build rules
 
-The Warden's snare is a trap, not a barrier. Walls decide where enemies go; snares decide how fast they
-get there. In neon knights it is the **Shock Net** (§2.1).
+These apply to every build unless its entry in §7.3 lists an exception.
 
-- **Pathing:** a snare costs the same as an empty tile in the flow field, so enemies walk straight
-  across it. Placing a snare or having one expire does not rebuild the flow field.
-- **Discharges, not HP:** a snare has no HP and can't be attacked or damaged, including by the
-  Colossus's slam. Instead it holds a number of **discharges** (starting value: 5).
-  - When a ground enemy steps onto an armed snare, it discharges: every ground enemy on the tile is
-    slowed, and one discharge is used. A single discharge catches a whole Swarm group on the tile.
-  - After a discharge, the snare **rearms** after a short delay (starting value: 0.5 s).
-  - When its last discharge is used, the snare fizzles out and frees the tile.
-  - The TV shows the remaining discharges on the tile (pips or a dimming glow), and each discharge
-    flashes. Adjacent nets draw as one joined field (16-mask ground autotiles, §2.5), but each tile
-    dims and flashes on its own.
-- **Slow:** a timed effect (§6.1) of about 40% for about 2 s, so it lasts after the enemy leaves the
-  tile. Slows don't stack; the strongest active slow applies. Brutes and the Colossus take the slow at
-  half strength, so snares can't stall a boss.
-- **Who it affects:** every ground enemy, including Runners. Flyers pass over it. Players are never
-  affected.
-- **No damage in v1.** The snare's only job is the slow.
-- **Cost:** 1 crate, the cheapest structure.
-- **Lifetime:** a snare stays across waves until its discharges run out.
-- **Wall rules don't apply:** Mason and Master Mason repair, spiked walls, Fault Line and the Brute and
-  Colossus bonus damage to walls are wall-only.
-- **Placement** follows the rules above: 1×1 tile, build-menu ghost in the build phase, and the action
-  button (tap or build arc) in combat (§10.1).
-- **Shop:** "Snare charges" (3 tiers) adds discharges to every snare, including ones already placed
-  (§6.2).
+- **One active build per knight.** Placing a new one removes the old one (the old one is removed the
+  moment the new one is thrown or placed).
+- **Builds are placed only in combat,** never in the build phase.
+- **Lasting builds use HP or charges, never a timer.** They **stay on the map between waves** while they
+  have HP or charges left. A newly placed build always starts at full HP or full charges; a build that
+  survives a wave keeps its current HP or charges into the next one. **Builds don't regen.**
+- **Timed effects are instant** (none in v1 builds; for example the pool's magnet pull or burning oil,
+  §13). They run out on their own and never carry into the next wave.
+- **Build effects run in combat only** (the shield generator's field, the beacon's healing). In the build
+  phase builds stand idle.
+- A down or dazed knight's builds stay on the map and keep working.
+- Builds don't snap to tiles: an at-feet build lands at the knight's foot point, and a thrown build at
+  its landing point, clamped to the playfield and outside the Citadel's footprint (§15.11 #101).
 
-### 7.2 Structure art (neon knights)
+### 7.2 Build meter
 
-- Every structure is ours: knight gunmetal with amber glow, never violet. Each sits on a dark base plate
-  filling its 1×1 tile footprint, drawn per the perspective rules (§2.5).
-- **Tiers grow in visual interest**, like the Colossus: each tier keeps the earlier parts and adds new
-  ones, plus one amber band per tier (one, two or three) as the quick read. An unupgraded tower shows
-  the base parts with no band; each shop tier (§6.2: fire rate for pulse turrets, blast radius for
-  mortar towers) adds a band, and tiers II and III also add the parts listed for them. Tower HP tiers
-  don't change the look.
-  - **Pulse turret:** the base is a round pedestal, a box head with a centered amber sensor eye, and one
-    barrel. II adds twin barrels, full-depth side armor on the head and a collar flange. III adds a
-    finned barrel shroud, a centered sensor mast with a dish, and buttress struts on the plate. The head
-    tracks with pre-rendered aim frames (8 directions, built like the Citadel sentries in §3.6), never
-    by rotating a flat sprite; muzzles flash amber at the barrel tips. The bands sit on the fixed
-    pedestal, so a turret stacks: base plate (ground), pedestal (III's adds the struts), bands, then the
-    head for the snapped aim.
-  - **Mortar tower:** a ring emplacement with a small dome rising out of its opening; a short tube
-    inserts into the dome like a ball-and-socket joint and pivots around the dome's center as it aims,
-    so the motion reads as controlled and the tube's end never shows (the tube is clamped to ±75° from
-    straight up, so it always draws behind the dome; shells arc high and never need more). II adds
-    tube hoops and armor blocks set around the rim, each angled to follow the rim's curve; III adds a
-    slotted muzzle brake, rim spikes and an ammo rack behind the ring. Shells arc with their own ground
-    shadow and burst in an amber ground ring sized to the blast radius.
-- **Wall:** two emitter posts with a see-through amber hard-light panel and a ground rail. Neighbors
-  share posts and join into one barrier: a 16-mask autotile set (§2.5), with a ground-rail frame and
-  charged and damaged overlays for every mask (§15.2).
-- **Charged walls** (the wall upgrade; display name for the "Spiked walls" shop item, same effect:
-  enemies that attack walls take damage). Walls are light, so the upgrade electrifies them instead of
-  adding spikes: twin coil rings on each post, white-hot forked bolts crackling up the panel on a
-  quick, irregular flicker, and sparks at the post tips. When an enemy attacks the wall, a forked bolt
-  strikes it and it recoils.
-- **Shock net** (the Warden's snare, §7.1): a flat 1-tile mesh on the ground with four low anchor pegs
-  and amber charges zigzagging across it on a slow loop. Adjacent nets join into one field (visually
-  only; each tile keeps its own discharges). When a discharge slows an enemy, arcs crawl up its legs
-  and it moves sluggishly. Remaining discharges and the discharge flash show on the net per §7.1.
-- **Telling them apart:** shock nets are flat and amber and slow; charged walls are upright and
-  white-hot and damage.
-- **Fortify:** a small emitter on the tower's plate projecting an amber dome shield over the whole tower;
-  the dome ripples when it absorbs a hit.
-- **Power cell (crate):** a small canister with a glowing amber core, the same design as the Artificer's
-  backpack cells.
-- **Build ghost:** a see-through structure over its ground footprint: dashed amber when valid, red with an
-  X when blocked.
-- **States:** build (amber outline sketches the shape, then fills from the plate up); upgrade (every
-  structure of that type flashes and the new parts bolt on); damaged (below half HP the glow flickers
-  and cracks appear: a crack overlay per wall mask, one overlay for the pulse turret at every aim, and
-  the mortar's `damaged` part group); destroyed (glow cuts out, collapses into scrap, fades; the flow
-  field updates immediately); Mason repair (amber sparks from the Warden, cracks seal). Our attacks
-  never use red. Scrap comes in two sets: ours (gunmetal with dead amber; small pieces for footmen,
-  large for structures) and theirs (violet-iron, for enemies).
+- Every knight has a **build meter** (0–1). A full meter lets the knight place its build once, and
+  placing it empties the meter.
+- **Hybrid charge, set per knight:** a slow **passive fill** over time, plus fill from the knight's
+  **actions.** Both rates live per knight in the balance sheet, so each build is balanced against how
+  strong it is and how much damage its knight deals (a weak build or a low-damage knight charges
+  faster). A knight with an action rate of 0 is purely timed.
+- **Action sources are per knight:** damage dealt by its main and super by default; healing too for
+  knights whose job is healing (the Artificer's healing outside his super and build: Field Medic).
+- **A build's own damage and healing never charge the build meter.** They charge the knight's
+  **super**, which rewards good placement. A super's own damage still never charges the super, and
+  super healing charges neither. Squad damage charges the Commander's super at a reduced rate, never
+  his meter.
+- **The meter starts the run full,** so wave 1 opens with a build. It **carries over between waves,
+  does not fill during the build phase,** and doesn't fill while the knight is down or dazed.
+- **Tinkerer** (common card) raises the charge rate, through the modifier system like Focus.
+- On the phone the meter is a ring around the build button (§10.1). There is no build-ready indicator
+  on the TV.
 
-## 8. Characters (v1: one per class)
+### 7.3 Input, targeting and pathing
 
-All supers charge by dealing damage, and each character has its own charge rate.
+- **Input is set per build** and uses the same grammar as attacks (§10.1):
+  - **At-feet builds** are tap-type: tap the build button to place it at the knight's feet.
+  - **Thrown builds** are aimed sticks: drag to aim, release to throw; a quick tap auto-targets (the
+    nearest enemy group in range for offensive builds, the knight's own feet for the rest; v1 has no
+    offensive thrown build, so every quick-tapped thrown build lands at the knight's feet); slide back
+    into the dead zone to cancel. The stick's length sets the distance: the build lands at the knight's
+    position + aim × his throw range, so it never passes the range (RD3, §15.11 #112). While aiming,
+    the TV shows the landing spot as a 0.6 ground ellipse at the build's real effect radius, plus its
+    maximum throw range (`sim/preview.ts` `buildPreview`, the same landing the sim uses).
+  - **Every throw flies at one speed** (RC2, #126): the shield generator, the healing beacon, the rally
+    flag and the Commander's Reinforcements soldier all fly at `THROW_SPEED` (5 tiles/s, `balance.ts`
+    builds section), so a throw's flight time is its distance / 5 s (1.2 s for a 6-tile build throw).
+    Each keeps its own `minFlightMs`, so a quick tap at the feet stays quick; Strong Arm multiplies a
+    build throw's speed on top.
+- **Builds as targets:** enemies target an HP build exactly as they target a knight, with the same
+  aggro radius and leash; when a knight and a build are both in range, the enemy picks the **nearest**
+  (the same tie-break used between knights). **Only builds with HP are targetable.** Charge builds
+  (mines) and the rally flag can't be attacked; mines are used up instead. Enemies whose AI never
+  targets knights (Runners) never target builds either; each enemy's rule is in §9.
+- **No walls in v1:** nothing a knight places changes pathing. The ground flow field is built once per
+  run and never rebuilt (§15.5).
+- **Build traits** (data, §15.4): `targetable` (has HP; enemies attack it, Brutes hunt it),
+  `dealsDamage` (the Hunter stays out of its range), `hidden` (translucent to players; the Hunter
+  senses and avoids its trigger radius), `triggerRadius` and `maxActive`.
 
-### Engineer (marksman)
-- **Main:** Longbow shot. This is the longest range in the game.
-- **Super:** A wide circle around the Engineer that deals light area damage and knocks enemies back.
-- **Passive — Steady Aim:** standing still (movement stick released) for a short time boosts damage and
-  range.
-- **Build kit:**
-  - Arrow tower: long range, single target, can hit Flyers.
-  - Bomb tower: short range, area damage.
-- **Strongest against:** Flyers, Runners, and Siege (the longbow outranges them).
+### 7.4 The v1 builds
 
-### Warden (tank)
-- **Main:** Ground slam in a short arc in front of the Warden, aimed (a quick tap auto-aims; §10.1,
-  §15.11 #47). Hits multiple enemies.
-- **Super:** A longer-range stomp with an arc area of effect. Deals damage and stuns briefly.
-- **Passive — Mason:** walls near the Warden slowly repair themselves. Off during the build phase.
-- **Build kit:**
-  - Walls: reroute enemies.
-  - Snares: cheap, single-tile traps that slow enemies crossing them, and expire after a set number of
-    discharges (§7.1).
-  - Fortify: attaches to a tower and gives it a defense bonus.
-- **Strongest against:** Brutes, Swarms and Hunters. The stun also stops Runners.
+| Build | Knight | Input | Lasts by | Effect | Traits |
+|---|---|---|---|---|---|
+| Shield generator (`shield_gen`) | Warden | Thrown | HP | Knights and squad soldiers in its radius take less damage (builds aren't affected); radius shown on the TV | targetable |
+| Mines (`mine`) | Ranger | At feet | 1 charge each | Triggers after a short delay when a ground enemy comes within its trigger radius, then deals area damage; Flyers pass over | dealsDamage, hidden; up to 3 active |
+| Healing beacon (`beacon`) | Artificer | Thrown | HP | Heals allied knights in a small area around it, in pulses | targetable |
+| Rally flag (`rally_flag`) | Commander | Thrown | Recall or replace | The squad goes to the flag and fights there | none (can't be attacked) |
 
-### Quartermaster (support)
-- **Main:** 3–4 energy bolts in a narrow cone at medium-long range. Walls and towers block them.
-- **Super:** A very wide, long-range cone. It heals players it hits by a fixed amount and gives towers it
-  hits a temporary defense bonus. It passes through walls and towers.
-- **Passive — Field Medic:** a small regeneration aura for nearby players. Off during the build phase.
-- **Super charging:** damage dealt charges the super. Field Medic healing also charges it, more slowly.
-  Healing from the super itself does not charge the super.
-- **Role kit:** the supply perks in §6.
-- **Strongest against:** Swarms and Flyers. Its main value is keeping the team alive.
+- **Shield generator:** its damage reduction is a status effect (`guard`) re-applied each combat step to
+  allied knights and soldiers in its radius; where generators overlap, the strongest wins. It applies
+  after card damage reduction and outside its +40% cap (§15.3). Wide Field and Reinforced Generator
+  improve it. Its throw is a slow lob at the shared throw speed: 1.2 s at full range (§7.3; RC2, #126).
+- **Mines** (exception to the one-build rule): one mine per full meter, **up to 3 active** (Minefield:
+  +1); placing one more removes the oldest. A mine arms about 1 s after it's placed, then turns
+  translucent to players (40%). A ground enemy entering its trigger radius starts a short trigger delay,
+  then it bursts: area damage to ground enemies, and the mine is gone. Runners and the Colossus's
+  Charge set mines off like any ground enemy; Flyers never do. Shrapnel Charge improves them (its
+  shorter delay has a floor, `minTriggerMs`). A delay cut off by the end of the wave doesn't burst: the
+  mine re-arms and keeps its charge (§7.1, build effects run in combat only; #121).
+- **Healing beacon:** heals allied knights (not soldiers, not builds) in its radius every pulse. Its
+  healing charges the Artificer's super, never his meter. Booster Beacon and Strong Arm improve it.
+- **Rally flag** (exception to the HP-or-charges rule): the flag can't be attacked and stays until it
+  is recalled or replaced, including between waves. With the meter full, the build button throws a new
+  flag (the old one is removed); with the meter not full and a flag out, a tap **recalls** it and the
+  squad follows the Commander again (recall never uses the meter). The flag's aim preview uses the
+  squad's flag ring as its radius.
 
-### Commander (squad leader)
-- **Main:** Sword slash in a short arc in front of him, aimed (a quick tap auto-aims; §10.1,
-  §15.11 #47).
-- **Super (morale):** For a short duration, his squad gets more attack speed and attack damage. The
-  Commander gets the same boosts plus extra movement speed.
-- **Passive — Lead from the Front:** the squad deals more damage while near the Commander.
-- **Squad:**
-  - Starts with 3 soldiers. Grows to 4 after the wave 5 boss and to 5 after the wave 10 boss.
-  - Squad stat upgrades are sold in the team shop after regular waves. Commander cards change how the
-    squad behaves but never raise its raw stats (§6.1).
-  - Dead soldiers respawn at the base between waves.
-- **Build kit:** a rally flag. The squad holds the flag's position when it isn't following the Commander.
-- **Strongest against:** Siege and Grunts. Can take on Brutes while the super is active.
+### 7.5 Build art (neon knights)
 
-### Passive implementation
-- Each passive is a self-contained module with hooks (for example `onTick`, `onDamageDealt`, `onHeal`),
-  attached to a character by config.
-- **v2:** each class offers 3 passives, and players choose one at class select. The candidates are:
-  - Engineer: Spotter, Steady Aim, Tower Sync
-  - Warden: Bulwark, Stonefoot, Mason
-  - Quartermaster: Field Medic, Resupply, Salvage
-  - Commander: Lead from the Front, Reinforcements, Inspire
+- Every build is ours: knight gunmetal with amber glow, never violet. Frames are listed in the art
+  README's "Builds (redesign)": `shield-gen/<flight|landed|active|damaged|destroyed>`,
+  `beacon/<flight|landed|active|damaged|destroyed>`, `mine/<armed|trigger>`, and
+  `rally-flag/flight-{pole,cloth,trim}` in flight, then the planted `rally-flag/*` frames.
+- **States:** `flight` is drawn upright while code spins and arcs it, with its shadow on the ground;
+  `landed` on touchdown until it switches on; `active` while working; `damaged` replaces it below half
+  HP (code can flicker its glow); `destroyed` shows briefly, then the `scrap-ours` pile.
+- **Active extras:** the generator stands on `shield-base` under a cycling `shield-shimmer-1…3` dome;
+  the beacon pulses `beacon-pulse` with `heal-glint`s over healed knights.
+- **Mines** show `armed` at full opacity for about 1 s, then at 40% once live; `trigger` at full
+  opacity during the delay; then `mine-blast-ring` and `mine-blast`.
+- **Code-drawn:** build shadows and the in-flight shadow; amber build HP bars (§2.6); the effect radius
+  of the shield generator and the beacon as a faint dotted amber 0.6 ground ellipse; the throw-landing
+  aim ellipse and throw range (§10.1).
+- **Brute target cue:** a brief violet flash at the build a Brute locks on to (`brute-target` under it,
+  `brute-target-arrow` above it).
+- The tower-defense structure art (pulse turret, mortar, walls and charged walls, shock nets, Fortify,
+  the build ghost) stays on file, unused: it is the build idea pool's art (§13).
+
+## 8. Knights
+
+### 8.1 Classes
+
+A class sets a focus, an HP tier, a damage band and its per-wave growth (§6.1); everything else belongs
+to the knight. Starting values, relative to a baseline knight (`balance.ts`): the HP tier multiplies
+the baseline knight HP, and the damage band multiplies the damage of the knight's own main and super.
+
+| Class | Focus | HP tier | Damage band | Growth |
+|---|---|---|---|---|
+| Tank | Hold the line, draw and absorb attacks | 1.6× | 0.9× (mid) | Mostly HP |
+| Marksman | Remove threats fast, at range | 0.8× | 1.15× (high) | Mostly damage |
+| Support | Keep the team alive and strong | 0.9× | 0.8× (low), plus healing | HP, damage and healing |
+| Control | Decide where enemies fight and what they can do: hold territory (including a side the knight isn't on), slow, stun, pull, knock back | 1.0× | 0.95× (mid) | HP and damage |
+
+- **What makes control distinct:** every knight's build controls the arena a little, so the control
+  class carries control in its **main attack and super too,** and its build is the strongest control
+  effect. Other classes' builds lean toward their own focus (a tank's shield, a marksman's mines, a
+  support's beacon).
+- v1 has four classes. More (for example a squad leader, if the Commander's squad becomes its own
+  playstyle) come later (§13).
+
+### 8.2 The v1 knights
+
+| | Warden | Ranger | Artificer | Commander |
+|---|---|---|---|---|
+| Class | Tank | Marksman | Support | Control |
+| Main | **Hammer smash:** damage in an arc spreading out in front of him (2.89 tiles: RC2 made it 1.65× longer; 68° wide: RC2 made it a third narrower, #127), with no knockback (RC2, #124) | **Longbow shot:** the longest range in the game | **Nanite blast:** about 5 nanites fired at random spots in a narrow cone over about 0.8 s (one burst per release; cooldown ≥ 0.8 s; spread from the seeded combat stream) | **Shield bash:** a solid rectangle from him along the aim (2.25 tiles long, 1.5 wide; every enemy whose body overlaps it is hit) with knockback (RC2, #156, #160) |
+| Super | **Jump slam:** an airborne wind-up (1.1 s in a 1.35 s clip; RC2, #125), then damage and stun in an arc longer than the main's and wider (85°: RC3, #174); less damage than the main. The airborne pause is a tell for players (enemy AI doesn't dodge) | **Shockwave** from the Ranger: knockback and light damage in a wide circle | **Heal cone:** a wide nanite cone that heals himself and the allied knights it reaches (not builds, not soldiers) | **Reinforcements:** spawns one squad soldier, thrown a short distance. At the squad cap the button stays dimmed and the charge is held |
+| Build | Shield generator (thrown) | Mines (at feet) | Healing beacon (thrown) | Rally flag (thrown); recall |
+| Passive | None built in; Challenger card | None built in; Steady Aim card | None built in; Field Medic card | None built in; Morale card |
+| Hits Flyers | No | Yes | Yes | No |
+| Strongest against | Brutes, Swarms, Hunters | Flyers, Runners, Siege | Swarms, Flyers; keeps the team alive | Siege, Grunts, Runners in transit |
+
+**Input type per knight** (§10.1):
+
+| Knight | Main | Super | Build |
+|---|---|---|---|
+| Ranger | Aimed | Tap (shockwave from himself) | Tap (mine at feet) |
+| Warden | Aimed | Aimed | Aimed (thrown) |
+| Artificer | Aimed | Aimed | Aimed (thrown) |
+| Commander | Aimed | Aimed (soldier thrown a short distance; a quick tap aims toward the flag, or straight ahead with no flag out) | Aimed (thrown); a tap recalls when the meter isn't full and a flag is out |
+
+- **Jump slam wind-up (RC1, #116; timing RC2, #125):** he is committed from the press to the landing: rooted, keeping the
+  aim and facing he jumped with; main and build presses are lost and no aim preview shows. He stays a
+  target and takes damage. If he goes down or dazed, or the phase ends, the slam doesn't land (no
+  damage, stun or impact effects) and the charge stays spent.
+- **Passives are cards:** no knight has a built-in passive. Each has one rare, unique passive card
+  (§6.1): the old built-in passives that still apply (Steady Aim, Field Medic) and new ones
+  (Challenger, Morale). Mason is removed (no walls).
+- **Ranger range:** on the open map a long-range bow may cover two sides from the middle. Range is the
+  knob to tune.
+- **Hits Flyers** (`hitsFlyers` per knight): melee can't hit Flyers; the Ranger's bolts and the
+  Artificer's nanites can. It drives the Flyer spawn rule (§9).
+
+### 8.3 Charging
+
+- **Super:** every super charges from the knight's own damage dealt (main attack, and its build's
+  damage), at a per-knight rate. A super's own damage never charges the super.
+  - **Artificer:** healing charges his super too: Field Medic healing and beacon healing (super healing
+    charges neither the super nor the meter).
+  - **Commander:** his own damage plus squad damage at a reduced rate.
+- **Build meter:** §7.2 (passive fill + main and super damage; the Artificer adds his Field Medic
+  healing; never build damage, build healing or squad damage).
+
+### 8.4 Commander's squad
+
+- **Starts the run with 2 soldiers.** After that Reinforcements is the only source; soldiers don't
+  respawn.
+- **Squad cap:** starting value 4 (Reinforced Ranks: +1); tune in playtesting. At the cap the super
+  button stays dimmed and its charge is held.
+- Soldiers have low HP. With a flag out they go to it and fight within its ring; with no flag out they
+  follow the Commander. They walk slower than he does (3.45 vs his 4.3 tiles/s, about 80%;
+  RC2, #160), so on the march they clearly trail him; more than 3 tiles from their slot they hurry (×1.45, about 5 tiles/s) and
+  regroup. Forced March and Morale still apply on top. Survivors carry over between waves, keeping their current HP (soldiers don't
+  regen).
+- Squad damage charges his super at a reduced rate, never his build meter. His damage for the balance
+  rule (§2) counts his own plus the squad's.
+- **Thrown soldiers** can't be hit or targeted in the air and take their formation slot on landing.
+- **Enemies target soldiers like knights** (§9, RC2): aggro radius, leash, nearest wins; a soldier
+  at 0 HP dies.
+  A double spawn never passes the cap. A new soldier takes the lowest free squad index.
+- **Last Stand** counts the soldiers short of the cap (RD9, §15.11 #142).
+- **Shield bash** (RC2): a solid rectangle from his feet along the aim, 2.25 tiles long (the old
+  1.6-tile arc + 40%) and 1.5 wide (RD9-fix-1's 2, −25%); knockback 0.864 (the old 1.2 × 0.8 × 0.9), pushed away from him. Heavy Bash
+  widens the rectangle (+20% `width`) and adds knockback (+40%).
+- **Two Commanders** each keep their own squad and flag.
+- **Morale** (card): see §6.1. It needs no TV visual of its own; Warcry reuses the morale flash.
+- The squad has no bonus archers in v1.
+
+### 8.5 Passive and card implementation
+- Passive cards, card behaviors and build behaviors are self-contained modules with hooks (for example
+  `onTick`, `onDamageDealt`, `onHeal`), attached by config (§15.3).
+- Build behaviors are registered by `BuildId` (`src/host/sim/builds/index.ts`), so a new build from the
+  idea pool (§13) is a new module plus content, not a change to the knights. The shared pipeline
+  (`builds/core.ts`) does the meter, placement, flight, landing, switch-on, HP and targeting; a
+  behavior adds `check(def)` (reads its content params), an optional `maxActive` hook (the mines'
+  exception), `combat(b)` (its effect, each combat step while active) and `placed(owner, b)` (right
+  after it leaves his hands: the flag's squad order, RD9). A build without a behavior
+  can't be placed yet: its button stays dimmed and its meter full (RD3).
 
 ## 9. Enemies
 
@@ -831,81 +972,108 @@ Each enemy type is designed as a problem that specific classes solve.
 
 | Enemy | Behavior | Answered by |
 |---|---|---|
-| Grunt | Walks to the base and attacks whatever blocks it | Anyone |
-| Runner | Fast and fragile, ignores players | Towers, walls, snares, Warden stun, Engineer |
-| Brute | Huge HP, smashes walls | Warden, focused damage, Commander's super |
-| Siege | Stops at range and shells the base or towers | Engineer (outranges it), Commander and squad dive |
-| Flyer | Ignores walls | Engineer, arrow towers, Quartermaster, base archers |
-| Swarm | Many weak units | Area damage: Warden, bomb towers, Quartermaster, Engineer's super |
-| Hunter | Targets players instead of the base; smarter than other units, it paths round tower range | Warden stun, Commander's squad, Quartermaster healing |
-| Boss (Colossus, §9.2) | Appears at waves 5, 10 and 15 | Everyone |
+| Grunt (Drone) | Walks to the base and attacks it; attacks knights and HP builds that come within its aggro radius | Everyone |
+| Runner (Skitter) | Fast and fragile; ignores knights and builds and bursts on the base. Caught in transit (mines, stuns, knockback) | Ranger (bow, mines in its path), Warden (super stun), Commander (shield bash, squad at a flag on its route), Artificer (cone) |
+| Brute | **Build hunter:** goes straight for the nearest targetable build, **at any distance.** With none on the map (or once it has destroyed them all) it walks toward the base and attacks knights like a Grunt | Warden (HP, stun), Ranger (kiting at range), Commander (squad); any targetable build pulls it off course |
+| Siege (Bombard) | Paths toward the base and **stops only when something is in range.** Target priority: **base > players (and soldiers) > builds**, nearest within each; it retargets the moment a higher-priority target enters range. Keeps the red landing marker before each shell. The team's main ranged threat to knights | Ranger (outranges it), Commander (flag thrown beside it, squad dives in), Warden (HP to walk in) |
+| Flyer (Wasp drone) | Flies straight; **range slightly increased** over the tower-defense value. Ignores ground trap builds (never sets off mines) but still shoots knights and HP builds in its aggro radius; melee can't hit it. Drawn 1.4× its art so it reads next to a Grunt (RC3, §9.6) | Ranger, Artificer, the sentries (spawns only for teams that can hit it) |
+| Swarm (Scrap mites) | Many weak units, in packs of 8 | Warden (arc), Artificer (spread), Ranger (mines) |
+| Hunter (Stalker) | Hunts players; **senses hidden builds** (sees and avoids mines' trigger radii) and **stays out of range of damage-dealing builds and the sentries**; **speeds up once it locks on** to its quarry | Warden (HP, stun), Commander (squad blocks it), Artificer (healing) |
+| Boss (Colossus, §9.2) | Appears at waves 5, 10 and 15 | Everyone (the stagger meter) |
 
+- **Every enemy must be answerable by at least two classes or by a baseline every team has** (§2); the
+  table's last column is the v1 check.
 - **Melee attacks cannot hit Flyers.**
-- **Body hitboxes (C4, Foster):** our attacks (players' shots, arcs, cones and circles, towers, base
-  archers, mortar shells) hit an enemy anywhere on its drawn body: torso, head and legs, from the feet up
-  to the top of the head (the Wasp: its hull at its flight height, not its shadow). Arms, tails, rotors
-  and barrels are left out. The Colossus keeps a low hitbox, its legs, a bit bigger than its feet, so its
+- **Map-edge wall (§15.11 #182):** an invisible, code-only wall on the map's four edges holds
+  enemies in. Nothing that pushes an enemy (every knockback: shield bash, shockwave, mine burst, any
+  later source; soft separation; being pushed out of the Citadel) moves its feet circle past an edge,
+  so it stops at the edge minus its radius. An enemy still outside (spawned just past the edge at a
+  portal, §3.1) is never pushed further out: a push may only hold it or bring it in. Its own walking
+  is never held, so portal spawns walk in as before. Flyers obey it too; the Colossus takes no
+  knockback. Knights keep their own clamp to the map; soldiers are unchanged. No art.
+- **Body hitboxes (C4, Foster):** our attacks (knights' shots, arcs, cones and circles, mine blasts,
+  the sentries) hit an enemy anywhere on its drawn body: torso, head and legs, from the feet up to the
+  top of the head (the Wasp: its hull at its flight height, not its shadow). Arms, tails, rotors and
+  barrels are left out. The Colossus keeps a low hitbox, its legs, a bit bigger than its feet, so its
   head and chest never count. Sizes are measured off each rig and live in the balance sheet (§15.4);
-  auto-aim and towers aim at the body's near end (the feet, or the Wasp's hull). Enemy attacks,
-  walking, collisions, the Commander's soldiers and ground effects (snares, Aftershock zones, spreads)
-  keep the feet circles.
-- **Hunter (C3):** it hunts the nearest player and keeps that quarry until they go down or dazed, or
-  another player comes clearly closer (2 tiles closer, so two players at similar range don't flip it).
-  Rather than going straight for its quarry, it takes the route that spends the least time in range
-  of anything that shoots (towers and the Citadel's sentries) when one exists, and still reaches a
-  quarry standing in range (§15.5). Each new quarry flashes on the TV (§9.6).
-  **v2 (not in v1, Foster, C3):** it always starts by walking into the arena and finding a safe place
-  to stand where no tower can hit it. If a player comes within the Ranger's range of it, it targets
-  and attacks that player. Otherwise it waits until either a player drops below 50% HP (that player is
-  always targeted), or a Brute spawns: then it walks slowly behind the Brute, using it as a shield,
-  until it's close to a player.
-- **Who attacks players (aggro leash):** Grunts, Brutes, Swarms and Flyers attack a player who comes
-  within a short aggro radius, chase up to a leash distance, then return to their path. Runners never
-  attack players, Siege always shells the base or towers, and Hunters always hunt players. Radii live in
-  config.
-- **Flyers spawn only if the team has a ranged class** (Engineer or Quartermaster). Otherwise their spawn
-  slots are filled with additional ground units.
-- The team's class composition is checked at the **start of every wave**, counting only players
-  connected at that moment, so a ranged player dropping mid-run can't strand the team against Flyers.
-- The Commander's squad has no bonus archers in v1.
+  auto-aim and the sentries aim at the body's near end (the feet, or the Wasp's hull). Enemy attacks,
+  walking, collisions, the Commander's soldiers and ground effects (mine triggers, Fault Line's fissure,
+  spreads) keep the feet circles.
+- **Who attacks what (aggro leash):** Grunts, Brutes (once no build is left), Swarms and Flyers attack a
+  knight, a Commander's soldier or an HP build that comes within a short aggro radius and chase it up
+  to a leash distance (measured from where they left their way); the nearest candidate wins (a knight
+  on an exact tie). When they lose the target (past the leash, or it goes down, dazed or away) they
+  **go on toward the base from where they stand** on the ground field (Flyers straight at the
+  Citadel), never back to the point they left; a target let go at the leash is ignored until it
+  leaves the aggro radius, so the leash still ends a chase (RC2, §15.11 #157). Runners never attack
+  knights or builds. Siege follows its priority above. Hunters always hunt players. Challenger
+  (Warden card) makes nearby enemies pick the Warden first. Radii live in config.
+- **Soldiers as targets (RC2, §15.11 #158):** the Commander's soldiers are targets exactly like
+  knights: the same aggro radius, leash and nearest-wins with knights and HP builds; Siege ranks
+  them with the players; enemy attacks, shots and shells damage them, and a soldier at 0 HP dies
+  (no respawn, §8.4). A soldier in the air (Reinforcements) isn't a target until it lands. The
+  Brute's build hunt, the Hunter's quarry and the Colossus's lock-ons (boulder and Charge targets)
+  stay knights (or builds) only; the slam and the Charge still hit soldiers (§9.2).
+- **Brute:** it goes for the nearest targetable build by distance, rechecked every step, so a build
+  landing nearer pulls it off course (the bait tactic), and reaches it on a ground field toward that
+  build (§15.5); when that build is destroyed it picks the next. The TV flashes each build it locks on
+  to (§7.5).
+- **Hunter (C3, redesigned):** it hunts the nearest player and keeps that quarry until they go down or
+  dazed, or another player comes clearly closer (2 tiles closer, so two players at similar range don't
+  flip it). Two phases: it **stalks** at normal speed, taking the route that spends the least time in
+  range of the sentries and damage-dealing builds and outside hidden builds' trigger radii (§15.5),
+  until its quarry is within about **5 tiles**; then it **locks on** (the quarry's color flashes as a
+  ring at the quarry's feet for about 2 s, §9.6) and **sprints**. The flash marks the lock-on moment,
+  not the quarry pick. v2 behavior is in §13.
+- **Flyers spawn only if the team has a knight that can hit them** (`hitsFlyers`: the Ranger and the
+  Artificer in v1). Otherwise their spawn slots are filled with additional ground units, so a
+  melee-only team (Warden, Commander) or a solo melee knight never faces Flyers it can't answer.
+- The team's composition is checked at the **start of every wave**, counting only players connected
+  at that moment, so a ranged player dropping mid-run can't strand the team against Flyers.
+- **Enemy power over the run:** knights get stronger every wave (growth, cards, shop) while each enemy
+  type's stats stay fixed; the wave budget, new types and an optional **per-wave enemy HP and damage
+  multiplier** (§9.3) carry the curve.
 
 ### 9.1 Starting stats
 
-These are starting values for playtesting, relative to the Grunt baseline. All of them live in one
-config file.
+These are starting values for playtesting, relative to the Grunt baseline. All of them live in the
+balance sheet.
 
 | Enemy | HP | Speed | Damage | Budget cost | Notes |
 |---|---|---|---|---|---|
 | Grunt | 100 | 1.0 | 10/hit | 1 | Baseline |
 | Runner | 40 | 2.0 | 40 burst | 1 | Hits the base once, then dies |
 | Swarm | 8 × 25 | 1.2 | 4/hit each | 3 per group | Spawns as a group of 8 |
-| Brute | 600 | 0.6 | 40/hit, 2× to walls | 5 | |
-| Flyer | 80 | 1.2 | 12/hit | 2 | Ignores walls |
-| Siege | 150 | 0.8 | 25/shell | 4 | Long range |
-| Hunter | 200 | 1.3 | 15/hit | 3 | Targets players |
+| Brute | 600 | 0.6 | 40/hit | 5 | Hunts builds |
+| Flyer | 80 | 1.2 | 12/hit | 2 | Range about 1.25× its tower-defense value |
+| Siege | 150 | 0.8 | 25/shell | 4 | Long range; base > players > builds |
+| Hunter | 200 | 1.3 (sprint faster) | 15/hit | 3 | Hunts players |
 
-- **Coins per kill** equal the enemy's budget cost. A Swarm group pays its 3 coins when its last unit
-  dies. Difficulty applies a coin-income multiplier (§2.2).
+- **Coins per kill** follow the budget cost times the coin rate (§6). A Swarm group pays when its last
+  unit dies. Difficulty applies a coin-income multiplier (§2.2), and the player-count table a coin
+  factor (§9.4).
+- Enemy HP bars and the per-wave enemy multiplier apply to every type.
 - v1 has no elite variants (§13).
 
 ### 9.2 Boss: the Colossus
 
-The Colossus is a huge, slow walker that comes up one lane toward the base. In the neon knights theme
-it is a giant walker mech with a glowing core in its chest (§2.1); its art is settled in §9.6.
+The Colossus is a huge, slow walker that comes from a portal on the hot side toward the base: a giant
+walker mech with a glowing core in its chest (§2.1); its art is in §9.6.
 
 **Design rules**
-- Every big attack has a clear wind-up and a red ground marker showing where it will land, so players can
-  dodge by watching the TV.
+- Every big attack has a clear wind-up and a red ground marker showing where it will land, so players
+  can dodge by watching the TV.
 - Every class has a useful job in the fight, and no class is required.
-- It paths toward the base like a Brute. Walls slow it down but can't stop it.
+- It paths toward the base on the ground field like any walker.
+- **Each visit teaches one new move.**
 
 **Attacks by boss wave**
 
 | Wave | Attacks and changes |
 |---|---|
-| 5 (base form) | **Slam:** a red circle appears in front of it, and the slam lands 1.5 s later, damaging players and structures. **Wall breaker:** deals 3× damage to walls. Only a light stream of Grunts spawns alongside it. |
-| 10 | Everything from wave 5, plus **Boulder throw:** targets a tower or the largest group of players, with a marker showing where it will land. Grunt and Swarm escorts walk with it. |
-| 15 | Everything from wave 10. **Below 50% HP, final phase:** it moves and attacks faster, each slam sends out a shockwave ring that players must dodge, and it calls in Runners periodically. |
+| 5 (Mk I) | **Slam:** a red circle appears in front of it, and the slam lands 1.5 s later, damaging knights, soldiers and HP builds. **Boulder throw:** targets a player (the largest group of players), with a red marker showing where it will land. Only a light stream of Grunts spawns alongside it |
+| 10 (Mk II) | Everything from wave 5, plus **Charge:** it locks on to a knight, a red lane marker shows its path, then it plows down the lane, hitting knights and soldiers once and knocking them aside, destroying any HP builds it crosses and setting off any mines it crosses (the rally flag is left alone). Dodged, not tanked; it punishes stacking builds in one spot. Grunt and Swarm escorts walk with it |
+| 15 (Mk III) | Everything from wave 10, plus it **calls in Runners** periodically, from the start of the fight. **Below 50% HP, final phase:** it moves and attacks faster, and each slam sends out a shockwave ring that players must dodge |
 
 **Stagger meter**
 - The Colossus can't be stunned directly. It has a hidden stagger meter.
@@ -913,71 +1081,136 @@ it is a giant walker mech with a glowing core in its chest (§2.1); its art is s
   lock the boss down.
 - When the meter is full, the Colossus is staggered for about 3 seconds and takes bonus damage. Then the
   meter resets.
+- **Fill rate (RC3, §15.11 #171):** damage fills 2.55 meters per max HP of damage and a counted stun
+  0.2125 of the meter, 15% slower than the first values (3 and 0.25), so it staggers a little less
+  often; the stagger still lasts 3 s.
 - **Stun resistance:** for 4 seconds after it gets back up, Warden stuns don't fill the meter at all
   (damage still does), so a Warden-only team can stagger it now and then but never keep it down
-  (§15.11 #55). The TV shows nothing for this window: there's no immunity status look.
+  (§15.11 #55). The TV shows nothing for this window.
 
 **Boss wave rules**
-- A large boss HP bar runs along the bottom edge of the TV, where enemies enter (§2.6).
+- A large boss HP bar runs along the bottom edge of the TV (§2.6).
 - If the Colossus reaches the base, it attacks the base with heavy hits. This threatens a loss but isn't
   instant.
 - **The boss's death ends the wave.** Any remaining enemies collapse.
-- **Reward:** every player gets a guaranteed rare upgrade card. The Commander also gets his squad size
-  upgrade after waves 5 and 10 (§8).
-- Boss HP scales with the player-count multiplier (§9.4).
+- **Reward:** every player gets a guaranteed rare upgrade card and the bigger boss-wave class growth
+  (§6.1).
+- Boss HP scales with the player-count table (§9.4).
 
 ### 9.3 Wave generation
 
-- **Budget plus pool.** Each wave has hand-authored data:
+- **Budget plus pool.** Each wave has hand-authored data (§15.4 `WaveDef`):
   - a threat budget
   - the enemy types allowed
-  - the lanes open
-  - guaranteed spawns, for example the enemy type being introduced that wave, or the boss
+  - guaranteed spawns, for example the type being introduced that wave, or the boss (optionally pinned
+    to a portal)
+  - its **hot-side schedule** (§9.4)
+  - an optional **enemy multiplier** for HP and damage (default 1.0), so the curve against the knights'
+    growth can be tuned without code changes
 - A generator spends the budget on allowed enemy types, using their budget costs, and spreads the groups
-  across the open lanes and across the wave's duration.
+  across the wave's duration in **spawn pulses** and across the portals:
+  - **Spawn pulse** (RD3, §15.11 #112): up to `players + 1` groups that spawn at the same moment, each
+    pulse in its own equal slice of the wave's duration. That is the plan; with no enemy alive the
+    next pulse comes in early (§9.4, RC3).
+  - **Active portal cap:** each pulse uses at most **`players + 1`** portals (capped at 6: 2 in solo, 6
+    with 5 or 6 players, so a full team sees every portal). The active portals are chosen per pulse.
+  - While a side is hot, every pulse includes at least one hot-side portal, and the hot side receives
+    the **hot share** of the budget (starting value 0.55, from the 50–60% range); the rest is spread
+    over the other active portals. Solo: one hot-side portal and one other. The split is chosen over
+    the whole wave: the hot share of its cost closest to the content share and never under half,
+    with a group elsewhere in every pulse of two or more where the costs allow it (a lumpy solo wave
+    may put both groups of a pulse on the hot side).
+  - The boss spawns at a seeded portal on the side hot when the wave starts (the first pulse's).
 - **Seeded:** each run has a random seed, so runs vary but any run can be reproduced exactly for
-  debugging: the seed reproduces the waves and card offers, and the seed plus a recorded input log
-  replays the whole run (§15.3, §15.9).
-- Flyers are replaced with ground units when the team has no ranged class (§9).
-- The generator should be reusable: Dungeon Crew will use the same system for its rooms.
+  debugging: the seed reproduces the waves (portals and hot sides included) and card offers, and the
+  seed plus a recorded input log replays the whole run (§15.3, §15.9).
+- Flyers are replaced with ground units when the team has no knight that can hit them (§9).
+- The generator stays reusable: Dungeon Crew will use the same system for its rooms (§15.4).
 
 ### 9.4 Wave layout and pacing
 
-| Wave | Introduces | Lanes open |
+| Wave | Introduces | Hot side |
 |---|---|---|
-| 1 | Grunts | 1 |
-| 2 | Runners | 1 |
-| 3 | Swarms | 2 |
-| 4 | Brutes | 2 |
-| 5 | **Boss**, base form | 2 |
-| 6 | Flyers | 2 |
-| 7 | Siege | 2 |
-| 8 | Hunters | 3 |
-| 9 | Mixed | 3 |
-| 10 | **Boss**, second attack and escorts | 3 |
-| 11–14 | Mixed, rising budget; heavier waves at 12 and 14 | 3 |
-| 15 | **Boss**, final phase | 3 |
+| 1 | Grunts | One for the wave, no shifts |
+| 2 | Runners | One for the wave, no shifts |
+| 3 | Swarms | One for the wave, no shifts |
+| 4 | Brutes | One, plus 1 mid-wave shift |
+| 5 | **Boss** Mk I | The boss's side, no shifts |
+| 6 | Flyers | One, plus 1 mid-wave shift |
+| 7 | Siege | One, plus 1 mid-wave shift |
+| 8 | Hunters | One, plus 1 mid-wave shift |
+| 9 | Mixed | One, plus 2 mid-wave shifts |
+| 10 | **Boss** Mk II and escorts | The boss's side, no shifts |
+| 11 | Mixed | One, plus 2 mid-wave shifts |
+| 12–14 | Mixed, rising budget; heavier waves at 12 and 14 | **Per spawn group** |
+| 15 | **Boss** Mk III, final phase | **Per spawn group** (the boss's escorts too) |
 
-- **Combat length:** about 60–90 seconds per wave. A wave ends when every enemy is dead, except boss
+- **Hot side:** a side (§3.1) that gets the hot share of the wave's budget while it's hot.
+  - It is **never announced,** not in the wave preview and not when it shifts. Players read it from the
+    enemies coming at them.
+  - **Mid-wave shifts** happen at 1/2 of the wave's duration (one shift) or at 1/3 and 2/3 (two
+    shifts), always to a different side, seeded (`waves:<n>`).
+  - **Per spawn group** (waves 12–15): each spawn pulse (§9.3) rolls its own hot side, never the same
+    side twice in a row, so attacks come from every side, each one focused.
+  - Boss waves 5 and 10: the boss's side is the hot side for the whole wave.
+- **Portal flare:** a portal flares for about 1 s just before it spawns a group (§3.1). It shows where
+  something is about to appear, never the wave's pattern.
+- **No waiting on an empty map (RC3, §15.11 #175):** when no enemy is alive and groups are still to
+  come, the next spawn pulse comes in at once: its portals flare that step and it spawns 1 s later.
+  Every later pulse moves forward by the same amount, keeping the spacing between pulses; portals,
+  groups, hot sides, budgets and the active-portal cap stay as planned (only timing moves). It
+  applies at every player count and from the wave's first step (combat opens on an empty map). A
+  pulse whose portal has already flared isn't moved. Solo combat runs about 17% shorter (autopilot,
+  5 seeds × 4 knights: a mean wave 62 → 51 s).
+- **Combat length:** about 60–90 seconds per wave (less when the team clears each pulse fast, above). A wave ends when every enemy is dead, except boss
   waves, which end when the boss dies (§9.2).
-- **Spawn warning:** a lane glows on the TV about 3 seconds before a group spawns from it.
-- **Target run length:** about 22–27 minutes, including build phases.
-- **Player-count scaling:** wave budget and boss HP are multiplied by `0.5 + 0.25 × players`, where
-  players counts those connected at the start of the wave (§11.3). That is
-  1.0× with 2 players, 1.5× with 4 and 2.0× with 6. Scaling the number of enemies, not their HP, keeps
-  each enemy type feeling the same. Difficulty multipliers (§2.2) apply on top.
+- **Target run length:** about 20–24 minutes, including build phases (§4).
+- **Player-count table** (a lookup in the balance sheet, not a formula), counted from the players
+  connected at the start of the wave (§11.3):
+
+| Players | 1 | 2 | 3 | 4 | 5 | 6 |
+|---|---|---|---|---|---|---|
+| Wave budget and boss HP | 0.6 | 1.0 | 1.25 | 1.5 | 1.75 | 2.0 |
+| Respawn time | 6 s | 10 s | 10 s | 10 s | 15 s | 15 s |
+
+  From 2 players up this matches the tower-defense curve. Solo is lower because one player can't split
+  fronts and a death leaves only the sentries defending. Scaling the number of enemies, not their HP,
+  keeps each enemy type feeling the same. Difficulty multipliers (§2.2) apply on top, and the wave's
+  own enemy multiplier after both.
+  The **coin factor** multiplies every kill's coins (§6) so a smaller team, with fewer enemies to kill,
+  can still afford about as much as 2 players, and a larger one doesn't run out of things to buy. It
+  is set from economy runs (§6.2), not from the budget row, and like the rest of the row it is fixed
+  at the wave start: a late joiner changes it from the next wave (§11.2, §11.3, §15.11 #181).
 
 ### 9.5 Debug panel (developer only)
 
 Enabled on the TV build with a URL flag and never shown to players. It can:
 - jump to any wave
-- spawn any enemy type in any lane
+- spawn any enemy type at any portal
 - make players invincible
 - add coins
+- fill every knight's build meter, or one player's (RD6)
+- force the hot side: this wave's spawn groups that haven't flared and every later wave's move to the
+  forced side's portals until it's cleared (RD6, §15.11 #114)
 - run the simulation at 2× speed
+- list the knights in play (slot, player color, knight, cards owned with counts; the lobby's chosen
+  knights before a run, a player who left marked) and give any run knight a card: the picker lists
+  every card that knight could ever hold (the shared commons, then its own commons, rares with its
+  unique passive, and combos), labeled by tier, "unique" and "(needs X)" for an unmet `requires`.
+  Add applies one stack through the pick's own path (stacking, modifier, stats) in any phase, without
+  the offer; `requires` is bypassed, while a second copy of a unique card (or combo) or another
+  knight's card is refused with a message (RD6-fix-2, §15.11 #173)
 - show and set the run seed
-- show hitboxes, ranges and flow-field arrows
+- show hitboxes, ranges, flow-field arrows, the current hot side, portal activity (groups queued per
+  portal, flaring now, time to the next group) and each knight's build meter (RD6)
 - download a replay of the current run (§15.9)
+
+The TV's `window.__pcg` hooks (dev or `?debug=1`, e2e) read the same: `builds()` (kind, owner,
+position, HP, flight state), `meters()` (each knight's meter, aim held, builds out), `preview(slot)`
+(the sim's `buildPreview`), `portals()` (activity and the hot side, forced or not), and drive
+`fillMeter(slot?)` and `forceHot(side)` as logged debug commands (RD6). `knights()` (the panel's
+knight list), `cardChoices(slot)` (its picker) and `giveCard(slot, cardId)` (the refusal message, or
+null once the logged `card` debug command is sent) cover the cards (RD6-fix-2).
 
 ### 9.6 Enemy art (neon knights, settled)
 
@@ -986,7 +1219,7 @@ Enabled on the TV build with a URL flag and never shown to players. It can:
   cool gunmetal.
 - Emissive is violet only (eyes, cores, seams). Never amber, never red.
 - Machine posture: hunched forward, with spikes. Knights stand upright.
-- No player colors, rings or names on enemies (except the Stalker's brief target flash). Size signals
+- No player colors, rings or names on enemies (except the Stalker's brief lock-on flash). Size signals
   toughness.
 - Same production rules as the characters (§2.4) and the perspective rules (§2.5): three-quarter view
   with top faces, mirrored left/right, vector cut-out rigs, ink outline, alignment and layering.
@@ -995,6 +1228,7 @@ Enabled on the TV build with a URL flag and never shown to players. It can:
 - Every enemy and the Colossus has a hit (a recoil lean with the white flash) and a death: the glow
   cuts out, the parts collapse into a pile on the ground with `scrap-theirs`, then fade (§15.11 #35).
   Big walkers (Brute, Colossus) stomp: the body drops hard on each footfall.
+- **HP bars:** a thin violet bar above each damaged enemy (§2.6); Scrap mites have none.
 
 **Drone (Grunt):** a little shorter than a knight, reaching about the Warden's shoulders. A short torso
 leaning hard forward on short legs with normal knees, spikes along the spine, no neck (the head sits on
@@ -1008,19 +1242,21 @@ detonates on the base. Fast low scuttle; the core pulses faster as it nears the 
 
 **Brute:** about 1.5× a knight's height. Tiny sunk head, violet furnace grille in the chest, heavy
 shoulder plate over a thick near arm ending in a ram fist, and a far fist hanging on the other side.
-Heavy stomp. Wall-hit tell: the furnace flares and the fist rears back before each hit (the Warden's
-stun window).
+Heavy stomp. Hit tell: the furnace flares and the fist rears back before each hit (the Warden's stun
+window). Locking on to a build flashes `brute-target` at the build.
 
 **Bombard (Siege):** a four-legged artillery walker, noticeably bigger than a knight, on thick splayed
 legs with wide foot pads; a long mortar barrel angled up and a rack of glowing shells on its back.
-Plods to range, plants its legs and lifts the barrel; the muzzle charges violet before each shot, and a
-red landing marker shows where the shell will hit.
+Plods until something is in range, plants its legs and lifts the barrel; the muzzle charges violet
+before each shot, and a red landing marker shows where the shell will hit.
 
 **Wasp drone (Flyer):** no legs. Hovers at about a knight's head height, out of hammer reach, with two
 violet rotor discs each spinning on its own mast, a stinger cannon and a down-thruster glow under the
 rear of the body; its shadow stays on the ground below. Bobs at a fixed height and never drops toward
 the ground, so it always reads as out of melee reach. **Flight height (C4, Foster):** its hull's
-underside flies 1.37 tiles over its shadow, half its first height (2.74).
+underside flies 1.37 tiles over its shadow, half its first height (2.74). **Size (RC3, §15.11 #170):**
+drawn 1.4× its art with its shadow, so it is easier to see, and a little lower: its hull's underside
+flies 1.23 tiles over its shadow (90% of 1.37); its body hitbox grows with it (§9).
 
 **Scrap mites (Swarm):** tiny beetle bugs, about a fifth of a knight's height: a round split shell, a
 small head with antennae, six short legs and one violet eye, in packs of 8. Packs are scattered and
@@ -1031,12 +1267,12 @@ in step. Randomize each mite's offset, speed and wobble.
 
 **Stalker (Hunter):** a lean machine hound: deep chest, tucked waist, two pointed ears on the back of the
 head, a low head thrust forward with twin violet eye slits (the only enemy with two eyes), fins forward
-on the back that sweep well back, and a short spiked tail. Fast loping run toward its target player;
-wind-up tell: it crouches low, then lunges.
-**Target flash (C3, was a target thread):** each time the Stalker takes a quarry (its first pick or a
-change, §9), that player's color flashes as a ring around its feet for about 2 s, then there's no
-indicator until the quarry changes again. This is the one exception to "no player colors on enemies",
-so the whole room sees who's targeted and can step in (§15.11 #45).
+on the back that sweep well back, and a short spiked tail. Loping stalk; a faster, lower sprint once
+locked on; wind-up tell: it crouches low, then lunges.
+**Lock-on flash:** when the Stalker locks on (its quarry within about 5 tiles, §9), that player's color
+flashes as a ring around the quarry's feet for about 2 s, then there's no indicator until it locks on
+again. This is the one exception to "no player colors on enemies", so the whole room sees who's
+targeted and can step in (§15.11 #45, #85).
 
 **Colossus (boss):** about 2.6× a knight's height; tall and top-heavy (the only enemy taller than it is
 wide): a wide shoulder yoke, a small sunk head with one violet eye bar, two slab fists hanging low,
@@ -1047,6 +1283,7 @@ horns ride on the head.
 - **Mk I (wave 5):** the bare frame. Plain yoke, smooth slabs, few seams, no spires or spikes.
 - **Mk II (wave 10):** adds three exhaust spires on its back, spikes on the yoke and near pauldron,
   knuckle spikes on the ram fist (the boulder-throwing hand), and more lit seams on legs and far fist.
+  The yoke and knuckle spikes suit the Charge pose.
 - **Mk III (wave 15):** adds two taller spires (five total; they launch its Runners), horns on the head,
   rear spikes, armored shin and far-fist plates, a studded core ring, and glow seams across the yoke.
 - **Final phase (wave 15, below 50% HP):** the chest armor cracks open around a larger exposed core, and
@@ -1054,16 +1291,18 @@ horns ride on the head.
 **Stagger meter:** the core shows the hidden meter, brightening and pulsing faster as it fills. At full,
 the Colossus drops to one knee for about 3 s and the core flares white-violet during the bonus-damage
 window.
-**Tells:** slam (both fists raise, fist seams flare, red circle, lands 1.5 s later); wall breaker (same
-motion, the targeted wall flashes); boulder throw (tears up scrap with the near fist and winds back,
-red landing marker); shockwave (violet outline ring rolling out from each final-phase slam); call
-Runners (spire plumes surge, then Skitters launch from the spires).
+**Tells:** slam (both fists raise, fist seams flare, red circle, lands 1.5 s later); boulder throw
+(tears up scrap with the near fist and winds back, red landing marker); **Charge** (its head snaps to
+the target, it lowers the spiked yoke about 12° so the spires point forward, the head drops in front,
+the near leg paws the ground with `landing-dust` puffs, the red lane marker shows the path, then the
+run with `charge-dust` trailing at its feet); shockwave (violet outline ring rolling out from each
+final-phase slam); call Runners (spire plumes surge, then Skitters launch from the spires).
 **Walk:** slow, heavy steps with a slight ground shake. The legs trade places every step: the stepping
 leg swings forward and is drawn in front, the planted leg drops behind, so the front leg alternates
 sides. Swap the legs' draw order at mid-stride, with a slight scale-up on the leg in front.
 **Head tracking:** the head turns side to side toward where it's walking or aiming, sliding slightly
-toward that side with the eye bar following; before a slam or boulder throw it snaps to face the
-target.
+toward that side with the eye bar following; before a slam, boulder throw or Charge it snaps to face
+the target.
 
 ## 10. Controls
 
@@ -1103,8 +1342,12 @@ viewport. Sizes are fixed in px, with the minimums listed.
     bottom).
 - **Super:** 76 px diameter, centered at offset (−92 px, −78 px) from the main button's center (up and
   to the left).
-- **Action button:** 56 px diameter, centered at offset (−118 px, +20 px) from the main button's center
-  (to the left).
+- **Build button:** **60 px** diameter (56 px before the redesign), centered at offset (−134 px, +24 px)
+  from the main button's center (to the left). At 844×390 it is 58 px from the main button and 42 px
+  from the super, its edge 66 px from the bottom (§15.11 #115, revising #105).
+- **Labels:** ATTACK, SUPER and BUILD sit centered under their buttons, starting 14 px below the drawn
+  edge (past the 11 px reach of the aim and meter rings). No label touches any button, ring or other
+  label at any supported viewport.
 - **Spacing rules:**
   - Gap between any two buttons is at least 24 px.
   - No button edge is closer than 64 px to the right edge or 64 px to the bottom edge, so the thumb
@@ -1113,32 +1356,38 @@ viewport. Sizes are fixed in px, with the minimums listed.
 - **Hit areas:** each button's touch target extends 8 px beyond its drawn edge. Where targets overlap,
   the nearest button center wins.
 
-**Aimable sticks** (a main attack or super configured as aimed):
-- **Tap** (released within 150 ms and inside the dead zone): auto-aims at the nearest valid enemy in
-  range.
-- **Drag:** aims. The aim line is drawn **on the TV**, not the phone. Maximum drag radius 70 px.
-- **Aim preview** (C3, §15.11 #41): the TV's aim line is the attack's real hit area, from the same
-  effective stats the sim hits with (content through passives and cards): a transparent amber bar the bolt's
-  range long and its hitbox wide (2 × `rules.projectileRadius`) for a single bolt (Ranger; C4, #52), a transparent amber-filled cone for arcs, cones and spread volleys
-  (Warden slam and stomp, Commander slash, Artificer shot and super), a filled amber 0.6 ellipse for
-  circles. Bars, cones and circles lie on
-  the ground under the units, dim enough to stay out of the bloom. A super previews only once charged.
+**Aimed sticks** (a main attack, super or build configured as aimed):
+- **Tap** (released within 150 ms and inside the dead zone): auto-aims. Attacks aim at the nearest
+  valid enemy in range; thrown builds land at the knight's own feet (v1 has no offensive thrown build);
+  the Commander's Reinforcements throws toward his flag (straight ahead with no flag out).
+- **Drag:** aims. The aim is drawn **on the TV**, not the phone. Maximum drag radius 70 px.
+- **Aim preview** (C3, §15.11 #41): the TV draws the real hit area, from the same effective stats the
+  sim uses (content through cards, growth and class multipliers): a transparent amber bar the bolt's
+  range long and its hitbox wide (2 × `rules.projectileRadius`) for a single bolt (Ranger; #52), a
+  transparent amber-filled cone for arcs, cones and spread volleys (Warden smash and jump slam,
+  Artificer blast and heal cone), a transparent amber-filled rectangle of the attack's length and
+  width for rectangles (Commander bash, RC2), a filled amber 0.6 ellipse for circles. **Thrown
+  builds and soldiers** show the landing spot as a 0.6 ground ellipse at the build's real effect radius
+  (the rally flag: the squad's flag ring), plus the throw range as a faint ring around the knight.
+  Previews lie on the ground under the units, dim enough to stay out of the bloom. A super previews
+  only once charged; a build only while its button can place.
 - **Dead zone** (the center grace zone): 25% of the drag radius around where the finger landed (17.5 px),
   so a thumb back near the middle counts without finding the exact center (C4, §15.11 #53).
-- **Release outside the dead zone:** fires in the aimed direction, the direction the TV shows.
-- **Slide back into the dead zone, then release:** cancels. The TV's aim line hides while the aim is in the
-  dead zone; dragging out again, still held, re-arms the attack and the aim line shows again (C4,
+- **Release outside the dead zone:** fires (or throws) in the aimed direction, the one the TV shows.
+- **Slide back into the dead zone, then release:** cancels. The TV's preview hides while the aim is in
+  the dead zone; dragging out again, still held, re-arms it and the preview shows again (C4,
   §15.11 #51, #53).
 
-**Firing:** every attack fires **on release**, once per release.
-- Holding an aimed button only shows the aim line on the TV until release.
+**Firing:** every attack and build fires **on release**, once per release.
+- Holding an aimed button only shows the preview on the TV until release.
 - **Aimed buttons are semi-floating joysticks** (C1, FF4-fix-2). They draw as a joystick: the icon in the
   center, a circle around it, and an outer ring for the range. A finger landing anywhere on the right half
   picks the button whose edge is nearest (the bounds between the buttons; farther than 56 px from every
-  button's edge picks none), and the joystick's center becomes where the finger landed. Tap and radial
-  buttons keep their fixed circles.
+  button's edge picks none), and the joystick's center becomes where the finger landed. Tap buttons keep
+  their fixed circles.
 - Holding a tap-type button does nothing; it fires when released.
-- Holding never repeats. A release during the attack's cooldown fires as soon as the cooldown ends.
+- Holding never repeats. A release during an attack's cooldown fires as soon as the cooldown ends. A
+  build release while the meter isn't full does nothing (except the Commander's recall).
 
 **Super charge indicator**
 - A ring around the super button fills clockwise as the super charges.
@@ -1146,106 +1395,83 @@ viewport. Sizes are fixed in px, with the minimums listed.
   - The button flashes once, brightening for 150 ms.
   - It then pulses continuously: the ring scales 1.0→1.12 and back at 1.2 Hz until the super is used.
   - The same full state also shows on the TV as an amber pulse on the player's ring: an amber ring
-    (the theme's amber, so the bloom catches it) just outside their colored ring, pulsing at the same
-    rate and scale. The colored ring stays drawn on top, so the player color still reads. No badge over
-    the head (C2, §15.11 #38).
+    just outside their colored ring, pulsing at the same rate and scale. The colored ring stays drawn
+    on top, so the player color still reads. No badge over the head (C2, §15.11 #38).
+- The Commander's super at the squad cap stays dimmed with its charge held.
 
-**Status strip** (top center, small): HP and crates carried. Players watch the TV, so the phone shows
-only glanceable information.
+**Build button = the action button** (F1). The tower-defense context table, the structure arc, Give/drop and
+every crate action are removed. The button only places, throws or recalls the knight's build:
+- **Icon:** the build's `act-*` icon (§2.6); the Commander's switches to `act-recall` while his flag
+  is out and the meter isn't full.
+- **Gesture** follows the build's input type (§7.3): tap-type for at-feet builds (and the Commander's
+  recall), an aimed stick for thrown builds.
+- **Build meter ring:** fills clockwise around the button, like the super's ring. The button is dimmed
+  until the meter is full (the recall state is lit). **Full = a steady amber ring, no pulse,** so it
+  reads differently from the super. **No build-ready indicator on the TV.**
 
-**Input type per character**
+**Status strip** (top center, small): HP and base HP. Players watch the TV, so the phone shows only
+glanceable information. The build meter lives on its button.
 
-| Character | Main | Super |
-|---|---|---|
-| Engineer | Aimed | Tap |
-| Warden | Aimed | Aimed |
-| Quartermaster | Aimed | Aimed |
-| Commander | Aimed | Tap |
-
-The Warden's slam and the Commander's slash became aimed at C3 (§15.11 #47); a quick tap still
-auto-aims, so melee stays a one-touch swing.
-
-**Action button** (context-sensitive). When several situations apply, the first matching row wins:
-
-| Priority | Situation | Action |
-|---|---|---|
-| 1 | Next to a crate on the ground, with room to carry it | Pick it up |
-| 2 | In the base's repair zone, holding a crate | Deliver it to repair the base |
-| 3 | Quartermaster in the base's repair zone, holding an emergency repair kit | Use the kit (§3.4; icon `emergency-kit`) |
-| 4 | On the depot pad, with room to carry another crate | Buy a crate |
-| 5 | Engineer or Warden holding a crate | Place last-used structure at feet (before any placement: the class's first structure) |
-| 6 | Quartermaster holding crates | Throw one, auto-targeting the nearest Engineer or Warden |
-| 7 | Commander (default) | Plant rally flag; tap again to recall the squad |
-
-The button's icon changes to show what it will do. If nothing applies, the button is dimmed.
-
-**Build arc** (Engineer and Warden, holding a crate). Same gesture as the aimed sticks:
-- **Tap** the action button: its normal action from the table above (priority 5 places the last-used
-  structure).
-- **Press and hold** (about 0.4 s) or start dragging: an arc appears above the player's head on the TV,
-  with one icon per structure the class can build (left, up and right) and **Give crate** (down).
-  Structures that cost more crates than the player carries are dimmed and can't be picked.
-- **Drag toward an icon and release:** builds that structure at your feet (and makes it the last-used
-  structure), or gives a crate.
-- **Release in the dead zone:** cancels.
-- **Keep holding on Give:** repeats it, one crate every ~0.3 s.
-
-**Hand over / drop** (Give crate):
-- Gives one crate to the nearest teammate in reach who has room. If no one qualifies, drops it at your
-  feet.
-- Engineer and Warden give through the build arc. Quartermaster and Commander have no structures, so
-  for them Give is the only option: holding the action button (about 0.4 s) while carrying a crate gives
-  directly, repeating every ~0.3 s while held.
-- While giving, the icon switches to show "give" or "drop", and the TV draws a line to the receiver.
-- A crate you drop can't be picked back up by you for about 1 s, so a following tap still does its
-  normal action instead of grabbing the crate again.
-- Works for every class, including the Quartermaster (for example, handing crates to a Commander to
-  repair the base).
+The Warden's smash and the Commander's bash are aimed (§15.11 #47); a quick tap still auto-aims, so
+melee stays a one-touch swing.
 
 ### 10.2 Build phase
-- The movement stick stays the same.
-- The right side becomes the **Build tab**: the class's structures, their crate costs, and crates
-  carried. Every player has a Build tab and a Shop tab (§10.3). Classes with no structures to build
-  (Quartermaster, Commander) see a "No buildings to build" note in place of the structures, and keep the
-  stick, crate count, Give crate and Ready, so they can still move and run crates.
-- The Build and Shop tabs keep a small **action button** beside Give crate for the §10.1 rows that
-  apply outside combat: pick up, deliver, use the emergency kit and buy at the Armory pad (rows 1–4).
-  Building in the build phase goes through the Build tab, never this button (2026-10-29, §15.11 #33).
-- A **Give crate** button next to the crate count follows the same rule as Give in combat
-  (§10.1): one crate to the nearest teammate in reach with room, otherwise dropped at your feet. It's on
-  both the build menu and the shop tab.
-- Tap a structure to show its ghost at your feet on the TV, then tap **Place** or **Cancel**. The ghost
-  is red on invalid tiles.
-- **Ready-up:** the next wave starts when every player has tapped Ready, or when the 45-second cap runs
-  out.
 
-### 10.3 Shop tab (build phase)
-The shop shows:
+The build phase has two phone screens in order, then Ready:
+
+1. **Card pop-up** (full screen, no stick): the class growth header with the amounts ("Wave 4 cleared: +3% HP  +1% DMG"; none
+   before wave 1), the three cards with rarity frames, **tap a card to select it, then tap Confirm**, and
+   the phase timer. Selecting is local to the phone; Confirm sends the pick. Once the pick is confirmed,
+   the phone moves on to the shop.
+2. **Shop** (§10.3), with the movement stick on the left third, so players can reposition while
+   shopping.
+
+- **No builds are placed in the build phase.** The build phase is cards, shopping and moving.
+- **Timer:** a **20 s cap,** ending early when every connected player is Ready. A card not confirmed by
+  the deadline is picked at random for that player (seeded, §15.3).
+- A player can tap Ready before confirming a card; the pick is still made at the deadline. The phase's
+  end is the deadline either way: when everyone is Ready early, cards not confirmed are picked then
+  (RD3, §15.11 #112).
+
+### 10.3 Shop screen (build phase)
+
+The shop fills the right 2/3 of the phone; the movement stick stays on the left third. It is one column:
+a header line (title and a short hint, which is dropped on short screens), then the scrolling rows. It shows:
 - the team's coin pool
-- your private pick-1-of-3 upgrade card
-- the team shop (§6.2), with a Request button on every item
-- Quartermaster-only items (Quartermaster players only)
+- the team shop (§6.2): item rows with price, hold-to-confirm on big buys, and a Request toggle on
+  every item, with "Requested by" tags
+- **Ready** at the top right
+- no tabs
 
 ### 10.4 Dead
 - The phone shows only a respawn countdown.
-- The build menu and shop are unavailable until the player respawns.
 - The top bar's pause button (§10.5) stays, so a downed player can still pause the team.
 
 ### 10.5 Team pause (C4, §15.11 #54)
 - **Top bar:** during a run (wave countdowns, build and combat phases, and while down) every player's
   phone has a pause button in the top-right corner of the top bar, a code-drawn two-bar glyph on a
-  gunmetal chamfered tile (the icon set has no pause icon). It isn't shown in the lobby, class select,
-  the waiting and claim screens, or the summary. In the Shop tab the coin count moves left of it.
+  gunmetal chamfered tile (the icon set has no pause icon). It isn't shown in the lobby, knight select,
+  the waiting and claim screens, or the summary. On the shop screen the coin count moves left of it.
 - **Any player pauses the whole run** for every player and the TV. The run freezes: sim steps, the
   build timer, wave countdowns and respawn timers; the TV's render-only motion holds still too.
 - **Paused:** every phone shows a "Paused" card over its screen, "<Name> paused the run" (or "You paused
   the run") and a **Resume** button; **any player** can resume, not only the one who paused. The TV shows
   a "Paused" card naming who paused over a scrim, inside the safe margin.
 - **No buffered input:** going into the pause drops every held gesture on the phones; presses made while
-  paused never fire after the resume, and menu actions that change the run (build, buy, request, card,
-  Give, Ready, a late join) are refused with "Not right now" until the resume. Resume starts at once
-  (no 3-2-1): nothing held through the pause carries a press over.
-- Not in v1: a per-player pause, pause menus (settings, quit), TV-side pause controls.
+  paused never fire after the resume, and menu actions that change the run (buy, request, card, Ready,
+  a late join) are refused with "Not right now" until the resume. Resume starts at once (no 3-2-1):
+  nothing held through the pause carries a press over.
+- **Pause menu (§15.11 #162):** under Resume, every run player's paused card has **Leave game**, and
+  the party leader's also has **End game** (hidden for everyone else). Each opens a confirm step on
+  the card ("Leave the game?" / "End the game for everyone?", one line on what happens, **Cancel** and
+  the action), so one tap never leaves or ends; Cancel sends nothing, and the confirm button sends one
+  intent (it locks for 1.5 s, so a double tap sends one).
+  - **Leave game** (`leave` intent): the player leaves the run for good (§11.3); their phone goes back
+    to the room-code join screen with "You left the game".
+  - **End game** (`leader` `endGame`, the leader only; the host refuses anyone else): the run stops
+    and the TV and every phone go to the lobby, knights kept and nobody Ready (as Change Knight on the
+    summary, §4). No summary: the run didn't end in a win or a loss. The resume snapshot is cleared.
+- Not in v1: a per-player pause, a settings menu, TV-side pause controls.
 
 ## 11. Lobby, join and reconnect
 
@@ -1260,49 +1486,63 @@ from Sunny Side Slam. Everything else in this section is Fort Frenzy game logic 
    color another player holds (connected or not) is refused, never swapped, and a player keeps their
    color through reconnects, leader handoff and the run. Once Ready, the Ready
    button and every other lobby action darken until the player taps Ready again to un-ready.
-3. **Class select on the phone:** swipeable character cards, each showing name, role, what the main attack
-   and the super do (tap or aim), the passive, and the build kit (§8). One swipe moves exactly one card,
-   however long. The TV shows the lineup live. Duplicate classes are allowed.
+3. **Knight select on the phone:** swipeable knight cards, each showing name, class, what the main
+   attack, the super and the build do (tap or aim), and the passive card (§8). One swipe moves exactly
+   one card, however long. The TV shows the lineup live. Duplicate knights are allowed.
 4. **Start:**
    - When every player is Ready, a 3-second countdown starts the run.
-   - The first player to join is the **party leader**. They can force-start once at least 2 players are
-     Ready.
-- Players: 2–6. A seventh phone sees a "Game full" screen. The title and this range live in
-  `game.meta.ts` (the game's catalog entry, `PLATFORM.md` decision #9): code reads them from there, so
-  change them there.
+   - The first player to join is the **party leader**. They can force-start once at least one player
+     is Ready, so **the party leader can start alone** (§15.11 #100).
+- **Players: 1–6.** Solo play is supported in v1. A seventh phone sees a "Game full" screen. The title
+  and this range live in `game.meta.ts` (the game's catalog entry, `PLATFORM.md` decision #9): code
+  reads them from there, so change them there.
 - **Removing players:** in the lobby, the party leader's phone or the TV can remove any other player
-  (as in Sunny Side Slam). Once a run starts, nobody can leave or be removed; a player whose phone drops
-  stays in the run, dazed (§11.3).
-- **Leader handoff:** if the leader disconnects, leadership passes to the next-earliest joined
-  connected player, and doesn't snap back when the original leader returns (as in Sunny Side Slam).
-- **TV menus never need a mouse.** The home screen (theme, difficulty, create room) works with keyboard
-  or gamepad, with no hover-only interactions. Once a room exists, the party leader's phone drives the
-  TV menus: changing theme and difficulty in the lobby, and the end-of-run options (§4).
+  (as in Sunny Side Slam). Once a run starts, nobody can be removed; a player whose phone drops
+  stays in the run, dazed (§11.3). A player can leave the run on purpose from the pause menu's
+  **Leave game** (§10.5, §11.3), and the leader can end it for everyone with **End game**.
+- **Leader handoff:** if the leader disconnects or leaves the run, leadership passes to the
+  next-earliest joined connected player, and doesn't snap back when the original leader returns (as in
+  Sunny Side Slam).
+- **TV menus work with keyboard, gamepad or mouse.** The home screen (difficulty, create room, resume,
+  new run) takes arrows or d-pad plus Enter or A, and also a mouse: hover moves the focus highlight, a
+  click focuses and activates the row (a ◂ ▸ arrow click cycles that way, the row itself forward).
+  Nothing is hover-only. Once a room exists, the party leader's phone drives the TV
+  menus: changing difficulty in the lobby, and the end-of-run options (§4).
 
-### 11.2 Mid-run joins and class changes
-- **Late joins** are accepted only during the build phase. The new player spawns at the base. A phone
-  that joins during combat sees "Joining at the next build phase" until then.
+### 11.2 Mid-run joins and knight changes
+- **Late joins** are accepted only during the build phase. The new player spawns at the base with a
+  **full build meter** (a Commander with 2 soldiers), a card offer, and no cards or class growth yet
+  (§15.11 #99). A phone that joins during combat sees "Joining at the next build phase" until then.
 - Enemy scaling and the Flyer composition check are recalculated at the next wave start, from the
   players connected at that moment.
-- Players **cannot change class** mid-run.
+- Players **cannot change knight** mid-run.
 
 ### 11.3 Player disconnect
 - **Identity:** on join, the relay issues a reconnect token, stored on the phone. Reconnecting with the
   token restores the same player slot, and the host keeps that player's full state while they're gone.
   After the relay's token window (30 s), the host still matches a returning phone to its slot by player
   key (§15.6).
-- **Dazed state:** while disconnected, the character stops and turns translucent. Enemies can't target
-  it. Any crates it was carrying drop on the ground.
+- **Dazed state:** while disconnected, the knight stops and turns translucent. Enemies can't target it.
+  Its meter doesn't fill and it doesn't regen; its builds stay and keep working; a Commander's squad
+  holds at the flag or around him.
 - **The slot is held for the whole run.** A disconnected player is never removed mid-run; they stay
   dazed until they reconnect, at any time. Player-count scaling and the Flyer check count only players
   connected at the start of each wave (§9, §9.4).
+- **Leave game (§10.5, §15.11 #162):** a deliberate leave from the pause menu (countdown, build or
+  combat) is not a disconnect. The host drops the player from the party at once (no reconnect matches
+  that slot again, so the same phone comes back as a new player through the room code), passes
+  leadership on if they led, and kicks the phone (the relay forgets its token). Their knight stays
+  on the map dazed for the rest of the run, as a dropped phone's would: its builds stay and keep
+  working, a Commander's squad holds, and it stays in the summary. A late joiner takes a new slot,
+  never the left one. The run goes on paused; when the last player in the run leaves, it ends and the
+  TV goes to the lobby.
 - **What players see:**
   - On the phone: a "Reconnecting…" overlay.
   - On the TV: a reconnecting icon on that player's nametag.
 - **Pausing:** the game auto-pauses if every player is disconnected at once, or while the TV's browser
-  tab is hidden (browsers stop animation frames there anyway). Since C4 any player can also pause the
-  whole run from their phone (§10.5). The three are independent: the run moves only when none applies,
-  and a phone coming back doesn't clear a team pause.
+  tab is hidden (browsers stop animation frames there anyway). Any player can also pause the whole run
+  from their phone (§10.5). The three are independent: the run moves only when none applies, and a
+  phone coming back doesn't clear a team pause.
 - **iOS backgrounding:** when the page becomes visible again (`visibilitychange`), the phone reconnects
   immediately with its token.
 
@@ -1311,27 +1551,30 @@ from Sunny Side Slam. Everything else in this section is Fort Frenzy game logic 
   - 20–30 Hz while any control is touched.
   - A 5 Hz heartbeat while idle.
 - **The host treats input older than 250 ms as neutral:** sticks zeroed, buttons released. A dropped
-  phone must never leave its character running in the last direction.
+  phone must never leave its knight running in the last direction.
 
 ### 11.5 Host refresh or crash: resume
 - **Snapshot:** the host saves a run snapshot to its browser storage (`localStorage`, so it survives a
   browser crash) at the start of every build phase, and again on every change during the build phase
-  (builds, purchases, card picks, crates moved). The snapshot contains:
-  - theme, difficulty and run seed
+  (purchases, card picks, requests). The snapshot contains (§15.8):
+  - difficulty and run seed
   - wave number
   - base HP and repair purchase count
   - team coins
-  - structures and their HP (snares: remaining discharges)
-  - every team shop purchase and tier (archers, buildings, squad)
-  - each player slot's name, color, class, upgrade cards, current card offer, crates carried and
-    reconnect identity (player key and device ID, §15.8), plus the party leader
-  - Commander squad size, each soldier's Veterans gains, and the rally flag's position
-  - crates on the ground
+  - every team shop purchase and tier
+  - **builds on the map:** each one's kind, owner, position and its HP or charges left (and the rally
+    flags)
+  - each player slot's name, color, knight, HP, **build meter, class growth,** upgrade cards, current
+    card offer and pick, and reconnect identity (player key and device ID, §15.8), plus the party
+    leader
+  - each Commander's **squad soldiers** (HP and Veterans gains)
   - the wishlist and the run's per-player stats (for the summary screen)
 - **Room survives:** the relay keeps the room alive for about 2 minutes after the host disconnects, so a
   reloaded TV reclaims the same room code with its host token. Phones stay joined.
 - **Resume:** after a reload, the TV offers "Resume wave N." Resuming restores the latest snapshot: the
   build phase of wave N as it was last saved. Any progress from the interrupted combat phase is lost.
+  The saved party leader leads again: a phone back first may lead until theirs matches (by key,
+  device ID or a claim), and then the lead goes back to them (§15.11 #178).
 - **Expiry:** if the room has expired, the snapshot can still resume, but phones must rejoin. Players
   are matched back to their slots by device ID where possible (reconnect tokens and player keys belong
   to the old room code), and otherwise pick a free slot.
@@ -1339,16 +1582,18 @@ from Sunny Side Slam. Everything else in this section is Fort Frenzy game logic 
 
 ## 12. v1 scope
 
-- 4 characters (one per class), each with one passive.
-- 64 upgrade cards (§6.1) and the team shop (§6.2).
-- 1 map with 3 lanes.
-- 1 theme: neon knights (§2.1).
-- 3 difficulty levels (§2.2).
-- 2–6 players.
-- All 7 enemy types plus 1 boss that returns at waves 5, 10 and 15.
-- The developer debug panel (§9.5).
-- Audio: a small set of sound effects (for example the base alarm, hits, boss wind-ups and purchases).
-  No music.
+- 4 classes (tank, marksman, support, control) with one knight each: Warden, Ranger, Artificer and
+  Commander, each with one build and one passive card.
+- 48 upgrade cards (§6.1), per-wave class growth and the team shop (6 items, §6.2).
+- 1 map: an open field with 6 portals.
+- 1 look: neon knights (§2.1).
+- 3 difficulty levels (§2.2), Normal by default.
+- **1–6 players,** solo included.
+- All 7 enemy types plus 1 boss that returns at waves 5, 10 and 15 (Mk I–III).
+- The developer debug panel (§9.5) and the balance harness (§15.9).
+- Audio: a small set of sound effects (for example the base alarm, hits, boss wind-ups, builds,
+  mines, the shield, beacon pulses, portal flares, the Brute's lock-on, the Charge wind-up, the jump
+  slam and Rally Cry, and purchases). No music.
 - Everything in §13 is out of scope for v1.
 
 ## 13. Later (v2+)
@@ -1357,71 +1602,103 @@ Ideas deferred from v1. Build v1 so these can be added without rewrites.
 
 | Item | Notes | v1 prep |
 |---|---|---|
-| Pillow Fort theme | Second theme pack: a kid's bedroom at lights-out, where toys invade the pillow fort. Lanes are the closet, under the bed and the hallway door. Default difficulty: Easy. Draft mapping: base = pillow fort; Engineer = foam-dart kid (dart turret, water-balloon launcher); Warden = pillow-smash kid (couch-cushion walls, scattered toy bricks as snares); Quartermaster = big sibling with a bubble wand (snack-pack crates); Commander = kid general with toy soldiers; enemies are wind-up soldiers, RC cars, possessed teddy bears, toy catapults, paper airplanes, dust bunnies and jack-in-the-boxes; the Colossus is a giant wind-up robot | Theme-agnostic build (§2.1): no gameplay changes needed |
-| Selectable passives | 3 options per class, chosen at class select (list in §8) | Passives are pluggable modules |
+| More builds (the build idea pool) | The menu for future knights; see the table below | Build behaviors are modules registered by `BuildId`, with traits in content (§7.3, §15.4) |
+| Personal currency | Each knight earns a personal currency (power cells) to spend as upgrade points in stat categories. It overlaps with the upgrade cards, so v2 decides whether it replaces or complements them | Stats already go through the modifier system |
+| More team shop items | The v1 shop is thin on purpose (§6.2) | Shop items are content |
+| Terrain and temporary walls | v2 maps bring permanent walls; a temporary wall build (tank) reroutes enemies with wall pathing, including Brute and Colossus wall targeting | The map format has a `blocked` tile kind and flow fields price terrain (§3.1, §15.5) |
+| Squad solo mode (likely v3 or v4) | One knight of each class. The player switches "focus" between them, controlling the focused knight with its full actions; bots control the other three. The build phase is longer, because one player decides for all four. (Not 1-player play, which v1 has) | Knights read input through an input-source interface (phone controller now, bot later), never directly from the network |
+| More classes and knights | 2–3 knights per class; new classes (for example a squad leader) | Classes and knights are separate content (§15.4) |
+| More passive cards | The tower-defense v2 passive candidates as cards where they still fit (Spotter, Bulwark, Stonefoot, Salvage, Inspire) | Passive cards are modules |
 | Dynamic camera | Zooms and pans to keep all players in view (Smash Bros. style) | Render through a camera abstraction, even though v1 keeps it fixed |
-| More characters per class | 2–3 per class | Characters are defined by config: attacks, super, passive, build kit |
 | Endless mode | Survive as long as possible, high score | None needed |
-| More maps, each with its own boss | New maps, each with its own boss. The first candidates are the Warlord (stays back behind a shield and summons enemies; killing the summoners drops the shield) and the Burrower (tunnels and resurfaces in a different lane) | Map layout and boss are defined by config, and boss behavior is its own module rather than hard-coded to the Colossus |
+| More maps, each with its own boss | New maps, each with its own boss. The first candidates are the Warlord (stays back behind a shield and summons enemies; killing the summoners drops the shield) and the Burrower (tunnels and resurfaces at a different portal) | Map layout and boss are defined by config, and boss behavior is its own module |
 | Card reroll | Reroll your 3 offered cards, paid from team coins | Offers are generated by one seeded function, so a reroll just calls it again |
 | Critical hits | Crit chance and crit damage cards | Damage goes through one function, so crit is one extra step there |
-| Solo mode (likely v3 or v4) | One character of each class. The player switches "focus" between them, controlling the focused character with its full actions and abilities; bots control the other three. The build phase is longer, because one player makes decisions for all four characters | Characters read input through an input-source interface (phone controller now, bot later), never directly from the network |
 | Elite enemy variants | Modifiers such as armored or fast | Enemy stats come from config, so a variant is a stat override |
-| Music | v1 ships sound effects only (§12) | Theme packs carry an audio map (§15.4), so music is more entries plus a player |
+| Music | v1 ships sound effects only (§12) | The presentation layer carries an audio map (§15.4), so music is more entries plus a player |
 | Enemy back views | Back views for the common walkers (§2.4) | Rig views are looked up per rig from data, so a new view is data, not code (§15.2) |
-| Hunter v2 behavior | Walks in and waits where no tower can hit it; attacks a player within the Ranger's range; otherwise waits for a player below 50% HP (always targeted) or a Brute to shelter behind (§9, Foster, C3) | The Hunter is its own `ai` module with a tower-threat map (`ai/threat.ts`) |
+| Hunter v2 behavior | Walks in and waits where nothing that shoots can hit it; attacks a player within the Ranger's range; otherwise waits for a player below 50% HP (always targeted) or a Brute to shelter behind (Foster, C3) | The Hunter is its own `ai` module with a threat map (`ai/threat.ts`) |
+| Smarter enemies | Smarter enemy AI (user, RC3), for example flanking, focus-firing low-HP knights, avoiding hazards; no design yet | Each enemy behavior is its own `ai` module (§15.3) |
+| End-of-run stats banners | The summary shows **all** of the run stats for each player in a per-player banner, like a fighting-game results screen (user, RC0). v1 keeps the §4 summary: waves survived, per-player stats and one award card per player | `RunStats` already holds every per-player stat (§15.6), so this is summary layout only |
+
+**Build idea pool** (from REDESIGN §C5, with Foster's mechanics notes; best-fit class):
+
+| Build | Input | Mechanics | Best fit | Status |
+|---|---|---|---|---|
+| Shield generator | Thrown | Knights and squad in range take less damage; range shown | Tank | v1 Warden |
+| Mines | At feet | Up to 3 active; translucent; short trigger delay; ground enemies only | Marksman | v1 Ranger |
+| Healing beacon | Thrown | Heals allied knights in a small area | Support | v1 Artificer |
+| Rally flag + squad | Thrown | The squad fights at the flag; soldiers come from his super | Control | v1 Commander |
+| Pulse turret | Thrown | Like the tower-defense pulse turret but weaker; enemies treat it as a knight. Deals damage; not a decoy | Marksman | Pool |
+| Shock net | Thrown | Like the tower-defense shock net (slows ground enemies crossing it), with a stronger slow | Control | Pool |
+| Nanite bomb | At feet | Mine-like; on trigger, infects nearby enemies for 3–4 s with damage over time | Control (area denial); also marksman | Pool |
+| Stun trap | At feet | Stuns the enemy that triggers it | Control | Pool |
+| Magnet box | Thrown | Pulls enemies in range toward it for about 2–3 s; pulled enemies can still attack and be hit; the boss is immune | Control; also tank (pull enemies into himself) | Pool |
+| Oil slick | Thrown (oil drips along the flight path) or at feet (a trail for 3–4 s while the knight moves); undecided | Oil on the ground that can be lit on fire | Control | Pool |
+| Damage station | Thrown | Boosts allies' damage in an area; has HP and is attacked | Support | Pool |
+| Buff station variants | Thrown | Same as the damage station, buffing another stat (for example movement speed) | Support | Pool |
+| Robot pet | Thrown | Chases enemies and fights back; limited HP and attack, but can defeat a few enemies before dying | Marksman (peels enemies off a ranged knight); also tank | Pool |
+| Temporary wall | In front of the knight, facing direction | Reroutes enemies using wall pathing (including Brute and Colossus wall targeting) | Tank | Waits for maps with structure |
+
+A build meant to draw fire needs more than the default rule (a taunt or a larger aggro radius), since
+every HP build already draws fire; none in v1 (the decoy idea became the pulse turret).
 
 ## 14. Open / under discussion
 
-1. **Final name:** "Fort Frenzy" is the working title. Before any public or Steam release, check it
-   against Steam, itch.io and the USPTO trademark database. (The subdomain is set in §2.3.)
-   ("Stronghold" was dropped because of Firefly Studios' *Stronghold* series.)
-2. **Numbers to set in playtesting:** player HP, character damage and super charge rates, structure costs
-   and HP, snare discharges and slow strength (no structure may cost more than the non-Quartermaster
-   carry cap, §6), crate prices, the per-crate slowdown curve, base HP and the repair amount per crate,
-   aggro and leash radii (§9), and the breaker field's wall cost (§15.5). Every one of them is in the
-   balance sheet, `src/content/balance.ts` (§15.4), and the starting values are picked during
-   implementation.
-   - **Main-attack cooldowns start at 0.4 s or more.** Attacks fire once per release (§10.1), so Haste
-     only matters while the cooldown is longer than a fast tap.
-3. **Passive regeneration (balance watch):** HP carries over between waves and nothing heals players
-   except Field Medic and the Quartermaster's super (§5, §8). If playtests show players dying too often,
-   add a slow passive regeneration during combat, boosted inside the Field Medic aura.
+1. **Name:** the game stays **Fort Frenzy** (`fort-frenzy.fostercurtis.dev`; app folder and game ID
+   unchanged). Before any public or Steam release, check it against Steam, itch.io and the USPTO
+   trademark database. ("Stronghold" was dropped because of Firefly Studios' *Stronghold* series.)
+2. **Numbers to set in playtesting:** every one lives in `src/content/balance.ts` (§15.4); the spec
+   states starting values and stops there. Open: the baseline knight HP and each knight's damage,
+   ranges and cooldowns; the class HP tiers, damage bands and growth; super charge rates and sources;
+   build meter passive and action rates; build HP, charges, radii, throw ranges, trigger and arm delays,
+   the shield generator's reduction and the beacon's heal rate; the squad cap and soldier stats; regen
+   delay and percentage; respawn times and the difficulty multipliers; the hot share and the active
+   portal cap; wave budgets and per-wave enemy multipliers; coin rate and shop prices (the §6.2 curve);
+   card numbers; aggro and leash radii, the Hunter's lock-on range and sprint, and the Flyer's range.
+   - **Main-attack cooldowns start at 0.4 s or more** (the Artificer's at 0.8 s or more). Attacks fire
+     once per release (§10.1), so Haste only matters while the cooldown is longer than a fast tap.
+   - **Balance watches:** regen vs support healing (§5); an empty field feeling flat (§3.1); ranged
+     knights taking too few hits (Siege targeting and the Flyer's range are the first answer; revisit
+     after playtesting); the Ranger covering two sides from the middle (§8.2).
+3. **Passive regeneration:** settled by the redesign (§5, REDESIGN A6).
 4. **Sound effects (settled 2026-10-29, §15.11 #34):** Foster supplies Kenney.nl CC0 packs in
-   `audio/kenney/<pack>/` (with each pack's `License.txt`); the build picks the v1 set from them and
-   converts it to `.mp3` in `audio/neon-knights/`. Earlier candidates: source the v1 set (§12). Candidates: Kenney.nl (CC0 packs: Sci-fi Sounds, Impact
-   Sounds, Interface Sounds), jsfxr/sfxr.me (generated, owned outright), Sonniss GDC bundles
-   (royalty-free) and freesound.org (CC0 filter only). Every file gets a license entry (§15.10).
-5. **Art status:** the v1 neon-knights art is complete in `art/neon-knights/` (§15.10): P1 (rigs,
-   characters, enemies, structures, Citadel, icons), P2 (autotiles, damage, scrap, effects, map) and P3
-   (the side-view Colossus, status effects, carry pips, card marks, `leader`, `overflow-shield`). The
-   mortar ring, Fortify dome, Armory and power cell keep their earlier art, drawn slightly narrower than
-   the full 80 × 48 tile and centered on their anchors. Anything missing falls back to the dev-only
-   shapes (§15.2) and text labels for icons.
-6. **Map layout:** the v1 map (§15.2: 36 × 24 tiles, lane entries bottom-center, left and right) is a
-   starting layout to tune in playtesting. The map shrank from 38 × 28 to give the bottom-edge boss bar
-   (§2.6) its own band inside the TV-safe margin; revisit if it plays cramped.
-7. **Knight joints:** the knights' pivots were derived from the geometry. Review them in motion once
-   animation runs, especially plumes and weapon grips.
+   `audio/kenney/<pack>/` (with each pack's `License.txt`); the build picks the set from them and
+   converts it to `.mp3` in `audio/neon-knights/`. Every file gets a license entry (§15.10).
+5. **Art status:** the neon-knights art is complete in `art/neon-knights/` (§15.10), the redesign art
+   included (builds, portals, redesign effects, the Commander's shield, the Warden's slam group, the
+   new icons; merged from `art/redesign`), so the redesign uses no placeholders. Art the redesign
+   leaves behind is listed in `art/neon-knights/review/redesign/obsolete.md`: "kept on file" stays
+   (the build idea pool), "removed outright" is deleted in RD12 (§2.6). Anything missing falls back to
+   the dev-only shapes (§15.2) and text labels for icons.
+6. **Map layout:** the v1 map (§3.1, §15.2: 36 × 24 tiles, 6 portals) is a starting layout to tune in
+   playtesting. The map shrank from 38 × 28 to give the bottom-edge boss bar (§2.6) its own band inside
+   the TV-safe margin; revisit if it plays cramped.
+7. **Knight joints:** the knights' pivots were derived from the geometry. Review them in motion,
+   especially plumes, weapon grips and the Commander's shield.
 
 ---
 
 ## 15. Technical design
 
-Decisions and contracts for building §1–§14. Type sketches are TypeScript and indicative: the build
-freezes the exact shapes in the contract files named in §15.11. Repo-wide rules are in `PLATFORM.md`;
-the relay protocol is in `apps/relay/SPEC.md`. Where this section says "as in Sunny Side", the pattern is
-in `apps/sunny-side` (its `SPEC.md` and `BUILD_PLAN.md` §8).
+Decisions and contracts for building §1–§14. Type sketches are TypeScript. **The redesign's sketches
+(marked v2) are exact:** RD2 implements them as written in the contract files named in §15.11, which
+freeze after RD2 (additive changes only after that). Repo-wide rules are in `PLATFORM.md`; the relay
+protocol is in `apps/relay/SPEC.md`. Where this section says "as in Sunny Side", the pattern is in
+`apps/sunny-side` (its `SPEC.md` and `BUILD_PLAN.md` §8).
 
 ### 15.1 Repo and packages
 
 - **App:** `apps/fort-frenzy`, package `@pcg/fort-frenzy`, game ID `fort-frenzy`, domain
   `fort-frenzy.fostercurtis.dev` (§2.3). Same layout as Sunny Side: `index.html` (TV, `data-entry="host"`)
   and `play.html` (phone, `data-entry="controller"`) as separate Vite entries.
-- **Relay and `@pcg/net-client`:** reused unchanged. No protocol change is needed (§15.6).
-- **New shared packages, extracted now** (this is the second game, `PLATFORM.md` §4). Sunny Side moves
-  onto both in the same milestone, behavior-preserving, gated by its existing `check:sunny-side` and
-  `e2e:sunny-side`. Both ship as TS source like `net-client` and import nothing from `apps/**`.
+- **Relay and `@pcg/net-client`:** reused unchanged. The relay is game-agnostic (`maxPlayers` 8), so the
+  redesign needs no relay change or redeploy (§15.6).
+- **Shared packages** (`PLATFORM.md` §4), both TS source importing nothing from `apps/**`. **The
+  redesign changes no shared code** (§15.11 #71): `layoutCombat`, `ChargeRing` and `RoundButton` are
+  Fort Frenzy's own; the build button reuses the kit's `aimedGesture` and `tapGesture` unchanged;
+  `radialGesture` stays exported (frozen API) and unused; catalog validation already accepts
+  `minPlayers: 1`.
   - **`@pcg/controller-kit`** (DOM only, never Phaser):
     - platform: Wake Lock, a manual **full-screen button** (`createFullscreenButton`: no automatic
       full screen on tap; where the API is missing, e.g. iPhone Safari, it opens the Add-to-Home-Screen
@@ -1431,7 +1708,7 @@ in `apps/sunny-side` (its `SPEC.md` and `BUILD_PLAN.md` §8).
       rotate) and a screen router that reuses DOM between screens in the same group
     - input widgets: the floating joystick (radius, dead zone, idle opacity and ease-back as
       parameters), the hold button, the nearest-center router with hit slop, hold-to-confirm, the
-      **aimed-button gesture** and the **radial-drag gesture** (§15.7)
+      **aimed-button gesture**, the tap gesture and the radial-drag gesture (unused here, §15.7)
     - a schema-driven input sender: tuple layout, counters, fixed rate while touched (§15.6)
     - the `?dev=1` fake client and screen switcher harness, plus DOM helpers
   - **`@pcg/game-kit`** (no Phaser, no DOM in the core entry):
@@ -1447,39 +1724,50 @@ in `apps/sunny-side` (its `SPEC.md` and `BUILD_PLAN.md` §8).
   - `src/host/party/`: roster, player-key and device-ID matching, leader and handoff, colors, names,
     ready and lobby removal.
   - ESLint enforces both, so extracting later is a folder move.
-- **App layout:**
+- **App layout** (v2):
 
 ```
 apps/fort-frenzy/
-  index.html  play.html  vite.config.ts  vercel.json  playwright.config.ts
-  SPEC.md  BUILD_PLAN.md
-  art/<theme>/          e.g. art/neon-knights/ (layout in its README.md, §15.2, §15.10):
-                        rigs/<id>.json, sprites.json, characters/ enemies/ structures/ effects/ map/
-                        (SVG sources), icons/ (§2.6), review/ (reference only, never built)
-  audio/<theme>/        .mp3 sources
+  index.html  play.html  vite.config.ts  vercel.json  playwright.config.ts  game.meta.ts
+  SPEC.md  REDESIGN.md  REDESIGN_BUILD_PLAN.md  BUILD_PLAN.md (TD history)
+  art/neon-knights/     the art set (layout in its README.md, §15.2, §15.10): rigs/<id>.json,
+                        sprites.json, characters/ enemies/ structures/ effects/ map/ (SVG sources),
+                        icons/ (§2.6), review/ (reference only, never built)
+  audio/neon-knights/   .mp3 SFX
   audio/kenney/<pack>/  Kenney CC0 source packs (Foster's drop; the build picks and converts from them)
   assets/LICENSES.json  one entry per asset or pack (§15.10)
-  scripts/              build-atlases.ts, replay.ts (Node)
+  scripts/              build-atlases.ts, replay.ts, soak, bench, balance (Node)
   src/
-    shared/       messages.ts (protocol), ids.ts, theme.ts (brand.css mirror), relayUrl
-    content/      balance.ts (every tuning number, §15.4), map.ts, index.ts, types.ts
-    themes/<id>/  shared.ts (phones + TV), host.ts (TV only)
+    shared/        messages.ts (protocol), ids.ts, theme.ts (brand.css mirror), relayUrl
+    content/       balance.ts (every tuning number, §15.4), map.ts, index.ts, types.ts
+    presentation/  types.ts, shared.ts (phones + TV: display names, icons, portraits),
+                   host.ts (TV only: atlases, rigs, clips, SFX, map frames)
     host/
-      sim/        deterministic run simulation: world, systems, step order, run phases, economy
-      systems/    extraction-ready systems (above)
-      party/      extraction-ready lobby/party (above)
-      net/        relay wiring, input sources, phone state sync, intent routing
-      render/     Phaser scenes, camera, layers, rigs, bloom, effects
-      audio/      SFX player
-      debug/      debug panel (§9.5), replay recorder
-    controller/   phone app (DOM)
-    styles/       brand.css (brand kit)
+      sim/         deterministic run simulation: world, systems, step order, run phases, economy;
+                   builds/ (build behaviors by BuildId), autopilot/ (bots, per-knight build policy)
+      systems/     extraction-ready systems (above)
+      party/       extraction-ready lobby/party (above)
+      net/         relay wiring, input sources, phone state sync, intent routing
+      render/      Phaser rendering: camera, layers, rigs, clips, bloom, effects
+      scene/       the World scene's views; scene/builds/<build>.ts per build (import.meta.glob)
+      audio/       SFX player and cues
+      ui/          the TV's DOM overlay (HUD and full-screen screens)
+      debug/       debug panel (§9.5), replay recorder
+    controller/    phone app (DOM)
+    styles/        brand.css (brand kit)
 ```
 
-- **Rule: all theme art lives under `art/<theme>/`** (neon knights: `art/neon-knights/`), icons included,
-  so later themes sit beside it. Nothing reads art from outside `art/<theme>/`.
+- **No theme layer** (§2.1, §15.11 #64). `src/themes/` becomes `src/presentation/`
+  (`PresentationShared`, `PresentationHost`, the rigs and clips; §15.4): it stays a presentation
+  boundary the sim can't import, minus theme selection (§15.11 #68). There is no theme id, theme row
+  or theme intent.
+- **Art stays in `art/neon-knights/`** (and audio in `audio/neon-knights/`), not flattened
+  (§15.11 #67): `build-atlases.ts` treats `art/<set>` as the root, the rig clips import rig JSON by path,
+  the art README and review sheets cite the path, and the art agent owns the folder. Nothing reads art
+  from outside it.
 - **Lint boundaries** (root `eslint.config.js`; a shared-config change, so it runs the full gate):
-  - `src/host/{sim,systems,party}/**`: no `phaser`, no `@pcg/net-client`, no `src/themes/**`, no DOM.
+  - `src/host/{sim,systems,party}/**`: no `phaser`, no `@pcg/net-client`, no `src/presentation/**`
+    (was the `themes` pattern), no DOM.
   - `src/host/{sim,systems}/**`: no `Math.random`, `Date.now`, `performance.now` or `new Date()`
     (determinism, §15.3).
   - `src/host/{systems,party}/**`: no imports from `src/content`, `src/host/sim` or other app folders.
@@ -1489,11 +1777,12 @@ apps/fort-frenzy/
 
 - **Phaser 4.2.x** renders only; it never owns game state (as in Sunny Side). **No physics engine:** the
   sim moves bodies kinematically, with circle hitboxes, a uniform spatial hash for "who's near me"
-  queries and soft separation, collision against blocking structure tiles, and knockback as a velocity
-  impulse with damping. Our attacks hit enemies' body capsules (§2.5, §9, C4); the debug hitbox overlay
-  (§9.5) draws each enemy's capsule as a 0.6 stadium over its feet circle, and the gallery's too.
+  queries and soft separation, collision against `blocked` tiles (none on the v1 map), and knockback as
+  a velocity impulse with damping. Our attacks hit enemies' body capsules (§2.5, §9, C4); the debug
+  hitbox overlay (§9.5) draws each enemy's capsule as a 0.6 stadium over its feet circle, and the
+  gallery's too.
 - **Canvas:** 1920 × 1080 logical, `Scale.FIT`.
-- **Screen layout** (W = 48 px tile width, depth 28.8 px per §2.5):
+- **Screen layout** (the HUD bands are in canvas px; the map is drawn at W ≈ 52.3 px, depth 31.4 px, k ≈ 1.089, §2.5):
 
 Everything sits inside the brand's 96 px TV-safe margin (`--space-tv-safe`) on all four sides.
 
@@ -1502,15 +1791,15 @@ Everything sits inside the brand's 96 px TV-safe margin (`--space-tv-safe`) on a
 | Top margin | 0–96 | nothing (TV-safe) |
 | Top HUD | 96–136 | wave and phase (left), base HP bar centered directly above the Citadel, team coins (right); "Citadel under attack" under the bar at low HP |
 | Headroom | 136–216 | the Citadel's keep, core and smoke plumes rise into it (§3.6) |
-| Playfield | 216–907 | 36 × 24 sim tiles, x 96–1824; during the build phase, ready status and the wishlist overlay its right side |
-| Bottom HUD | 907–984 | boss bar (boss waves); purchase announcements stack bottom-left. The build phase's next-wave card is 156 px tall (828–984, x 600–1760, clear of the announcements): it ends on the bottom edge and overlays the playfield's last rows so enemy icons (120 × 88) read from the couch (C1) |
+| Playfield | 223–976 | 36 × 24 sim tiles, x 19–1901 (the map is 98% of the view width, `MAP_SIDE_MARGIN`; the Citadel's headroom grows with it); during the build phase, ready status and the wishlist overlay its right side |
+| Bottom HUD | 907–984 | boss bar (boss waves); purchase announcements stack bottom-left. The build phase's next-wave card is 156 px tall (828–984, x 600–1760, clear of the announcements): it ends on the bottom edge and overlays the playfield's last rows so enemy icons (120 × 88, shrinking to 56 wide with tighter spacing when a wave has many types, so none is cut) read from the couch (C1); the text block is only as wide as its text and the icons follow it (RC2) |
 | Bottom margin | 984–1080 | nothing (TV-safe) |
 
-- **Map v1** (config, §15.4): 36 × 24 tiles. Citadel footprint cols 16–19, rows 0–1; repair zone cols
-  17–18, row 2 (in front of the gate); Armory pad col 22, row 1. Lane entries: bottom-center (cols
-  17–18, row 23; open from wave 1), left (col 0, rows 11–12; wave 3) and right (col 35, rows 11–12;
-  wave 8). Enemies spawn just outside the edge and walk in; the lane-warning band (§2.6) glows on that
-  screen edge. A starting layout to tune (§14).
+- **Map v1** (`src/content/map.ts`, §15.4): 36 × 24 tiles, all `open` except the Citadel footprint
+  (cols 16–19, rows 0–1) and the portal tiles. Portals (§3.1): `bottom-w` cols 9–10 row 23, `bottom-e`
+  cols 25–26 row 23, `left-n` col 0 rows 11–12, `left-s` col 0 rows 18–19, `right-n` col 35 rows
+  11–12, `right-s` col 35 rows 18–19. Enemies spawn just outside the edge at the portal and walk in.
+  A starting layout to tune (§14).
 - **Camera:** every world-to-screen conversion goes through one interface, so the v2 dynamic camera
   (§13) is a new implementation, not a rewrite.
 
@@ -1524,27 +1813,34 @@ interface Camera {
   readonly scale: number;
   update(dtMs: number, focus: readonly { x: number; y: number }[]): void; // no-op in v1
 }
-// v1 FixedCamera: sx = 96 + x·W, sy = 216 + y·W·0.6 − z·W
+// v1 FixedCamera: sx = originX + x·W·k, sy = originY + (y·0.6 − z)·W·k, with k and the origin from
+// fitMap(): the map is as wide as the view less a 1% side margin each side, centered, its top at
+// 136 + 80·k (below the top HUD plus the scaled Citadel headroom), k ≈ 1.089 at 1920 × 1080.
 ```
 
-- **Layers**, bottom to top:
-  1. ground: map tiles, Citadel plate, Armory pad, repair zone
-  2. ground overlays: red danger markers, shock nets, structure base plates, wall rails, build-ghost
-     footprints, the rally-flag ring, player rings (with the amber super-ready pulse, §10.1), Field
-     Medic circle, range previews, AoE rings (all 0.6 ellipses of sim circles), the amber-filled bar, cone and
-     circle aim previews (§10.1; the sim's `hitShape`, code-drawn)
-  3. **world**, one y-sorted layer: structures, the Citadel, the Armory kiosk, units, flyers and arcing
-     projectiles. Sort key = foot point; flyers and arcing projectiles sort by their shadow; multi-tile
-     structures by their footprint's front edge.
-  4. effects: hit sparks, tracers, muzzle flashes, plumes
-  5. world UI: nametags and HP bars (flipping below near the top edge, §2.1), the build arc,
-     the Stalker target flash
+- **Layers** (v2), bottom to top:
+  1. ground: map tiles, portals (idle and flare frames), the Citadel plate
+  2. ground overlays: red danger markers (the Colossus Charge lane included), build rings and
+     footprints (`shield-base`, `beacon-pulse`, `mine-blast-ring`, `brute-target`, the dotted build
+     effect-radius ellipses, the rally-flag ring), `shockwave`, `landing-dust`, `charge-dust`,
+     `slam-cracks`, player rings (with the amber super-ready pulse, §10.1), the Field Medic circle,
+     range previews, AoE rings (all 0.6 ellipses of sim circles), the amber-filled bar, cone, circle
+     and throw-landing aim previews and the throw range ring (§10.1; the sim's `hitShape` and
+     `throwShape`, code-drawn), build and in-flight shadows
+  3. **world**, one y-sorted layer: **builds** (mines translucent once live), the Citadel, units,
+     soldiers, flyers, arcing projectiles and thrown builds and soldiers. Sort key = foot point; flyers,
+     arcing projectiles and anything thrown sort by their shadow.
+  4. effects: hit sparks, tracers, muzzle flashes, plumes, `shield-shimmer-*`, `mine-blast`,
+     `brute-target-arrow`, `portal-flare`
+  5. world UI: nametags and HP bars (flipping below near the top edge, §2.1), the violet enemy and
+     amber build HP bars (§2.6), the Stalker lock-on flash, the Rally Cry "×2"
   6. HUD (screen space)
+  Rings and footprints always sit under the build or knight they belong to.
 - **Ground, world or effects:** each non-rig frame's `layer` in `sprites.json` is one of:
   - `ground` (layers 1–2): anything flat on the ground, as its own frame.
-  - `world` (layer 3): upright things, plus projectiles, shells, scrap and the deploy beacon.
-  - `effects` (layer 4): flashes, sparks, heal glints, the shock crawl and the wall strike.
-  - No frame is on two layers, so a player standing on a pad or plate is never drawn behind it.
+  - `world` (layer 3): upright things, plus builds, projectiles, shells, scrap and the deploy beacon.
+  - `effects` (layer 4): flashes, sparks, heal glints, the shock crawl, the shield shimmer, blasts.
+  - No frame is on two layers, so a knight standing on a build's footprint is never drawn behind it.
 - **What's Phaser and what's DOM:** layers 1–5 are Phaser, since world UI moves with entities every
   frame and needs interpolation and y-sorting. The **HUD and the full-screen TV screens** (home, lobby,
   summary) are a **DOM overlay** over the canvas, scaled with it to the 1920 × 1080 logical size. They
@@ -1553,18 +1849,18 @@ interface Camera {
 - **Bloom:** one threshold bloom on the composited world (layers 1–4) at half resolution. The threshold
   catches amber `#e8a33d` and violet `#8f6bff` and never the gunmetal and violet-iron shades (§2.5). SVG
   glow filters are stripped at rasterize time (§15.10), so nothing double-glows.
-- **Rigs** (§2.4): each character, enemy and animated structure is a rig. Its parts are atlas frames.
+- **Rigs** (§2.4): each character, enemy and the mortar is a rig. Its parts are atlas frames.
   Animation clips live in code as keyframe tracks per part; the rig JSON says where parts are.
 
 ```ts
 type ViewId = 'side' | 'front' | 'back';
 interface RigDef {
-  id: string;                                // the theme's rig id: 'warden', 'colossus', 'mortar'
+  id: string;                                // rig id: 'warden', 'colossus', 'mortar'
   viewBox: [number, number, number, number]; // shared by every part in every view: parts stack at rest
   views: Partial<Record<ViewId, RigView | RigPoses>>; // enemies, Colossus, mortar: side only (§13)
-  /** Named part groups, hidden unless code turns the group on: { banner: [...] } (carried flag),
-   *  { 'core1-full': [...], ... } (Artificer gauge), { mk2, mk3, final } (Colossus, cumulative),
-   *  { ii, iii, band1, band2, band3 } (mortar). */
+  /** Named part groups, hidden unless code turns the group on: { banner, sword } (Commander),
+   *  { 'core1-full', ... } (Artificer gauge = build meter), { slam } (Warden), { mk2, mk3, final }
+   *  (Colossus, cumulative), { ii, iii, band1, band2, band3 } (mortar). */
   optional?: Record<string, string[]>;
 }
 /** A view with several part sets (the Ranger: 'stand' and 'ready', §2.4); others have one. */
@@ -1580,7 +1876,7 @@ interface RigView {
                                              // host); code can pulse/brighten it
   }>;
   order: string[];                           // back-to-front for this view (and pose)
-  /** Named points that ride on a part: nametag, badge, carry, muzzle, sword-tip, eyes, top, ... */
+  /** Named points that ride on a part: nametag, badge, muzzle, shield, hammer-ground, pack, eyes, top, ... */
   attach?: Record<string, { part: string; at: [number, number] }>;
 }
 interface Clip { durationMs: number; loop: boolean; tracks: Record<string, Keyframe[]> }
@@ -1596,78 +1892,98 @@ interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: num
   firing). Steady Aim crossfades from `stand` to `ready`; firing without Steady Aim snaps to `ready` for
   the shot. Every other rig has one pose per view.
 - **Frame names:** a frame's name is its file path under its category folder (`characters`, `enemies`,
-  `structures`, `effects`, `map`), without `.svg`. Rig ids and frame names are the theme's own (the
-  theme pack maps internal ids such as `engineer` to rig ids such as `ranger`, §2.1).
+  `structures`, `effects`, `map`), without `.svg`. Rig ids are the knights' code ids (`warden`,
+  `ranger`, `artificer`, `commander`) and the enemies' art names (`drone`, `skitter`, …, mapped from
+  enemy ids in `PresentationHost.rigFor`).
   - Rig parts: `<rig>/<view>/<part>`, or `<rig>/<view>/<pose>/<part>` for posed rigs
     (`ranger/front/ready/bow`). Single-view rigs (enemies, the Colossus, the mortar) use `side`.
   - Every other frame is listed in `sprites.json` with its viewBox, anchor, layer, tint and attach
     points (for example muzzles per aim frame).
-  - Pulse turret: `plate/tile` (ground), `pulse-turret/pedestal` (or `pedestal-iii`), `band1` … `band<n>`
-    on the pedestal, then the head `pulse-turret/<base|ii|iii>/<aim>` (aims `e se s sw w nw n ne`, `s`
-    faces the camera). Unupgraded is the base head with no band; I adds `band1`; II is the `ii` head with
-    bands 1–2; III is the `iii` head on `pedestal-iii` with bands 1–3.
+  - Builds: `shield-gen/<state>`, `beacon/<state>` (`flight landed active damaged destroyed`),
+    `mine/<armed|trigger>`, `rally-flag/<ring|pole|cloth|cloth-trim>` planted and
+    `rally-flag/flight-<pole|cloth|trim>` in flight; anchor (0, 0) = ground center.
   - Sentries: `sentry/<loadout>/<aim>` (loadouts `base dmg rng max`, aims `l dl c dr r`), origin at the
     mount point (§3.6).
   - Citadel: `citadel/<part>` and the damage overlays `citadel/dmg-cracks`, `dmg-fire`, `dmg-smoke`
     (atlas frames, since every crack is hand-drawn); `citadel/rubble` is the destroyed end state.
-  - Walls and shock nets: `wall/m<n>` (world), `wall/rail/m<n>` (ground), `wall/charged/m<n>` and
-    `wall/dmg/m<n>` (world overlays), `shock-net/m<n>` (ground); tile-centered. `n` is the 4-bit mask of
-    same-type neighbors, N = 1, E = 2, S = 4, W = 8, recomputed for a tile and its neighbors whenever a
-    wall or net is placed or removed. Neighbors share posts: a tile draws its N and W edge posts, and
-    its E and S edge posts only when there's no neighbor on that side.
-  - Damage and scrap: `pulse-turret/dmg` (one overlay for every aim), `effects/scrap-ours-1`…`5`
-    (1–2 footman-sized, 3–5 structure-sized), `effects/scrap-theirs-1`…`5`.
-  - Effects: projectiles (`bolt`, `nanite-bolt`, `mortar-shell`, `bombard-shell`, `boulder`,
-    `wasp-shot`) and muzzle flashes point along +x from (0, 0) and rotate to their projected direction;
-    `wall-strike` runs (0, 0)–(100, 0) and stretches along x only; `shock-crawl` scales to the slowed
-    enemy's leg height.
+  - Scrap: `effects/scrap-ours-1`…`5` (1–2 footman-sized, 3–5 build-sized), `effects/scrap-theirs-1`…`5`.
+  - Effects: projectiles (`bolt`, `nanite-bolt`, `bombard-shell`, `boulder`, `wasp-shot`) and muzzle
+    flashes point along +x from (0, 0) and rotate to their projected direction; `shock-crawl` scales to
+    the slowed enemy's leg height; the redesign effects (`shield-base`, `shield-shimmer-1…3`,
+    `beacon-pulse`, `mine-blast-ring`, `mine-blast`, `brute-target`, `brute-target-arrow`, `shockwave`,
+    `landing-dust`, `charge-dust`, `slam-cracks`, `slam-cracks-wide`, `portal-flare`) are placed and
+    scaled per the art README's "Effects" table.
   - Map: `map/ground/1`…`4` (1 on most tiles, 2–4 sparsely by a seeded hash of the tile),
-    `map/edge/<n s e w ne nw se sw>` on border tiles except lane tiles, `map/lane/<lane>-<open|sealed>`
-    (§3.1), and `map/decor/*`. The theme's `floorLift` is added to every ground, edge and decor frame
-    at draw time (Phaser ADD tint; lanes keep their glows untinted), so the floor reads lighter than
-    its art: neon knights lifts the #262b33 stone to #62676f, enough for the violet-iron hulls and the
-    ink outlines to stand off it, and still below the bloom (§15.11 #43).
+    `map/edge/<n s e w ne nw se sw>` on border tiles except portal tiles,
+    `map/portal/<bottom|left|right>-<idle|flare>` (anchored at the edge midpoint between a portal's two
+    edge tiles; every bottom portal uses `bottom-*`, side portals their side's frames), and
+    `map/decor/*`. `floorLift` (`PresentationHost.map`) is added to every ground, edge and decor frame
+    at draw time (Phaser ADD tint; portals keep their glows untinted), so the floor reads lighter than
+    its art: it lifts the #262b33 stone to #62676f, enough for the violet-iron hulls and the ink
+    outlines to stand off it, and still below the bloom (§15.11 #43).
   - Status effects (§6.1): `burn-1`/`2` and `corrosion-1`/`2` loop at about 8 fps, anchored
-    bottom-center on the body and scaled to its height; `stun-1`…`4` loop centered on the enemy's
-    `top` point; `defense-bonus` shares the tower's anchor and draws right after it; `carry-pip` and
-    `carry-pip-empty` (ground) sit at slot `k` of `cap`, angle `a = 90° + (cap − 1)·7.5° − k·15°`
-    (screen space, y down), at `(cx + (rx + 8)·cos a, cy + (ry + 4.8)·sin a)` around the ring center.
+    bottom-center on the body at the top of its legs, at 0.7 of its height, capped at 4× the
+    frame (RC2: about halfway between the old full-height flame and #159's 0.45, only the Colossus
+    capped, §15.11 #159, #161); `stun-1`…`4` loop
+    centered on the enemy's `top` point.
+  - Frames kept on file but unused (the tower-defense structures, `review/redesign/obsolete.md`) stay
+    in `sprites.json` and the atlas until RD12 deletes the "removed outright" ones.
 - **Facing and aim snapping:** side views mirror for left. Knights and footmen take the view from the
   stronger axis of aim (while attacking) or movement, and switch axis only when the other axis is 15%
-  stronger. Aim frames switch only once the target angle is 8° past a sector boundary. The mortar tube
-  rotates in code about its dome center, clamped to ±75° from straight up (§7.2); projectiles rotate to
-  their projected screen direction; Wasp drones mirror only.
+  stronger. Aim frames switch only once the target angle is 8° past a sector boundary. Projectiles
+  rotate to their projected screen direction; Wasp drones mirror only.
 - **Composing a rig:** walk the view's `order`, skip parts whose `optional` group is off, and rotate
   each part about its pivot, chained through its parents. Glow pieces are normal frames whose alpha or
   glow code may raise. The Colossus swaps its legs' draw order mid-stride with `Keyframe.order`. A
   knight's `badge` point may sit above the rig's viewBox, over the helm. The knights' one-piece
   front/back `legs` (and `legs-glow`) are drawn as two halves cropped at the crotch, `legs.l`/`legs.r`
   (back view `legs.bl`/`legs.br`), so clips move each leg on its own (§15.11 #37). A clip may be solved
-  per view as `<clip>@<view>` (the down pile); the rig plays the variant for its current view.
-- **Renderer API additions** (FF3-fix-1, `src/host/render/types.ts`, additive): `RigInstance.clipMs(clip)`
-  and `clipDone` (remove a dead enemy once its death clip ends); `EffectSpawner.burst(…, delayMs?)`,
-  `bodyBurst(kind, footSx, footSy, heightPx)` (3–5 heal glints or nanite motes spread over a body) and
-  `scrap(…, holdMs?)` (a downed knight's pile holds for the down timer). FF8 adds the optional
-  `EffectSpawner.arcWave?(side, x, y, r, angleRad, arcDeg, ms?)`: a ground shockwave rolling out across a
-  sector, drawn as a 0.6 band of the sim's hit arc (the Warden's slam and stomp).
-- **Pooling:** render-side only. Phaser objects for projectiles, effects, damage numbers and Swarm units
-  come from per-kind pools; sim entities are plain objects, not pooled.
+  per view as `<clip>@<view>` (the down pile); the rig plays the variant for its current view. The
+  Warden's smash and jump slam switch the `slam` group on at impact and hide `hammer`/`hammer-glow`
+  (front and back views; the side view turns `hammer` to rot 64), per the art README. A clip does the
+  switch with `Keyframe.groups` (`{ slam: true }` from that key on; a group no key names follows
+  `setGroup`), and hides the upright hammer with `alpha` keys until the recover (#113).
+- **Renderer API** (`src/host/render/types.ts`): the FF3-fix-1 and FF8 additions stay
+  (`RigInstance.clipMs`, `clipDone`, `EffectSpawner.burst`, `bodyBurst`, `scrap`, `arcWave`). RD10 adds
+  `MarkKind` `brute-target`, `brute-target-arrow` and `charge-dust`, and `mark`'s optional `flipX`
+  (mirrors a frame about its anchor). RD5 adds the **build-view API** (a view per `BuildId` under `src/host/scene/builds/<build>.ts`, found with
+  `import.meta.glob`: create, update from the sim's `BuildEnt` each frame, destroy), which freezes after
+  RD6. A view exports `view: BuildViewFactory` (`id`, `create(ctx): BuildView`); the scene
+  (`scene/buildsView.ts`) fills a `BuildViewState` (phase, ground point, throw height and progress, HP
+  fraction, effect radius, clock, the beacon's `nextPulse`) from each `BuildEnt` and holds a destroyed build's wreck 600 ms
+  before the `scrap-ours` pile. `render/buildKit.ts`'s `LifecycleBuild` is the shared life cycle
+  (flight spin and shadow, `landed` → `active`, `damaged` below 50% HP, the dotted effect ellipse, the
+  amber bar once damaged, an optional footprint and cycling dome), so a build's view only names its
+  frames. `EffectSpawner.mark(kind, sx, sy, ms, scale)` places the fading ground and effect frames
+  (`slam-cracks`, `slam-cracks-wide`, `landing-dust`, `portal-flare`; RD7 adds `shockwave`,
+  `mine-blast-ring`, `mine-blast`). RD7 also adds `BuildViewState.triggered?` (a mine in its delay) and
+  `LifecycleBuild`'s `liveAlpha` and `trigger` look fields, so the mine's view still only names its
+  frames (#123).
+- **Pooling:** render-side only. Phaser objects for projectiles, effects, damage numbers, HP bars and
+  Swarm units come from per-kind pools; sim entities are plain objects, not pooled.
 - **Interpolation:** the renderer draws positions lerped between the last two sim steps (as in Sunny
   Side), keyed by entity id; spawned entities draw at their current position, removed ones disappear.
   A body drawn at its ground point (every enemy, the Wasp included: its hover height is art, not the
   sim's `z`) lerps on the ground at both ends; heights lerp only between heights (C3, §15.11 #44).
-  The Wasp's flight height is `render/clips/wasp.ts` `WASP_FLIGHT_TILES` (its art's own lift plus the
-  render hover `WASP_HOVER_TILES`), and its content body's `bottom` matches it (C4, §15.11 #50).
+  The Wasp's flight height is `render/clips/wasp.ts` `WASP_FLIGHT_TILES` (its art's own lift at its
+  `WASP_SCALE` draw scale plus the render hover `WASP_HOVER_TILES`, negative since RC3: the rig's
+  empty foot point is drawn below the ground point), and its content body's `bottom` matches it (C4,
+  §15.11 #50, #170). A rig's draw scale is its `RIG_INFO.scale`, set once when it is made.
+  Thrown builds and soldiers draw along their sim `Flight` (§15.3) with a code-drawn arc height.
+- **Per frame,** render code changes only alpha, crop and scale of existing objects (HP bars, rings,
+  meters); it never re-uploads text or rebuilds graphics (the TD plan's FF7-fix-1, FF8, FF9 lessons).
 - **Missing frames:** a dev-only fallback draws a labeled shape for the ID (sized from its hitbox), so a
   missing asset never breaks a build. Production builds fail the atlas check instead (§15.10).
-- **Performance budget**, measured by an early performance test at peak load (6 knights, 30 footmen,
-  150 enemies, 100 projectiles, 60 structures; about 1,300 rig parts in one atlas) on an integrated GPU
-  laptop (Intel Iris Xe class) at 1080p: whole frame ≤ 16.7 ms, one sim step ≤ 2 ms, bloom ≤ 2 ms.
-  The TV measures it in its stress mode, `?debug=1&stress=1` (FF15): the real sim and World scene
-  with no phones, six autopilot knights (every class) on wave 15 against the Colossus Mk III held in
-  its final phase, Swarm packs topping the crowd up to 150, 60 towers, 30 footmen and 100 projectiles
+- **Performance budget** (v2), measured at peak load: **6 knights, 30 soldiers, 150 enemies, 100
+  projectiles, 24 builds** (6 Rangers × 4 mines with Minefield), on an integrated GPU laptop (Intel Iris
+  Xe class) at 1080p: whole frame ≤ 16.7 ms, one sim step ≤ 2 ms, bloom ≤ 2 ms. The TV measures it in
+  its stress mode, `?debug=1&stress=1` (FF15): the real sim and World scene with no phones, six
+  autopilot knights (every knight) on wave 15 against the Colossus Mk III held in its final phase,
+  Swarm packs topping the crowd up to 150, 24 real builds (each knight's own, 4 apiece: mines,
+  shield generators, beacons, rally flags), 30 footmen and 100 projectiles
   (`&peak=synthetic` scatters the whole roster instead), with an overlay of frame time, CPU render
-  submit, bloom (GPU timer query, else bloom on − off) and the sim step's mean and p99.
+  submit, bloom (GPU timer query, else bloom on − off) and the sim step's mean and p99. Agents can't
+  judge GPU performance (headless software GL); the stress mode is for a real TV.
 
 ### 15.3 Simulation
 
@@ -1677,123 +1993,243 @@ interface Keyframe { t: number; rot?: number; dx?: number; dy?: number; sx?: num
   is paused (§10.5; that one also holds the debug `advance` stepper). A pause is outside the sim: no
   command, no replay entry, just no steps.
 - **One deterministic sim owns the whole run** from the countdown to the summary: phases and timers,
-  combat, economy, shop, cards, building and scaling. The lobby is outside it (`party/`); a run starts
-  from `RunStart { seed, settings, slots }`. Everything that changes run state enters as either an
-  **input sample** or a **command** at the start of a step, which is what makes replays exact.
+  combat, builds and meters, regen, economy, shop, cards and growth, and scaling. The lobby is outside it
+  (`party/`); a run starts from `RunStart { seed, settings, slots }`. Everything that changes run state
+  enters as either an **input sample** or a **command** at the start of a step, which is what makes
+  replays exact.
 - **Entity model: ECS-lite.** Plain typed arrays per entity kind, and pure system functions run in a
   fixed order. No ECS library, no class hierarchy.
 
+**Sim types (v2, `src/host/sim/types.ts`).** Unchanged from the TD build unless shown: `Body`, `Unit`,
+`StatBlock`, `StatusEffect`, `AttackState`, `ProjectileEnt` (minus the structure parts below),
+`DangerMarker`, `TileGrid` (minus `occupant`), `SpatialHash`, `BaseState`, `SimCtx`, `AttackEvent`,
+`DamageCalc`, `DamageResult`, `HealResult`, `HealCalc`, `EffectApplyEvent`, `Hooks`, `Modifier`,
+`ModuleDef`, `EffectDef`, `BossBehavior`, `BossAct`, `RunSlot`, `RunStart` (`SimCtx.unit` also resolves builds). Removed: `StructureEnt`,
+`CratePile`, `ThrownCrate`, `World.structures`, `World.cratePiles`, `World.thrown`,
+the wall-smashing field and `FlowFields.dirty`, `TileGrid.occupant`, every `LaneId`, `StructureId` and
+theme id use.
+
 ```ts
-type EntityId = number;                      // incrementing counter, never reused
-interface Body { id: EntityId; x: number; y: number; vx: number; vy: number; r: number; z?: number }
-interface Unit extends Body {
-  hp: number; maxHp: number; facing: number;
-  mods: Modifier[];                          // cards, passives (attach order)
-  effects: StatusEffect[];
-  stats: StatBlock;                          // recomputed when mods/effects change
-  push?: Vec2 | null;                        // knockback velocity, decays each step (FF6)
+/** A thrown build or soldier in the air (§7.3): it lands at `to` on `landsAt`. */
+export interface Flight { from: Vec2; to: Vec2; launchedAt: number; landsAt: number }
+
+export interface PlayerEnt extends Unit {
+  slot: number; classId: ClassId;             // the knight (ClassId = KnightId, §15.4)
+  name: string; color: PlayerColorId; connected: boolean;
+  respawnAt: number | null;                   // dead until this tick (§5)
+  superCharge: number;                        // 0..1
+  meter: number;                              // build meter 0..1 (§7.2); starts the run at 1
+  main: AttackState; super: AttackState;
+  burst: NaniteBurst | null;                  // the Artificer's blast still firing; never saved (RD8)
+  build: AttackState;                         // the build button: queued press, aim, held (§10.1)
+  mainAim: Vec2 | null; superAim: Vec2 | null;
+  buildAim: Vec2 | null;                      // live aim while a thrown build is held (TV preview)
+  /** Regen (§5): no regen before `quietUntil` (5 s after the last damage, main or super); next tick at `nextRegen`. */
+  regen: { quietUntil: number; nextRegen: number };
+  stillTicks: number;                         // Steady Aim
+  flag: Vec2 | null;                          // Commander's rally flag, standing or landing (null = following)
+  squadSeeded?: boolean;                      // Commander: his starting soldiers were given (once a run)
+  growth: { regular: number; boss: number };  // class growth bumps received (§6.1)
+  cards: Partial<Record<CardId, number>>;
+  offer: CardId[] | null; picked: CardId | null;
+  ready: boolean; invincible: boolean;
+  run: RunStats;
 }
-// BaseState also keeps its visual damage stage (§3.3) as `stage?: 0 | 1 | 2 | 3` (FF6).
-// AttackState keeps a player's wound-up attack direction as `windupAim?: Vec2 | null` (FF8: the
-// Warden's slam and stomp land when their wind-up ends; `aim` keeps queueing presses meanwhile).
-interface World {
+// Removed from the TD PlayerEnt: crates, kits, radialOpen, radialSlot, lastBuilt, ghost.
+
+export interface SoldierEnt extends Unit {
+  owner: number; index: number; veterans: number;
+  mode: 'follow' | 'rally';
+  target: EntityId | null;
+  attack: AttackState;
+  flight: Flight | null;                       // thrown by Reinforcements; joins on landing
+}
+
+export interface EnemyEnt extends Unit {
+  kind: EnemyId; flying: boolean;
+  portal: PortalId | null;                     // where it spawned (was `lane`)
+  group: number;
+  ai: 'path' | 'aggro' | 'return' | 'attack' | 'siege' | 'hunt' | 'boss';
+  target: EntityId | null;                     // a knight, soldier, build or BASE_ID
+  leashFrom: Vec2 | null;                      // where it left its way (the leash is measured from here)
+  dropped?: EntityId;                          // the target it let go at the leash (RD10-fix-1, §9)
+  hunting: number | null;
+  huntSince?: number;                          // Hunter, Brute: tick it locked on (drives the flash, §9.6)
+  locked?: boolean;                            // Hunter: locked on and sprinting (§9)
+  huntBuild?: EntityId;                        // Brute: the build it is going for (RD10)
+  attack: AttackState;
+  wander?: { side: number; pace: number; until: number };
+  boss?: { mk: 1 | 2 | 3; stagger: number; staggeredUntil: number | null; finalPhase: boolean;
+    act?: BossAct | null; ready?: Record<string, number>; stunAt?: number | null };
+}
+// HP and damage are baked at spawn: difficulty × player-count table × WaveDef.enemyMult (§2.2).
+// BossAct.kind for the Colossus: 'slam' | 'boulder' | 'charge' (the tell) | 'chargeRun' | 'call' (the
+// wall attack is gone). BossAct.hit? lists who the run already hit (RD10).
+
+/** A placed build (§7). A Unit so it takes damage through `applyDamage` and carries card mods. */
+export interface BuildEnt extends Unit {
+  kind: BuildId;
+  owner: number;                               // the knight's slot
+  seq: number;                                 // placement order per owner (oldest mine goes first)
+  state: 'flight' | 'landed' | 'active';       // a destroyed build is removed (event `buildGone`)
+  flight: Flight | null;
+  targetable: boolean;                         // HP builds (BuildDef.traits.targetable)
+  charges: number | null;                      // mines; null for HP builds and the flag
+  liveAt: number;                              // tick it starts working (landing + switch-on, mine arming)
+  triggerAt: number | null;                    // mines: a ground enemy set it off; bursts at this tick
+  nextPulse: number | null;                    // beacon: next heal pulse tick
+}
+
+export interface FlowFields {
+  ground: FlowField;                           // built once per run (no rebuilds, §15.5)
+  hunted: (FlowField | null)[];                // per hunted player, by slot
+  brute: Record<number, FlowField>;            // per targeted build, keyed by its tile index (§15.5)
+}
+
+export interface TeamState {
+  coins: number;
+  shop: Record<ShopItemId, number>;
+  wishlist: { item: ShopItemId; slot: number }[];
+  /** Fixed at each wave start from the players connected then (§9.4, §11.3). */
+  scaling: { players: number; budget: number; bossHp: number; respawnMs: number;
+    activeCap: number; flyers: boolean };
+}
+
+export interface PendingSpawn {
+  atTick: number; portal: PortalId; enemy: EnemyId; count: number;
+  hot: SideId | null;                          // the hot side at this pulse (debug only; null before RD3)
+  flared: boolean;                             // portal flare sent (§9.4, `rules.flareMs` ahead)
+}
+
+export interface RunSettings { difficulty: DifficultyId }
+
+export interface World {
   tick: number; phase: Phase; wave: number;
+  phaseEndsAt: number | null; seed: number; settings: RunSettings; nextId: EntityId;
   players: PlayerEnt[]; soldiers: SoldierEnt[]; enemies: EnemyEnt[];
-  structures: StructureEnt[]; projectiles: ProjectileEnt[]; cratePiles: CratePile[];
-  thrown?: ThrownCrate[];                    // FF9: Quartermaster throws in flight (from, to, landsAt)
-  markers: DangerMarker[];                   // telegraphs: shape, position, landsAtTick, payload
+  builds: BuildEnt[];
+  projectiles: ProjectileEnt[];
+  markers: DangerMarker[];                     // telegraphs, the Charge lane included
+  spawns: PendingSpawn[];
   grid: TileGrid; fields: FlowFields; spatial: SpatialHash;
-  base: BaseState; team: TeamState;          // coins, shop tiers, wishlist, scaling
-  events: SimEvent[];                        // cleared each step; render, audio and phones read them
+  base: BaseState; team: TeamState;
+  events: SimEvent[];
 }
-type Phase = 'countdown' | 'build' | 'combat' | 'victory' | 'defeat' | 'summary';
+export type Phase = 'countdown' | 'build' | 'combat' | 'victory' | 'defeat' | 'summary';
+// ProjectileEnt.from: KnightId | EnemyId | BuildId | 'archer'; blockedBy is gone (nothing blocks shots).
+// DangerMarker.payload.hitsStructures becomes hitsBuilds. DangerMarker.shape adds 'lane' (RD10): the
+// Charge's path from (x, y) to (x2?, y2?), `r` to each side; it only shows, the run itself hits.
 ```
 
-- **Step order:**
+- **Input sources** (§13 squad solo mode): knights only ever read an `InputSource`.
+
+```ts
+export interface PlayerInput {
+  move: Vec2; mainAim: Vec2; superAim: Vec2; buildAim: Vec2; // −1..1; aim 0,0 on a fire = auto
+  mainAiming: boolean; superAiming: boolean; buildAiming: boolean;
+  mainFires: number; superFires: number; buildFires: number; // counters
+}
+export interface InputSource { sample(tick: number): PlayerInput }
+// PhoneInputSource (§15.6 staleness), AutopilotInputSource (§15.9), ReplayInputSource (§15.9)
+```
+
+  The first sample after a (re)connect only baselines the counters; a counter going backwards (phone
+  reload) re-baselines without firing (as in Sunny Side).
+- **A build press** (`buildFires` grows) resolves from the state at the step it lands (§15.11 #97): in
+  combat, alive and connected, with `meter` = 1 → place (at-feet) or throw toward `buildAim` (thrown;
+  0,0 = the knight's feet), emptying the meter and removing the knight's oldest build over `maxActive`;
+  else a Commander with a flag out → recall; else nothing.
+- **Commands** (v2):
+
+```ts
+export type SimCommand = (
+  | { c: 'presence'; slot: number; connected: boolean }
+  | { c: 'join'; slot: number; name: string; color: PlayerColorId; classId: ClassId }
+  | { c: 'ready'; slot: number; ready: boolean }
+  | { c: 'buy'; slot: number; item: ShopItemId }
+  | { c: 'request'; slot: number; item: ShopItemId; on: boolean }
+  | { c: 'card'; slot: number; card: CardId }
+  | { c: 'debug'; slot: number; action: 'jumpWave'; wave: number }
+  | { c: 'debug'; slot: number; action: 'spawn'; enemy: EnemyId; portal: PortalId }
+  | { c: 'debug'; slot: number; action: 'invincible'; on: boolean }
+  | { c: 'debug'; slot: number; action: 'coins'; amount: number }
+  | { c: 'debug'; slot: number; action: 'meter'; target?: number } // every knight's meter, or `target`'s (RD6)
+  | { c: 'debug'; slot: number; action: 'hot'; side: SideId | null } // force the hot side; null clears (RD6)
+  | { c: 'debug'; slot: number; action: 'card'; target: number; card: CardId } // give one stack (RD6-fix-2, #173)
+) & { ref?: number };
+// Removed: build (select/place/cancel), give.
+// `Sim.debugHot` reads the forced side (the debug panel's readout); the sim keeps it outside `World`.
+```
+
+- **Step order** (v2):
   1. apply this step's commands (logged order)
-  2. sample every slot's `InputSource`; diff press counters into fire/tap/commit events
-  3. players: movement (carry slowdown), attacks and supers, action button, build arc, crates
-  4. AI: enemies (path, aggro leash, siege, hunter, flyer, runner), soldiers, the boss module
-  5. integrate movement, soft separation, structure collision
-  6. projectiles and area attacks → `applyDamage` (ours hit enemy bodies, `sim/body.ts`, C4: the
+  2. sample every slot's `InputSource`; diff press counters into main, super and build fire events
+  3. knights: movement, attacks and supers, build presses (place, throw, recall), passive meter fill
+     (combat only), regen ticks
+  4. builds: flights land, switch-on and arming, mine triggers and bursts, shield generator `guard`
+     re-applied and beacon pulses (combat only)
+  5. AI: enemies (path, aggro leash over knights and HP builds, Brute build hunt, Siege priority,
+     Hunter stalk and sprint, flyer, runner), soldiers (thrown soldiers land and join), the boss module
+  6. integrate movement, soft separation, `blocked`-tile collision; the map-edge wall holds enemies' forced
+     moves (§9)
+  7. projectiles and area attacks → `applyDamage` (ours hit enemy bodies, `sim/body.ts`, C4: the
      content body swept up the screen as a ground capsule, `segmentHitsBody`, `circleHitsBody`,
      `sectorHitsBody`; candidates from `SpatialHash.queryBox`, which looks the tallest body's reach
-     south of the shot)
-  7. status effects, `onTick` hooks, auras (combat only)
-  8. deaths: hooks, coins, crate drops; destroyed blockers rebuild the flow fields
-  9. wave spawner (spawn warnings 3 s ahead)
-  10. phase checks: wave cleared, boss dead, base destroyed, build timer
+     south of the shot); enemy attacks on knights, soldiers, HP builds and the base
+  8. status effects, `onTick` hooks, auras (combat only)
+  9. deaths: hooks, coins; destroyed builds removed; Hunter fields re-priced when a build appeared or
+     went
+  10. wave spawner (portal flares `rules.flareMs` ahead; with no enemy alive the next pulse is pulled
+      forward to flare now, §9.4)
+  11. phase checks: wave cleared, boss dead, base destroyed, build timer (on the deadline: random card
+      picks, then combat)
 - **Determinism rules:** timers are whole steps; all randomness comes from seeded streams; no wall clock
   in the sim (lint, §15.1); arrays iterate in id order and every sort tie-breaks by id. Replays are
   exact on the same JS engine (`Math.sin` and similar may differ between browsers). A **state hash**
   (FNV-1a over a canonical serialization of `World`) checks determinism in tests and replays.
 - **RNG** (`@pcg/game-kit`): a small seeded PRNG plus named streams derived from (seed, label), so one
-  stream's use never shifts another's. Streams: `waves:<n>`, `cards:<wave>:<slot>`, `combat:<wave>` (all
-  in-combat randomness, including Scrap-mite jitter, which runs in the sim so hitboxes match the art;
-  FF10 keeps each mite's drift, pace and re-roll tick in `EnemyEnt.wander?: { side; pace; until }`).
+  stream's use never shifts another's. Streams: `waves:<n>` (groups, portals, hot sides and shifts),
+  `cards:<wave>:<slot>` (offers), `cardPick:<wave>:<slot>` (the deadline's random pick, §10.2),
+  `combat:<wave>` (all in-combat randomness: Scrap-mite jitter, the nanite blast's spread, Rally Cry
+  rolls; FF10 keeps each mite's drift, pace and re-roll tick in `EnemyEnt.wander`).
 
 ```ts
 interface Rng { next(): number; int(lo: number, hi: number): number; pick<T>(xs: readonly T[]): T }
 function rngStream(seed: number, label: string): Rng; // hash(seed, label) → sfc32-style generator
 ```
 
-- **Input sources** (§13 solo mode): characters only ever read an `InputSource`.
+- **Modifiers and hooks:** one interface for passive cards, cards, class growth, status effects, auras,
+  build behaviors and boss behaviors. Hooks run per entity in attach order, then status effects in
+  application order. (`Hooks` is unchanged from the TD build: `onTick`, `onAttack`, `modifyOutgoing`,
+  `modifyIncoming`, `beforeEffect`, `onDamageDealt`, `onDamageTaken`, `onHeal`, `onKill`, `onDeath`,
+  `onPhase`, `modifyHeal`.)
 
 ```ts
-interface PlayerInput {
-  move: Vec2; mainAim: Vec2; superAim: Vec2;     // −1..1; aim 0,0 on a fire = auto-aim
-  mainAiming: boolean; superAiming: boolean; radialOpen: boolean;
-  radialSlot: -1 | 0 | 1 | 2 | 3;                 // left, up, right, down (Give)
-  mainFires: number; superFires: number; actionTaps: number; radialCommits: number; // counters
-}
-interface InputSource { sample(tick: number): PlayerInput }
-// PhoneInputSource (§15.6 staleness), AutopilotInputSource (§15.9), ReplayInputSource (§15.9)
-```
-
-  The first sample after a (re)connect only baselines the counters; a counter going backwards (phone
-  reload) re-baselines without firing (as in Sunny Side).
-- **Modifiers and hooks:** one interface for passives, cards, status effects, auras and boss behaviors.
-  Hooks run per entity in attach order, then status effects in application order.
-
-```ts
-interface Modifier {
-  id: string;                                    // 'card:fire_arrows', 'passive:mason', 'effect:burn'
-  stats?: StatMod[];
-  hooks?: Partial<Hooks>;
-}
-interface Hooks {
-  onTick(ctx: SimCtx, self: Unit): void;
-  onAttack(ctx: SimCtx, self: Unit, atk: AttackEvent): void;          // Volley, Piercing Shot
-  modifyOutgoing(ctx: SimCtx, self: Unit, d: DamageCalc): void;       // pipeline stage 2
-  modifyIncoming(ctx: SimCtx, self: Unit, d: DamageCalc): void;       // pipeline stage 4
-  beforeEffect(ctx: SimCtx, self: Unit, e: EffectApply): boolean;     // false = immune (Unshakable)
-  onDamageDealt(ctx: SimCtx, self: Unit, r: DamageResult): void;
-  onDamageTaken(ctx: SimCtx, self: Unit, r: DamageResult): void;
-  onHeal(ctx: SimCtx, self: Unit, h: HealResult): void;               // Overflow, super charge
-  onKill(ctx: SimCtx, self: Unit, victim: Unit): void;
-  onDeath(ctx: SimCtx, self: Unit, killer: Unit | null): void;        // Wildfire, Plague (on the effect)
-  onPhase(ctx: SimCtx, self: Unit, phase: Phase): void;               // Veterans
-  modifyHeal(ctx: SimCtx, self: Unit, h: HealCalc): void;             // FF12: Triage, before a heal lands
-}
-// HealCalc { source; target; amount } (FF12). SimEvent appends `{ e: 'faultLine'; slot }` (FF12: the
-// TV flashes every wall when a Fault Line stomp shocks them).
-// Modules are registered by id and built from config params:
+interface Modifier { id: string; stats?: StatMod[]; hooks?: Partial<Hooks> }
+// ids: 'card:fire_arrows', 'card:steady_aim' (passive cards), 'growth' (class growth), 'effect:burn',
+// 'build:shield_gen'. Modules are registered by id and built from content params:
 function defineModule<P>(id: string, make: (params: P) => Modifier): ModuleDef<P>;
 ```
 
+- **Class growth** is one `growth` modifier per knight, rebuilt from `PlayerEnt.growth` and the class's
+  `ClassDef.growth` whenever a bump lands (end of every wave; the boss bump after boss waves).
 - **Stats:** `value = base × (1 + clamp(Σ addPct, min, cap)) + Σ add` (§6.1: stacks add, never multiply).
-  Caps come from config (range, movement speed and damage reduction: +40%).
+  Caps come from config (range, movement speed and damage reduction: +40%). A knight's base `maxHp` is
+  `rules.knightHp × ClassDef.hp`; the class's `damage` band multiplies the base damage of its main and
+  super (never its build's, never its squad's), baked in when the knight is created.
 - **Status effects:** one timed-effect system (§6.1). Each effect carries a source, a strength, a
-  duration in steps and a stacking policy. **Auras** (Field Medic, Bodyguard, Lead from the Front,
-  Vanguard, morale) are short effects re-applied each step to units in range, with `refresh`.
+  duration in steps and a stacking policy. **Auras** (Field Medic, Vanguard, Morale, the shield
+  generator's `guard`) are short effects re-applied each combat step to units in range, with `refresh`
+  (`guard`: `strongest`).
 
 ```ts
 interface EffectDef { id: EffectId; stacking: 'refresh' | 'strongest' | 'stack'; maxStacks?: number;
   tickEveryMs?: number; modifier: (strength: number) => Modifier }
 interface StatusEffect { def: EffectId; strength: number; remaining: number; stacks: number;
   source: EntityId | null }
-// v1 effects: burn, poison, stun, slow (strongest), morale, tower_defense, shield, aura_* (refresh),
-// haste (FF9: the Commander's morale movement boost)
+// v2 effects: burn, poison, stun, slow (strongest), morale (damage, attack speed and move speed),
+// shield (Overflow), aura_field_medic, aura_vanguard (refresh), guard (strongest; shield generator),
+// taunt (refresh; Challenger: enemies in aggro range pick this knight first)
 ```
 
 - **Damage pipeline:** every hit goes through one function (§13 crits).
@@ -1802,13 +2238,20 @@ interface StatusEffect { def: EffectId; strength: number; remaining: number; sta
 interface DamageCalc { source: EntityId | null; target: EntityId; amount: number;
   kind: 'melee' | 'ranged' | 'area' | 'dot' | 'contact' | 'shell'; tags: readonly string[] }
 function applyDamage(ctx: SimCtx, calc: DamageCalc): DamageResult;
-// 1 base → 2 attacker modifyOutgoing (Might, Giant Slayer, Skyhunter, Steady Aim, morale, vs-wall
-// multipliers) → 3 crit (no-op in v1) → 4 target modifyIncoming (Toughness, Bodyguard, Vanguard,
-// tower defense, base armor) → 5 shields (Overflow) → 6 HP → 7 events: super charge, boss stagger,
-// run stats, onDamageDealt/Taken, death hooks, coins
+// 1 base → 2 attacker modifyOutgoing (Might, Giant Slayer, Skyhunter, Steady Aim, morale, Last Stand)
+// → 3 crit (no-op in v1) → 4 target modifyIncoming (Toughness, Vanguard, base armor), the card
+// reduction capped at +40%; then the `guard` reduction (strongest generator), outside that cap
+// → 5 shields (Overflow) → 6 HP → 7 events: super charge and meter charge (by source: §7.2, §8.3;
+// tags 'build', 'super', 'squad' pick the rule), boss stagger, run stats, onDamageDealt/Taken,
+// death hooks, coins
 ```
 
-  Difficulty and player-count multipliers are baked into stats at spawn, not applied per hit.
+  Difficulty, player-count and wave multipliers are baked into stats at spawn, not applied per hit.
+  Damage from a build carries the tag `build` and its owner as `source`; soldiers' damage carries
+  `squad` with the soldier as `source`; supers tag `super`.
+- **Healing:** `ctx.heal` runs the healer's `modifyHeal` (Triage), then the target's `onHeal`
+  (Overflow), and charges per §8.3 (beacon healing tagged `build`, the super's tagged `super`). Regen
+  (§5) is not a heal: it sets HP directly, with no hooks, charge or stats (§15.11 #98).
 - **Boss behaviors** are modules, so new bosses (§13) don't touch the Colossus.
 
 ```ts
@@ -1818,14 +2261,35 @@ interface BossBehavior {
   tick(ctx: SimCtx, boss: EnemyEnt): void;       // picks attacks, emits DangerMarkers with wind-ups
   onDamage?(ctx: SimCtx, boss: EnemyEnt, r: DamageResult): void;  // stagger meter
 }
-// FF11: `EnemyEnt.boss` also keeps the attack winding up, `act?: BossAct | null` (kind, startedAt,
-// at, x, y, target, marker), per-attack `ready?: Record<string, number>` ticks (the Colossus also
-// keeps `ready.stun`, when stuns count again after a stagger; FF11-fix-1) and `stunAt?` (the
-// last stun the meter counted). Content's `boss: { module, params }` names a `bosses` registry entry
-// (ai `'boss'`); the pipeline calls `onDamage` for a boss target (stage 7). Boss-wave rules shared
-// by every boss (spawn up the wave's first lane, the Mk, death collapsing the wave) live in
+// The Colossus: slam and boulder (Mk I), + Charge (Mk II: a 'lane' DangerMarker from the boss past
+// its target knight, then the run, hitting knights and soldiers once and knocking them aside,
+// destroying HP builds and triggering mines it crosses), + call Runners and the final-phase shockwave
+// (Mk III). Boss-wave rules shared by every
+// boss (spawn at a seeded hot-side portal, the Mk, death collapsing the wave) live in
 // `sim/boss/index.ts`.
 ```
+
+- **Events** (`src/host/sim/events.ts`, an append-only registry): the TD members for crates,
+  structures, placement, give/throw and lane warnings are removed. RD2 adds the members the redesign
+  needs, at least: `buildPlaced { slot; build: EntityId; kind }`, `buildLanded { build }`,
+  `buildHit { build }`, `buildGone { build; kind; destroyed: boolean }`, `mineTrigger { build }`,
+  `mineBurst { build }`, `recall { slot }`, `portalFlare { portal }`, `bruteTarget { enemy; build }`,
+  `huntLock { enemy; slot }`, `reinforce { slot; count }` (count 2 = the "×2"), `growth { slot; boss }`
+  and `cardAuto { slot; card }` (a deadline pick). Later milestones append. RD3 appends
+  `buildHp { build; kind; owner; hp; maxHp }`: an HP build's bar data, sent when it lands and with
+  every `buildHit` (mines and the flag never send it). RD3-fix-1 appends
+  `windupCancelled { source; slot }`: a knight's wound-up attack was cut short (down, dazed, phase
+  end), so the TV calls off its impact and leaves the clip. RD9 appends
+  `warcry { slot; targets; durationMs }`: the knights Warcry reached, which the TV flashes (the Morale
+  card has no visual, so the `morale` effect alone can't drive it). RD13 appends
+  `beaconPulse { build }` (a pulse healed someone), `chargeWindup { source; marker }` (the Colossus's
+  Charge began; replaces the generic `marker` cue for that marker) and `windupLanded { source; slot }`
+  (a wound-up attack landed; the jump slam is `super`), and adds the optional `kind` to `buildHit` (the
+  shield generator's hit cue). The thrown-build aim preview is
+  `buildPreview(p, content, aim = p.buildAim)` in `sim/preview.ts`: `{ kind, from, landing, radius,
+  range }` (tiles), null when not aiming or for at-feet builds. `soldierPreview(p, content, aim =
+  p.superAim)` is the same for Reinforcements (radius: the soldier's body), and `superHeld(world, p,
+  content)` says the squad cap holds the super (the phone's `superBlocked`, no TV pulse).
 
 ### 15.4 Data and config
 
@@ -1833,127 +2297,369 @@ interface BossBehavior {
   `src/content/types.ts`. Units: distances in tiles, speeds in tiles/s, times in ms (converted to
   steps at load), damage and HP as numbers.
 - **One balance sheet (settled 2026-11-04, §15.11 #48):** every number that affects balance lives in
-  `src/content/balance.ts` (§14 #2), in sections: Citadel and run rules, difficulty and player
-  scaling, characters, structures, enemies and the Colossus, waves, upgrade cards, team shop. That
-  covers HP, damage, ranges, areas, timers, speeds, costs and prices, wave budgets, and the numbers
-  behind AI and card behavior (aggro and leash, Hunter threat cost, Swarm jitter, squad engage range,
-  shell minimum flights, projectile hit radius, card offer size and rare chance, damage-over-time ticks
-  and stacks). `src/content/map.ts` holds the map layout; `index.ts` assembles `Content`.
-- **No numbers in the sim:** card, passive, shop and boss modules read every param from content (a
-  missing param throws), and the sim reads optional content fields without fallback values. What
-  stays in code is engine plumbing, not balance: the step rate, spatial-hash and flow-field steering
-  internals (`systems/` can't import content), physics thresholds, spawn scatter and render-only arcs.
-- **Validation test** (Vitest): every referenced id exists (cards, combo prerequisites, favored enemies,
-  wave pools, guaranteed spawns, shop targets, modules); no structure costs more than the
-  non-Quartermaster carry cap (§6); every class's build list has at most 3 entries (the build arc);
-  each wave's budget covers its guaranteed spawns; every module builds from its content params; every
-  optional field the sim reads is present; the phone's card copy quotes the content numbers.
+  `src/content/balance.ts` (§14 #2). It is a **sectioned file**, one `// ==== <Section> ====` banner per
+  section so parallel milestones edit only their own: run rules, scaling, classes, one section per
+  knight (Warden, Ranger, Artificer, Commander), builds, enemies, Colossus, waves, cards common, cards
+  per knight, shop, harness. That covers HP, damage, ranges, areas, timers, speeds, prices, wave
+  budgets, meter and charge rates, build stats, and the numbers behind AI and card behavior (aggro and
+  leash, Hunter threat cost and lock-on, Swarm jitter, squad engage range, shell minimum flights,
+  projectile hit radius, card offer size and rare chance, damage-over-time ticks and stacks).
+  `src/content/map.ts` holds the map layout; `index.ts` assembles `Content` (an append-only registry).
+- **No numbers in the sim:** card, passive, build, shop and boss modules read every param from
+  content (a missing param throws), and the sim reads optional content fields without fallback values.
+  What stays in code is engine plumbing, not balance: the step rate, spatial-hash and flow-field
+  steering internals (`systems/` can't import content), physics thresholds, spawn scatter and
+  render-only arcs.
+- **Validation test** (Vitest): every referenced id exists (knights' classes, builds and passive
+  cards, card prerequisites, favored enemies, wave pools, guaranteed spawns and their portals, shop
+  targets, modules); every knight's passive card is rare and unique; every `requires` has 1 or 2 ids;
+  the player-count table has exactly one row per player count 1–6; class growth uses only `maxHp`, `damage` and `healing`; each wave's budget covers its
+  guaranteed spawns; every module builds from its content params; every optional field the sim reads is
+  present; the phone's card copy quotes the content numbers.
+
+**Ids (v2, `src/shared/ids.ts`).** Lists stay `as const` with `isOneOf`; after RD2 they are append-only.
 
 ```ts
-interface CharacterDef {
-  id: ClassId; hp: number; moveSpeed: number; radius: number;
-  main: AttackDef;
-  super: AttackDef & { effects?: EffectApply[]; heal?: number; selfEffects?: EffectApply[] }; // FF9: self only
-  input: { main: 'aimed' | 'tap'; super: 'aimed' | 'tap' };          // §10.1 table
-  superChargeRate: number; passive: ModuleRef;
-  build: StructureId[];                                               // arc order: left, up, right
-  carryCap: number; carrySlowdown: number[];                          // slowdown per crate count
-  squad?: { size: number[]; soldier: UnitStats; followRadius: number;
-    aggro?: { radius: number; leash: number }; hurry?: { at: number; factor: number };   // #48
-    formation?: { flagRing: number; followSpread: number } };
-  supply?: { crateDiscount: number; throwRange: number; throwSpeed: number; kitRepair: number; // FF9, §6
-    throwMinFlightMs?: number };                                      // #48
-}
-interface AttackDef { shape: 'projectile' | 'arc' | 'cone' | 'circle' | 'buff'; damage: number; range: number;
-  cooldownMs: number; windupMs?: number; arcDeg?: number; count?: number; spreadDeg?: number;
-  speed?: number; hitsFlyers: boolean; blockedBy?: ('wall' | 'tower')[]; knockback?: number;
-  radius?: number; minFlightMs?: number }                             // #48: lobbed shells' shortest flight
-interface EnemyDef { id: EnemyId; hp: number; speed: number; radius: number; flying: boolean;
-  budget: number; groupSize?: number;
-  ai: 'path' | 'runner' | 'siege' | 'hunter' | 'flyer' | 'boss' | 'swarm' | 'brute';   // FF10: swarm, brute
-  field: 'ground' | 'breaker' | 'none'; attack: AttackDef;
-  vsStructure?: Partial<Record<StructureId | 'base', number>>;        // Brute 2× walls, Colossus 3×
-  aggro?: { radius: number; leash: number }; slowResist?: number; boss?: ModuleRef;
-  hunt?: { closeRange: number; retargetTiles: number; threatCost: number; threatPad: number }; // #48 Hunter
-  jitter?: { drift: number; pace: number; paceRange: number; stopChance: number;               // #48 Swarm
-    rollMs: [number, number]; stopMs: [number, number] };
-  body?: { radius: number; bottom: number; top: number } }  // #50: drawn body, tiles above the feet
-interface StructureDef { id: StructureId; cost: number; hp: number | null; pathCost: number;
-  blocksProjectiles: boolean; attack?: AttackDef; attachesTo?: StructureId[];
-  discharges?: number; rearmMs?: number; slow?: EffectApply;          // snare
-  defense?: number;                                                   // Fortify's damage reduction (FF8)
-  triggerFraction?: number }                                          // #48: snare trigger (body radius)
-interface CardDef { id: CardId; owner: ClassId | 'common'; tier: 'common' | 'rare' | 'combo';
-  unique?: boolean; requires?: [CardId, CardId]; favoredEnemy?: EnemyId; requiresClass?: ClassId;
-  stats?: StatMod[]; module?: ModuleRef; perClass?: Partial<Record<ClassId, StatMod[]>> }
-interface ShopItemDef { id: ShopItemId; tiers: { price: number; effect: UpgradeEffect }[];
-  visibleIf?: Condition; qmOnly?: boolean; afterRegularWaveOnly?: boolean; holdToConfirm?: boolean;
-  repeatable?: boolean }                                              // crates, repair
-interface WaveDef { n: number; budget: number; allowed: EnemyId[]; lanes: LaneId[];
-  guaranteed: { enemy: EnemyId; count: number; lane?: LaneId }[]; durationMs: number;
-  boss?: { id: EnemyId; mk: 1 | 2 | 3 } }
-interface DifficultyDef { id: 'easy' | 'normal' | 'hard'; budget: number; enemyHp: number;
-  enemyDamage: number; baseHp: number; coinIncome: number }
-interface ScalingDef { base: 0.5; perPlayer: 0.25 }                   // §9.4
-interface MapDef { id: string; cols: number; rows: number; tiles: string[];  // ASCII rows
-  legend: Record<string, TileKind>; lanes: Record<LaneId, { entry: Tile[]; spawn: Vec2 }> }
-type ModuleRef = { module: string; params?: Record<string, number | string | boolean> };
-// FF6: the Citadel and the run-wide rules and timings
-interface BaseDef { hp: number; repairPerCrate: number; stages: number[]; alarmAt: number;   // §3.3–§3.5
-  archers: { count: number; at: Vec2[]; attack: AttackDef } }
-interface RulesDef { startCoins: number; countdownMs: number; buildCapMs: number; respawnMs: number;
-  victoryMs: number; defeatMs: number; spawnWarningMs: number; inputStaleMs: number; dropLockMs: number;
-  pickupRadius: number; giveRadius: number; respawn: Vec2[]; statCaps: Partial<Record<StatId, StatCap>>;
-  breakerWallCost: number; separation: number; knockbackDecay: number;
-  // #48: the sim's former constants
-  projectileRadius: number; enemySwingSlack: number; enemyShotSlack: number; fortifyReach: number;
-  cardOffer: { size: number; rareChance: number };
-  dots: Partial<Record<EffectId, { maxStacks: number; tickEveryMs: number }>>;
-  comboSpread: { radius: number; durationMs: number } }
+/** The knights (§8.2). `ClassId` is the knights' historic wire name and stays an alias. */
+export const KNIGHT_IDS = ['ranger', 'warden', 'artificer', 'commander'] as const;
+export type KnightId = (typeof KNIGHT_IDS)[number];
+export const CLASS_IDS = KNIGHT_IDS;
+export type ClassId = KnightId;
+/** The classes (§8.1): a knight's playstyle. */
+export const ROLE_IDS = ['tank', 'marksman', 'support', 'control'] as const;
+export type RoleId = (typeof ROLE_IDS)[number];
+/** One build per knight (§7.4). */
+export const BUILD_IDS = ['shield_gen', 'mine', 'beacon', 'rally_flag'] as const;
+export type BuildId = (typeof BUILD_IDS)[number];
+/** The six portals (§3.1) and the three sides. */
+export const PORTAL_IDS = ['bottom-w', 'bottom-e', 'left-n', 'left-s', 'right-n', 'right-s'] as const;
+export type PortalId = (typeof PORTAL_IDS)[number];
+export const SIDE_IDS = ['left', 'bottom', 'right'] as const;
+export type SideId = (typeof SIDE_IDS)[number];
+/** Unchanged. */
+export const ENEMY_IDS = ['grunt', 'runner', 'swarm', 'brute', 'flyer', 'siege', 'hunter', 'colossus'] as const;
+/** Team shop (§6.2). The sentry upgrades keep their `archer_*` code ids. */
+export const SHOP_ITEM_IDS = ['repair', 'archer_damage', 'archer_range', 'archer_third', 'base_hp',
+  'base_armor'] as const;
+/** Upgrade cards (§6.1): the 9 commons, then each knight's, in the spec's table order. */
+export const CARD_IDS = [
+  'vitality', 'might', 'haste', 'reach', 'swiftness', 'focus', 'toughness', 'quick_recovery', 'tinkerer',
+  // ranger
+  'quick_draw', 'blast_radius', 'shrapnel_charge', 'fire_arrows', 'piercing_shot', 'skyhunter', 'volley',
+  'steady_aim', 'deadeye', 'minefield', 'wildfire',
+  // warden
+  'heavy_slam', 'earthshaker', 'wide_field', 'aftershock', 'giant_slayer', 'unshakable', 'challenger',
+  'reinforced_generator', 'fault_line',
+  // artificer
+  'strong_arm', 'booster_beacon', 'venom_bolts', 'overflow', 'triage', 'field_medic', 'wide_aura',
+  'plague',
+  // commander
+  'heavy_bash', 'forced_march', 'drillmaster', 'siege_breakers', 'veterans', 'last_stand', 'vanguard',
+  'rally_cry', 'morale', 'reinforced_ranks', 'warcry',
+] as const;
+/** Status effects (§15.3). */
+export const EFFECT_IDS = ['burn', 'poison', 'stun', 'slow', 'morale', 'shield', 'aura_field_medic',
+  'aura_vanguard', 'guard', 'taunt'] as const;
+/** Build-button icons (§2.6, §10.1). */
+export const ACT_ICON_IDS = ['act-shield', 'act-mine', 'act-beacon', 'act-flag', 'act-recall'] as const;
+export type ActIconId = (typeof ACT_ICON_IDS)[number];
+/** Unchanged: DIFFICULTY_IDS, PLAYER_COLOR_IDS. */
+/** Sound cues (§12); RD13 may append. */
+export const SFX_IDS = ['base_alarm', 'base_hit', 'player_hit', 'enemy_hit', 'enemy_death',
+  'build_placed', 'build_destroyed', 'boss_windup', 'purchase', 'card_pick', 'wave_start', 'victory',
+  'defeat',
+  // RD13: 'mine_trigger', 'mine_blast', 'shield_hit', 'beacon_tick', 'portal_flare', 'brute_lock',
+  // 'charge_windup', 'slam_land', 'rally_double'
+] as const;
+// Removed: STRUCTURE_IDS, LANE_IDS, THEME_IDS (and their types).
 ```
 
-- **Generic system signatures** (extraction-ready, §15.1; Fort Frenzy passes its content in):
+**Content types (v2, `src/content/types.ts`).** Unchanged unless shown: `Vec2`, `Tile`, `StatMod`,
+`ModuleRef`, `EffectApply`, `UnitStats`, `Condition`.
 
 ```ts
-// systems/waves: spends a budget on a pool and spreads groups over lanes and time (§9.3)
+export type TileKind = 'open' | 'blocked' | 'citadel' | 'portal';
+
+/** Append-only after RD2. The TD crate stats and `repairRate` are gone. */
+export const STAT_IDS = [
+  'maxHp', 'damage', 'attackSpeed', 'range', 'moveSpeed', 'superCharge', 'damageReduction',
+  'respawnMs', 'projectileSpeed', 'arcDeg', 'radius', 'durationMs', 'stunMs', 'healing', 'knockback',
+  'throwRange', 'throwSpeed', 'auraRadius',
+  // redesign
+  'buildCharge',      // meter fill rate (Tinkerer)
+  'buildHp',          // the knight's HP builds (Reinforced Generator, Booster Beacon)
+  'buildRadius',      // effect / blast radius (Wide Field, Shrapnel Charge)
+  'buildPower',       // guard strength, heal per pulse (Reinforced Generator, Booster Beacon)
+  'buildTriggerMs',   // mine trigger delay (Shrapnel Charge: negative addPct)
+  'buildMax',         // extra active builds (Minefield: add 1)
+  'squadCap',         // Reinforced Ranks: add 1
+  'squadHp', 'squadDamage', 'squadSpeed', // Drillmaster, Forced March
+  'width',            // a `rect` attack's width (Heavy Bash; RD9-fix-1)
+] as const;
+export type StatId = (typeof STAT_IDS)[number];
+// StatMod.scope: 'main' | 'super' | 'build' | 'squad' (was 'passive'; omitted = the whole knight).
+
+export interface AttackDef {
+  // 'spawn': Reinforcements (RD9). 'rect': a solid rectangle from the attacker along the aim,
+  // `range` long and `width` wide; an enemy body overlapping it is hit (shield bash, RD9-fix-1).
+  shape: 'projectile' | 'arc' | 'cone' | 'circle' | 'spawn' | 'rect';
+  damage: number; range: number; cooldownMs: number; windupMs?: number;
+  arcDeg?: number; width?: number; count?: number; spreadDeg?: number;
+  burstMs?: number;                                 // nanite blast: `count` shots over this long
+  burstMinReach?: number;                           // nanite blast: nearest spot, fraction of range
+  speed?: number; hitsFlyers: boolean; knockback?: number;
+  radius?: number; minFlightMs?: number;
+}
+
+/** A class (§8.1). Keyed by RoleId; a knight names its class. */
+export interface ClassDef {
+  id: RoleId;
+  hp: number;                                       // HP tier: × rules.knightHp (tank 1.6)
+  damage: number;                                   // damage band: × main and super damage (tank 0.9)
+  growth: { regular: StatMod[]; boss: StatMod[] };  // per wave cleared; boss waves use `boss`
+}
+
+export type InputType = 'aimed' | 'tap';
+export type ChargeSource = 'damage' | 'healing';
+
+/** A knight (§8.2). */
+export interface KnightDef {
+  id: KnightId;
+  role: RoleId;
+  moveSpeed: number; radius: number;
+  main: AttackDef;
+  /**
+   * `heal`: heals the knight and allied knights in the cone (Artificer). `spawn`: Reinforcements
+   * throws `count` soldiers `throwRange` tiles (Commander; Rally Cry may double it).
+   */
+  super: AttackDef & { effects?: EffectApply[]; heal?: number;
+    spawn?: { count: number; throwRange: number; throwSpeed: number; minFlightMs: number;
+      spread: number } };                           // soldiers thrown together land this far apart
+  build: BuildId;
+  input: { main: InputType; super: InputType; build: InputType };  // build mirrors BuildDef.input
+  hitsFlyers: boolean;                              // §9 Flyer spawn rule
+  /** Super charge per point (§8.3): own damage (main and its build's), healing, squad damage. */
+  superCharge: { perDamage: number; perHeal?: number; perSquadDamage?: number };
+  /** Build meter (§7.2): passive fill per second in combat, plus per point from `sources`. */
+  meter: { perSec: number; perPoint: number; sources: ChargeSource[] };
+  passiveCard: CardId;                              // its rare, unique passive card (§6.1)
+  /** Commander only (§8.4). */
+  squad?: {
+    start: number; cap: number;                     // 2 and 4 to start
+    soldier: UnitStats;
+    followRadius: number;
+    aggro: { radius: number; leash: number };
+    hurry?: { at: number; factor: number };
+    formation: { flagRing: number; followSpread: number };
+  };
+}
+
+/** A build (§7). */
+export interface BuildDef {
+  id: BuildId;
+  input: InputType;                                 // 'tap' at feet, 'aimed' thrown
+  throw?: { range: number; speed: number; minFlightMs: number };   // thrown builds
+  hp?: number;                                      // HP builds (targetable)
+  charges?: number;                                 // charge builds (mines: 1)
+  radius: number;                                   // effect radius: field, heal area, blast, flag ring
+  bodyRadius: number;                               // its own hitbox (enemies attack it, Charge crosses it)
+  maxActive: number;                                // 1; mines 3
+  traits: { targetable: boolean; dealsDamage: boolean; hidden: boolean };
+  triggerRadius?: number;                           // mines: a ground enemy this close sets it off
+  triggerMs?: number;                               // mines: delay before the burst
+  armMs?: number;                                   // placed → live (mine arming, landed → active)
+  damage?: number; knockback?: number;              // mine burst
+  guard?: number;                                   // shield generator: damage reduction 0..1 (`guard`)
+  heal?: { amount: number; everyMs: number };       // beacon pulses
+  module?: ModuleRef;                               // its behavior's extra params, if any
+}
+
+export interface EnemyDef {
+  id: EnemyId; hp: number; speed: number; radius: number; flying: boolean;
+  budget: number; groupSize?: number;
+  ai: 'path' | 'runner' | 'siege' | 'hunter' | 'flyer' | 'boss' | 'swarm' | 'brute';
+  field: 'ground' | 'none';                         // the wall-smashing field is gone
+  attack: AttackDef;
+  aggro?: { radius: number; leash: number }; slowResist?: number; boss?: ModuleRef;
+  /** Hunter (§9): `lockRange` (about 5 tiles) starts the sprint at × `sprint`; its field adds
+   *  `threatCost` per sentry or damage-dealing build covering a tile (range + `threatPad`) and
+   *  `hiddenCost` on hidden builds' trigger radii. */
+  hunt?: { closeRange: number; retargetTiles: number; threatCost: number; threatPad: number;
+    hiddenCost: number; lockRange: number; sprint: number };
+  jitter?: { drift: number; pace: number; paceRange: number; stopChance: number;
+    rollMs: [number, number]; stopMs: [number, number] };
+  body?: { radius: number; bottom: number; top: number };
+}
+// Removed: EnemyDef.vsStructure, CharacterDef (→ ClassDef + KnightDef), StructureDef (→ BuildDef).
+
+export interface CardDef {
+  id: CardId; owner: KnightId | 'common'; tier: 'common' | 'rare' | 'combo';
+  unique?: boolean;
+  requires?: CardId[];                              // 1 (improves a passive) or 2 (combo) ids
+  favoredEnemy?: EnemyId; requiresKnight?: KnightId;
+  stats?: StatMod[]; module?: ModuleRef;
+  perKnight?: Partial<Record<KnightId, StatMod[]>>; // commons: numbers tuned per knight
+}
+
+export type UpgradeTarget = 'base' | 'archers';
+export type UpgradeEffect =
+  | { kind: 'repair'; hp: number }
+  | { kind: 'stats'; target: UpgradeTarget; stats: StatMod[] }   // base maxHp, base armor, sentries
+  | { kind: 'archers'; add: number }
+  | { kind: 'module'; target: UpgradeTarget; module: ModuleRef };
+export interface ShopItemDef {
+  id: ShopItemId;
+  tiers: { price: number; effect: UpgradeEffect }[];
+  visibleIf?: Condition; holdToConfirm?: boolean;
+  repeatable?: boolean;                             // repair: bought again and again, price rising
+}
+// Removed: ShopItemDef.qmOnly and afterRegularWaveOnly; UpgradeEffect crates, kit, discharges.
+
+/** Hot-side schedule (§9.4). */
+export type HotSchedule = { mode: 'wave'; shifts: 0 | 1 | 2 } | { mode: 'group' };
+
+export interface WaveDef {
+  n: number; budget: number; allowed: EnemyId[];
+  guaranteed: { enemy: EnemyId; count: number; portal?: PortalId }[];
+  durationMs: number;
+  hot: HotSchedule;
+  enemyMult?: { hp?: number; damage?: number };    // default 1 (§9.3)
+  boss?: { id: EnemyId; mk: 1 | 2 | 3 };
+}
+
+export interface DifficultyDef { id: DifficultyId; budget: number; enemyHp: number;
+  enemyDamage: number; baseHp: number; coinIncome: number; respawn: number }
+
+/** One row per player count 1–6 (§9.4): replaces ScalingDef. */
+export interface PlayerCountRow { players: number; budget: number; bossHp: number; respawnMs: number;
+  coins: number }                                   // coin factor, 2 players = 1 (RD11-fix-1)
+
+export interface MapDef {
+  id: string; cols: number; rows: number; tiles: string[];          // ASCII rows
+  legend: Record<string, TileKind>;
+  portals: Record<PortalId, { side: SideId; entry: Tile[]; spawn: Vec2 }>;
+}
+
+export interface BaseDef { hp: number; stages: number[]; alarmAt: number;   // §3.3–§3.5
+  archers: { count: number; at: Vec2[]; attack: AttackDef } }              // repairPerCrate is gone
+
+export interface RulesDef {
+  startCoins: number; coinRate: number;             // coins per kill = budget × coinRate × difficulty
+  countdownMs: number;
+  buildCapMs: number;                               // 20 000 (§10.2)
+  victoryMs: number; defeatMs: number;
+  flareMs: number;                                  // portal flare ahead of a spawn (~1000, §9.4)
+  inputStaleMs: number;
+  knightHp: number;                                 // baseline knight HP (× ClassDef.hp)
+  regen: { delayMs: number; pct: number; everyMs: number };   // 5000, 0.08, 1000 (§5)
+  respawnFloorMs: { solo: number; team: number };   // Quick Recovery floor: 4000, 5000 (§5)
+  hot: { share: number };                           // 0.55 (§9.3)
+  respawn: Vec2[];
+  statCaps: Partial<Record<StatId, { pctMin?: number; pctMax?: number; addMin?: number; addMax?: number }>>;
+  separation: number; knockbackDecay: number;
+  projectileRadius: number; enemySwingSlack: number; enemyShotSlack: number;
+  cardOffer: { size: number; rareChance: number };
+  dots: Partial<Record<EffectId, { maxStacks: number; tickEveryMs: number }>>;
+  comboSpread: { radius: number; durationMs: number };
+}
+// Removed from RulesDef: respawnMs (→ PlayerCountRow), spawnWarningMs (→ flareMs), dropLockMs,
+// pickupRadius, giveRadius, breakerWallCost, fortifyReach.
+
+/** The balance harness (§15.9). */
+export interface HarnessDef {
+  wave: { enemy: EnemyId; count: number }[];        // 12 grunt, 4 runner, 1 swarm, 1 brute (grouped types count groups)
+  portal: PortalId;                                 // 'bottom-w'
+  difficulty: DifficultyId;                         // 'normal'
+  seeds: number[];                                  // 5 seeds
+  bands: [number, number];                          // ±0.20 and ±0.25 of the mean clear time
+  durationMs?: number;                              // RD3: the groups spread over this long (30 000)
+  capMs?: number;                                   // RD3: longer than this = not cleared (300 000)
+}
+
+export interface Content {
+  rules: RulesDef; base: BaseDef; map: MapDef;
+  classes: Record<RoleId, ClassDef>; knights: Record<KnightId, KnightDef>;
+  builds: Record<BuildId, BuildDef>; enemies: Record<EnemyId, EnemyDef>;
+  cards: CardDef[]; shop: ShopItemDef[]; waves: WaveDef[];
+  difficulty: Record<DifficultyId, DifficultyDef>; scaling: PlayerCountRow[];
+  harness: HarnessDef;
+}
+```
+
+- **As implemented in RD2** (contract fixes, §15.11 #111): `Content` keeps the code's arrays looked
+  up by id through the sim's catalog (`knights`, `classes`, `builds`, `enemies`, `cards`, `shop`,
+  `waves`, `difficulties`, `scaling: PlayerCountRow[]`) and nullable singletons (`map`, `base`,
+  `rules`, `harness`), not records. Transitional fields, each removed by the milestone named:
+  `KnightDef.passive?: ModuleRef` (the always-on passive until the knight's kit milestone makes it the
+  passive card). RD9 removed the Commander's (`KnightDef.super.selfEffects`, `AttackDef.shape:
+  'buff'`, the effect ids `aura_lead_from_the_front` and `haste`). The Colossus's Citadel multiplier
+  (`EnemyDef.vsStructure.base`, gone) is its boss param `baseMult` (1.5).
+- **Generic system signatures** (extraction-ready, §15.1; Fort Frenzy passes its content in). The
+  wave generator takes the redesign's inputs **additively**: Fort Frenzy passes its portal ids as
+  `lanes`, each portal's side in `sides`, and the hot schedule, share and cap.
+
+```ts
+// systems/waves: spends a budget on a pool and spreads groups over lanes (portals) and time (§9.3)
 function generateWave<E extends string>(input: {
   budget: number; pool: { id: E; cost: number; groupSize?: number }[];
   guaranteed: { id: E; count: number; lane?: string }[]; lanes: string[]; durationMs: number;
-  substitute?: Partial<Record<E, E[]>>; rng: Rng }): { atMs: number; lane: string; id: E; count: number }[];
+  substitute?: Partial<Record<E, E[]>>; rng: Rng;
+  // v2 (additive): without these, every lane is live and groups go round-robin (RD2)
+  sides?: Record<string, string>;                         // lane → side
+  hot?: { mode: 'wave'; shifts: 0 | 1 | 2 } | { mode: 'group' };
+  hotShare?: number;                                      // budget share to the hot side's lanes
+  activeCap?: number;                                     // lanes used per spawn pulse
+}): { atMs: number; lane: string; id: E; count: number; hot?: string }[];
+// Rules with `hot` set (RD3): every pulse uses ≤ activeCap lanes and at least one hot-side lane;
+// the hot side gets `hotShare` of the budget; shifts at 1/2 or 1/3 and 2/3 of `durationMs` to a
+// different side; 'group' rolls a side per pulse, never the same twice in a row. A pulse is up to
+// activeCap groups at one time; a pinned guaranteed spawn keeps its lane. Fort Frenzy spawns the
+// boss itself, at a seeded portal on the first pulse's hot side (§9.3; RD3, #112).
 // systems/cards: one pure function, so a v2 reroll is just another call (§13)
 function pickOffer<C extends { id: string }>(input: {
   pool: readonly C[]; eligible: (c: C) => boolean; isRare: (c: C) => boolean;
   rareChance: number; guaranteedRare: boolean; size: number; rng: Rng }): C[];
 ```
 
-- **Theme packs** (§2.1) hold presentation only. The sim can't import `src/themes/**` (lint), and the
-  types carry no gameplay fields; a test fails if a theme object has keys outside its type.
+  Fort Frenzy's `activeCap` is `min(players + 1, 6)`, fixed at the wave start with the rest of
+  `TeamState.scaling`.
+- **Presentation** (`src/presentation/`, §15.1) holds presentation only. The sim can't import it
+  (lint), the types carry no gameplay fields, and a test fails if an object has keys outside its type.
+  The rig contract (`RigDef`, `Clip`, `SpritesJson`) and the generated manifest's shape move here from
+  `src/themes/types.ts` unchanged, except that the manifest's `ThemeAssets`/`themes` keying becomes the
+  art set (`ArtSetId = 'neon-knights'`, `sets`).
 
 ```ts
-interface ThemeShared {                          // phones and TV
-  id: ThemeId; defaultDifficulty: DifficultyId;
-  names: Record<ClassId | EnemyId | StructureId | ShopItemId | CardId | 'base' | 'faction', string>;
-  flavor?: Partial<Record<string, string>>;      // class card lines, card text
-  icons: IconSprite;                             // art/<theme>/icons/*.svg as one inline SVG sprite
-  portraits: Record<ClassId, { body: string; color: string }>; // front-view images (class select)
+interface PresentationShared {                   // phones and TV (src/presentation/shared.ts)
+  /** The one display-name table (§2.1). */
+  names: Record<KnightId | RoleId | EnemyId | BuildId | ShopItemId | CardId | 'base' | 'faction', string>;
+  flavor?: Partial<Record<string, string>>;      // knight card lines, card text
+  icons: IconSprite;                             // art/neon-knights/icons/*.svg as one inline SVG sprite
+  iconFor: {
+    knight: Record<KnightId, string>; role: Record<RoleId, string>;
+    main: Record<KnightId, string>; super: Record<KnightId, string>;
+    build: Record<BuildId, ActIconId>; shop: Record<ShopItemId, string>; card: Record<CardId, string>;
+  };
+  portraits: Record<KnightId, { body: string; color: string }>; // front-view images (knight select)
 }
-interface ThemeHost {                            // TV only
+interface PresentationHost {                     // TV only (src/presentation/host.ts)
   atlases: AtlasRef[]; rigs: Record<string, RigDef>; clips: Record<string, Clip>;
+  rigFor: { knight: Record<KnightId, string>; enemy: Record<EnemyId, string>; soldier: string };
   sfx: Partial<Record<SfxId, string>>;           // music joins this map in v2 (§13)
   map: { ground: string[]; edges: Record<'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw', string>;
-    lanes: Record<LaneId, { open: string; sealed: string }>; decor?: string[];
+    portals: Record<SideId, { idle: string; flare: string }>; decor?: string[];
     floorLift?: number };                        // 0xRRGGBB added to ground/edge/decor (§15.2 Map)
 }
+// Removed: ThemeShared, ThemeHost, the theme id, defaultDifficulty, the structure and lane maps.
 ```
 
-- **Icons** (`art/<theme>/icons/`, 24-unit SVG glyphs with `.glyph`, ink and `.glow` layers; usage rules
-  in its `README.md`): phones get them as one inline SVG sprite (a `<symbol>` per icon, built at build
-  time), so `.glow` takes the CSS `drop-shadow` and badge tiles stay crisp. The TV's DOM HUD (§15.2)
-  uses the same sprite; world UI that Phaser draws (the build arc) uses the same
-  files rasterized into the TV atlas, where the bloom picks up the amber. Theme packs replace the files
-  under the same names. A missing icon falls back to a text label.
-- **Class portraits:** phones never load the TV atlases, but class select and the lineup show each
-  knight's front view in the player's color (§2.6). The atlas script renders, per class, the front-view
+- **Icons** (`art/neon-knights/icons/`, 24-unit SVG glyphs with `.glyph`, ink and `.glow` layers;
+  usage rules in its `README.md`): phones get them as one inline SVG sprite (a `<symbol>` per icon,
+  built at build time), so `.glow` takes the CSS `drop-shadow` and badge tiles stay crisp. The TV's DOM
+  HUD (§15.2) uses the same sprite. A missing icon falls back to a text label. The three icon lists are
+  in §2.6.
+- **Knight portraits:** phones never load the TV atlases, but knight select and the lineup show each
+  knight's front view in the player's color (§2.6). The atlas script renders, per knight, the front-view
   rest pose as two images: the body, and the color part alone as a mask that CSS tints with the
   player's color. They're lazy-loaded images, outside the phone's JS budget (§15.7).
 
@@ -1962,42 +2668,47 @@ interface ThemeHost {                            // TV only
 - **Flow fields** over the 36 × 24 grid, built with Dijkstra (a breadth-first search that weighs tile
   costs) outward from the tiles next to the Citadel. Each tile stores its distance and the neighbor to
   step to next. The sim's fields take 8-neighbor (octile) steps: a diagonal costs √2 × the entered
-  tile's cost and never cuts the corner of a blocker or impassable tile (C3, §15.11 #46; the system's
-  default stays 4-neighbor). A rebuild takes well under 1 ms and runs in the same step a blocking
-  structure is placed or destroyed.
-- **Tile costs:** open 1; snare 1 (no rebuild, §7.1); wall and tower: a high configurable cost (enemies
-  detour unless the detour is longer); terrain outside the map or marked blocked: impassable.
-  Structures always have a finite cost, so a route always exists, and "break through" (§7) is simply an
-  enemy attacking the blocking structure on its next tile.
-- **Fields:** `ground` (most walkers); `breaker` (Brutes and the Colossus: walls cheap, so they smash
-  through, §7); one per hunted player (Hunters), rebuilt when that player moves to a new tile. Flyers
-  ignore fields and steer straight at their target.
-- **Hunter fields price tower range (C3):** a hunted player's field adds 4 per attacker (a tower that
-  shoots, a Citadel sentry) whose range + 1 tile covers a tile, so a Hunter detours round the
-  defenses when that's cheaper than the time under fire and still reaches a quarry standing in range.
-  The coverage is rebuilt with the fields (a structure placed or destroyed) and at each combat start
-  (range cards and sentries bought in the build phase). `EnemyEnt.huntSince?` stamps the tick of each
-  new quarry, which drives the TV's target flash (§9.6).
+  tile's cost and never cuts the corner of an impassable tile (C3, §15.11 #46; the system's default
+  stays 4-neighbor).
+- **No player walls in v1** (§3.1, §7.3): nothing a knight places changes pathing, so the **ground field
+  is built once per run** and never rebuilt. There are no placement-triggered rebuilds and no wall-smashing
+  field.
+- **Tile costs:** open 1; portal 1; `blocked` and off-map: impassable (none blocked on the v1 map; v2
+  terrain is map data).
+- **Fields:**
+  - `ground`: most walkers, the Colossus included.
+  - **`hunted`,** one per hunted player, rebuilt when that player moves to a new tile. Its cost adds
+    `hunt.threatCost` per attacker covering a tile (a Citadel sentry or a `dealsDamage` build, within
+    its range + `threatPad`) and `hunt.hiddenCost` on tiles inside a `hidden` build's trigger radius,
+    so a Hunter stalks round the sentries and the mines when that's cheaper than the time under fire,
+    and still reaches a quarry standing in range. The coverage is rebuilt at each combat start (range
+    cards and sentries bought in the build phase) and whenever a build appears or goes.
+  - **`brute`,** one per targeted build, keyed by the tile the build stands on: a ground field with
+    that tile as its goal, built when a Brute first targets the build and dropped when the build goes
+    (§15.11 #84). So "straight for the build" still works when v2 terrain arrives.
+  - Flyers ignore fields and steer straight at their target.
 - **Steering:** an enemy heads straight for the farthest tile down its field's chain (up to 32 tiles)
   that a body-wide corridor (±0.3 tiles) reaches without crossing a tile costlier than the chain's
   next step, so it crosses open ground on a direct diagonal to the Citadel instead of an L-shaped
-  route, never shortcuts through a wall, tower or a Hunter's priced tiles, and stops at a blocker it
-  must attack (C3, §15.11 #46). With nothing farther clear it steers toward its next tile's center,
-  blended with the one after so movement doesn't zigzag. Plus soft separation from nearby units.
-  Units never hard-block each other.
-- **Behavior per `ai`:** `path` follows its field and attacks whatever blocks it or the base; `runner`
-  bursts on base contact; `siege` stops once the base or a tower is in range and shells it; `hunter`
-  follows its target's field (retargeting on down, daze or a player 2 tiles closer, §9); `flyer` flies
-  straight; aggro-leash enemies (§9) leave the path for a
-  player in aggro radius and return past the leash. FF10 adds `swarm` (a `path` walker with the
-  in-sim mite jitter) and `brute` (a `path` walker on the `breaker` field that also smashes a wall it
-  walks into while chasing or returning).
+  route and never shortcuts through a Hunter's priced tiles (C3, §15.11 #46). With nothing farther
+  clear it steers toward its next tile's center, blended with the one after so movement doesn't
+  zigzag. Plus soft separation from nearby units. Units never hard-block each other.
+- **Behavior per `ai`:** `path` follows the ground field and attacks the base, plus knights, soldiers
+  and HP builds inside its aggro leash (nearest first; a `taunt` knight first), and on losing its
+  target follows the field on from where it stands (`return` is no longer entered; RD10-fix-1); `runner` bursts on base
+  contact and attacks nothing else; `siege` walks the ground field and stops once a player, a soldier,
+  an HP build or the base is in its range, shelling the highest priority (base > players and soldiers >
+  builds, nearest within each), retargeting the moment a higher-priority target enters range; `hunter` stalks its quarry's
+  field and locks on within `hunt.lockRange`, then sprints at `hunt.sprint` × speed (retargeting on down, daze or a player
+  2 tiles closer, §9); `flyer` flies straight and aggro-leashes like `path`; `swarm` is a `path` walker
+  with the in-sim mite jitter; `brute` walks its target build's `brute` field to the nearest
+  targetable build at any distance and attacks it, and with none left behaves like `path`; `boss` is
+  the boss module.
 
 ```ts
 interface FlowField { cols: number; rows: number; dist: Float32Array; next: Int16Array } // −1 = goal
 function buildField(grid: TileGrid, cost: (tile: number) => number, goals: readonly number[],
   into?: FlowField, opts?: FieldOptions): FlowField;
-// FF10-fix-1 (additive): 8-neighbor steps; `solid` tiles' corners are never cut
 interface FieldOptions { diagonal?: boolean; solid?: (tile: number) => boolean }
 function steerTile(field: FlowField, from: number): number; // farthest clear tile down the chain
 ```
@@ -2015,59 +2726,137 @@ ride in `send.data`, defined in `src/shared/messages.ts`.
   the 30 s token window, as in Sunny Side), then by device ID (resume into a new room, §15.8).
 - **Input:** a JSON array (the relay carries text frames; about 70 bytes at 30 Hz × 6 phones is
   negligible).
+- **Versioning (§15.11 #70):** `PROTOCOL_VERSION` goes **1 → 2** for the redesign (RD1) and stays 2 for
+  the whole redesign: phones and TV always ship from one commit, so only the production change matters.
+  After that it bumps on any breaking change to `messages.ts`; additive fields don't bump it.
+
+**Messages (v2, `src/shared/messages.ts`).**
 
 ```ts
 export const GAME_ID = 'fort-frenzy';
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
+export const NAME_MAX = 10;
+export const AIM_DEAD_ZONE = 0.25;                   // unchanged (§10.1)
 
-/** Phone → host input (§10.1, §11.4). Sticks and aims are ints −100..100, dead zone applied on the phone. */
+export const INPUT_TUPLE_LENGTH = 12;
+export const INPUT_FLAG_MAIN_AIMING = 1;
+export const INPUT_FLAG_SUPER_AIMING = 2;
+export const INPUT_FLAG_BUILD_AIMING = 4;            // was INPUT_FLAG_RADIAL_OPEN
+
+/** Phone → host input v2 (§10.1, §11.4). Sticks and aims are ints −100..100, dead zone applied on the
+ *  phone. Counters only grow (a reload restarts them; the host re-baselines, §15.3). */
 export type InputTuple = [
   moveX: number, moveY: number,
-  mainX: number, mainY: number,       // live aim while aiming (FF7), the release aim with a fire; 0,0 = tap = auto-aim
+  mainX: number, mainY: number,       // live aim while aiming, the release aim with a fire; 0,0 = tap
   superX: number, superY: number,
-  flags: number,                      // 1 main aiming (TV aim line), 2 super aiming, 4 radial open
-  mainFires: number, superFires: number, actionTaps: number, radialCommits: number, // counters
-  radialSlot: number,                 // −1 none, 0 left, 1 up, 2 right, 3 down (Give)
+  buildX: number, buildY: number,     // thrown builds: live aim, the release aim; 0,0 = tap (feet)
+  flags: number,                      // INPUT_FLAG_*: 1 main aiming, 2 super aiming, 4 build aiming
+  mainFires: number, superFires: number, buildFires: number, // counters
 ];
-```
+// Guard: length 12; [0..7] ints in −100..100; [8] int in 0..7; [9..11] naturals.
 
-- **Gestures are resolved on the phone** (tap, drag or cancel; radial slot or cancel), which has the
-  touch timing and pixel distances. A release goes out at once, so a fire and its aim arrive together.
-- **Send rate:** a fixed 30 Hz while any control is touched, 5 Hz while idle, plus every button edge
-  immediately. (Sunny Side sends sticks only on change, which a held-still thumb would starve under the
-  250 ms rule.)
-- **Staleness (§11.4):** the host stamps each input with its receive time. Older than 250 ms, the
-  `PhoneInputSource` returns zero sticks and cleared flags; counters still apply when they arrive.
-- **Menu actions are intents,** discrete messages with a `seq`, answered by `ack`. Movement and combat
-  stay pure input state (`PLATFORM.md` §2's rule covers movement; Sunny Side already sends discrete UI
-  messages). Intents that change run state become sim commands (§15.3) and are logged for replays.
+export type Intent =
+  | { k: 'name'; name: string }                       // ≤ NAME_MAX code points; color auto-assigned
+  | { k: 'class'; classId: ClassId }                  // the knight (knight select)
+  | { k: 'ready'; ready: boolean }
+  | { k: 'color'; color: PlayerColorId }              // lobby only (`taken`)
+  | { k: 'leader'; action: 'start' | 'resume' | 'newRun' }
+  | { k: 'leader'; action: 'endGame' }                // pause menu: End game (§10.5, RD6-fix-1)
+  | { k: 'leader'; action: 'difficulty'; difficulty: DifficultyId }
+  | { k: 'leader'; action: 'remove'; playerId: string }           // lobby only
+  | { k: 'leader'; action: 'end'; option: 'again' | 'classes' | 'home' } // 'classes' = Change Knight (§4)
+  | { k: 'buy'; item: ShopItemId }
+  | { k: 'request'; item: ShopItemId; on: boolean }
+  | { k: 'card'; card: CardId }                       // Confirm on the card pop-up (§10.2)
+  | { k: 'claim'; slot: number }                      // resume into a new room
+  | { k: 'pause'; paused: boolean }                   // team pause, any run phone (§10.5)
+  | { k: 'leave' };                                   // pause menu: Leave game (§11.3, RD6-fix-1)
+// Removed: { k: 'build' } (select/place/cancel), { k: 'give' }, { k: 'leader'; action: 'theme' }.
 
-```ts
 export type ControllerMsg =
   | InputTuple
   | { t: 'hello'; proto: number; deviceId: string }
   | { t: 'intent'; seq: number; intent: Intent };
 
-export type Intent =
-  | { k: 'name'; name: string }                       // ≤ 10 chars; color is auto-assigned
-  | { k: 'class'; classId: ClassId }
-  | { k: 'ready'; ready: boolean }
-  | { k: 'color'; color: PlayerColorId }                // lobby only; host validates, swaps, acks (`taken`)
-  | { k: 'leader'; action: 'start' | 'resume' | 'newRun' }
-  | { k: 'leader'; action: 'theme'; theme: ThemeId }
-  | { k: 'leader'; action: 'difficulty'; difficulty: DifficultyId }
-  | { k: 'leader'; action: 'remove'; playerId: string }           // lobby only
-  | { k: 'leader'; action: 'end'; option: 'again' | 'classes' | 'home' }
-  | { k: 'build'; action: 'select'; structure: StructureId }       // ghost at feet (§10.2)
-  | { k: 'build'; action: 'place' | 'cancel' }
-  | { k: 'buy'; item: ShopItemId }
-  | { k: 'request'; item: ShopItemId; on: boolean }
-  | { k: 'card'; card: CardId }
-  | { k: 'give' }                                                  // §10.2 Give crate button
-  | { k: 'claim'; slot: number }                                   // resume into a new room
-  | { k: 'pause'; paused: boolean };                               // team pause, any run phone (§10.5)
+/** `cap`: the item is at its max tier. `crates` is gone. */
+export type AckReason = 'coins' | 'cap' | 'phase' | 'invalid' | 'notLeader' | 'taken';
 
-export type AckReason = 'coins' | 'crates' | 'cap' | 'phase' | 'invalid' | 'notLeader' | 'taken';
+/** Per-player run stats (summary, §4; kept in the resume snapshot, §15.8). */
+export interface RunStats {
+  damageDealt: number;                // own + squad + builds
+  bossDamage: number;
+  kills: number;
+  damageTaken: number;
+  deaths: number;
+  healingDone: number;                // super, beacon and Field Medic healing (not regen)
+  buildsPlaced: number;
+}
+export const RUN_STAT_KEYS = ['damageDealt', 'bossDamage', 'kills', 'damageTaken', 'deaths',
+  'healingDone', 'buildsPlaced'] as const;
+/** Unchanged shape: result, wavesSurvived, durationMs, players[{ playerId, name, color, classId,
+ *  stats, award: keyof RunStats | null }]. One award card per player; RD13 writes the copy. */
+export interface RunSummary { /* as in the TD build */ }
+
+export type TeamPhase = 'lobby' | 'countdown' | 'build' | 'combat' | 'summary' | 'restoring';
+
+export interface TeamShopRow {
+  id: ShopItemId; tier: number; maxTier: number;
+  price: number | null;               // null = sold out (max tier)
+  visible: boolean; holdToConfirm: boolean;   // qmOnly is gone
+}
+
+/** Team state every phone shows. Full snapshot, broadcast on change, ≤ 5 Hz. */
+export interface TeamView {
+  phase: TeamPhase; wave: number; buildEndsInMs: number | null;
+  coins: number; baseHp: number; baseMaxHp: number;
+  difficulty: DifficultyId;           // `theme` is gone
+  leaderId: string | null;
+  roster: TeamRosterEntry[];          // unchanged
+  shop: TeamShopRow[];
+  wishlist: { item: ShopItemId; by: string }[];
+  nextWave: { enemies: { id: EnemyId; count: number }[]; boss: boolean } | null; // never the hot side
+  summary: RunSummary | null;
+  paused?: TeamPause | null;          // unchanged (§10.5)
+}
+
+export type MeScreen = 'name' | 'lobby' | 'waiting' | 'full' | 'combat' | 'build' | 'dead' | 'summary'
+  | 'restoring' | 'claim';            // unchanged: `build` shows the card pop-up until
+                                      // `cards.picked` is set, then the shop (§10.2)
+
+/** The build button (§10.1). */
+export interface MeBuild {
+  id: BuildId;
+  input: InputType;                   // the gesture now: 'tap' for at-feet builds and recall
+  icon: ActIconId;                    // act-shield | act-mine | act-beacon | act-flag | act-recall
+  meter: number;                      // 0..1 ring
+  full: boolean;                      // steady amber ring, button lit
+  mode: 'place' | 'recall' | 'none';  // what a release does now; 'none' = dimmed
+  active: number;                     // the knight's builds on the map (mines 0..maxActive)
+}
+
+/** Class growth for the pop-up header (§6.1): "Wave 4 cleared: +HP +DMG". */
+export interface MeGrowth {
+  wave: number; boss: boolean; stats: ('maxHp' | 'damage' | 'healing')[];
+  pct?: Partial<Record<'maxHp' | 'damage' | 'healing', number>>;  // percent grown per stat (3 = +3%); RD4-fix-2
+}
+
+/** One phone's own state. Full snapshot, per phone on change, ≤ 10 Hz. */
+export interface MeView {
+  screen: MeScreen;
+  slot: number | null; name: string; color: PlayerColorId | null; classId: ClassId | null;
+  isLeader: boolean; ready: boolean;
+  hp: number; maxHp: number;
+  superCharge: number; superReady: boolean;          // 0..1 ring; full state (§10.1)
+  superBlocked: boolean;                             // Commander at the squad cap: dimmed, charge held
+  build: MeBuild | null;                             // null outside a run
+  respawnMs: number | null;
+  /** The pop-up (§10.2): selection is phone-local; Confirm sends `card`. `offer` null = no pop-up
+   *  (late in the phase after a pick, or none dealt); `picked` set = show the shop. */
+  cards: { offer: CardId[] | null; picked: CardId | null; owned: { id: CardId; n: number }[];
+    growth: MeGrowth | null };
+  claim: { slot: number; name: string; classId: ClassId }[] | null;
+}
+// Removed from the TD MeView: crates, carryCap, action, kits, give, arc, buildKit, build (the ghost).
 
 export type HostMsg =
   | { t: 'team'; rev: number; team: TeamView }        // broadcast on change, ≤ 5 Hz
@@ -2076,54 +2865,35 @@ export type HostMsg =
   | { t: 'outdated'; proto: number };
 ```
 
+- **Gestures are resolved on the phone** (tap, drag or cancel), which has the touch timing and pixel
+  distances. A release goes out at once, so a fire and its aim arrive together.
+- **Send rate:** a fixed 30 Hz while any control is touched, 5 Hz while idle, plus every button edge
+  immediately. (Sunny Side sends sticks only on change, which a held-still thumb would starve under the
+  250 ms rule.)
+- **Staleness (§11.4):** the host stamps each input with its receive time. Older than 250 ms, the
+  `PhoneInputSource` returns zero sticks and cleared flags; counters still apply when they arrive.
+- **Menu actions are intents,** discrete messages with a `seq`, answered by `ack`. Movement, combat and
+  builds stay pure input state (`PLATFORM.md` §2's rule covers movement; Sunny Side already sends
+  discrete UI messages). Intents that change run state become sim commands (§15.3) and are logged for
+  replays.
+- **Card pick:** `card` is valid in the build phase while the player's offer is open and holds the card
+  (else `invalid` or `phase`). At the deadline the host picks for every player with an offer and no pick,
+  from the `cardPick:<wave>:<slot>` stream (§15.3).
 - **State sync:** `team` and `me` are full snapshots with an increasing `rev` (the phone drops older
   ones), never diffs, so one message of each kind fully restores a phone after a reconnect. The host
   sends both on every `hello` and rejoin.
-
-```ts
-interface TeamView {
-  phase: 'lobby' | 'countdown' | 'build' | 'combat' | 'summary' | 'restoring';
-  wave: number; buildEndsInMs: number | null; coins: number; baseHp: number; baseMaxHp: number;
-  theme: ThemeId; difficulty: DifficultyId; leaderId: string | null;
-  roster: { playerId: string; name: string; color: PlayerColorId; classId: ClassId | null;
-    ready: boolean; connected: boolean }[];
-  shop: { id: ShopItemId; tier: number; maxTier: number; price: number | null; visible: boolean;
-    qmOnly: boolean; holdToConfirm: boolean }[];
-  wishlist: { item: ShopItemId; by: string }[];
-  nextWave: { enemies: { id: EnemyId; count: number }[]; boss: boolean } | null;  // §4
-  summary: RunSummary | null;
-  paused?: { playerId: string; name: string; color: PlayerColorId } | null;  // who paused (§10.5)
-}
-interface MeView {
-  screen: 'name' | 'lobby' | 'waiting' | 'full' | 'combat' | 'build' | 'dead' | 'summary'
-    | 'restoring' | 'claim';
-  slot: number | null; name: string; color: PlayerColorId | null; classId: ClassId | null;
-  isLeader: boolean; ready: boolean;
-  hp: number; maxHp: number; crates: number; carryCap: number;
-  superCharge: number; superReady: boolean;                     // 0..1 ring; full state (§10.1)
-  action: 'pickup' | 'deliver' | 'buy' | 'place' | 'throw' | 'flag' | 'recall' | 'kit' | 'none'; // act-* ids; 'kit' = emergency-kit
-  kits: number;                                                 // emergency kits held (Quartermaster, 0 or 1)
-  give: 'give' | 'drop' | null;                                 // what Give does now (icon swap, §10.1)
-  arc: { slots: (StructureId | 'give' | null)[]; enabled: boolean[] } | null;  // left, up, right, down
-  buildKit: StructureId[];                                      // empty = "No buildings to build" (§10.2)
-  respawnMs: number | null;
-  cards: { offer: CardId[] | null; picked: CardId | null; owned: { id: CardId; n: number }[] };
-  build: { selected: StructureId | null; valid: boolean | null } | null;
-  claim: { slot: number; name: string; classId: ClassId }[] | null;
-}
-```
-
 - **Lobby and presence** (`party/`): colors auto-assigned in brand order (cobalt, jade, sky, bone, rose,
-  forest; §2.3), skipping colors already chosen; first joiner leads, with handoff per §11.1. The `color`
-  intent maps to `party.setColor`: lobby only and not while that player is ready (ack `phase`), a color
-  another member holds acks `taken` (no swap), an unknown player or color acks `invalid`. Relay `peer left` → a `presence` command
-  makes the character dazed (§11.3); `rejoined` or a key match restores it. A phone joining during combat
+  forest; §2.3), skipping colors already chosen; first joiner leads, with handoff per §11.1; the
+  party's minimum is `game.meta.ts` `minPlayers` (1). The `color` intent maps to `party.setColor`:
+  lobby only and not while that player is ready (ack `phase`), a color another member holds acks
+  `taken` (no swap), an unknown player or color acks `invalid`. Relay `peer left` → a `presence` command
+  makes the knight dazed (§11.3); `rejoined` or a key match restores it. A phone joining during combat
   gets `waiting` and becomes a late join at the next build phase: in a build phase it enters a name,
-  picks a class and taps Ready, which takes the next free slot (`party.joinLate`, then the sim's `join`
-  command) and spawns the knight at the base with a card offer. A resume (§15.8) rebuilds the party
-  from the snapshot with `party.restore` (every slot away, matched by key or device ID), and
-  `party.claim` lets an unknown phone take a slot no phone has matched; `party.screen` returns `claim`
-  for it while such slots exist.
+  picks a knight and taps Ready, which takes the next free slot (`party.joinLate`, then the sim's
+  `join` command) and spawns the knight at the base with a full meter (a Commander with his starting
+  squad) and a card offer. A resume (§15.8) rebuilds the party from the snapshot with `party.restore`
+  (every slot away, matched by key or device ID), and `party.claim` lets an unknown phone take a slot no
+  phone has matched; `party.screen` returns `claim` for it while such slots exist.
 - **Team pause** (§10.5, FF14-fix-1): a `pause` intent from any phone with a run slot, in the
   countdown, build or combat phase (otherwise `phase`); pausing an already paused run keeps the first
   pauser, resuming a running one is a no-op, both ack `ok`. While paused, `team.paused` names who paused
@@ -2131,58 +2901,81 @@ interface MeView {
   commands, and a late join, ack `phase`. Input tuples still arrive while paused, and each
   `PhoneInputSource` subtracts the presses counted between the pause and the resume (`hold` /
   `release`), so nothing fires on resume. The summary's run time leaves the pause out.
-- **Versioning:** `PROTOCOL_VERSION` bumps on any breaking change to `messages.ts`; additive fields don't
-  bump it. `messages.ts` is a frozen contract (§15.11).
+- **Pause menu** (§10.5, §11.3, RD6-fix-1): `leave` from a phone with a run slot in the countdown,
+  build or combat phase (else `phase`) acks `ok`, then the host calls `party.leave` (the member goes;
+  leadership passes; late joins skip the left slot), queues a `presence` `connected: false` for the
+  knight, and kicks the phone. The last slotted player leaving ends the run (lobby). `leader`
+  `endGame` from the leader (else `notLeader`) in the same phases (else `phase`) acks `ok` and ends the
+  run: the lobby, knights kept, the snapshot cleared.
+- `messages.ts` is a frozen contract (§15.11).
+
+**TV overlay view (v2, `src/host/ui/types.ts`).** Unchanged except: `HomeRow` loses its `theme` row
+(`difficulty`, `resume`, `newRun`, `create` remain); `TvView.laneWarnings` is removed (the portal
+flare is drawn in the World scene from the sim's spawn plan and `portalFlare` events, not the DOM
+overlay; §15.11 #104); `Announcement.item` is a v2 `ShopItemId`. No other field changes.
 
 ### 15.7 Controller app
 
 - **DOM and CSS, no canvas** (as in Sunny Side), built on `@pcg/controller-kit`. The screen comes from
   `me.screen`; reconnecting, host away and rotate are phone-local overlays. Screen groups that share a
-  view (so a held thumb survives a switch): `combat` and `dead`; `lobby` and class select; `build` with
-  its Build and Shop tabs. Every player gets both tabs; an empty `buildKit` shows the "No buildings to
-  build" note in place of the kit tiles (§10.2).
+  view (so a held thumb survives a switch): `combat` and `dead`; `lobby` and knight select; `build`
+  (the card pop-up and the shop: the shop's movement stick shares the combat view's stick so a held
+  thumb survives the pick).
 - **Components:** plain TS DOM components, no framework (as in Sunny Side and the kit): `Badge` (icon +
-  tile state, §2.6), `RoundButton`, `ChargeRing`, `StatusStrip`, `KitTile`, `UpgradeCard`, `ShopRow`,
-  `HoldConfirm`, `Toast`, `LineupRow`, `ClassCard` (portrait, §15.4). Each screen composes them and
-  re-renders from the latest `team` and `me`. The mockups in §2.6 fix the look; the markup is the
-  build's call.
+  tile state, §2.6), `RoundButton`, `ChargeRing` (the super's pulsing ring and the build meter's
+  steady ring), `StatusStrip`, `UpgradeCard`, `ShopRow`, `HoldConfirm`, `Toast`, `LineupRow`,
+  `ClassCard` (portrait, §15.4). Each screen composes them and re-renders from the latest `team` and
+  `me`. `src/controller/copy.ts` is a sectioned file (one section per knight, commons, shop, lobby and
+  summary); its per-knight sections hold each knight's main and super input types (from content; a
+  test checks they match) and card text.
 - **Combat layout (§10.1)** comes from a pure function, `layoutCombat(viewport, safeInsets) → rects`,
-  turning the percentage positions and fixed sizes into px rectangles. Unit tests check its rules at
-  several viewports (644×300 to 1366×1024 landscape): gaps ≥ 24 px, button edges ≥ 64 px from the right
-  and bottom, every button ≥ 56 px. A Playwright test screenshots it on real viewports (as in Sunny
-  Side).
+  turning the percentage positions and fixed sizes into px rectangles, with the 60 px build button and the label rectangles.
+  Unit tests check its rules at several viewports (644×300 to 1366×1024 landscape): gaps ≥ 24 px,
+  button edges ≥ 64 px from the right and bottom, every button ≥ 56 px. A Playwright test screenshots
+  it on real viewports (as in Sunny Side).
 - **Gestures** (`controller-kit`, pure state machines with DOM adapters, unit-tested without a DOM):
-  - **Aimed button:** down → `pending`; released within 150 ms inside the dead zone → `tap` (fire,
-    aim 0,0); dragged out → `aiming` (aim flag set, vector clamped to 70 px); released outside the dead
-    zone → `fire` with the aim; released inside it after aiming → `cancel`. Fort Frenzy passes its dead
-    zone to the kit (`controller/input.ts` `aimGesture`: `AIM_DEAD_ZONE` = 0.25 of the clamp,
-    `shared/messages.ts`; the kit default stays 12%). The tuple is unchanged; the sim hides the held aim
-    (`PlayerEnt.mainAim`/`superAim` null; `AttackState.held` `cancelled`) while the aiming flag is set
-    and the aim is inside `AIM_DEAD_ZONE`, and shows it again once it is back out (FF7-fix-5, was a
-    latch for the rest of the hold in FF7-fix-4). The phone's tuple ints (`aimInts`) round onto the
-    same side of the zone as its own px test, so the TV shows a line exactly when a release would fire.
-  - **Tap button:** fires on release (§10.1).
-  - **Radial button:** a tap within 150 ms → `tap`; held 0.4 s or dragged out → `open` (radial flag,
-    slot by drag direction among enabled slots, 8 px hysteresis between slots); released on a slot →
-    `commit`; released in the dead zone → `cancel`; held on Give → repeat commits every 300 ms. With a
-    single slot (Give only), holding 0.4 s commits Give directly and repeats.
-- **Super ring, status strip, action icon:** drawn from `me`; the ring animates between updates. The
-  flash and 1.2 Hz pulse on `superReady` are CSS animations. Buttons and menu items use the icon set's
-  lit badges; `action: 'none'` shows the glyph at 35% on the plain tile (icons `README.md`).
-- **Shop:** hold-to-confirm (0.6 s) on items with `holdToConfirm`; Request toggles; purchase failures
-  show the `ack` reason as a toast.
+  - **Aimed button** (mains, aimed supers, thrown builds): down → `pending`; released within 150 ms
+    inside the dead zone → `tap` (fire, aim 0,0); dragged out → `aiming` (aim flag set, vector clamped
+    to 70 px); released outside the dead zone → `fire` with the aim; released inside it after aiming →
+    `cancel`. Fort Frenzy passes its dead zone to the kit (`controller/input.ts` `aimGesture`:
+    `AIM_DEAD_ZONE` = 0.25 of the clamp; the kit default stays 12%). The sim hides the held aim
+    (`PlayerEnt.mainAim`/`superAim`/`buildAim` null; `AttackState.held` `cancelled`) while the aiming
+    flag is set and the aim is inside `AIM_DEAD_ZONE`, and shows it again once it is back out
+    (FF7-fix-5). The phone's tuple ints (`aimInts`) round onto the same side of the zone as its own px
+    test, so the TV shows a preview exactly when a release would fire.
+  - **Tap button** (tap supers, at-feet builds, the Commander's recall): fires on release (§10.1).
+  - The build button swaps between the two gestures when `me.build.input` changes (the Commander's
+    recall), and is inert while `me.build.mode` is `none`. An aimed build uses the same floating aim
+    zones as the attacks (build aiming flag 4, `buildX`/`buildY`, `buildFires`). The kit's radial
+    gesture is unused.
+- **Super ring, build ring, status strip, build icon:** drawn from `me`; the rings animate between
+  updates. The flash and 1.2 Hz pulse on `superReady` are CSS animations; the build ring's full state is
+  a steady amber ring. Buttons and menu items use the icon set's lit badges; a dimmed build button shows
+  its glyph at 35% on the plain tile (icons `README.md`).
+- **Card pop-up:** full screen, no stick; tapping a card selects it locally (amber edge), Confirm sends
+  `card`; once `me.cards.picked` is set the view switches to the shop. The header renders
+  `me.cards.growth`.
+  Ready stays in the top bar on both screens (the coin count, shop only, sits left of it); Confirm
+  locks for 1.5 s after it sends, so a double tap makes one intent.
+- **Shop:** right 2/3, the stick on the left third; hold-to-confirm (0.6 s) on items with
+  `holdToConfirm`; Request toggles; Ready top right; purchase failures show the `ack` reason as a toast.
 - **Team pause (§10.5):** the combat and build views share one pause control (`createPauseControl`):
   the top bar's button and the paused card, both from `team.paused`. Going into a pause resets the
   view's gestures and zeroes the sticks; the input sender keeps running, so the host sees the counters
   it has to swallow.
+- **Dev samples:** the `?dev=1` harness has sample `me`/`team` states for the card pop-up, the shop, each
+  knight's build button states (charging, full, recall) and the squad-cap super.
 - **Bundle budget:** `play.html` loads ≤ 100 KB gzipped JS, with no Phaser and no atlases, only
-  `themes/<id>/shared.ts` (the icon sprite and portrait images load as assets, outside the JS budget).
-  `check-bundle` gains a per-app size limit.
+  `src/presentation/shared.ts` (the icon sprite and portrait images load as assets, outside the JS
+  budget). `check-bundle` enforces the per-app limit.
 
 ### 15.8 Resume snapshot
 
 - **Storage:** `localStorage` key `fort-frenzy:run` (survives a browser crash, unlike Sunny Side's
-  `sessionStorage`). Versioned JSON; a version mismatch or a snapshot older than 12 hours is discarded.
+  `sessionStorage`). Versioned JSON; a version mismatch or a snapshot older than 12 hours is discarded,
+  never migrated.
+- **Version:** the redesign's snapshot is **`v: 3`** (RD1 used 2 for the renamed ids; RD2's shape is 3), and `v` bumps whenever its shape changes, so old
+  saves are discarded (§15.11 #70).
 - **When:** written at the start of each build phase and on every run-state change during it,
   debounced to 250 ms and flushed on `pagehide`. Cleared when the run ends (§4).
 - **Device ID:** a random ID the phone keeps in `localStorage` (`fort-frenzy:deviceId`), not tied to any
@@ -2192,22 +2985,42 @@ interface MeView {
   and a refresh can't reroll it.
 
 ```ts
-interface RunSnapshot {
-  v: 1; savedAt: number; build: string;              // build = commit hash
-  settings: { theme: ThemeId; difficulty: DifficultyId; seed: number };
-  wave: number; base: { hp: number; repairs: number }; coins: number;
-  shop: Record<ShopItemId, number>;                  // tier owned (archer upgrades: 0 or 1 each)
-  structures: { id: StructureId; tile: [number, number]; hp: number | null;
-    dischargesUsed?: number; fortified?: boolean; owner?: number }[];   // owner: builder's slot (FF14)
-  cratePiles: { x: number; y: number; n: number }[];
-  slots: { slot: number; playerKey: string; deviceId: string; name: string; color: PlayerColorId;
-    classId: ClassId; hp: number; crates: number; kits: number; lastBuilt: StructureId | null;
-    cards: Record<CardId, number>; offer: CardId[] | null; picked: CardId | null; stats: RunStats;
-    squad?: { size: number; veterans: number[]; flag: [number, number] | null } }[];
+export const SNAPSHOT_VERSION = 3;
+
+export interface SnapshotBuild {
+  kind: BuildId; owner: number;                      // the knight's slot
+  seq: number;                                       // placement order (oldest mine goes first)
+  x: number; y: number;                              // tiles (builds don't snap, §7.1)
+  hp: number | null;                                 // HP builds; null for mines and the flag
+  charges: number | null;                            // mines; null otherwise
+}
+export interface SnapshotSlot {
+  slot: number; playerKey: string; deviceId: string;
+  name: string; color: PlayerColorId; classId: ClassId;
+  hp: number; meter: number;                         // build meter 0..1
+  growth: { regular: number; boss: number };
+  cards: Partial<Record<CardId, number>>; offer: CardId[] | null; picked: CardId | null;
+  stats: RunStats;
+  /** Commander only: each surviving soldier's HP and Veterans gains, by index. The flag is a
+   *  SnapshotBuild (`rally_flag`). */
+  squad?: { soldiers: { hp: number; veterans: number }[] };
+}
+export interface RunSnapshot {
+  v: typeof SNAPSHOT_VERSION;
+  savedAt: number; build: string;                    // wall clock (host only); commit hash
+  settings: { difficulty: DifficultyId; seed: number };
+  wave: number;
+  base: { hp: number; repairs: number };             // max HP follows the base_hp tiers in `shop`
+  coins: number;
+  shop: Record<ShopItemId, number>;
+  builds: SnapshotBuild[];
+  slots: SnapshotSlot[];
   leaderKey: string | null;
   wishlist: { item: ShopItemId; slot: number }[];
-  runMs?: number;                                    // run time before the save (FF14: summary duration)
+  runMs?: number;                                    // run time before the save (summary duration)
 }
+// Removed from v1: settings.theme, structures, cratePiles, slot crates/kits/lastBuilt, squad.size and
+// squad.flag (the flag is a build).
 ```
 
 - **Resume flow:** on reload, the host reclaims the room (phones stay joined and show "TV is
@@ -2216,11 +3029,13 @@ interface RunSnapshot {
   instead, the TV shows the new code; rejoining phones are matched by device ID, and any others see the
   `claim` screen listing free slots.
 - **What a resume restores** (FF14): the build phase of the saved wave with its full build timer; the
-  knights stand at the base; cooldowns and super charge start over; everything in the snapshot comes
-  back as saved. A saved run reclaims (or creates) the room as soon as the TV loads, and the TV's home
-  screen shows the Resume / New run rows with the room code. New run drops the snapshot and goes to the
-  lobby with the phones that are there. Any phone with no slot sees `claim` while a restored slot is
-  still unmatched, in the same room or a new one.
+  knights stand at the base with their saved HP, meter, growth and cards; cooldowns and super charge
+  start over; builds come back where they were with their HP or charges (a build saved in flight lands
+  where it was headed); each Commander's soldiers come back around him (or at his flag) with their HP
+  and Veterans gains. A saved run reclaims (or creates) the room as soon as the TV loads, and the TV's
+  home screen shows the Resume / New run rows with the room code. New run drops the snapshot and goes
+  to the lobby with the phones that are there. Any phone with no slot sees `claim` while a restored
+  slot is still unmatched, in the same room or a new one.
 - **Implementation:** `sim/snapshot.ts` takes (`takeSnapshot`), checks (`parseSnapshot`) and restores
   (`restoreSnapshot`, run by `createSim` when `RunStart.snapshot` is set) snapshots; the host's
   `net/resume.ts` does the storage and `net/session.ts` the timing. A restore is deterministic: two
@@ -2238,36 +3053,80 @@ interface RunSnapshot {
   changed, and every command, per step, plus the build commit hash. The debug panel downloads it as
   gzipped JSON (about 1 MB for a full run); an uncaught error offers the download automatically. Node
   `scripts/replay.ts <file>` re-runs it headless and checks the state hash every 60 steps, reporting the
-  first divergence. Replays are tied to the exact build.
+  first divergence. Replays are tied to the exact build. The redesign breaks the TD replay goldens and
+  seeded-run fixtures; they are regenerated, not migrated. (`Sim.spawnEnemy` and the other test helpers
+  bypass the command log; replays use commands.)
 - **Determinism tests:** the same seed and inputs, run twice, give identical state hashes (scripted runs
-  and the soak). Scenario tests assert outcomes, not hashes, so balance changes don't break them.
-- **Soak and benchmark:** an `AutopilotInputSource` (walk toward the nearest enemy, fire on cooldown,
-  fall back toward the base when hurt) plays waves 1–15 headless with invincible players: no exceptions,
-  and the run completes. A benchmark at peak entity counts checks the 2 ms step budget (§15.2); it runs
-  on demand, not in the CI gate. The autopilot seeds the solo-mode bots (§13).
-  - The soak (FF15, `sim/soak.ts`) holds the Citadel at full HP too, so every class mix reaches wave 15;
-    each player picks a card from every offer and tries one team-shop item a wave (in a rotation), so
-    card and shop hooks run. The full form (`pnpm --filter @pcg/fort-frenzy soak`) plays two seeds ×
-    (2 players in all 10 class pairs, 6 players in the 4 rotations of the class list), each run twice:
-    it fails on an exception, a run that doesn't end in victory at wave 15, or a rerun whose state
-    hashes differ. Vitest runs a short form (one whole 2-player run and the 6-player boss waves, twice).
-  - The benchmark (`pnpm --filter @pcg/fort-frenzy bench`) holds the §15.2 counts at the real peak
-    (wave 15, the Colossus Mk III in its final phase, Swarm packs) and with the whole roster scattered,
-    and times whole runs; it fails when a peak's p99 step (or any mean) is over 2 ms.
+  and the soak). Scenario tests assert outcomes, not hashes, so balance changes don't break them; tests
+  that do pin a balance number are updated in the same commit as the tuning.
+- **Autopilot:** `AutopilotInputSource` walks toward the nearest enemy, fires on cooldown, falls back
+  toward the base when hurt, and **places its build** by a per-knight policy (an append-only registry,
+  `src/host/sim/autopilot/builds.ts`: where and when each knight places, throws or recalls). It seeds
+  the squad-solo bots (§13). It only chases enemies its main attack can hit: no Flyers for a melee
+  knight, nothing outside the field beyond its main attack's reach from the edge (a Siege that set up
+  before walking in; left alone, it walks in) (§15.11 #177).
+- **Soak** (`sim/soak.ts`): the autopilot plays waves 1–15 headless with invincible knights and the
+  Citadel held at full HP, so every mix reaches wave 15; each player confirms a card from every offer
+  (or lets the deadline pick) and tries one team-shop item a wave (in a rotation), so card, growth,
+  build and shop hooks run. The full form (`pnpm --filter @pcg/fort-frenzy soak`) plays two seeds ×
+  (**1 player with each of the 4 knights**, 2 players in all 10 knight pairs, 6 players in the 4
+  rotations of the knight list), each run twice; each solo knight also plays a run **saved and
+  resumed** at wave 8's build phase (`resumeAt`), twice: the restored world must give the same
+  snapshot back and a second restore must hash the same. It fails on an exception, a run that doesn't
+  end in victory at wave 15, a resume that doesn't round-trip, or a rerun whose state hashes differ.
+  Vitest runs a short form (one whole solo run, one whole 2-player run, the 6-player boss waves and a
+  solo run resumed at wave 8, twice). The full form took about 6 minutes at RD14 (44 pairs of runs).
+- **Benchmark** (`pnpm --filter @pcg/fort-frenzy bench`): holds the §15.2 peak counts (6 knights, 30
+  soldiers, 150 enemies, 100 projectiles, 24 real builds: each knight's own, 4 apiece) at the real peak
+  (wave 15, the Colossus Mk III in its final phase, Swarm packs) and with the whole roster scattered,
+  and times whole runs (1, 2 and 6 players); it fails when a peak's p99 step (or any mean) is over
+  2 ms. Scenarios run one per process. Numbers swing ±50% under machine load; rerun once before
+  reporting a miss. On demand, not in the CI gate.
+- **Balance harness** (§2's balance rule; a report, never a gate, §15.11 #72):
+  `pnpm --filter @pcg/fort-frenzy balance` runs each knight alone (autopilot with its build policy) on
+  the `balance.harness` content: the standard wave of 12 Grunts, 4 Runners, 1 Swarm group and 1 Brute
+  from `bottom-w`, solo scaling, Normal, 5 seeds, no cards, meter full. It prints each knight's median,
+  min and max clear time and its median's distance from the mean of all four medians, and flags
+  knights outside ±20% and ±25%. Every knight runs; one without a build policy yet fights without
+  builds (marked in the report). `--quick` runs the first seed only (`src/host/sim/balance/harness.ts`,
+  `scripts/balance.ts`). The user sets the values at RC2.
 - **Unit tests:**
   - wave generator: spends within ±1 of the budget, allowed types only, guaranteed spawns present,
-    Flyer substitution, open lanes only, spread across the duration, same seed same wave, scaling
-  - card picker: every §6.1 exclusion, no duplicates in an offer, at most one rare, guaranteed rare after
-    a boss, about 15% rare offers over 10,000 seeded offers, same (seed, wave, slot) same offer
-  - flow field: routes around walls when it can and through when sealed, snares change nothing, the
-    breaker field prefers walls, rebuilds on place and destroy, every reachable tile leads downhill
-  - damage pipeline order, stat stacking and caps, each effect stacking policy
-  - config validation (§15.4), theme key whitelist (§15.4)
-  - snapshot round trip: save, restore, same state hash at the build phase
-  - protocol guards, the combat layout rules and the gesture state machines
+    Flyer substitution, spread across the duration, same seed same wave, scaling; portals: every group
+    at a real portal, ≤ `activeCap` portals per pulse, a hot-side portal in every pulse while hot, the
+    hot share within tolerance, shifts at the right fractions to a different side, per-group sides never
+    repeat back to back, the boss on the hot side
+  - card picker: every §6.1 exclusion (1- and 2-card prerequisites), no duplicates in an offer, at most
+    one rare, guaranteed rare after a boss, about 15% rare offers over 10,000 seeded offers, same (seed,
+    wave, slot) same offer; the deadline pick from `cardPick:<wave>:<slot>`
+  - build rules: one build per knight (mines: `maxActive`, oldest removed), meter empties on place and
+    starts full, no fill in the build phase or while down or dazed, build damage charges the super
+    never the meter, recall without the meter, HP builds targetable and charge builds not, builds
+    persist between waves without regen
+  - regen timing (5 s after damage, main or super; 8% per 1 s, in the build phase too), respawn table × difficulty and the
+    Quick Recovery floors
+  - flow field: the ground field never rebuilds, `blocked` tiles are impassable, Hunter pricing of
+    sentries, damage-dealing builds and hidden trigger radii, Brute per-target fields, every reachable
+    tile leads downhill
+  - damage pipeline order (the `guard` reduction after the capped card reduction), stat stacking and
+    caps, class multipliers and growth, each effect stacking policy
+  - config validation (§15.4), presentation key whitelist (§15.4), the icon lists of §2.6 against the
+    files on disk
+  - snapshot round trip: save, restore, same state hash at the build phase and the same snapshot back
+    (builds with HP or charges, mines, the flag, meters, growth, squads), also from a real autopilot
+    run of every knight; an older `v` is discarded and removed
+  - late joins: a full meter, a Commander's 2 soldiers, an offer, no cards or growth; a phone joining
+    in combat waits for the build phase
+  - protocol guards (tuple v2, intents, views), the combat layout rules and the gesture state machines
   - asset license coverage (§15.10)
-- **E2E (Playwright, as in Sunny Side):** smoke (lobby, class select, start, build, combat), phone
-  reconnect, host reload and resume, expired room resumed by device ID, controller layout screenshots.
+- **E2E (Playwright, as in Sunny Side):** smoke (RD6: a solo Warden starts alone, the wave 1 pop-up
+  ends with the phase's random pick, combat with portal flares, a thrown shield generator with the TV's
+  preview, wave 2's card Confirm and the shop, on to wave 2), phone reconnect (the same pop-up and
+  meter), late join (a full meter and a card offer), team pause (also in combat), host reload and
+  resume (builds, a rally flag, meters, cards and a Commander's squad come back, and the restored run
+  saves the snapshot it came from), expired room resumed by device ID, the stress mode (24 real
+  builds), controller layout screenshots. E2E drives time with `__pcg.speed(0)` + `advance` and
+  `?bloom=0&fps=15`, never sleeps.
 
 ### 15.10 Hosting, assets and licensing
 
@@ -2277,41 +3136,56 @@ interface RunSnapshot {
   changed.
 - **Root wiring:** the five per-game scripts (`dev:`, `dev:lan:`, `build:`, `e2e:`, `check:fort-frenzy`),
   and Fort Frenzy rows in the `PLATFORM.md` §1, `README.md` and `AGENTS.md` tables.
-- **Brand kit:** delivered as `fort-frenzy-brand-kit.zip` and unpacked (`brand/`, `public/`,
-  `src/styles/brand.css`, plus its `.prettierignore` lines). The first build milestone adds the
-  `head.html` snippet to both HTML entries and mirrors `brand.css` in `src/shared/theme.ts` with a
-  parity test (§2.3). `check:routes` then passes as is (icons, manifest, Google Fonts).
-- **Art deliveries:** the art agent delivers the whole `art/neon-knights/` folder (icons included) as
-  `fort-frenzy-art.zip`, and it replaces the folder (the `art/<theme>/` rule, §15.1). Layout and
-  conventions are in its `README.md`. `review/` holds assembled references, tier and aim sheets and UI
-  mockups, which no build reads. `.prettierignore` skips `apps/*/art/`, since each drop replaces it.
-  The first build milestone adds `art/` to `LICENSES.json` as `owned`.
-- **Atlas pipeline:** `scripts/build-atlases.ts` runs before every `build` and in dev (watch mode). It
-  rasterizes each SVG part with `@resvg/resvg-js` at 1× and 2×, **strips the review-only glow filters**
-  (`#glow`, `#glowU`, `#glowS`), packs Phaser JSON atlases (≤ 4096²) and checks every rig JSON against
-  the frames it found (every part present in every view and pose, `order` matching the parts, parents,
-  optional groups and attach points resolving, §15.2). Every SVG outside `review/` and `icons/` must be
-  named by a rig or by `sprites.json`. For every frame with `class="glow"` groups it also packs an
-  **unlit** variant (`<frame>@unlit`), with the glow recolored to its side's dark shade (§2.5), so code
-  can turn glow off where it's baked into a part: stunned enemies, a downed knight's glow dimming,
-  and destroyed structures and the Citadel. It also builds the phones'
-  icon sprite and the class portraits (§15.4). Output is gitignored. The TV picks 2× when the canvas's device-pixel size exceeds
-  1.5 × 1080. Atlases and audio get content-hashed names through Vite and are cached forever.
-- **Audio:** `.mp3` SFX in `audio/<theme>/`, mapped by `ThemeHost.sfx`. The TV preloads everything
-  behind a loading bar on the home screen; the first keypress there unlocks audio (browser autoplay
-  rules).
-- **Licensing:** `assets/LICENSES.json` has one entry per asset file or pack: path or glob, source URL,
-  author, license and whether commercial use is allowed. A unit test fails if any file under `art/`,
-  `audio/` or the fonts lacks an entry, or allows no commercial use (§2.3). Foster's own art is
+- **Brand kit:** `brand/`, `public/` and `src/styles/brand.css` (read-only), mirrored in
+  `src/shared/theme.ts` with a parity test (§2.3). `check:routes` passes as is (icons, manifest, Google
+  Fonts).
+- **Art:** `art/neon-knights/` is owned by the art agent (icons included); its `README.md` holds the
+  layout and conventions. `review/` holds assembled references, sheets and UI mockups, which no build
+  reads. `.prettierignore` skips `apps/*/art/`. The redesign art came on `art/redesign`, which is already in `main` (PR #34), so the
+  art on disk is the redesign set.
+  RD12 deleted exactly `review/redesign/obsolete.md`'s "Removed outright" files (15) and their
+  `sprites.json` entries; "kept on file" art stays on disk and in the atlas, unused (§2.6, §15.11 #66).
+- **Atlas pipeline:** `scripts/build-atlases.ts` (`pnpm assets`) runs before every build, test and
+  typecheck and in dev (watch mode). It rasterizes each SVG part with `@resvg/resvg-js` at 1× and 2×,
+  **strips the review-only glow filters** (`#glow`, `#glowU`, `#glowS`), packs Phaser JSON atlases
+  (≤ 4096²) and checks every rig JSON against the frames it found (every part present in every view and
+  pose, `order` matching the parts, parents, optional groups and attach points resolving, §15.2). Every
+  SVG outside `review/` and `icons/` must be named by a rig or by `sprites.json`. For every frame with
+  `class="glow"` groups it also packs an **unlit** variant (`<frame>@unlit`), with the glow recolored to
+  its side's dark shade (§2.5), so code can turn glow off where it's baked into a part: stunned enemies,
+  a downed knight's glow dimming, destroyed builds and the Citadel. It also builds the phones' icon
+  sprite and the knight portraits (§15.4). Output is gitignored. The TV picks 2× when the canvas's
+  device-pixel size exceeds 1.5 × 1080. Atlases and audio get content-hashed names through Vite and are
+  cached forever.
+- **Audio:** `.mp3` SFX in `audio/neon-knights/`, mapped by `PresentationHost.sfx`. The TV preloads
+  everything behind a loading bar on the home screen; the first keypress there unlocks audio (browser
+  autoplay rules). Cues live in `src/host/audio/cues.ts` (append-only).
+- **Licensing:** `assets/LICENSES.json` (append-only) has one entry per asset file or pack: path or glob,
+  source URL, author, license and whether commercial use is allowed. A unit test fails if any file under
+  `art/`, `audio/` or the fonts lacks an entry, or allows no commercial use (§2.3). Foster's own art is
   `owned`; a Kenney pack is one CC0 glob entry.
 
 ### 15.11 Contracts and decision log
 
-**Frozen contracts** (additive changes only once the first build milestone lands; headers say
-"Frozen", as in Sunny Side): `src/shared/messages.ts`, `src/shared/ids.ts`, `src/content/types.ts`, the
-sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `BossBehavior`),
-`src/themes/types.ts` (`ThemeShared`, `ThemeHost`, `RigDef`), `RunSnapshot`, and the public APIs of
-`@pcg/controller-kit` and `@pcg/game-kit`. Tuning values in `src/content/balance.ts` are never frozen.
+**Frozen contracts** (additive changes only; headers say "Frozen", as in Sunny Side; §15.11 #69):
+
+| From | Frozen |
+|---|---|
+| RD0 | The v2 sketches in this §15 (the shapes RD2 implements) |
+| RD2 | `src/shared/messages.ts` (`PROTOCOL_VERSION` 2, `InputTuple` v2, `Intent`, `HostMsg`, `TeamView`, `MeView`, `RunStats`), `src/shared/ids.ts`, `src/content/types.ts`, `src/host/sim/types.ts` and `events.ts`, the `src/host/sim/snapshot.ts` types (`RunSnapshot` v3), `src/host/ui/types.ts`, `src/presentation/types.ts`, the `src/host/systems/*/index.ts` signatures, `src/host/party/index.ts` |
+| RD6 | `src/host/render/types.ts` (with RD5's build-view API), the build behavior registry `src/host/sim/builds/index.ts` and the scene build-view folder convention |
+| Always | The public APIs of `@pcg/controller-kit` and `@pcg/game-kit` |
+
+Later milestones add to a frozen contract only additively, and log it (`contract+`) in
+`REDESIGN_BUILD_PLAN.md` §8. Append-only registries: `src/content/index.ts`,
+`src/host/sim/registry.ts`, the `SimEvent` members, `src/host/audio/cues.ts`,
+`src/host/sim/builds/index.ts`, `src/host/sim/autopilot/builds.ts`, `assets/LICENSES.json`. Tuning
+values in `src/content/balance.ts` are never frozen.
+
+Rows #1–#57 are the tower-defense build's decisions, kept as history: where the redesign changed one,
+a later row says so, and the TD wording (old class names, crates, structures, lanes, themes) is left as it was.
+Rows #58 onward are the redesign: one per REDESIGN group, then the build plan's decisions this spec now
+states, then RD0's own.
 
 | # | Date | Decision | Choice | Why |
 |---|---|---|---|---|
@@ -2372,3 +3246,113 @@ sim's public types (`World`, `Modifier`, `Hooks`, `InputSource`, `DamageCalc`, `
 | 55 | 2026-11-07 | Colossus stun resistance and Warden charge | For `stunImmuneMs` (4 s) after a stagger ends, stuns don't count into the Colossus's meter (damage still does); the Warden's super charges at 0.0054 per damage (~185 damage fills it, was 160); the stomp's 25 damage / 1.8 s stun on other enemies is unchanged (§9.2, content) | C4 note (Foster): "Stun resistance works great, or charge the warden's super a little more slowly. Maybe a little of both." A Warden-only team staggers it about 30% of the time (was ~35%), with at least 4 s between staggers |
 | 56 | 2026-11-10 | Catalog entry | `game.meta.ts` holds the title, player range (2–6), catalog descriptions and card and link-share art (`catalog/card.jpg`, `catalog/share.webp`); `MAX_PARTY`, the party's min, `RELAY_MAX_PLAYERS` (= cap + 2), the TV home tagline and the phone titles read it; the "Game full" note says "holds 6 players" (was "six") | One source for the gallery and the game (`PLATFORM.md` #9). Foster approved the digit. |
 | 57 | 2026-11-11 | Feedback link | Summary screen only: a 360 px QR (`host/ui/feedback.ts`, error level L, 8 px modules) top right, where the lobby's join QR sits; **Give feedback** on every phone's summary, a new-tab link | PLATFORM decision #11. The run's last screen, so it never interrupts play; the leader's end options are on the phone and unchanged. |
+| 58 | 2026-11-16 | Redesign A: core loop and flow | Players-only wave defense: knights are the only defense besides the sentries; builds are temporary tactics (one per knight, HP or charges, persist between waves); 6 portals all live from wave 1 with an unannounced hot side; `players + 1` active portals; a player-count lookup table; the base keeps its sentries and is repaired only from the shop; card pop-up → shop with a 20 s cap; 15 waves in about 20–24 min; delayed regen; 1–6 players with solo (§2–§5, §7, §9.3, §9.4, §11.1) | The tower-defense version let one class's towers solo most waves (breaking "roles amplify, never gate") and sat between tower defense and action (REDESIGN §0, A1–A6) |
+| 59 | 2026-11-16 | Redesign B: economy | Team coins are the only currency, with income lowered; no crates, power cells, carrying or personal shop; per-knight hybrid build meter (passive + actions; build damage charges the super only; starts full, carries over, no fill in the build phase); per-wave class growth; a thin team-only shop (§6, §7.2) | The crate logistics existed to feed structures; with builds charged by play, a currency per player adds nothing in v1 (REDESIGN B1–B5) |
+| 60 | 2026-11-17 | Redesign C: classes and knights | Classes (tank, marksman, support, control: HP tier, damage band, growth) are separate from knights (attacks, super, build, passive card); v1 knights Warden, Ranger, Artificer, Commander; builds use the attack input grammar; HP builds are targeted like knights, nearest first; no walls in v1 (static ground field); passives become cards; the Commander's squad starts at 2 and grows only from Reinforcements (§2, §7, §8) | Class = playstyle, knight = method, so more knights per class is content; the balance rule needs every knight able to hold a side (REDESIGN C1–C5) |
+| 61 | 2026-11-17 | Redesign D: enemies and boss | Brute hunts targetable builds; Siege targets players > builds > base and stops only with something in range; Flyer range up; Hunter senses hidden builds, avoids damage-dealing builds and sprints once locked on; Flyers spawn only for teams with a `hitsFlyers` knight; Colossus Mk I slam + boulder, Mk II adds Charge (replacing Wall Breaker), Mk III adds Runners and the final-phase shockwave; boulders target players (§9) | Anything that targeted towers needed a new target, and builds needed enemies that interact with them (REDESIGN D1–D3) |
+| 62 | 2026-11-17 | Redesign E: cards and shop | Cards upgrade the knight (attacks, super, build, squad, passive), the shop only the base; one rare unique passive card per knight, two build cards each, Tinkerer as the 9th common; the knight card lists of §6.1; team shop: repair, three sentry items, base max HP and base armor tiers, about 10 purchases a run (§6.1, §6.2) | With structures gone, personal power is cards and growth and team power is the base (REDESIGN E1–E4) |
+| 63 | 2026-11-17 | Redesign F: controls and UI | The action button becomes the build button (60 px, per-build gesture, a steady amber meter ring; the Commander's recall); card pop-up then shop with the stick on the left third; a 20 s build phase; status strip HP and base HP; enemy (violet) and build (amber) HP bars shown once damaged; the portal flare; new art for portals, builds, the Commander's shield, the Warden's jump, the Charge tell (§2.6, §10) | The priority table and the structure arc served crates and structures; one build per knight needs one button (REDESIGN F1–F5) |
+| 64 | 2026-11-17 | Redesign G: name, themes, difficulty, tuning | The name stays Fort Frenzy; the theme layer is removed (one look; code ids `ranger` and `artificer` replace `engineer` and `quartermaster`; Normal is the default difficulty); difficulty also scales respawn time, applied as difficulty × player-count table × wave multiplier; every number lives in `balance.ts` (§2.1, §2.2, §14) | The second theme will never ship, so the layer only cost indirection (REDESIGN G1–G4) |
+| 65 | 2026-11-18 | Redesign art | No placeholders: the redesign art (portals, builds, effects, the Commander's shield, the Warden's slam group, icons) was finished on `art/redesign` before the build; each feature milestone wires its own art (§14 #5) | REDESIGN §0.4 assumed placeholders; the art was done first (plan §8) |
+| 66 | 2026-11-18 | Retired art | RD12 deletes exactly `obsolete.md`'s "Removed outright" files and their `sprites.json` entries; "kept on file" art stays on disk and in the atlas, unused; §2.6 lists icons in use, on file and removed (§2.6, §15.10) | User, 2026-11-18; the kept art is the build idea pool's (plan §8) |
+| 67 | 2026-11-18 | Art folder | Keep `art/neon-knights/` and `audio/neon-knights/`; no flatten (§15.1) | `build-atlases.ts` treats `art/<set>` as the root, clips import rig JSON by path, the README and review sheets cite it, and the art agent owns the folder (plan §8) |
+| 68 | 2026-11-18 | Presentation layer | `src/themes/` becomes `src/presentation/` (`PresentationShared`, `PresentationHost`, rigs, clips), still a boundary the sim can't import; the ESLint `themes` pattern moves with it; the asset manifest keys by art set (§15.1, §15.4) | The boundary still earns its keep without theme selection (plan §8) |
+| 69 | 2026-11-18 | Contracts | Settled in §15 by RD0, implemented once in RD2, frozen after RD2 for the parallel milestones; RD6 freezes the render build-view API (§15.11 table) | Code can't hold the new contract types without compiling against them (plan §8) |
+| 70 | 2026-11-18 | Versions | `PROTOCOL_VERSION` 1 → 2 in RD1, then 2 for the whole redesign; the snapshot `v` bumps whenever its shape changes (now 2), old saves discarded, never migrated (§15.6, §15.8) | Phones and TV always ship from one commit, so only the production change matters (plan §8) |
+| 71 | 2026-11-18 | Shared code | No shared-code change: `layoutCombat`, `ChargeRing`, `RoundButton` are Fort Frenzy's; the build button reuses the kit's `aimedGesture`/`tapGesture`; `radialGesture` stays exported, unused; the catalog already accepts `minPlayers: 1`; the relay needs no change (§15.1) | Keeps the redesign inside the app and the relay undeployed (plan §8) |
+| 72 | 2026-11-18 | Balance harness | A report, not a gate: each knight solo against `balance.harness` (12 Grunts, 4 Runners, 1 Swarm group, 1 Brute from `bottom-w`, solo, Normal, 5 seeds, no cards, meter full), flagging ±20% / ±25% of the mean (§15.9) | Turns A1's balance rule into a number until the user sets values at RC2 (plan §8) |
+| 73 | 2026-11-18 | REDESIGN stale lines | 20 s build phase everywhere (F2's "A5 said 30 s"); the code ids are `ranger`/`artificer` (G2 over E3's "Code IDs" line); C5's Reinforcements "(as the old super)" is F1's aimed throw of one soldier; the Migration impact table covers A–G; no placeholders (§0.4) | Plan §8 reading of lines REDESIGN left behind |
+| 74 | 2026-11-18 | Portal positions | `bottom-w` cols 9–10 row 23, `bottom-e` cols 25–26 row 23, `left-n`/`right-n` rows 11–12 and `left-s`/`right-s` rows 18–19 on cols 0/35; sides left, bottom, right (§3.1, §15.2) | Side portals in the lower two-thirds (A2); a starting layout to tune in `map.ts` (plan §8) |
+| 75 | 2026-11-18 | Active portals | Chosen per spawn pulse: `min(players + 1, 6)` portals, always at least one hot-side portal while a side is hot; the hot share (start 0.55) goes to its portals, the rest spread over the others; solo: one hot-side and one other (§9.3) | A3 said "per spawn group"; a pulse is the unit the generator spreads (plan §8) |
+| 76 | 2026-11-18 | Hot-side shifts | One shift at 1/2 of the wave, two at 1/3 and 2/3, always to a different side, seeded (`waves:<n>`); the boss spawns at a seeded hot-side portal (§9.4) | A2 gave the count, not the timing (plan §8) |
+| 77 | 2026-11-18 | Class multipliers | The damage band multiplies the knight's main and super damage (tank 0.9, marksman 1.15, support 0.8, control 0.95); the HP tier multiplies a baseline knight HP (1.6, 0.8, 0.9, 1.0) (§8.1, §15.3) | C1's "about −10%" etc. as numbers (plan §8) |
+| 78 | 2026-11-18 | Wave multiplier | `WaveDef.enemyMult?: { hp?, damage? }` (default 1), applied as difficulty × player-count table × wave multiplier, baked in at spawn (§2.2, §9.3) | G3's order with C's balance-watch multiplier (plan §8) |
+| 79 | 2026-11-18 | Respawn | Respawn = table(players) × difficulty (Easy 0.8, Normal 1, Hard 1.2 to start); Quick Recovery −2 s per stack, floored at 4 s solo / 5 s otherwise, and the floor never raises a shorter respawn (§5) | G3 and E2 together (plan §8) |
+| 80 | 2026-11-18 | Build timing rules | Build effects (shield field, beacon healing) run in combat only; builds don't regen; the meter doesn't fill while the knight is down or dazed; a dead knight's builds stay on the map (§5, §7.1, §7.2) | Gaps in A5/B2 (plan §8) |
+| 81 | 2026-11-18 | Shield generator reduction | A status effect (`guard`, strongest of overlapping generators), applied after card damage reduction and outside its +40% cap (§7.4, §15.3) | Keeps cards' cap meaningful and the generator worth throwing (plan §8) |
+| 82 | 2026-11-18 | Beacon charge | Beacon healing charges the Artificer's super (like build damage), never the meter; super healing charges neither; Field Medic healing charges the super as before (§7.2, §8.3) | B2's build rule applied to healing (plan §8) |
+| 83 | 2026-11-18 | Quick taps and recall | v1 has no offensive thrown build, so every quick-tapped thrown build lands at the knight's feet; the Commander's tap with the meter not full and a flag out recalls, and recall never uses the meter; the flag's aim preview uses the squad's flag ring (§7.3, §7.4, §10.1) | C2/F1 left the v1 cases open (plan §8) |
+| 84 | 2026-11-18 | Brute pathing | A Brute reaches its build on a per-target ground field keyed by the build's tile (§15.5) | "Straight for the build" keeps working with v2 terrain (plan §8) |
+| 85 | 2026-11-18 | Hunter | The player-color flash moves to the lock-on moment (quarry within ~5 tiles); its field prices the sentries, damage-dealing builds and hidden trigger radii (§9, §9.6, §15.5) | D1's two phases need a visible switch; the tower-range pricing is reused (plan §8; revises #45's flash moment) |
+| 86 | 2026-11-18 | Colossus Charge | Destroys HP builds it crosses, triggers mines like any ground enemy, leaves the rally flag alone (§9.2) | The flag is untargetable (plan §8) |
+| 87 | 2026-11-18 | Card prerequisites | `CardDef.requires` is a list of 1 or 2 ids, so a passive card can gate the cards that improve it with the combo rule's check (§6.1, §15.4) | E1 (plan §8) |
+| 88 | 2026-11-18 | Card marks | `card-build`: Shrapnel Charge, Minefield, Wide Field, Reinforced Generator, Booster Beacon, Strong Arm; `card-tinkerer`: Tinkerer; `card-passive`: Steady Aim, Challenger, Field Medic, Morale, Deadeye, Wide Aura; `card-squad`: Forced March, Veterans, Last Stand, Drillmaster, Reinforced Ranks; `card-attack`: Heavy Bash and the kept attack cards; `card-super`: Blast Radius, Earthshaker, Rally Cry; the rest keep their TD marks; `card-supply` on file, unused (§6.1) | The new art's marks for the new cards (plan §8) |
+| 89 | 2026-11-18 | Morale and Warcry | Morale reaches allied knights and soldiers inside either area (flag or Commander), one effect; Warcry gives nearby knights the morale effect briefly and reuses its flash (§6.1) | E3 merged Lead from the Front into Morale (plan §8) |
+| 90 | 2026-11-18 | Card selection | Selection is phone-local; Confirm sends the existing `card` intent; at the 20 s deadline the host picks from `cardPick:<wave>:<slot>`; `MeView.screen` stays `build` and the phone shows the pop-up until `cards.picked` is set, then the shop (§10.2, §15.6) | No new intent or screen for a two-step pick (plan §8) |
+| 91 | 2026-11-18 | Late joiners | Start with a full meter (a Commander with his 2 starting soldiers); two Commanders each keep their own squad and flag (§8.4, §11.2) | Matches the run's own start (plan §8) |
+| 92 | 2026-11-18 | Enemy ids and names | Enemy code ids stay (`grunt`, `runner`, …); G2 renames only the knights. Display names live in one table in `src/presentation/shared.ts` (§2.1) | Fewer renames; one place for names (plan §8) |
+| 93 | 2026-11-18 | Run stats | `RunStats` drops the crate and structure counts and adds `buildsPlaced` (healing done stays); the award cards follow (RD2 shape, RD13 copy) (§4, §15.6) | Stats for the redesign's verbs (plan §8) |
+| 94 | 2026-11-18 | Knight and class ids | `KnightId` (`ranger warden artificer commander`) is the knight; `ClassId` stays as its alias, because the wire (`classId` fields, the `class` intent) and the code already use it; the REDESIGN "class" is `RoleId` (`tank marksman support control`), and `ClassDef` is keyed by `RoleId` (§15.4) | The plan names both `ClassId` and `RoleId`; an alias avoids renaming every `classId` field for no player benefit (RD0) |
+| 95 | 2026-11-18 | Shop ids | The sentry upgrades keep their `archer_*` code ids (display "Sentry …"); `base_hp` is new; a base max HP tier raises the Citadel's current HP by the same amount; every item is always visible (§6.2, §15.4) | G2 renames only the knights; raising max HP without current HP would read as no change (RD0) |
+| 96 | 2026-11-18 | Ack reasons | `crates` is removed; `cap` now means the shop item is at its max tier (§15.6) | Nothing is carried any more (RD0) |
+| 97 | 2026-11-18 | Input tuple v2 | 12 fields: move, main aim, super aim, **build aim**, flags (1 main, 2 super, 4 build aiming), and the main, super and **build** fire counters; the radial fields are gone. The sim resolves a build press from the state at the step it lands: meter full → place or throw; else a Commander with a flag out → recall; else nothing (§15.3, §15.6) | The build button uses the attack grammar (C2), so it needs the same aim, flag and counter; a phone/host race on the Commander's icon at worst throws a flag at his feet (RD0) |
+| 98 | 2026-11-18 | Regen | Regen isn't a heal: it sets HP directly with no hooks (no Overflow, no Triage), charges nothing and counts in no stat; it doesn't run while down or dazed (§5, §15.3) | A6 heals the knight itself; counting it would charge the Artificer's super from everyone's regen (RD0) |
+| 99 | 2026-11-18 | Late joiner growth | A late joiner starts with no class growth, as with no cards (§11.2) | Simplest; growth counts waves the player cleared (RD0) |
+| 100 | 2026-11-18 | Solo start | The party leader can force-start once at least one player is Ready (was two) (§11.1) | A's "the party leader can start alone" (RD0) |
+| 101 | 2026-11-18 | Build placement | Builds don't snap to tiles: at-feet builds at the knight's foot point, thrown builds at the landing point clamped to the playfield and outside the Citadel footprint; placing (or throwing) removes the knight's old build at once, so the one in flight counts (§7.1) | Builds are thrown to a point and nothing blocks pathing, so the grid adds nothing (RD0) |
+| 102 | 2026-11-18 | Effects v2 | `guard` (shield generator) and `taunt` (Challenger) added; `morale` carries damage, attack speed and move speed (the separate `haste` is gone); `tower_defense`, `aura_mason`, `aura_bodyguard` and `aura_lead_from_the_front` removed (§15.3, §15.4) | One effect per mechanic the redesign keeps (RD0) |
+| 103 | 2026-11-18 | Squad details | The squad cap starts at 4 (Reinforced Ranks +1); soldiers keep their HP between waves (no regen); the snapshot keeps each soldier's HP and Veterans gains, and the flag as a build (§8.4, §15.8) | C5 said "about 4–5"; regen is for knights (A6) (RD0) |
+| 104 | 2026-11-18 | Portal flare on the TV | `TvView.laneWarnings` is removed; the flare is drawn by the World scene from the spawn plan and `portalFlare` events (§15.6) | The flare is portal art in the world, not a DOM edge band (RD0) |
+| 105 | 2026-11-18 | Build button layout | **Revised by #115:** the build button is 60 px at (−134, +24); the first RD0 reading (68 px at (−118, +20)) overlapped its own and the super's caption on a real phone | F1 asked for a re-layout "to fit" (RD0); RC1 showed it did not |
+| 106 | 2026-11-18 | Reinforcements quick tap | A quick tap throws the soldier toward the flag, or straight ahead (his facing) with no flag out (§8.2, §10.1) | F1 covered only the flag-out case (RD0) |
+| 107 | 2026-11-20 | Change Knight | The end-of-run option and its copy say **Change Knight**, and the screen is **knight select**: players choose a knight (who belongs to a class), not a class. Display copy only: the `class` intent, `classId` and the `'classes'` leader option keep their ids (#94) (§4, §10, §11, §15) | Players choose a knight, who belongs to a class (user, RC0, 2026-11-20) |
+| 108 | 2026-11-20 | Bombard priority | Siege (Bombard) target priority is **base > players > builds**, nearest within each; it retargets the moment a higher-priority target enters range (revises #61's order) (§3.3, §9, §9.1, §15.5) | RC0 checkpoint note (user, RC0, 2026-11-20) |
+| 109 | 2026-11-20 | Respawn at 5–6 players | Base respawn is **15 s** for 5 and 6 players (6 s solo, 10 s for 2–4); the difficulty multiplier and Quick Recovery's floor are unchanged (§5, §9.4) | RC0 checkpoint note (user, RC0, 2026-11-20) |
+| 110 | 2026-11-20 | Stats banners (v2) | v2 note: the end-of-run screen shows every stat for each player in per-player banners, like a fighting-game results screen; v1's summary and award cards are unchanged (§13) | v2 polish; v1 scope stays (user, RC0, 2026-11-20) |
+| 111 | 2026-11-21 | RD2 contract fixes | `SNAPSHOT_VERSION` 3 (RD1 used 2); `Content` keeps arrays and nullable singletons; transitional Commander and passive fields until their kit milestones; the Colossus's Citadel multiplier is a boss param (§15.4, §15.8) | The code's catalog already looks content up by id; the old Commander super and passives keep working until they're replaced (RD2) |
+| 112 | 2026-11-21 | RD3 sim slice | A spawn pulse is up to `players + 1` groups at one time, and "per spawn group" hot sides roll per pulse; the hot/other split is chosen over the whole wave (share closest to 0.55, never under half, a group elsewhere per pulse where the costs allow); the boss spawns on the first pulse's hot side; a thrown build lands at aim × throw range; a card not confirmed when the build phase ends (deadline or everyone Ready) is picked at random; super damage charges the meter (§7.2), never the super; a build without a behavior can't be placed yet; the harness runs every knight (§7.3, §9.3, §9.4, §10.2, §15.3, §15.9) | Simplest readings that meet §9.3's share and cap together; the plan's "super damage charges neither" contradicts §7.2, §8.3 and REDESIGN B2 (RD3) |
+| 113 | 2026-11-21 | TV slice (RD5) | A clip switches optional groups with `Keyframe.groups` (the Warden's `slam` swap); the build-view API and `EffectSpawner.mark` are additive (§15.2); HP bars (violet enemies, amber builds) are two pre-made images moved and scaled, never drawn per frame; the jump slam keeps the clip name `super` and the impact `JUMP_IMPACT_MS` (= `STOMP_IMPACT_MS`, content `warden.super.windupMs`); the thrown-build preview draws the sim's `buildPreview` (§7.3) (§2.4, §2.6, §7.5, §10.1, §15.2) | RD5 plan: new art, no per-frame rebuilds (FF7-fix-1, FF8, FF9 lessons); SPEC and REDESIGN agree otherwise |
+| 114 | 2026-11-21 | Slice wiring (RD6) | Debug commands: `meter` takes an optional `target` slot (none = every knight); `hot` forces the hot side: the spawn groups not yet flared that sit on their pulse's hot side move to the forced side's portals in turn (the others stay), every pulse is tagged with it, and every later wave's plan is forced at its combat start until `side: null` clears it; the forced side lives outside `World` (`Sim.debugHot`). The pop-up's growth header is the class's growth list for the wave just cleared (a boss wave's `boss` list) once the knight has a bump, null otherwise; the bumps and lists are RD11's. The e2e smoke is the solo Warden slice (§9.5, §10.2, §15.3, §15.9) | Simplest debug tools that keep replays exact (logged commands); a flared portal keeps its group because its flare was already shown (RD6) |
+| 115 | 2026-11-23 | Phone layout fixes (RC1) | The build button is **60 px** (pre-RD4 56, RD4 68) at offset (−134, +24); captions sit centered under their buttons clear of the 11 px aim/meter ring reach, and `layoutCombat`'s tests prove no caption meets a button or another caption. The shop is one column in the right two-thirds: a one-line header (title + short hint, hint dropped on short screens), then the scrolling rows; each row keeps icon, full name, tier, price (never below 96 px, no wrapping) and Request (§10.1, §10.3) | RC1: the shop rendered its header, rows and hint as three side-by-side columns, and the 68 px button covered captions |
+| 116 | 2026-11-23 | Jump slam timing | The wind-up is 1.8 s and the clip 2.2 s, with damage, stun, `landing-dust` and `slam-cracks-wide` together at the impact. From press to landing he is rooted with his aim and facing locked, main and build presses are lost, and he stays a target. Down, dazed or a phase end cancels the slam (`windupCancelled`) and the charge stays spent (§2.4, §8.2, §15.3) | User, RC1: "much slower (~2 seconds long)"; the simplest rule that keeps a long wind-up readable (RD3-fix-1) |
+| 117 | 2026-11-23 | Warden main | The hammer smash leaves no ground cracks (only the super does) and doesn't knock back a target that was already stunned; unstunned targets are knocked back as before (§2.4, §8.2) | User, RC1 (RD3-fix-1) |
+| 118 | 2026-11-23 | Aftershock | Moves from the main to the super: every enemy the jump slam hits is slowed for 5 s (`slowMs`), at the card's strength; the old slam zone is gone. RD11 keeps this behavior (§6.1) | User, RC1: "add it to his super ... ~5 seconds"; a hit-applied slow shows on the enemy (`shock-crawl`), and Fault Line stays the ground fissure (RD3-fix-1) |
+| 119 | 2026-11-23 | Shield generator throw | Throw speed 12 → 6 tiles/s: 1 s at full range (was 0.5 s). `minFlightMs` stays 300, so a quick tap at his feet is still quick; the beacon and flag keep their own values (§7.4) | User, RC1: "throw animation/flight time should be longer" (RD3-fix-1) |
+| 120 | 2026-11-23 | Regen wait | 5 s (was 4 s), restarted by damage taken and by every main attack or super, for every knight; placing a build doesn't restart it (§5) | User, RC1 (RD3-fix-1) |
+| 121 | 2026-11-23 | Mine delay at a wave's end | A mine whose trigger delay is cut off by the end of the wave doesn't burst: it re-arms with its charge. Shrapnel Charge's shorter delay stops at `minTriggerMs` (120 ms) (§7.4) | Build effects run in combat only (§7.1); a burst in an empty build phase would waste the charge (RD7) |
+| 122 | 2026-11-23 | One-card prerequisites | A card with one prerequisite (Deadeye, Wide Aura) is gated by it but stacks like any other card unless marked unique; only two-card combos are implicitly unique (§6.1) | §6.1 marks only combos and named cards unique; the picker treated every `requires` as a combo (RD7) |
+| 123 | 2026-11-23 | Ranger kit on the TV | The `shockwave` frame replaces the Ranger's code-drawn ring and rolls out to his effective hit radius; the mine uses the shared life cycle with `liveAlpha` 0.4 and a `trigger` frame, its shadow fading with it; his Steady Aim pose shows only with the card (§2.4, §7.5, §15.2) | RD7 |
+| 124 | 2026-11-24 | Warden main reach (RC2) | The hammer smash reaches 1.65× as far (1.75 → 2.89 tiles; its aim preview with it, one `hitShape`) and knocks nothing back, stunned or not; #117's "already stunned" check is gone, its no-cracks rule stays. The jump slam never knocked back. The stun is unchanged (§8.2) | User, RC2: "Increase the range of the warden's main attack by 60-70% and remove the knockback" (RD3-fix-2) |
+| 125 | 2026-11-24 | Jump slam timing (RC2) | Revises #116's timing (RC1's "~2 s"): the wind-up is 1.1 s (was 1.8 s) and the clip 1.35 s (was 2.2 s), about 60%. Every clip beat (crouch, lift, hang, landing hold, hammer swap) is scaled by the same ~0.61, so no pose is cut. Damage, stun, `landing-dust` and `slam-cracks-wide` still land together at the impact, and #116's commit rules stand (§2.4, §8.2) | User, RC2: "Warden super animation is much too slow now. Make it 1/2 - 2/3 the length" (RD3-fix-2) |
+| 126 | 2026-11-24 | One throw speed | Every throw flies at `THROW_SPEED` 5 tiles/s (`balance.ts` builds section): the shield generator (was 6, #119), the beacon (was 12), the rally flag (was 14) and the Reinforcements soldier (was 10). Each keeps its `minFlightMs`; Strong Arm still multiplies build throws (§7.3, §7.4) | User, RC2: the generator's throw "slightly slower", and "all throws should be the same speed" (RD3-fix-2) |
+| 127 | 2026-11-24 | Warden main cone (RC2) | The hammer smash's arc is a third narrower, 102° → 68°, at the same 2.89 tiles; its aim preview and the TV shockwave read the same content (one `hitShape`), and Heavy Slam's +20% widens the new base (81.6°). The jump slam keeps 102°, so it is now wider than the main as well as longer; this revises §8.2's "as wide as the main's" (REDESIGN.md's knight table still says it; the user decides at the next checkpoint) | User, RC2: "Warden main range is good, but make the cone narrower" (RD3-fix-3) |
+| 130 | 2026-11-23 | Nanite blast | 5 nanites, evenly over 0.8 s from the press, each to a random spot in the cone at 60–100% of the range (`combat:<wave>` stream), along the aim he released with. Each nanite restarts regen; going down, dazed or a phase end drops the rest. The cooldown never goes under `burstMs`, whatever his attack speed (§8.2) | One burst per release, and RC1's regen rule on the blast's own firing path (RD8) |
+| 131 | 2026-11-23 | Artificer healing | Field Medic and beacon healing charge the super at `superCharge.perHeal`, through Focus (Field Medic's own `chargeRate` is gone); only Field Medic charges the meter. The beacon pulses at once when it switches on, then every `heal.everyMs`, and keeps working while he is down; Booster Beacon raises heal per pulse (`buildPower`) and HP (§7.4, §8.3) | One charge rule for both heals; `buildPower` is the contract's heal-per-pulse stat (RD8) |
+| 132 | 2026-11-23 | Build HP on resume | A restored build's max HP is recomputed from its owner's cards before its saved HP is applied (§15.8) | Otherwise a resume clips a Booster Beacon back to base HP (RD8) |
+| 140 | 2026-11-23 | Commander main and super (RD9) | The shield bash is an arc with knockback and no wind-up (the hit lands on the press, the sparks on the clip's impact). Reinforcements is an aimed throw: the stick's length sets the distance like a thrown build, a quick tap goes toward the flag (stopping at it) or straight ahead. Both go through `fire()`, so both restart regen; placing or recalling the flag doesn't (#120) | RD9 entry settles §8.2 vs the old tap content; no wind-up keeps a short melee hit responsive |
+| 141 | 2026-11-23 | Rally flag as a build (RD9) | The flag is a `BuildEnt` (saved and drawn like any build; `PlayerEnt.flag` holds where it stands or will land, set at the throw, so the squad moves at once and the banner leaves his back). `BuildBehavior.placed` is the new optional hook. Its view takes the owner's color from `BuildViewState.ownerTint` | Replaces RD2's "until RD9" flag on the player; one pipeline for every build |
+| 142 | 2026-11-23 | Squad (RD9) | `start` soldiers once per run (`PlayerEnt.squadSeeded`), no respawn; a resume restores exactly the survivors around him or at his flag. Forced March, Drillmaster and Reinforced Ranks are the Commander's `squadSpeed`, `squadHp` + `squadDamage` and `squadCap` stats (Forced March capped at +40% like movement). Last Stand counts soldiers short of the cap, since the squad no longer has a fixed size. Squad damage counts in his `damageDealt` | §8.4; the stats were reserved in RD2; the cap is the only stable "full size" without respawn |
+| 143 | 2026-11-23 | Morale and Warcry (RD9) | Morale: `morale` re-applied from him and from the flag's build behavior, so the flag keeps working while he's down (§7.1), one effect through `refresh`. Warcry applies the same effect and sends `warcry` so the TV flashes only the knights it reached; the Morale card itself shows nothing. The Lead from the Front module, motes and aura are gone | §6.1 "no visual of its own" needs a signal apart from the effect |
+| 150 | 2026-11-23 | Brute targeting | The Brute rechecks the nearest targetable build every step, so a build landing nearer pulls it off course and flashes a new lock-on (§9) | "Nearest" plus "builds are Brute bait" reads as live; a sticky target would ignore the bait (RD10) |
+| 151 | 2026-11-23 | Flyer and builds | "Ignores ground builds" means trap builds: a Flyer never sets off mines, and still shoots knights and HP builds in its aggro radius (§9) | REDESIGN D1's list is "mines, nets, traps", and §7.3 and §9's aggro rule include Flyers (RD10) |
+| 152 | 2026-11-23 | Charge rules | Tell 1.6 s with the lane up, then a run at 8 tiles/s to 3 tiles past the knight, stopping short of the map edge and Citadel; the lane's half-width (1.2) is exactly what it hits; knights and soldiers take one 35 hit and are thrown 3 tiles aside; a stagger calls it off and the cooldown stands (§9.2) | Starting values; what the marker shows is what it hits, so it stays dodgeable (RD10) |
+| 153 | 2026-11-23 | Mk III Runner calls | Runner calls run for the whole Mk III fight, the first after half a cooldown; the final phase only shortens them (§9.2) | REDESIGN D2: Mk III adds calling Runners "and, in the final phase, the shockwave" (RD10) |
+| 154 | 2026-11-23 | Hunter pace | Stalk speed is §9.1's 1.3 (the code still had the tower-defense 1.5), × 1.4 once locked on; the lock holds until the quarry changes; the flash is at the quarry's feet (§9, §9.1, §9.6) | The two phases need a real speed change; §9.6 names the quarry's feet (RD10) |
+| 155 | 2026-11-23 | Boss damage scaling | The boulder, shockwave rings and Charge take the same difficulty × wave multiplier as the slam, read from its baked damage (§9.3) | The multiplier "applies to every type"; these three used difficulty only (RD10) |
+| 156 | 2026-11-24 | Commander RC2 notes (RD9-fix-1) | The shield bash is a solid rectangle (`AttackDef.shape 'rect'`, `width`, stat `width`) from his feet along the aim: 2.25 tiles long, 2 wide, every enemy body overlapping it hit, knockback 0.96 (×0.8), still pushed away from him; Heavy Bash widens it (+20% `width`) instead of the arc. Soldiers walk at 3.9 tiles/s, about 90% of his 4.3; the hurry (×1.3 past 3 tiles) still lets them regroup. The TV's aim preview draws the rectangle (§8.2, §8.4, §10.1, §15.4) | RC2 notes (Foster): "make the commander's squad slower"; "a wide solid rectangle instead of a cone", "+range", "−20% knockback" |
+| 157 | 2026-11-24 | Leash resume | An aggro-leash enemy that loses its target (past the leash, or the target goes down, dazed or away) goes on toward the base from where it stands on the ground field (a Flyer straight at the Citadel), not back to the point it left; a target let go at the leash is ignored until it leaves the aggro radius (`EnemyEnt.dropped`), so the leash still ends a chase (§9, §15.5) | User, RC2 (RD10-fix-1): enemies walked back to their old path first |
+| 158 | 2026-11-24 | Soldiers as targets | The Commander's soldiers are aggro targets like knights (same radius, leash, nearest wins; a knight on an exact tie); Siege ranks them with the players; a soldier in the air isn't a target until it lands. The Brute's build hunt, the Hunter's quarry and the Colossus's boulder and Charge lock-ons stay knight (or build) only (§9, §8.4) | User, RC2 (RD10-fix-1); the lock-ons are each enemy's own rule in §9 and §9.2, and the slam and Charge already hit soldiers |
+| 159 | 2026-11-24 | Burn size | The burn and corrosion looks are 0.45 of the body's height, capped at 1.1× the frame, with their bottom at the top of the legs (§15.2) | User, RC2 (RD10-fix-1): the flames were the body's full height, huge on the Colossus |
+| 160 | 2026-11-24 | Commander RC2 notes (RD9-fix-2) | Soldiers walk at 3.45 tiles/s, about 80% of his 4.3 (was 3.9); the hurry past 3 tiles goes from ×1.3 to ×1.45 (about 5 tiles/s, the old regroup pace) so they still catch him. The bash rectangle is 1.5 tiles wide (was 2, −25%), reach kept at 2.25; knockback 0.864 (×0.9); Heavy Bash still widens it by 20% from the new base (§8.2, §8.4) | RC2 notes (Foster): "Commander squad members should be even slower"; "Narrow the commander bash hit by about 25%, and decrease the knockback by about 10%" |
+| 161 | 2026-11-24 | Burn size, again | The burn and corrosion looks are 0.7 of the body's height, capped at 4× the frame (only the Colossus reaches it), bottom still at the top of the legs; flame height in sprite units, old / #159 / now: Grunt 80 / 36 / 56, Flyer 50 / 22.5 / 35, Brute 125 / 44 / 87.5, Colossus 280 / 44 / 160, each within 4% of halfway; corrosion keeps the same rule (§15.2; reverses #159's numbers) | User, RC2 (RD10-fix-2): "Flames are now too small. Find a happy medium." |
+| 162 | 2026-11-24 | Pause menu: Leave game and End game (RD6-fix-1) | The paused card gets **Leave game** (every run player) and **End game** (the leader only), each behind a confirm step with Cancel (§10.5). Leave (`leave` intent) drops the player from the party at once (no reconnect into the slot, leadership passes, the phone is kicked back to the join screen); the knight stays on the map dazed for the rest of the run, its builds and squad as a dropped phone's, and late joiners never take its slot; the last player out ends the run (§11.3). End game (`leader` `endGame`) goes straight to the lobby, knights kept, snapshot cleared (§15.6). Revises §11.1 "nobody can leave" and §10.5 "no pause menus (quit)" | User, RC2. Keeping the knight is the simplest rule that matches §11.3's held slot: removing a knight mid-run would touch builds, squads, targeting, stats, the snapshot and the TV for little gain. End game goes to the lobby, not the summary: the summary is a win or a loss (`RunSummary.result`), and a forced end is neither |
+| 163 | 2026-11-24 | Art pass (RD12) | The 15 "Removed outright" art files are deleted (Armory kiosk and pad, repair-zone pad, power cell, `carry-pip`, `carry-pip-empty`, their two review sheets, seven crate icons) with six `sprites.json` frames; icons are 66 (§2.6). The gallery gains `builds` and `portals` pages and `slam` and `sword` rig toggles, and the jump slam's gallery loop is 1750 ms (clip + 400 ms) | Plan RD12 |
+| 164 | 2026-11-24 | Audio cues for the redesign (RD13) | Nine new cues (§12, §15.4): mine trigger and blast, shield generator hit, beacon pulse (one a second at most), portal flare, Brute lock-on, Colossus Charge wind-up (replaces the generic boss marker cue for that marker), Warden jump-slam landing, Rally Cry double (`reinforce` count 2). Every cue has a tuning cap (§15.10); three events and one optional field were added to the sim events (contract+). No crate or structure cues exist | Redesign; the simplest mapping from existing events, adding an event only where none carried the fact |
+| 165 | 2026-11-24 | Coin curve and shop prices (RD11) | Coin rate 0.25, no starting coins; the team pool keeps the fraction and the views show whole coins. Prices: repair 6/9/12/15/18, sentry damage and range 12, third sentry 30, base max HP 12/20/28, base armor 14/22/30; press-and-hold from 20. The economy run (`sim/economy.ts`, seed 1, 2 players, Normal) buys nothing before wave 3, its first item before wave 4 and 9 items in all (solo 7, 4 players 9 with coins left over) (§6, §6.2) | §6.2's target: repair affordable after wave 2, a tier I around waves 3–4, saving for the third sentry and tier IIIs, about 10 purchases; a rate under 1 needs the fraction or a Grunt pays nothing |
+| 166 | 2026-11-24 | Class growth (RD11) | Every wave's end (before the next build phase, not after wave 15) adds the class's `regular` list, or its `boss` list after a boss wave, to every knight in the run, down or disconnected too; the bump counts (`PlayerEnt.growth`) make one `growth` modifier, restored from the snapshot's counts. The sim drops any stat that has a cap, whatever the content lists. Debug `jumpWave` grows nothing. Starting values in §6.1 (§6.1, §8.1) | §6.1: additive like the cards, uncapped stats only; counts keep the snapshot shape (v3) unchanged |
+| 167 | 2026-11-24 | Warden cards (RD11) | Challenger: `taunt` in combat; an aggro-leash enemy picks a taunting knight in its aggro radius first and turns from its current target to him (its leash and other rules unchanged; Siege, Hunters, the Brute's build hunt and the Colossus keep their own targeting). Fault Line: a strip from his feet along the jump slam's aim (not its curved edge), reach × 1, 0.9 wide, 4 s, 50% slow lingering 0.5 s, ground enemies only; drawn with `slam-cracks` marks. Wide Field +25% field radius; Reinforced Generator +40% HP and +20% guard per stack; Earthshaker unchanged (+30% stun, no boss stagger by the Colossus's fixed stun fill) (§6.1) | "Nearby enemies target him first" as the existing aggro rule's first pick; a straight strip is the simplest long fissure "along its arc" and needs no new art |
+| 168 | 2026-11-25 | Portal flare flicker (RD5-fix-2) | The `portal-flare` sparks flicker over their 1 s life: three uneven waves multiply alpha (floor 0.4) and scale (±7%), enveloped from full at the start to 35% at the end, phases seeded by the flare's place and start order. Constants in `render/effectsMath.ts` (`FLARE_FLICKER`); one effects hook, so the map and gallery pages match (§2.5) | RC3 note: "more of a flicker"; alpha/scale only, no rebuild (§15.2 frame cost) |
+| 169 | 2026-11-25 | Footman slash (RD9-fix-3) | The footman's attack is a sword slash: the blade hand turns about its wrist pivot (the rig's `hand`, the blade its child) with the torso leaning in: wind-up raised back at 50 ms, through the aim at 90 ms (the old stab's peak; the sim's hit and timing unchanged), follow-through at 140 ms, back at rest by 300 ms, about 120° of blade turn. Solved per view (`attack@<view>`): side cuts from raised-back to low-forward, level along the aim at the impact; front and back cut across the body, the tip crossing his centre line at the impact, the free hand pulling the other way. His facing holds on the slash's angle while it plays (`heldAim`, as the knights since RD5-fix-1). No trail: the rig has none and the Commander's is drawn for his sword's reach | User, RC3: "slash their sword in an arc, not just a simple push"; the existing `hand` pivot carries the arc, so no art change |
+| 170 | 2026-11-25 | Wasp size (RD10-fix-3) | The Wasp is drawn 1.4× its art (`WASP_SCALE`, `RIG_INFO.scale`; the gallery too), its shadow, status sizes and tell glow scaled with it, and flies a little lower: its hull's underside 1.23 tiles over its shadow (90% of #50's 1.37). The scaled art lift (1.59) is above that, so the render hover is negative (the empty foot point is drawn below the ground point). Its content body grows in proportion (radius 0.43 → 0.6, 1.23 to 1.78 tiles up, was 1.37 to 1.76) since bodies match the drawn art (§9); its feet circle (0.3, walking and collisions) is unchanged (§9, §9.6, §15.2) | User, RC3: "Wasp drone needs to be larger so it can be seen better. Keep it about the same height though, or even make it a little lower." |
+| 171 | 2026-11-25 | Colossus stagger pace (RD10-fix-3) | The stagger meter fills 15% slower from both sources: `staggerPerHp` 3 → 2.55, `staggerStun` 0.25 → 0.2125; a stream of equal hits needs about 18% more damage (67 → 79 hits of 0.5% HP); `staggerMs` stays 3 s (§9.2) | User, RC3: "fill a little slower, or stagger shouldn't last as long"; the orchestrator chose the slower fill |
+| 172 | 2026-11-25 | Smarter enemies (v2 note) | §13 gets a v2 row: smarter enemy AI (flanking, focus-firing low-HP knights, avoiding hazards); no v1 behavior changes | User, RC3: "I would like to make the enemies a bit smarter" |
+| 173 | 2026-11-25 | Debug panel card tools (RD6-fix-2) | The debug panel lists the knights in play (slot, color, knight, cards with counts) and gives any run knight one stack of any card it could hold (shared commons + its own), in the build phase or combat, through the pick's apply path (no offer, no `picked`, no `cardPicked` event). `requires` is bypassed (labeled "(needs X)"); a second unique card or combo and another knight's card are refused (`cap` / `invalid`) with a message. A logged `card` debug command, so replays keep it; `__pcg.giveCard(slot, cardId)` for e2e and the console (§9.5, §15.3) | User, RC3: "I can't test specific cards unless the debug panel knows what types of knights are in play and lets me add a card to the knight." |
+| 174 | 2026-11-25 | Warden jump slam width (RC3) | The jump slam's arc is 85° (was 102°) at the same 4.7-tile reach: wider than the main's 68°, longer, less damage. Its aim preview, the TV effect and Fault Line read the same content. This settles #127's open "as wide as the main's" line; REDESIGN.md's knight table is the old record and stays as is (§8.2) | User, RC3: "The Warden's jump slam should now be 85 degrees" (RD3-fix-4) |
+| 175 | 2026-11-25 | No waiting on an empty map (RC3) | With no enemy alive and groups pending, the next spawn pulse is pulled forward: it flares that step and spawns 1 s (`flareMs`) later, and every later pulse moves by the same amount. Portals, groups, hot sides, budgets and the cap are untouched; deterministic (state only). Not moved: a pulse already flared, or a plan held past the wave's duration (test and bench holds). Applies at wave start too. Solo autopilot combat: mean wave 62 → 51 s (§9.3, §9.4, §15.3) | User, RC3: "long gaps between each group of enemies… If all enemies are cleared, it should immediately trigger the next wave of enemies"; the flare tell is kept (RD3-fix-4) |
+| 176 | 2026-11-25 | Growth header amounts (RD4-fix-2) | `MeGrowth` gains an optional `pct` (percent each listed stat grew at the last wave end, from the class list's `addPct`; 1 decimal). The pop-up header reads "Wave 4 cleared: +3% HP  +1% DMG" (boss waves show the bigger numbers); no `pct` falls back to bare labels. `PROTOCOL_VERSION` stays 2 (§10.2, §15.6) | Growth is a percentage in the sim, so percent is the honest unit; HP points would need the knight's base stats on the view |
+| 177 | 2026-11-25 | Resume, soak and bench (RD14) | The snapshot shape needed nothing new (v stays 3): RD3–RD11's builds, meters, mines, flags, squads with Veterans gains, growth counts, cards and the fractional coin pool were already saved, and a real autopilot run of every knight now round-trips (same snapshot back, two restores hash the same). The soak adds each knight solo (4 mixes) and, for each solo knight, a run saved and resumed at wave 8's build phase; the bench's 24 builds are real (each knight's own, 4 apiece) and it times a solo run too; the stress overlay counts builds. The autopilot skips enemies outside the field beyond its main attack's reach (§15.9) | A solo Commander soak stalled forever on a Siege that set up below the map's edge (it stops for any target in range while still walking in), out of a melee knight's reach; the tooling must not hang on it. Whether a Siege may set up outside the field is gameplay, left for RC4 |
+| 178 | 2026-11-25 | Resumed run keeps its leader (RD14) | After a TV reload every restored slot starts away, so the first phone back used to take the lead and keep it. Now the party remembers the saved leader's slot: whoever comes back first may lead until that slot's phone matches (key, device ID or a claim), then the lead goes back to it, once; after that the usual handoff rule applies (no snap-back). New run (the lobby) forgets it | §11.5 saves the party leader; a resume shouldn't hand the TV's menus to whichever phone reconnects fastest (the resume e2e lost Ann's lead to Bob's phone) |
+| 179 | 2026-11-25 | TV home mouse (RD5-fix-3) | The home rows take mouse clicks and hover (§11.1): the TV overlay root is `pointer-events: none` so the canvas below stays untouched, and the rows had no pointer handlers or `pointer-events`, so only keys and pads worked. Rows now opt in with `pointer-events: auto`; hover moves focus, click activates like Enter. Lobby, summary and pause have no TV buttons (leader's phone drives them) | User, RC4: "The 'create room' button and other lobby buttons only work with arrow keys/controller buttons, but not the mouse." |
+| 180 | 2026-11-25 | Larger TV picture (RD5-fix-4) | The TV draws the world at k = tile / 48, fitted by `fitMap` (`render/camera.ts`) so the map is just narrower than the view: `MAP_SIDE_MARGIN` = 1% of the view width each side, centered. At 1920 × 1080: k 1 → 1.089 (W 48 → 52.3 px; map 1728 → 1882 px wide, 691 → 753 deep), origin (96, 216) → (19.2, 223.1); the same fractions hold at 1280 × 720 and 3840 × 2160. The width bound wins at 16:9: the map's bottom (976) stays above the 984 TV-safe line (the height bound would allow k ≈ 1.15). Knights, enemies, builds, effects, bars and aim previews scale with k (all go through the camera); the HUD bands stay where they are, so during a boss wave the boss bar (907–984) overlays the bottom two map rows' middle (x 640–1280, as the next-wave card already overlays them in the build phase); the art gallery keeps the unscaled k = 1 camera (`UNIT_FIT`) for its hand-placed pages | User, before the release PR: "Scale everything up by a few pixels so it's larger! The map should be just BARELY narrower than the available view width." |
+| 181 | 2026-11-25 | Coin income by player count (RD11-fix-1) | The player-count table (§9.4) gains a coin factor that multiplies every kill's coins (§6): 1.8 / 1.0 / 0.95 / 0.85 / 0.8 / 0.7 for 1–6 players, so pay per enemy strictly falls as the team grows; 2 players keep #165's curve. Fixed at each wave start with the rest of the row (a late joiner counts from the next wave start); the fractional pool and whole-coin views are unchanged. Economy runs (seed 1, Normal; seed 2 in brackets), purchases: 1p 8 (10), 2p 9 (8), 3p 8 (8), 4p 8 (8), 5p 9 (9), 6p 9 (9), every size first buying before wave 4, coins before waves 2/3/4 from 3/7/12 (2p) to 4/9/17 (6p) (§6.2) | User, before the release PR: "Coins should scale with player count--it should be higher for fewer players." Income followed the wave budget, so solo bought 7 (first before wave 6) and 6 players ran out of items with 79 coins spare |
+| 182 | 2026-11-25 | Map-edge wall for enemies (RD10-fix-4) | Knockback (shield bash, shockwave, mine burst, any source through an enemy's `push`), soft separation and the Citadel push-out never move an enemy's feet circle past a map edge (edge minus radius); an enemy already outside is only held or brought in, never pushed further out; the knockback axis that meets the wall is spent. Its own walking is never held, so portal spawns enter as before; Flyers included; knights and soldiers unchanged. No margin beyond the radius, no art (§9, §15.3) | User, before the release PR: "Make a 'wall' around the edges of the map (no art, just code-enforced) that enemies can't be pushed back past" |

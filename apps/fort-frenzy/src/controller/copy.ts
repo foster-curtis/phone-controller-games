@@ -1,8 +1,7 @@
 // Display copy and icon ids for the phone (neon knights, SPEC §2.1, §2.6, §6.1, §6.2, §8). Game code
-// refers to internal ids; this table is the phone's slice of the theme pack (the full pack arrives with
-// FF3's `themes/<id>/shared.ts`, which should absorb it). Icon ids are the sprite's `icon-<id>` names.
-import type { CardId, ClassId, DifficultyId, ShopItemId, StructureId } from '../shared/ids';
-import type { MeAction } from '../shared/messages';
+// refers to internal ids; this table is the phone's slice of the presentation pack (src/presentation/shared.ts
+// should absorb it). Icon ids are the sprite's `icon-<id>` names.
+import type { CardId, ClassId, DifficultyId, ShopItemId } from '../shared/ids';
 
 export interface AttackInfo {
   name: string;
@@ -12,127 +11,144 @@ export interface AttackInfo {
   mode: 'tap' | 'aim';
 }
 
+export interface BuildInfo {
+  name: string;
+  text: string;
+  /** How the build button is used (§10.1, §7.3): at-feet builds are tap, thrown builds are aimed. */
+  mode: 'tap' | 'aim';
+  /** The button's icon while it can place (`act-*`, §2.6). */
+  icon: string;
+}
+
 export interface ClassInfo {
   name: string;
+  /** The class (§8.1): Tank, Marksman, Support, Control. */
   role: string;
+  /** Its `role-*` badge. */
+  roleIcon: string;
   /** Rig id: portraits and icon ids are named by it. */
   rig: 'ranger' | 'warden' | 'artificer' | 'commander';
   main: AttackInfo;
   super: AttackInfo;
-  passive: string;
-  passiveText: string;
-  builds: string;
-  /** The build kit, one entry per structure (or the Artificer's supply role). */
-  kit: { name: string; text: string }[];
+  build: BuildInfo;
+  /** The knight's rare, unique passive card (§6.1, §8.2): no knight has a built-in passive. */
+  passiveCard: CardId;
 }
 
-export const CLASS_INFO: Record<ClassId, ClassInfo> = {
-  engineer: {
-    name: 'Ranger',
-    role: 'Marksman',
-    rig: 'ranger',
-    main: {
-      name: 'Rail-bow shot',
-      mode: 'aim',
-      text: 'The longest range in the game. Drag to aim.',
-    },
-    super: {
-      name: 'Pulse shot',
-      mode: 'tap',
-      text: 'A wide ring around you that hurts and knocks enemies back.',
-    },
-    passive: 'Steady Aim',
-    passiveText: 'Stand still, stick released, and your shots hit harder and reach farther.',
-    builds: 'Pulse turret, mortar',
-    kit: [
-      { name: 'Pulse turret', text: 'Long range, one target, can hit Flyers.' },
-      { name: 'Mortar', text: 'Short range, area damage.' },
-    ],
+// ==== Knights: Ranger =============================================================================
+const RANGER: ClassInfo = {
+  name: 'Ranger',
+  role: 'Marksman',
+  roleIcon: 'role-marksman',
+  rig: 'ranger',
+  main: {
+    name: 'Longbow shot',
+    mode: 'aim',
+    text: 'The longest range in the game. Drag to aim.',
   },
-  warden: {
-    name: 'Warden',
-    role: 'Tank',
-    rig: 'warden',
-    main: {
-      name: 'Ground slam',
-      mode: 'aim',
-      text: 'A short arc that hits several enemies. Drag to aim.',
-    },
-    super: {
-      name: 'Stomp',
-      mode: 'aim',
-      text: 'A longer arc that damages and briefly stuns. Drag to aim.',
-    },
-    passive: 'Mason',
-    passiveText: 'Walls near you slowly repair themselves. Off during the build phase.',
-    builds: 'Wall, shock net, fortify',
-    kit: [
-      { name: 'Wall', text: 'Reroutes enemies.' },
-      { name: 'Shock net', text: 'A cheap trap that slows enemies, then wears out.' },
-      { name: 'Fortify', text: 'Gives a tower a defense bonus.' },
-    ],
+  super: {
+    name: 'Shockwave',
+    mode: 'tap',
+    text: 'A wide ring around you that knocks enemies back and hurts them a little.',
   },
-  quartermaster: {
-    name: 'Artificer',
-    role: 'Support',
-    rig: 'artificer',
-    main: {
-      name: 'Nanite bolts',
-      mode: 'aim',
-      text: '3-4 bolts in a narrow cone, medium-long range. Walls and towers block them.',
-    },
-    super: {
-      name: 'Nanite cone',
-      mode: 'aim',
-      text: 'A very wide, long cone that heals players and shields towers. Passes through walls.',
-    },
-    passive: 'Field Medic',
-    passiveText: 'A small healing aura for nearby players. Off during the build phase.',
-    builds: 'Nothing, supplies the team',
-    kit: [
-      { name: 'Supplies', text: 'Builds nothing. Carries and throws power cells to the team.' },
-    ],
+  build: {
+    name: 'Mines',
+    mode: 'tap',
+    icon: 'act-mine',
+    text: 'Drops a mine at your feet. Up to 3 at once; a new one replaces the oldest.',
   },
-  commander: {
-    name: 'Commander',
-    role: 'Squad leader',
-    rig: 'commander',
-    main: { name: 'Sword slash', mode: 'aim', text: 'A short arc in front of you. Drag to aim.' },
-    super: {
-      name: 'Rally',
-      mode: 'tap',
-      text: 'Your squad and you attack faster and harder, and you run faster.',
-    },
-    passive: 'Lead from the Front',
-    passiveText: 'Your squad deals more damage while near you.',
-    builds: 'Rally flag',
-    kit: [{ name: 'Rally flag', text: 'Your squad holds the flag when it is not following you.' }],
-  },
+  passiveCard: 'steady_aim',
 };
 
-export const STRUCTURE_INFO: Record<StructureId, { name: string; icon: string; cost: number }> = {
-  arrow_tower: { name: 'Pulse turret', icon: 'turret', cost: 2 },
-  bomb_tower: { name: 'Mortar tower', icon: 'mortar', cost: 3 },
-  wall: { name: 'Wall', icon: 'wall', cost: 1 },
-  snare: { name: 'Shock net', icon: 'net', cost: 1 },
-  fortify: { name: 'Fortify', icon: 'fortify', cost: 2 },
+// ==== Knights: Warden =============================================================================
+const WARDEN: ClassInfo = {
+  name: 'Warden',
+  role: 'Tank',
+  roleIcon: 'role-tank',
+  rig: 'warden',
+  main: {
+    name: 'Hammer smash',
+    mode: 'aim',
+    text: 'Damage in an arc in front of you. Drag to aim.',
+  },
+  super: {
+    name: 'Jump slam',
+    mode: 'aim',
+    text: 'Leap, then stun in a longer arc. Drag to aim.',
+  },
+  build: {
+    name: 'Shield generator',
+    mode: 'aim',
+    icon: 'act-shield',
+    text: 'Throw a field that shields allies inside it.',
+  },
+  passiveCard: 'challenger',
+};
+
+// ==== Knights: Artificer ==========================================================================
+const ARTIFICER: ClassInfo = {
+  name: 'Artificer',
+  role: 'Support',
+  roleIcon: 'role-support',
+  rig: 'artificer',
+  main: {
+    name: 'Nanite blast',
+    mode: 'aim',
+    text: 'A burst of nanites in a narrow cone. Drag to aim.',
+  },
+  super: {
+    name: 'Heal cone',
+    mode: 'aim',
+    text: 'A wide cone that heals you and the knights it reaches. Drag to aim.',
+  },
+  build: {
+    name: 'Healing beacon',
+    mode: 'aim',
+    icon: 'act-beacon',
+    text: 'Throw a beacon that heals knights near it.',
+  },
+  passiveCard: 'field_medic',
+};
+
+// ==== Knights: Commander ==========================================================================
+const COMMANDER: ClassInfo = {
+  name: 'Commander',
+  role: 'Control',
+  roleIcon: 'role-control',
+  rig: 'commander',
+  main: {
+    name: 'Shield bash',
+    mode: 'aim',
+    text: 'A short arc in front of you that knocks enemies back. Drag to aim.',
+  },
+  super: {
+    name: 'Reinforcements',
+    mode: 'aim',
+    text: 'Throw a soldier into your squad. Drag to aim; a quick tap throws toward your flag.',
+  },
+  build: {
+    name: 'Rally flag',
+    mode: 'aim',
+    icon: 'act-flag',
+    text: 'Throw a flag your squad holds. Tap to recall it.',
+  },
+  passiveCard: 'morale',
+};
+
+export const CLASS_INFO: Record<ClassId, ClassInfo> = {
+  ranger: RANGER,
+  warden: WARDEN,
+  artificer: ARTIFICER,
+  commander: COMMANDER,
 };
 
 export const SHOP_INFO: Record<ShopItemId, { name: string; icon: string }> = {
-  crate: { name: 'Power cell', icon: 'cell' },
   repair: { name: 'Base repair', icon: 'repair' },
   archer_damage: { name: 'Sentry damage', icon: 'sentry-damage' },
   archer_range: { name: 'Sentry range', icon: 'sentry-range' },
   archer_third: { name: 'Third sentry', icon: 'sentry-third' },
-  squad_stats: { name: 'Squad stats', icon: 'squad' },
-  arrow_rate: { name: 'Pulse turret fire rate', icon: 'turret-rate' },
-  bomb_radius: { name: 'Mortar blast radius', icon: 'mortar-radius' },
-  tower_hp: { name: 'Tower armor', icon: 'tower-hp' },
-  wall_hp: { name: 'Wall armor', icon: 'wall-hp' },
-  snare_charges: { name: 'Shock net charges', icon: 'net-charges' },
-  spiked_walls: { name: 'Charged walls', icon: 'charged-walls' },
+  base_hp: { name: 'Base max HP', icon: 'base-hp' },
   base_armor: { name: 'Base armor', icon: 'base-armor' },
-  emergency_kit: { name: 'Emergency kit', icon: 'emergency-kit' },
 };
 
 export const DIFFICULTY_NAME: Record<DifficultyId, string> = {
@@ -165,38 +181,51 @@ export const CARD_INFO: Record<CardId, CardInfo> = {
   focus: c('Focus', 'card-focus', '+super charge rate.'),
   toughness: c('Toughness', 'card-toughness', 'Take less damage.'),
   quick_recovery: c('Quick Recovery', 'card-recovery', 'Respawn 2 s faster.'),
+  tinkerer: c('Tinkerer', 'card-tinkerer', 'Your build meter fills faster.'),
   quick_draw: c('Quick Draw', 'card-attack', 'Faster arrows.'),
-  blast_radius: c('Blast Radius', 'card-super', 'Larger super radius.'),
+  blast_radius: c('Blast Radius', 'card-super', 'Larger shockwave.'),
+  shrapnel_charge: c('Shrapnel Charge', 'card-build', 'Mines trigger faster and hit wider.'),
   fire_arrows: c('Fire Arrows', 'card-effect', 'Arrows apply burn.', true),
   piercing_shot: c('Piercing Shot', 'card-attack', 'Pierces the first enemy.', true),
   skyhunter: c('Skyhunter', 'card-hunter', '+50% damage vs Flyers.', true),
+  steady_aim: c('Steady Aim', 'card-passive', 'Stand still: more damage and range.', true),
   deadeye: c('Deadeye', 'card-passive', 'Steady Aim kicks in faster.', true),
+  minefield: c('Minefield', 'card-build', '+1 active mine.', true),
   volley: c('Volley', 'card-attack', 'Every 4th shot fires 3 arrows.', true),
   wildfire: c('Wildfire', 'card-combo', 'Burning enemies burst into flames.', true),
   heavy_slam: c('Heavy Slam', 'card-attack', 'Wider slam arc.'),
   earthshaker: c('Earthshaker', 'card-super', 'Longer super stun.'),
-  aftershock: c('Aftershock', 'card-effect', 'Slam leaves a slowing zone.', true),
+  wide_field: c('Wide Field', 'card-build', 'Larger shield generator field.'),
+  aftershock: c('Aftershock', 'card-effect', 'Jump slam slows enemies for 5 s.', true),
   giant_slayer: c('Giant Slayer', 'card-hunter', '+50% vs Brutes and the Colossus.', true),
-  master_mason: c('Master Mason', 'card-passive', 'Mason repairs faster, wider.', true),
-  bodyguard: c('Bodyguard', 'card-ally', 'Nearby allies take 20% less damage.', true),
   unshakable: c('Unshakable', 'card-toughness', 'Immune to slows and knockback.', true),
-  fault_line: c('Fault Line', 'card-combo', 'Stomp shocks every wall.', true),
-  light_load: c('Light Load', 'card-supply', 'Allies in your aura feel cells half as heavy.'),
-  strong_arm: c('Strong Arm', 'card-supply', 'Longer, faster cell throws.'),
-  venom_bolts: c('Venom Bolts', 'card-effect', 'Bolts apply poison.', true),
+  challenger: c('Challenger', 'card-passive', 'Nearby enemies target you first.', true),
+  reinforced_generator: c(
+    'Reinforced Generator',
+    'card-build',
+    'Tougher generator, stronger shield.',
+    true,
+  ),
+  fault_line: c('Fault Line', 'card-combo', 'Jump slam leaves a slowing fissure.', true),
+  strong_arm: c('Strong Arm', 'card-build', 'Longer, faster build throws.'),
+  booster_beacon: c('Booster Beacon', 'card-build', 'Beacon heals faster, has more HP.'),
+  venom_bolts: c('Venom Bolts', 'card-effect', 'Nanites apply poison.', true),
   overflow: c('Overflow', 'card-ally', 'Extra healing becomes a shield.', true),
-  bulk_buyer: c('Bulk Buyer', 'card-supply', 'Bigger cell discount.', true),
   wide_aura: c('Wide Aura', 'card-passive', 'Larger Field Medic radius.', true),
   triage: c('Triage', 'card-ally', 'Double healing under 30% HP.', true),
+  field_medic: c('Field Medic', 'card-passive', 'Heal nearby knights in combat.', true),
   plague: c('Plague', 'card-combo', 'Poison spreads when enemies die.', true),
-  bladework: c('Bladework', 'card-attack', 'Wider sword arc.'),
+  heavy_bash: c('Heavy Bash', 'card-attack', 'Wider bash, stronger knockback.'),
   forced_march: c('Forced March', 'card-squad', 'Squad moves faster.'),
-  rally_cry: c('Rally Cry', 'card-super', 'Longer super duration.', true),
+  drillmaster: c('Drillmaster', 'card-squad', 'Soldiers get more HP and damage.'),
+  rally_cry: c('Rally Cry', 'card-super', '50% chance to throw 2 soldiers.', true),
   siege_breakers: c('Siege Breakers', 'card-hunter', 'Squad deals +50% vs Bombards.', true),
   veterans: c('Veterans', 'card-squad', 'Soldiers who survive gain stats.', true),
   last_stand: c('Last Stand', 'card-squad', 'Squad hits harder as it thins.', true),
   vanguard: c('Vanguard', 'card-toughness', 'Take less damage near your squad.', true),
-  warcry: c('Warcry', 'card-combo', 'Super also buffs nearby players.', true),
+  morale: c('Morale', 'card-passive', 'Allies near you or your flag fight harder.', true),
+  reinforced_ranks: c('Reinforced Ranks', 'card-squad', '+1 squad cap.', true),
+  warcry: c('Warcry', 'card-combo', 'Reinforcements boosts nearby knights.', true),
 };
 
 /** Run-stat labels for the summary award cards (SPEC §4). */
@@ -207,32 +236,23 @@ export const STAT_LABEL: Record<string, string> = {
   damageTaken: 'Damage taken',
   deaths: 'Falls',
   healingDone: 'Healing',
-  cratesDelivered: 'Cells delivered',
-  cratesGiven: 'Cells shared',
-  structuresBuilt: 'Built',
+  buildsPlaced: 'Built',
 };
 
 export const ROMAN = ['0', 'I', 'II', 'III', 'IV', 'V'] as const;
 
-/**
- * The action button's icon (SPEC §10.1): the `act-*` glyph per action, `emergency-kit` for the kit,
- * and a dimmed plain glyph when nothing applies.
- */
-export function actionIcon(action: MeAction): { id: string; dimmed: boolean } {
-  switch (action) {
-    case 'kit':
-      return { id: 'emergency-kit', dimmed: false };
-    case 'none':
-      return { id: 'act-pickup', dimmed: true };
-    default:
-      return { id: `act-${action}`, dimmed: false };
-  }
-}
+// ==== Lobby and summary ===========================================================================
 
-/** The Give icon: `act-give` hands over, `act-drop` drops (SPEC §10.1). */
-export function giveIcon(give: 'give' | 'drop' | null): { id: string; dimmed: boolean } {
-  return { id: give === 'drop' ? 'act-drop' : 'act-give', dimmed: give === null };
-}
-
-/** Outside combat only rows 1-4 apply to the action button (pick up, deliver, kit, buy; §10.2). */
-export const BUILD_PHASE_ACTIONS: readonly MeAction[] = ['pickup', 'deliver', 'kit', 'buy'];
+/** The pause menu's Leave game and the leader's End game, each behind a confirm step (RD6-fix-1). */
+export const PAUSE_MENU = {
+  leave: 'LEAVE GAME',
+  end: 'END GAME',
+  cancel: 'CANCEL',
+  leaveAsk: 'Leave the game?',
+  leaveBody: 'Your knight stays behind, dazed. Join again with the room code as a new player.',
+  leaveConfirm: 'LEAVE',
+  endAsk: 'End the game for everyone?',
+  endBody: 'The run stops and everyone goes back to the lobby.',
+  endConfirm: 'END GAME',
+  left: 'You left the game',
+} as const;

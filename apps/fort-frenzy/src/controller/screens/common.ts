@@ -1,10 +1,12 @@
 // Shared screen plumbing: the view contract, the context every screen gets, keyed list
 // reconciliation (so a held shop button or a scroll position survives a snapshot), the player tag,
-// room code boxes, the build-phase countdown, the team pause control and the on-screen keyboard fit.
+// room code boxes, the build-phase countdown, the team pause control (with its Leave game / End game
+// menu, RD6-fix-1) and the on-screen keyboard fit.
 import { el, type RoutedView } from '@pcg/controller-kit';
 import type { StorageLike } from '@pcg/net-client';
 import type { Intent, MeView, TeamView } from '../../shared/messages';
 import { colorOnVar, colorVar } from '../components';
+import { PAUSE_MENU } from '../copy';
 import type { PhoneSender } from '../input';
 
 export interface Snapshot {
@@ -139,7 +141,13 @@ export interface PauseControl {
   set(s: Snapshot): boolean;
 }
 
-/** Any run player pauses the whole run from their top bar; every phone then shows Resume. */
+/** After a confirm, its buttons stay off this long: a double tap sends one intent (RD6-fix-1). */
+export const PAUSE_CONFIRM_LOCK_MS = 1500;
+
+/**
+ * Any run player pauses the whole run from their top bar; every phone then shows Resume, Leave game
+ * and, for the leader, End game. Leave and End each open a confirm step with Cancel (RD6-fix-1).
+ */
 export function createPauseControl(ctx: ScreenCtx): PauseControl {
   const button = el(
     'button',
@@ -155,10 +163,80 @@ export function createPauseControl(ctx: ScreenCtx): PauseControl {
     text: 'RESUME',
   });
   resume.addEventListener('click', () => ctx.intent({ k: 'pause', paused: false }));
+  const leave = el('button', {
+    type: 'button',
+    class: 'btn paused-opt',
+    'data-leave': '',
+    text: PAUSE_MENU.leave,
+  });
+  const end = el('button', {
+    type: 'button',
+    class: 'btn paused-opt',
+    'data-end-game': '',
+    text: PAUSE_MENU.end,
+  });
+  const main = el(
+    'div',
+    { class: 'paused-main' },
+    el('h1', { class: 'h2', text: 'Paused' }),
+    by,
+    resume,
+    el('div', { class: 'paused-row' }, leave, end),
+  );
+  const askTitle = el('h1', { class: 'h2 paused-ask' });
+  const askBody = el('p', { class: 'body paused-ask-body' });
+  const cancel = el('button', {
+    type: 'button',
+    class: 'btn paused-opt',
+    'data-pause-cancel': '',
+    text: PAUSE_MENU.cancel,
+  });
+  const yes = el('button', {
+    type: 'button',
+    class: 'btn btn-danger paused-opt',
+    'data-pause-confirm': '',
+  });
+  const confirm = el(
+    'div',
+    { class: 'paused-confirm', role: 'alertdialog' },
+    askTitle,
+    askBody,
+    el('div', { class: 'paused-row' }, cancel, yes),
+  );
+  let asking: 'leave' | 'end' | null = null;
+  let lock: ReturnType<typeof setTimeout> | null = null;
+  const ask = (a: 'leave' | 'end' | null) => {
+    asking = a;
+    if (lock !== null) clearTimeout(lock);
+    lock = null;
+    yes.disabled = cancel.disabled = false;
+    main.hidden = a !== null;
+    confirm.hidden = a === null;
+    if (a === 'leave') {
+      askTitle.textContent = PAUSE_MENU.leaveAsk;
+      askBody.textContent = PAUSE_MENU.leaveBody;
+      yes.textContent = PAUSE_MENU.leaveConfirm;
+    } else if (a === 'end') {
+      askTitle.textContent = PAUSE_MENU.endAsk;
+      askBody.textContent = PAUSE_MENU.endBody;
+      yes.textContent = PAUSE_MENU.endConfirm;
+    }
+  };
+  ask(null);
+  leave.addEventListener('click', () => ask('leave'));
+  end.addEventListener('click', () => ask('end'));
+  cancel.addEventListener('click', () => ask(null));
+  yes.addEventListener('click', () => {
+    if (asking === null || yes.disabled) return;
+    ctx.intent(asking === 'leave' ? { k: 'leave' } : { k: 'leader', action: 'endGame' });
+    // The host moves this phone on (kick or lobby); a refusal's toast shows and the menu comes back.
+    yes.disabled = cancel.disabled = true;
+    lock = setTimeout(() => ask(null), PAUSE_CONFIRM_LOCK_MS);
+  });
   const layer = el(
     'div',
     { class: 'paused-layer', role: 'dialog', 'aria-label': 'Paused' },
-    el('div', { class: 'paused-card' }, el('h1', { class: 'h2', text: 'Paused' }), by, resume),
+    el('div', { class: 'paused-card' }, main, confirm),
   );
   layer.hidden = true;
   return {
@@ -168,6 +246,11 @@ export function createPauseControl(ctx: ScreenCtx): PauseControl {
       const p = team.paused ?? null;
       layer.hidden = p === null;
       button.hidden = p !== null || me.slot === null || !PAUSABLE.includes(team.phase);
+      leave.hidden = me.slot === null;
+      // End game is the leader's alone (the host checks too).
+      end.hidden = !me.isLeader;
+      if (p === null || (asking === 'end' && !me.isLeader) || (asking === 'leave' && leave.hidden))
+        ask(null);
       if (p) {
         by.textContent =
           p.playerId === ctx.myId() ? 'You paused the run' : `${p.name} paused the run`;

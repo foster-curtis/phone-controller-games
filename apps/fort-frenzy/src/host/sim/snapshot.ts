@@ -1,51 +1,53 @@
 // Resume snapshot (SPEC §11.5, §15.8): versioned JSON in localStorage, written at the start of each
 // build phase and on every run-state change during it. No RNG state: every stream derives from
 // (seed, label), so a restored card offer is identical.
-// Frozen at FF1 (BUILD_PLAN §3): the `RunSnapshot` shape takes additive changes only (new optional
-// fields); a breaking change bumps `v`, and an old snapshot is then discarded.
-// FF14 added `SnapshotStructure.owner` and `RunSnapshot.runMs`, and the take / parse / restore
-// functions. Plain TS like the rest of the sim: the host passes the wall clock and does the storage.
+// Frozen after RD2 (REDESIGN_BUILD_PLAN §3): the `RunSnapshot` shape takes additive changes only (new
+// optional fields); a breaking change bumps `v`, and an old snapshot is then discarded. RD2's shape
+// (v3): builds (the rally flag is one), meters, growth, soldiers' HP and Veterans gains. Plain TS like the rest of the sim: the host passes the wall clock and does the storage.
 import type { Content } from '../../content';
 import {
+  BUILD_IDS,
   CARD_IDS,
   CLASS_IDS,
   DIFFICULTY_IDS,
   PLAYER_COLOR_IDS,
   SHOP_ITEM_IDS,
-  STRUCTURE_IDS,
-  THEME_IDS,
   isOneOf,
+  type BuildId,
   type CardId,
   type ClassId,
   type DifficultyId,
   type PlayerColorId,
   type ShopItemId,
-  type StructureId,
-  type ThemeId,
 } from '../../shared/ids';
 import { RUN_STAT_KEYS, type RunStats } from '../../shared/messages';
-import { fortifyTower } from './building';
 import { attachAllCards } from './cards';
-import { extraDischarges, refitBase } from './shop';
-import { fillSquads } from './squad';
+import { attachGrowth } from './growth';
+import { refitBase } from './shop';
+import { postOf, refitSoldier, seedSquads } from './squad';
 import { newAttack, zeroRunStats, type FullState } from './state';
-import type { RunStart, World } from './types';
+import type { BuildEnt, RunStart, World } from './types';
 
-export const SNAPSHOT_VERSION = 1;
+export const SNAPSHOT_VERSION = 3; // 3: RD2's shape (builds, meters, run stats); old saves are dropped
 /** localStorage key (survives a browser crash, unlike sessionStorage). */
 export const SNAPSHOT_KEY = 'fort-frenzy:run';
 /** Older snapshots are discarded. */
 export const SNAPSHOT_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
-export interface SnapshotStructure {
-  id: StructureId;
-  tile: [number, number];
-  /** null for snares (no HP). */
+/** A build on the map (§7): HP builds keep their HP, mines their charges; the rally flag is one. */
+export interface SnapshotBuild {
+  kind: BuildId;
+  /** The knight's slot. */
+  owner: number;
+  /** Placement order (the oldest mine goes first). */
+  seq: number;
+  /** Tiles (builds don't snap, §7.1). */
+  x: number;
+  y: number;
+  /** HP builds; null for mines and the flag. */
   hp: number | null;
-  dischargesUsed?: number;
-  fortified?: boolean;
-  /** FF14: the builder's slot (owner-scoped cards and kits read it). */
-  owner?: number;
+  /** Mines; null otherwise. */
+  charges: number | null;
 }
 
 export interface SnapshotSlot {
@@ -56,16 +58,18 @@ export interface SnapshotSlot {
   color: PlayerColorId;
   classId: ClassId;
   hp: number;
-  crates: number;
-  /** Emergency kits held (Quartermaster, 0 or 1). */
-  kits: number;
-  lastBuilt: StructureId | null;
+  /** Build meter 0..1. */
+  meter: number;
+  growth: { regular: number; boss: number };
   cards: Partial<Record<CardId, number>>;
   offer: CardId[] | null;
   picked: CardId | null;
   stats: RunStats;
-  /** Commander only. `veterans` per soldier index; the rally flag's tile position. */
-  squad?: { size: number; veterans: number[]; flag: [number, number] | null };
+  /**
+   * Commander only: each surviving soldier's HP and Veterans gains, by index. The flag is a
+   * SnapshotBuild (`rally_flag`).
+   */
+  squad?: { soldiers: { hp: number; veterans: number }[] };
 }
 
 export interface RunSnapshot {
@@ -74,14 +78,13 @@ export interface RunSnapshot {
   savedAt: number;
   /** Commit hash: replays and snapshots are tied to the build. */
   build: string;
-  settings: { theme: ThemeId; difficulty: DifficultyId; seed: number };
+  settings: { difficulty: DifficultyId; seed: number };
   wave: number;
   base: { hp: number; repairs: number };
   coins: number;
-  /** Tier owned (archer upgrades: 0 or 1 each). */
+  /** Tier owned (sentry upgrades: 0 or 1 each). Max HP follows the base_hp tiers. */
   shop: Record<ShopItemId, number>;
-  structures: SnapshotStructure[];
-  cratePiles: { x: number; y: number; n: number }[];
+  builds: SnapshotBuild[];
   slots: SnapshotSlot[];
   leaderKey: string | null;
   wishlist: { item: ShopItemId; slot: number }[];
@@ -103,20 +106,6 @@ export interface SnapshotMeta {
 
 /** The run state a resume needs, from a world in its build phase (§11.5). */
 export function takeSnapshot(world: World, content: Content, meta: SnapshotMeta): RunSnapshot {
-  const extra = extraDischarges(content, world.team);
-  const structures: SnapshotStructure[] = world.structures.map((st) => {
-    const def = content.structures.find((d) => d.id === st.kind);
-    const out: SnapshotStructure = {
-      id: st.kind,
-      tile: [st.tile[0], st.tile[1]],
-      hp: st.damageable ? st.hp : null,
-      owner: st.owner,
-    };
-    if (st.discharges !== null)
-      out.dischargesUsed = Math.max(0, (def?.discharges ?? 0) + extra - st.discharges);
-    if (st.fortified) out.fortified = true;
-    return out;
-  });
   const slots: SnapshotSlot[] = [...world.players]
     .sort((a, b) => a.slot - b.slot)
     .map((p) => {
@@ -129,22 +118,22 @@ export function takeSnapshot(world: World, content: Content, meta: SnapshotMeta)
         color: p.color,
         classId: p.classId,
         hp: p.hp,
-        crates: p.crates,
-        kits: p.kits,
-        lastBuilt: p.lastBuilt,
+        meter: p.meter,
+        growth: { ...p.growth },
         cards: { ...p.cards },
         offer: p.offer ? [...p.offer] : null,
         picked: p.picked,
         stats: { ...p.run },
       };
-      if (content.characters.find((c) => c.id === p.classId)?.squad) {
-        const mine = world.soldiers.filter((u) => u.owner === p.slot);
-        const veterans: number[] = [];
-        for (const u of mine) {
-          while (veterans.length <= u.index) veterans.push(0);
-          veterans[u.index] = u.veterans;
+      if (content.knights.find((c) => c.id === p.classId)?.squad) {
+        // By index; a fallen soldier's slot stays at 0 HP (no respawn, §8.4).
+        const soldiers: { hp: number; veterans: number }[] = [];
+        for (const u of world.soldiers) {
+          if (u.owner !== p.slot) continue;
+          while (soldiers.length <= u.index) soldiers.push({ hp: 0, veterans: 0 });
+          soldiers[u.index] = { hp: u.hp, veterans: u.veterans };
         }
-        out.squad = { size: mine.length, veterans, flag: p.flag ? [p.flag.x, p.flag.y] : null };
+        out.squad = { soldiers };
       }
       return out;
     });
@@ -153,7 +142,6 @@ export function takeSnapshot(world: World, content: Content, meta: SnapshotMeta)
     savedAt: meta.savedAt,
     build: meta.build,
     settings: {
-      theme: world.settings.theme,
       difficulty: world.settings.difficulty,
       seed: world.seed,
     },
@@ -161,8 +149,18 @@ export function takeSnapshot(world: World, content: Content, meta: SnapshotMeta)
     base: { hp: world.base.hp, repairs: world.base.repairs },
     coins: world.team.coins,
     shop: { ...world.team.shop },
-    structures,
-    cratePiles: world.cratePiles.filter((c) => c.n > 0).map((c) => ({ x: c.x, y: c.y, n: c.n })),
+    builds: [
+      // A build in flight is saved where it was headed (§15.8).
+      ...world.builds.map((b) => ({
+        kind: b.kind,
+        owner: b.owner,
+        seq: b.seq,
+        x: b.flight ? b.flight.to.x : b.x,
+        y: b.flight ? b.flight.to.y : b.y,
+        hp: b.targetable ? b.hp : null,
+        charges: b.charges,
+      })),
+    ],
     slots,
     leaderKey: meta.leaderKey,
     wishlist: world.team.wishlist.map((x) => ({ item: x.item, slot: x.slot })),
@@ -177,7 +175,6 @@ const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const isNat = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 0;
 const isStr = (v: unknown): v is string => typeof v === 'string';
-const isTile = (v: unknown) => Array.isArray(v) && v.length === 2 && v.every(isNat);
 
 function isSlot(v: unknown): v is SnapshotSlot {
   if (!isObj(v)) return false;
@@ -190,15 +187,20 @@ function isSlot(v: unknown): v is SnapshotSlot {
     isOneOf(PLAYER_COLOR_IDS, v.color) &&
     isOneOf(CLASS_IDS, v.classId) &&
     isNum(v.hp) &&
-    isNat(v.crates) &&
-    isNat(v.kits) &&
-    (v.lastBuilt === null || isOneOf(STRUCTURE_IDS, v.lastBuilt)) &&
+    isNum(v.meter) &&
+    isObj(v.growth) &&
+    isNat(v.growth.regular) &&
+    isNat(v.growth.boss) &&
     isObj(v.cards) &&
     Object.entries(v.cards).every(([k, n]) => isOneOf(CARD_IDS, k) && isNat(n)) &&
     (v.offer === null || (Array.isArray(v.offer) && v.offer.every((c) => isOneOf(CARD_IDS, c)))) &&
     (v.picked === null || isOneOf(CARD_IDS, v.picked)) &&
     isObj(st) &&
-    RUN_STAT_KEYS.every((k) => isNum(st[k]))
+    RUN_STAT_KEYS.every((k) => isNum(st[k])) &&
+    (v.squad === undefined ||
+      (isObj(v.squad) &&
+        Array.isArray(v.squad.soldiers) &&
+        v.squad.soldiers.every((x) => isObj(x) && isNum(x.hp) && isNat(x.veterans))))
   );
 }
 
@@ -221,7 +223,6 @@ export function parseSnapshot(raw: string | null, now: number): RunSnapshot | nu
   const ok =
     isStr(v.build) &&
     isObj(set) &&
-    isOneOf(THEME_IDS, set.theme) &&
     isOneOf(DIFFICULTY_IDS, set.difficulty) &&
     isNum(set.seed) &&
     Number.isInteger(v.wave) &&
@@ -232,16 +233,18 @@ export function parseSnapshot(raw: string | null, now: number): RunSnapshot | nu
     isNum(v.coins) &&
     isObj(v.shop) &&
     Object.entries(v.shop).every(([k, n]) => isOneOf(SHOP_ITEM_IDS, k) && isNat(n)) &&
-    Array.isArray(v.structures) &&
-    v.structures.every(
-      (s) =>
-        isObj(s) &&
-        isOneOf(STRUCTURE_IDS, s.id) &&
-        isTile(s.tile) &&
-        (s.hp === null || isNum(s.hp)),
+    Array.isArray(v.builds) &&
+    v.builds.every(
+      (b) =>
+        isObj(b) &&
+        isOneOf(BUILD_IDS, b.kind) &&
+        isNat(b.owner) &&
+        isNat(b.seq) &&
+        isNum(b.x) &&
+        isNum(b.y) &&
+        (b.hp === null || isNum(b.hp)) &&
+        (b.charges === null || isNat(b.charges)),
     ) &&
-    Array.isArray(v.cratePiles) &&
-    v.cratePiles.every((c) => isObj(c) && isNum(c.x) && isNum(c.y) && isNat(c.n)) &&
     Array.isArray(v.slots) &&
     v.slots.length > 0 &&
     v.slots.every(isSlot) &&
@@ -257,7 +260,7 @@ export function parseSnapshot(raw: string | null, now: number): RunSnapshot | nu
 export function resumeStart(snap: RunSnapshot, connected: (slot: number) => boolean): RunStart {
   return {
     seed: snap.settings.seed,
-    settings: { theme: snap.settings.theme, difficulty: snap.settings.difficulty },
+    settings: { difficulty: snap.settings.difficulty },
     slots: snap.slots.map((s) => ({
       slot: s.slot,
       name: s.name,
@@ -271,7 +274,7 @@ export function resumeStart(snap: RunSnapshot, connected: (slot: number) => bool
 
 /**
  * Puts a fresh world (`createState` from `resumeStart`) into the build phase of the snapshot's wave
- * as it was saved (§11.5): team, base, shop, structures, crates, every slot's cards, offer and stats,
+ * as it was saved (§11.5): team, base, shop, structures, every slot's cards, offer and stats,
  * squads. Positions, cooldowns and the build timer start over: knights stand at the base, and the
  * build phase gets its full time (BUILD_PLAN §8).
  */
@@ -301,27 +304,16 @@ export function restoreSnapshot(s: FullState, snap: RunSnapshot): void {
   refitBase(s);
   w.base.hp = Math.min(w.base.maxHp, Math.max(0, snap.base.hp));
 
-  // Structures, in their saved (build) order; `placeStructure` fits the team's upgrades.
-  for (const x of snap.structures) {
-    if (x.id === 'fortify') continue;
-    const st = s.placeStructure(x.id, x.tile[0], x.tile[1], x.owner ?? -1);
-    if (x.fortified) fortifyTower(s, st);
-    if (st.damageable && x.hp !== null) st.hp = Math.min(st.maxHp, Math.max(1, x.hp));
-    if (st.discharges !== null && x.dischargesUsed)
-      st.discharges = Math.max(0, st.discharges - x.dischargesUsed);
-  }
-  if (w.fields.dirty) s.rebuildFields();
-
-  for (const c of snap.cratePiles) {
-    if (c.n > 0)
-      w.cratePiles.push({
-        id: w.nextId++,
-        x: c.x,
-        y: c.y,
-        n: c.n,
-        lockedSlot: null,
-        lockedUntil: 0,
-      });
+  // Builds, in their saved order (the flag back on its Commander). Their HP waits for the cards below.
+  const savedHp: [BuildEnt, number][] = [];
+  for (const x of snap.builds) {
+    const owner = s.player(x.owner);
+    if (!owner) continue;
+    const b = s.addBuild(x.kind, x.x, x.y, x.owner);
+    b.seq = x.seq;
+    if (x.kind === 'rally_flag') owner.flag = { x: x.x, y: x.y };
+    if (b.charges !== null && x.charges !== null) b.charges = x.charges;
+    if (b.targetable && x.hp !== null) savedHp.push([b, x.hp]);
   }
 
   // Players: cards first (a Vitality stack raises max HP), then the saved HP.
@@ -330,14 +322,22 @@ export function restoreSnapshot(s: FullState, snap: RunSnapshot): void {
     if (!p) continue;
     p.cards = { ...sl.cards };
     attachAllCards(s, p);
+    // Class growth: the saved bump counts back as one modifier (RD11).
+    p.growth = { ...sl.growth };
+    attachGrowth(s, p);
     p.hp = sl.hp > 0 ? Math.min(p.maxHp, sl.hp) : p.maxHp;
-    p.crates = sl.crates;
-    p.kits = sl.kits;
-    p.lastBuilt = sl.lastBuilt;
+    p.meter = Math.min(1, Math.max(0, sl.meter));
     p.offer = sl.offer ? [...sl.offer] : null;
     p.picked = sl.picked;
     p.run = { ...zeroRunStats(), ...sl.stats };
-    p.flag = sl.squad?.flag ? { x: sl.squad.flag[0], y: sl.squad.flag[1] } : null;
+  }
+  // A build's max HP follows its owner's cards (Booster Beacon), as it did when placed.
+  for (const [b, hp] of savedHp) {
+    const base = cat.build(b.kind).hp ?? b.maxHp;
+    const max = s.attackStat(s.player(b.owner)!, base, 'buildHp', 'build');
+    b.maxHp = b.stats.maxHp = max;
+    s.baseStats.get(b.id)!.maxHp = max;
+    b.hp = Math.min(max, Math.max(1, hp));
   }
   w.team.wishlist = snap.wishlist
     .filter((x) => s.player(x.slot))
@@ -346,9 +346,28 @@ export function restoreSnapshot(s: FullState, snap: RunSnapshot): void {
   // The build phase of the saved wave, its timer from the start.
   w.phase = 'build';
   w.phaseEndsAt = w.tick + cat.steps(cat.rules.buildCapMs);
-  fillSquads(s);
-  for (const u of w.soldiers) {
-    const sl = snap.slots.find((x) => x.slot === u.owner);
-    u.veterans = sl?.squad?.veterans[u.index] ?? 0;
+  // Exactly the soldiers who were alive (no respawn, §8.4), with their HP (#103) and Veterans gains.
+  for (const sl of snap.slots) {
+    const p = s.player(sl.slot);
+    if (!p || !sl.squad) continue;
+    p.squadSeeded = true;
+    const def = cat.knight(p.classId).squad;
+    if (!def) continue;
+    const mode = p.flag ? 'rally' : 'follow';
+    const n = sl.squad.soldiers.filter((x) => x.hp > 0).length;
+    let k = 0;
+    sl.squad.soldiers.forEach((saved, i) => {
+      if (saved.hp <= 0) return;
+      // Back around him, or at his flag (§15.8).
+      const at = postOf(p, def, mode, k++, n) ?? p;
+      const u = s.addSoldier(p.slot, at.x, at.y, i);
+      u.mode = mode;
+      u.veterans = saved.veterans;
+      refitSoldier(s, p, u);
+      // Unclipped: a Veterans gain lands on the first step's stat refresh, which clamps to it.
+      u.hp = saved.hp;
+    });
   }
+  // A Commander saved before he got his start (a late join in the same step) gets it now.
+  seedSquads(s);
 }

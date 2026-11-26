@@ -1,12 +1,13 @@
-// Player attack shapes beyond projectiles and circles (SPEC §8): the Commander's sword `arc`, the
-// Quartermaster's super `cone` (heals players, buffs towers, passes through walls and towers) and the
-// Commander's morale `buff`. Players' `fire` dispatches here by `AttackDef.shape`.
-import type { AttackDef, CharacterDef, EffectApply } from '../../../content/types';
+// Player attack shapes beyond projectiles and circles (SPEC §8): the Commander's shield bash `rect`
+// (RD9-fix-1; an unwound `arc` is still served), the Artificer's super `cone` (his heal cone, RD8)
+// and Reinforcements' `spawn` (RD9). Players' `fire` dispatches here by `AttackDef.shape`.
+import type { AttackDef, KnightDef } from '../../../content/types';
 import type { FullState } from '../state';
-import type { AttackEvent, PlayerEnt } from '../types';
-import { sectorHitsBody } from '../body';
-import { sectorGeometry } from './hitShape';
-import { inSector, type Sector } from './sector';
+import type { AttackEvent, EnemyEnt, PlayerEnt } from '../types';
+import { sectorHitsBody, stripHitsBody, type GroundBody } from '../body';
+import { reinforce } from './commander';
+import { rectGeometry, sectorGeometry } from './hitShape';
+import { inSector, type Sector, type Strip } from './sector';
 
 export type ShapeFire = (
   s: FullState,
@@ -17,9 +18,7 @@ export type ShapeFire = (
   atk: AttackEvent,
 ) => void;
 
-type SuperDef = CharacterDef['super'];
-
-const TOWERS = new Set(['arrow_tower', 'bomb_tower']);
+type SuperDef = KnightDef['super'];
 
 /** The attack's sector from the player's facing (already turned to the aim). */
 export function sectorOf(s: FullState, p: PlayerEnt, a: AttackDef, slot: 'main' | 'super'): Sector {
@@ -28,64 +27,103 @@ export function sectorOf(s: FullState, p: PlayerEnt, a: AttackDef, slot: 'main' 
   return { x: p.x, y: p.y, angle: p.facing, half: g.half, range: g.range };
 }
 
+/** A `rect` attack's rectangle from the player's facing (already turned to the aim). */
+export function stripOf(s: FullState, p: PlayerEnt, a: AttackDef, slot: 'main' | 'super'): Strip {
+  // The same geometry as the TV's aim preview (classes/hitShape.ts).
+  const g = rectGeometry(a, (b, st) => s.attackStat(p, b, st, slot));
+  return { x: p.x, y: p.y, angle: p.facing, range: g.range, half: g.width / 2 };
+}
+
 function hitEnemies(
   s: FullState,
   p: PlayerEnt,
   a: AttackDef,
-  sec: Sector,
+  reaches: (e: EnemyEnt, body: GroundBody) => boolean,
   damage: number,
   kind: 'melee' | 'area',
   atk: AttackEvent,
-) {
+): EnemyEnt[] {
+  const hit: EnemyEnt[] = [];
   // A snapshot: hooks may spawn or kill while we hit.
   for (const e of s.world.enemies.slice()) {
     if (e.hp <= 0 || (e.flying && !a.hitsFlyers)) continue;
-    // Enemy bodies (C4, body.ts); players and towers below by their feet.
-    if (!sectorHitsBody(sec, e.x, e.y, s.cat.body(e.kind))) continue;
+    // Enemy bodies (C4, body.ts); knights below by their feet.
+    if (!reaches(e, s.cat.body(e.kind))) continue;
     s.damage({ source: p.id, target: e.id, amount: damage, kind, tags: [...atk.tags] });
     for (const fx of atk.effects) s.applyEffect(e.id, fx, p.id);
+    hit.push(e);
+  }
+  return hit;
+}
+
+const inSectorOf = (sec: Sector) => (e: EnemyEnt, b: GroundBody) =>
+  sectorHitsBody(sec, e.x, e.y, b);
+
+/** The bash's knockback: each enemy hit is pushed away from him (Heavy Bash: further). */
+function knockBack(
+  s: FullState,
+  p: PlayerEnt,
+  a: AttackDef,
+  slot: 'main' | 'super',
+  hit: EnemyEnt[],
+) {
+  const knock = s.attackStat(p, a.knockback ?? 0, 'knockback', slot);
+  if (knock <= 0) return;
+  const v0 = knock * 60 * (1 - s.cat.rules.knockbackDecay);
+  for (const e of hit) {
+    if (e.hp <= 0) continue;
+    const dx = e.x - p.x;
+    const dy = e.y - p.y;
+    const d = Math.hypot(dx, dy);
+    const ux = d < 1e-6 ? Math.cos(p.facing) : dx / d;
+    const uy = d < 1e-6 ? Math.sin(p.facing) : dy / d;
+    e.push = { x: (e.push?.x ?? 0) + ux * v0, y: (e.push?.y ?? 0) + uy * v0 };
   }
 }
 
-/** Sword slash (Commander main): every enemy in a short arc in front of him. */
+/**
+ * Shield bash (Commander main, RD9-fix-1): every enemy whose body overlaps the solid rectangle in
+ * front of him takes the hit and is knocked back (Heavy Bash: wider, further). No wind-up: the bash
+ * lands on the press.
+ */
+const rect: ShapeFire = (s, p, a, slot, damage, atk) => {
+  const st = stripOf(s, p, a, slot);
+  const hit = hitEnemies(s, p, a, (e, b) => stripHitsBody(st, e.x, e.y, b), damage, 'melee', atk);
+  knockBack(s, p, a, slot, hit);
+};
+
+/** An arc with no wind-up (the bash before RC2): every enemy in it is hit and knocked back. */
 const arc: ShapeFire = (s, p, a, slot, damage, atk) => {
-  hitEnemies(s, p, a, sectorOf(s, p, a, slot), damage, 'melee', atk);
+  const hit = hitEnemies(s, p, a, inSectorOf(sectorOf(s, p, a, slot)), damage, 'melee', atk);
+  knockBack(s, p, a, slot, hit);
 };
 
 /**
- * Nanite cone (Quartermaster super): heals the players it reaches (not himself) and puts its
- * `effects` on the towers it reaches; damages enemies only if it has damage. Nothing blocks it.
+ * Heal cone (Artificer super): heals him and the knights it reaches (not soldiers, not builds,
+ * §8.2); damages enemies only if it has damage. Nothing blocks it. Its healing charges neither his
+ * super nor his meter (§7.2). Regen restarts in `fire`, like any super.
  */
 const cone: ShapeFire = (s, p, a, slot, damage, atk) => {
   const sup = a as SuperDef;
   const sec = sectorOf(s, p, a, slot);
-  if (damage > 0) hitEnemies(s, p, a, sec, damage, 'area', atk);
+  if (damage > 0) hitEnemies(s, p, a, inSectorOf(sec), damage, 'area', atk);
   const heal = sup.heal ? s.attackStat(p, sup.heal, 'healing', slot) : 0;
   if (heal > 0) {
     for (const q of s.world.players) {
-      if (q === p || !s.targetable(q) || !inSector(sec, q.x, q.y, q.r)) continue;
+      if (!s.targetable(q) || !inSector(sec, q.x, q.y, q.r)) continue;
       s.heal(q.id, heal, p.id);
     }
   }
-  for (const st of s.world.structures) {
-    if (!TOWERS.has(st.kind) || st.hp <= 0 || !inSector(sec, st.x, st.y, st.r)) continue;
-    for (const fx of sup.effects ?? []) s.applyEffect(st.id, fx, p.id);
-  }
 };
 
-/** Morale (Commander super): `effects` on him and his living soldiers, `selfEffects` on him only. */
-const buff: ShapeFire = (s, p, a, slot) => {
-  const sup = a as SuperDef;
-  // Rally Cry (FF12) lengthens them through the `durationMs` stat.
-  const k = s.attackStat(p, 1, 'durationMs', slot);
-  const longer = (fx: EffectApply) => (k === 1 ? fx : { ...fx, durationMs: fx.durationMs * k });
-  for (const fx0 of sup.effects ?? []) {
-    const fx = longer(fx0);
-    s.applyEffect(p.id, fx, p.id);
-    for (const u of s.world.soldiers)
-      if (u.owner === p.slot && u.hp > 0) s.applyEffect(u.id, fx, p.id);
-  }
-  for (const fx of sup.selfEffects ?? []) s.applyEffect(p.id, longer(fx), p.id);
+/** Reinforcements (Commander super): throws soldiers; it hits nothing (classes/commander.ts). */
+const spawn: ShapeFire = (s, p, a, _slot, _damage, atk) => {
+  reinforce(s, p, a as SuperDef, atk);
 };
 
-export const attackShapes: Partial<Record<AttackDef['shape'], ShapeFire>> = { arc, cone, buff };
+export const attackShapes: Partial<Record<AttackDef['shape'], ShapeFire>> = {
+  arc,
+  rect,
+  cone,
+  spawn,
+};

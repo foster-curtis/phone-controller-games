@@ -2,7 +2,7 @@
 // a slightly longer reach, and the Ranger's super a slightly larger radius. Pins the new numbers
 // against the old ones so a later retune is a deliberate edit here too.
 import { describe, expect, it } from 'vitest';
-import { engineer, warden } from '../balance';
+import { ranger, warden } from '../balance';
 
 const OLD = {
   wardenMain: { range: 1.5, arcDeg: 120 },
@@ -12,21 +12,23 @@ const OLD = {
 
 describe('C3 knight tuning', () => {
   it('the Warden slam and stomp: ~15% narrower, ~15% longer', () => {
-    expect(warden.main).toMatchObject({ range: 1.75, arcDeg: 102 });
+    // RC2 then lengthened the slam to 1.65× C3's 1.75 tiles and narrowed it a third, 102° → 68°
+    // (sim/__tests__/warden.test.ts).
+    expect(warden.main).toMatchObject({ range: 2.89, arcDeg: 68 });
     // The stomp's reach was retuned past C3's ~15% by the playtest balance (0fbe288): pin it as is.
+    // RD3's jump slam: longer than the slam (§8.2); RC3 set it to 85° (RD3-fix-4), C3's stomp width.
     expect(warden.super).toMatchObject({ range: 4.7, arcDeg: 85 });
+    expect(warden.super.range).toBeGreaterThan(warden.main.range);
+    expect(warden.super.damage).toBeLessThan(warden.main.damage);
     expect(warden.super.arcDeg / OLD.wardenSuper.arcDeg).toBeCloseTo(0.85, 2);
     for (const [now, old] of [[warden.main, OLD.wardenMain]] as const) {
-      expect(now.arcDeg / old.arcDeg).toBeGreaterThan(0.8);
-      expect(now.arcDeg / old.arcDeg).toBeLessThan(0.9);
       expect(now.range / old.range).toBeGreaterThan(1.1);
-      expect(now.range / old.range).toBeLessThan(1.2);
     }
   });
 
   it('the Ranger super: ~15% more radius', () => {
-    expect(engineer.super.radius).toBe(3.5);
-    expect(engineer.super.radius / OLD.rangerSuperRadius).toBeGreaterThan(1.1);
-    expect(engineer.super.radius / OLD.rangerSuperRadius).toBeLessThan(1.2);
+    expect(ranger.super.radius).toBe(3.5);
+    expect(ranger.super.radius / OLD.rangerSuperRadius).toBeGreaterThan(1.1);
+    expect(ranger.super.radius / OLD.rangerSuperRadius).toBeLessThan(1.2);
   });
 });

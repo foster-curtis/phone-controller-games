@@ -5,9 +5,9 @@ import { serveFonts, test } from './helpers';
 
 const PAGES = [
   'rigs',
-  'turrets',
   'citadel',
-  'autotiles',
+  'builds',
+  'portals',
   'effects',
   'icons',
   'map',
@@ -50,10 +50,23 @@ for (const name of PAGES) {
 
 test('gallery rigs unlit, Colossus final, Mk III mortar', async ({ page }) => {
   const errors = watchErrors(page);
-  await open(page, 'page=rigs&panel=0&unlit=1&colossus=4&tier=3&gauge=7&color=rose');
+  await open(page, 'page=rigs&panel=0&unlit=1&colossus=4&gauge=7&color=rose');
   const probe = await page.evaluate(() => window.__pcgGallery!);
   expect(probe.fallbacks).toBe(0);
   await page.screenshot({ path: 'e2e/__screens__/gallery-rigs-unlit.png' });
+  expect(errors).toEqual([]);
+});
+
+// RD12: the Commander's optional `sword` group and the Warden's `slam` group, and the jump slam's
+// replay loop (`super`), draw from the atlas with no fallback shapes.
+test('gallery rigs sword and slam groups', async ({ page }) => {
+  const errors = watchErrors(page);
+  await open(page, 'page=rigs&panel=0&sword=1&slam=1&clip=super');
+  await page.waitForTimeout(1200);
+  const probe = await page.evaluate(() => window.__pcgGallery!);
+  expect(probe.missing).toEqual([]);
+  expect(probe.fallbacks).toBe(0);
+  await page.screenshot({ path: 'e2e/__screens__/gallery-rigs-sword-slam.png' });
   expect(errors).toEqual([]);
 });
 
@@ -100,18 +113,6 @@ for (const clip of ['slam', 'throw', 'call', 'stagger'] as const) {
     expect(errors).toEqual([]);
   });
 }
-
-// FF8: the autotiles page's structure states (net discharges, build sketch and fill, destroyed
-// collapse, charged and damaged walls, Mason sparks) run their loops with no fallback shapes.
-test('gallery autotiles states over a loop', async ({ page }) => {
-  const errors = watchErrors(page);
-  await open(page, 'page=autotiles&panel=0');
-  await page.waitForTimeout(2000);
-  const probe = await page.evaluate(() => window.__pcgGallery!);
-  expect(probe.fallbacks).toBe(0);
-  await page.screenshot({ path: 'e2e/__screens__/gallery-autotiles-states.png' });
-  expect(errors).toEqual([]);
-});
 
 test('gallery stress', async ({ page }) => {
   const errors = watchErrors(page);

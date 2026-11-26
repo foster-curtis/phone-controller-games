@@ -7,38 +7,6 @@
     "attach: named points in the frame's own units."
   ],
   "frames": {
-    "armory/kiosk": {
-      "category": "structures",
-      "file": "structures/armory/kiosk.svg",
-      "viewBox": [
-        13,
-        1,
-        94,
-        135
-      ],
-      "anchor": [
-        60,
-        100
-      ],
-      "layer": "world",
-      "tint": false
-    },
-    "armory/pad": {
-      "category": "structures",
-      "file": "structures/armory/pad.svg",
-      "viewBox": [
-        13,
-        1,
-        94,
-        135
-      ],
-      "anchor": [
-        60,
-        100
-      ],
-      "layer": "ground",
-      "tint": false
-    },
     "beacon-pulse": {
       "category": "effects",
       "file": "effects/beacon-pulse.svg",
@@ -279,38 +247,6 @@
       "layer": "effects",
       "tint": false
     },
-    "carry-pip": {
-      "category": "effects",
-      "file": "effects/carry-pip.svg",
-      "viewBox": [
-        -8,
-        -10,
-        16,
-        20
-      ],
-      "anchor": [
-        0,
-        0
-      ],
-      "layer": "ground",
-      "tint": false
-    },
-    "carry-pip-empty": {
-      "category": "effects",
-      "file": "effects/carry-pip-empty.svg",
-      "viewBox": [
-        -8,
-        -10,
-        16,
-        20
-      ],
-      "anchor": [
-        0,
-        0
-      ],
-      "layer": "ground",
-      "tint": false
-    },
     "charge-dust": {
       "category": "effects",
       "file": "effects/charge-dust.svg",
@@ -453,22 +389,6 @@
         234
       ],
       "layer": "world",
-      "tint": false
-    },
-    "citadel/repair-zone": {
-      "category": "structures",
-      "file": "structures/citadel/repair-zone.svg",
-      "viewBox": [
-        2,
-        -62,
-        336,
-        331
-      ],
-      "anchor": [
-        170,
-        234
-      ],
-      "layer": "ground",
       "tint": false
     },
     "citadel/rubble": {
@@ -1290,22 +1210,6 @@
           0
         ]
       }
-    },
-    "power-cell": {
-      "category": "structures",
-      "file": "structures/power-cell.svg",
-      "viewBox": [
-        32,
-        83,
-        32,
-        42
-      ],
-      "anchor": [
-        48,
-        112
-      ],
-      "layer": "world",
-      "tint": false
     },
     "pulse-turret/band1": {
       "category": "structures",

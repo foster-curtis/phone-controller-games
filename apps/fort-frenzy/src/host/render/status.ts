@@ -1,7 +1,8 @@
 // Status looks (SPEC §6.1; art README "Status effects"): burn flames and poison corrosion loop at
-// about 8 fps, anchored bottom-center on the body and scaled to its height; stun turns the glow off
-// (unlit frames), loops amber chevrons centered on the `top` point and holds the unit in its idle
-// clip; slow crawls flickering arcs up the legs.
+// about 8 fps, anchored bottom-center on the body (at the top of the legs) and sized as a fraction of
+// its height with a cap (RD10-fix-2: about halfway between the old full-height flame and RD10-fix-1's
+// small one); stun turns the glow off (unlit frames), loops amber chevrons centered on the `top` point
+// and holds the unit in its idle clip; slow crawls flickering arcs up the legs.
 import type { ArtImage } from './atlas';
 import { placeFrame, type RenderContext } from './context';
 import { hash01 } from './fall';
@@ -12,6 +13,21 @@ const FPS = 8;
 /** Frame heights in sprite units (burn/corrosion ≈ 38–42, crawl 52), for scaling to the body. */
 const BODY_FRAME_H = 40;
 const CRAWL_FRAME_H = 46;
+/**
+ * Burn/corrosion height as a fraction of the body height (RD10-fix-2, RC2 note: about halfway between
+ * the old full height, 1.0, and RD10-fix-1's 0.45; on a Grunt the flame fills the torso above the legs).
+ */
+export const BODY_LOOK_FRACTION = 0.7;
+/** Cap on the burn/corrosion scale (× the frame): only the Colossus reaches it (≈ 57% of its body). */
+export const BODY_LOOK_MAX_SCALE = 4;
+
+/**
+ * Scale of the burn and corrosion frames on a body `bodyH` sprite units tall: proportional to the
+ * body, capped (RD10-fix-1; sizes RD10-fix-2).
+ */
+export function bodyLookScale(bodyH: number): number {
+  return Math.min(BODY_LOOK_MAX_SCALE, (BODY_LOOK_FRACTION * bodyH) / BODY_FRAME_H);
+}
 
 /**
  * The locomotion clip for a unit (C1 note 11, a render rule FF10 follows): a stunned unit is always
@@ -112,9 +128,9 @@ export class StatusSprites {
         this.ctx.lib.setUnitScale(a, k, c.flip ? -1 : 1, sy);
         a.img.setPosition(footSx + c.jitter * k, footSy).setAlpha(c.alpha);
       } else {
-        const s = this.bodyH / BODY_FRAME_H;
+        const s = bodyLookScale(this.bodyH);
         this.ctx.lib.setUnitScale(a, k, s, s * 0.9);
-        a.img.setPosition(footSx, footSy - 4 * k);
+        a.img.setPosition(footSx, footSy - this.legH * k);
       }
     }
   }

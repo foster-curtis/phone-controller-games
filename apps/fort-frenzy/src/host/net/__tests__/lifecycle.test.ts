@@ -47,7 +47,7 @@ function hello(s: Session, id: string, key: string, deviceId: string) {
 function join(s: Session, id: string, name: string) {
   hello(s, id, `key-${id}`, `dev-${id}`);
   intent(s, id, { k: 'name', name });
-  intent(s, id, { k: 'class', classId: 'engineer' });
+  intent(s, id, { k: 'class', classId: 'ranger' });
 }
 
 const lastMe = (sent: Sent[], to: string): MeView =>
@@ -122,6 +122,31 @@ describe('late joins (§11.2)', () => {
     expect(lastMe(env.sent, 'c').screen).toBe('build');
     expect(env.s.party.member('c')?.slot).toBe(2);
   });
+
+  it('a late Commander gets a full meter, his 2 soldiers, an offer, no cards or growth (#99)', () => {
+    const env = toBuild();
+    toCombat(env);
+    // Wave 1 cleared: the knights in the run get their growth bump; the joiner won't.
+    env.s.sim!.world.spawns.length = 0;
+    env.s.sim!.world.enemies.length = 0;
+    while (env.s.sim!.world.phase !== 'build') step(env, 30);
+    expect(env.s.sim!.world.wave).toBe(2);
+    hello(env.s, 'c', 'key-c', 'dev-c');
+    intent(env.s, 'c', { k: 'name', name: 'Cy' });
+    intent(env.s, 'c', { k: 'class', classId: 'commander' });
+    const r = intent(env.s, 'c', { k: 'ready', ready: true });
+    step(env);
+    expect(ackOf(env.sent, r)?.ok).toBe(true);
+    const w = env.s.sim!.world;
+    const p = w.players.find((x) => x.name === 'Cy')!;
+    expect(p.meter).toBe(1);
+    expect(w.soldiers.filter((u) => u.owner === p.slot)).toHaveLength(2);
+    expect(p.offer).toHaveLength(3);
+    expect(p.cards).toEqual({});
+    expect(p.growth).toEqual({ regular: 0, boss: 0 });
+    expect(w.players.find((x) => x.name === 'Ann')!.growth.regular).toBe(1);
+    expect(lastMe(env.sent, 'c').build).toMatchObject({ meter: 1, full: true, id: 'rally_flag' });
+  });
 });
 
 describe('end of the run (§4)', () => {
@@ -133,7 +158,7 @@ describe('end of the run (§4)', () => {
     expect(ackOf(env.sent, n)?.ok).toBe(true);
     expect(env.s.sim).not.toBe(first);
     expect(env.s.sim?.world.phase).toBe('countdown');
-    expect(env.s.sim?.world.players.map((p) => p.classId)).toEqual(['engineer', 'engineer']);
+    expect(env.s.sim?.world.players.map((p) => p.classId)).toEqual(['ranger', 'ranger']);
   });
 
   it('change classes goes back to class select, nobody ready', () => {
@@ -144,8 +169,8 @@ describe('end of the run (§4)', () => {
     step(env);
     expect(lastMe(env.sent, 'a').screen).toBe('lobby');
     expect(env.s.party.members.map((m) => [m.ready, m.classId])).toEqual([
-      [false, 'engineer'],
-      [false, 'engineer'],
+      [false, 'ranger'],
+      [false, 'ranger'],
     ]);
   });
 
@@ -176,9 +201,9 @@ describe('resume snapshot on the host (§11.5, §15.8)', () => {
     const env = toBuild();
     expect(env.store.load(env.clock.wall)?.wave).toBe(1);
     const sim = env.s.sim!;
-    sim.place('arrow_tower', 10, 10, 0);
+    sim.addBuild('shield_gen', 10.5, 10.5, 0);
     step(env);
-    expect(env.store.load(env.clock.wall)?.structures.length).toBe(1);
+    expect(env.store.load(env.clock.wall)?.builds.length).toBe(1);
     toCombat(env);
     // Combat keeps the build-phase snapshot: a reload resumes the build of this wave.
     expect(env.store.load(env.clock.wall)?.wave).toBe(1);
@@ -188,7 +213,7 @@ describe('resume snapshot on the host (§11.5, §15.8)', () => {
 
   it('a reloaded TV in the same room: phones match by key, the leader resumes the same build', () => {
     const before = toBuild();
-    before.s.sim!.place('wall', 12, 11, 1);
+    before.s.sim!.addBuild('beacon', 12.5, 11.5, 1);
     before.s.sim!.world.team.coins = 77;
     step(before);
     const offers = before.s.sim!.world.players.map((p) => p.offer);
@@ -213,11 +238,34 @@ describe('resume snapshot on the host (§11.5, §15.8)', () => {
     expect(ackOf(env.sent, yes)?.ok).toBe(true);
     const w = env.s.sim!.world;
     expect([w.phase, w.wave, w.team.coins]).toEqual(['build', 1, 77]);
-    expect(w.structures.map((x) => [x.kind, x.tile])).toEqual([['wall', [12, 11]]]);
+    expect(w.builds.map((x) => [x.kind, x.x, x.y])).toEqual([['beacon', 12.5, 11.5]]);
     expect(w.players.map((p) => p.offer)).toEqual(offers);
     expect(w.players.every((p) => p.connected)).toBe(true);
     step(env);
     expect(lastMe(env.sent, 'a').screen).toBe('build');
+  });
+
+  it('the saved leader leads the resumed run even when another phone is back first (RD14)', () => {
+    const before = toBuild();
+    step(before);
+    expect(before.store.load(before.clock.wall)?.leaderKey).toBe('key-a');
+    const env = setup(before.store);
+    env.s.handleRoom({
+      reclaimed: true,
+      roster: [
+        { playerId: 'b', playerKey: 'key-b', connected: true },
+        { playerId: 'a', playerKey: 'key-a', connected: true },
+      ],
+    });
+    // Bob's phone says hello before Ann's.
+    env.s.handleMessage('b', { t: 'hello', proto: PROTOCOL_VERSION, deviceId: 'dev-b' });
+    env.s.handleMessage('a', { t: 'hello', proto: PROTOCOL_VERSION, deviceId: 'dev-a' });
+    expect(env.s.party.leaderId).toBe('a');
+    expect(intent(env.s, 'a', { k: 'leader', action: 'resume' })).toBeGreaterThan(0);
+    expect(env.s.sim?.world.phase).toBe('build');
+    step(env);
+    // The restored run saves the leader it came from.
+    expect(env.store.load(env.clock.wall)?.leaderKey).toBe('key-a');
   });
 
   it('a new room: phones match by device ID, an unknown phone claims a free slot', () => {
@@ -232,7 +280,7 @@ describe('resume snapshot on the host (§11.5, §15.8)', () => {
     expect(lastMe(env.sent, 'x')).toMatchObject({ screen: 'restoring', slot: 0, name: 'Ann' });
     const claim = lastMe(env.sent, 'y');
     expect(claim.screen).toBe('claim');
-    expect(claim.claim).toEqual([{ slot: 1, name: 'Bob', classId: 'engineer' }]);
+    expect(claim.claim).toEqual([{ slot: 1, name: 'Bob', classId: 'ranger' }]);
     const taken = intent(env.s, 'y', { k: 'claim', slot: 0 });
     expect(ackOf(env.sent, taken)?.ok).toBe(false);
     const c = intent(env.s, 'y', { k: 'claim', slot: 1 });

@@ -1,10 +1,11 @@
-// Map v1 (SPEC §3.1, §15.2): 36 × 24 tiles. Citadel cols 16–19, rows 0–1; repair zone cols 17–18,
-// row 2; Armory pad col 22, row 1. Lanes: bottom (cols 17–18, row 23; wave 1), left (col 0, rows 11–12;
-// wave 3), right (col 35, rows 11–12; wave 8). Enemies spawn just outside the edge and walk in.
-// A starting layout to tune (§14).
+// Map v1 (SPEC §3.1, §15.2): 36 × 24 tiles, an open field. Citadel cols 16–19, rows 0–1. Six portals,
+// every one live from wave 1: bottom-w (cols 9–10, row 23), bottom-e (cols 25–26, row 23), left-n
+// (col 0, rows 11–12), left-s (col 0, rows 18–19), right-n (col 35, rows 11–12), right-s (col 35,
+// rows 18–19). Enemies spawn just outside the edge and walk in. A starting layout to tune (§14).
 import type { MapDef } from './types';
 
 const OPEN = '....................................';
+const SIDE = 'P..................................P';
 
 export const mapV1 = {
   id: 'v1',
@@ -12,18 +13,7 @@ export const mapV1 = {
   rows: 24,
   tiles: [
     '................CCCC................',
-    '................CCCC..A.............',
-    '.................RR.................',
-    OPEN,
-    OPEN,
-    OPEN,
-    OPEN,
-    OPEN,
-    OPEN,
-    OPEN,
-    OPEN,
-    'L..................................L',
-    'L..................................L',
+    '................CCCC................',
     OPEN,
     OPEN,
     OPEN,
@@ -33,38 +23,74 @@ export const mapV1 = {
     OPEN,
     OPEN,
     OPEN,
+    SIDE,
+    SIDE,
     OPEN,
-    '.................LL.................',
+    OPEN,
+    OPEN,
+    OPEN,
+    OPEN,
+    SIDE,
+    SIDE,
+    OPEN,
+    OPEN,
+    OPEN,
+    '.........PP..............PP.........',
   ],
   legend: {
     '.': 'open',
     '#': 'blocked',
     C: 'citadel',
-    R: 'repair',
-    A: 'armory',
-    L: 'lane',
+    P: 'portal',
   },
-  lanes: {
-    bottom: {
+  portals: {
+    'bottom-w': {
+      side: 'bottom',
       entry: [
-        [17, 23],
-        [18, 23],
+        [9, 23],
+        [10, 23],
       ],
-      spawn: { x: 18, y: 24.6 },
+      spawn: { x: 10, y: 24.6 },
     },
-    left: {
+    'bottom-e': {
+      side: 'bottom',
+      entry: [
+        [25, 23],
+        [26, 23],
+      ],
+      spawn: { x: 26, y: 24.6 },
+    },
+    'left-n': {
+      side: 'left',
       entry: [
         [0, 11],
         [0, 12],
       ],
       spawn: { x: -0.6, y: 12 },
     },
-    right: {
+    'left-s': {
+      side: 'left',
+      entry: [
+        [0, 18],
+        [0, 19],
+      ],
+      spawn: { x: -0.6, y: 19 },
+    },
+    'right-n': {
+      side: 'right',
       entry: [
         [35, 11],
         [35, 12],
       ],
       spawn: { x: 36.6, y: 12 },
+    },
+    'right-s': {
+      side: 'right',
+      entry: [
+        [35, 18],
+        [35, 19],
+      ],
+      spawn: { x: 36.6, y: 19 },
     },
   },
 } satisfies MapDef;

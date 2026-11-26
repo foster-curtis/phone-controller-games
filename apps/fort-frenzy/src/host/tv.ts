@@ -1,8 +1,7 @@
 // The `TvView` adapter (SPEC §2.6, §15.2): what the TV's DOM overlay draws, built from the runtime's
-// room, the session (party, team view, sim) and the run's transient UI (lane warnings,
+// room, the session (party, team view, sim) and the run's transient UI (
 // announcements). Pure: the runtime passes everything in.
 import type { QrMatrix } from '@pcg/game-kit';
-import type { LaneId } from '../shared/ids';
 import type { Announcement, HomeRow, TvPlayer, TvScreen, TvView } from './ui/types';
 import { newEnemies, teamView, type ViewCtx } from './net/views';
 import { livingBoss } from './sim/boss';
@@ -15,8 +14,6 @@ export interface TvInput {
   home: { rows: HomeRow[]; focus: number };
   room: { code: string; joinUrl: string; qr: QrMatrix | null } | null;
   announcements: Announcement[];
-  /** Lane → the tick its group spawns (the warning glows until then). */
-  laneWarnings: ReadonlyMap<LaneId, number>;
   outdated: boolean;
 }
 
@@ -70,8 +67,6 @@ export function buildTvView(input: TvInput): TvView {
         .filter((p): p is TvPlayer => p !== null),
     });
   }
-  const lanes: LaneId[] = [];
-  if (w) for (const [lane, at] of input.laneWarnings) if (w.tick < at) lanes.push(lane);
   return {
     screen,
     team,
@@ -86,7 +81,6 @@ export function buildTvView(input: TvInput): TvView {
         : null,
     bossBar: w?.phase === 'combat' ? bossBar(w) : null,
     announcements: input.announcements,
-    laneWarnings: lanes,
     lowHpAlarm: !!w && w.base.alarm && w.phase === 'combat',
     wishlist: w?.phase === 'build' ? wishlist : [],
     readyStatus:

@@ -29,7 +29,7 @@ const roster = (me: {
     playerId: 'p3',
     name: 'Dev',
     color: 'rose',
-    classId: 'quartermaster',
+    classId: 'artificer',
     ready: false,
     connected: true,
   },
@@ -50,25 +50,22 @@ const SHOP: TeamView['shop'] = [
     maxTier: 1,
     price: 180,
     visible: true,
-    qmOnly: false,
     holdToConfirm: false,
   },
   {
-    id: 'arrow_rate',
+    id: 'base_hp',
     tier: 1,
     maxTier: 3,
     price: 320,
     visible: true,
-    qmOnly: false,
     holdToConfirm: true,
   },
   {
-    id: 'spiked_walls',
+    id: 'archer_damage',
     tier: 0,
     maxTier: 1,
     price: 420,
     visible: true,
-    qmOnly: false,
     holdToConfirm: true,
   },
   {
@@ -77,25 +74,14 @@ const SHOP: TeamView['shop'] = [
     maxTier: 3,
     price: 260,
     visible: true,
-    qmOnly: false,
     holdToConfirm: false,
   },
   {
-    id: 'crate',
-    tier: 0,
-    maxTier: 1,
-    price: 40,
-    visible: true,
-    qmOnly: false,
-    holdToConfirm: false,
-  },
-  {
-    id: 'wall_hp',
+    id: 'archer_third',
     tier: 3,
     maxTier: 3,
     price: null,
     visible: true,
-    qmOnly: false,
     holdToConfirm: false,
   },
   {
@@ -104,17 +90,7 @@ const SHOP: TeamView['shop'] = [
     maxTier: 1,
     price: 500,
     visible: true,
-    qmOnly: true,
     holdToConfirm: true,
-  },
-  {
-    id: 'emergency_kit',
-    tier: 0,
-    maxTier: 1,
-    price: 150,
-    visible: true,
-    qmOnly: true,
-    holdToConfirm: false,
   },
 ];
 
@@ -124,7 +100,7 @@ export function sampleTeam(
     id: 'dev',
     name: 'Foster',
     color: 'cobalt' as PlayerColorId,
-    classId: 'engineer' as ClassId | null,
+    classId: 'ranger' as ClassId | null,
   },
 ): TeamView {
   return {
@@ -134,12 +110,11 @@ export function sampleTeam(
     coins: 1240,
     baseHp: 340,
     baseMaxHp: 500,
-    theme: 'neon-knights',
     difficulty: 'normal',
     leaderId: 'dev',
     roster: roster(me),
     shop: SHOP,
-    wishlist: [{ item: 'spiked_walls', by: 'p2' }],
+    wishlist: [{ item: 'archer_damage', by: 'p2' }],
     nextWave: null,
     summary: null,
     ...over,
@@ -152,40 +127,37 @@ export function sampleMe(over: Partial<MeView> = {}): MeView {
     slot: 0,
     name: 'Foster',
     color: 'cobalt',
-    classId: 'engineer',
+    classId: 'ranger',
     isLeader: true,
     ready: false,
     hp: 80,
     maxHp: 100,
-    crates: 1,
-    carryCap: 3,
     superCharge: 0.7,
     superReady: false,
-    action: 'pickup',
-    kits: 0,
-    give: 'give',
-    arc: null,
-    buildKit: [],
+    superBlocked: false,
     respawnMs: null,
-    cards: { offer: null, picked: null, owned: [] },
-    build: null,
+    cards: { offer: null, picked: null, owned: [], growth: null },
+    build: BUILD_RANGER_OFF,
     claim: null,
     ...over,
   };
 }
 
-const ENGINEER_ARC: MeView['arc'] = {
-  slots: ['arrow_tower', 'bomb_tower', null, 'give'],
-  enabled: [true, false, false, true],
-};
-const WARDEN_ARC: MeView['arc'] = {
-  slots: ['wall', 'snare', 'fortify', 'give'],
-  enabled: [true, true, true, true],
-};
-const GIVE_ONLY: MeView['arc'] = {
-  slots: [null, null, null, 'give'],
-  enabled: [false, false, false, true],
-};
+const buildBtn = (over: Partial<NonNullable<MeView['build']>>): MeView['build'] => ({
+  id: 'shield_gen',
+  input: 'aimed',
+  icon: 'act-shield',
+  meter: 0,
+  full: false,
+  mode: 'none',
+  active: 0,
+  ...over,
+});
+const BUILD_RANGER_OFF = buildBtn({
+  id: 'mine',
+  input: 'tap',
+  icon: 'act-mine',
+});
 const OFFER: CardId[] = ['piercing_shot', 'haste', 'deadeye'];
 
 const SUMMARY: TeamView['summary'] = {
@@ -197,7 +169,7 @@ const SUMMARY: TeamView['summary'] = {
       playerId: 'dev',
       name: 'Foster',
       color: 'cobalt',
-      classId: 'engineer',
+      classId: 'ranger',
       award: 'damageDealt',
       stats: stats({ damageDealt: 48210, kills: 212 }),
     },
@@ -213,7 +185,7 @@ const SUMMARY: TeamView['summary'] = {
       playerId: 'p3',
       name: 'Dev',
       color: 'rose',
-      classId: 'quartermaster',
+      classId: 'artificer',
       award: 'healingDone',
       stats: stats({ healingDone: 7420 }),
     },
@@ -236,9 +208,7 @@ function stats(over: Partial<NonNullable<TeamView['summary']>['players'][number]
     damageTaken: 0,
     deaths: 0,
     healingDone: 0,
-    cratesDelivered: 0,
-    cratesGiven: 0,
-    structuresBuilt: 0,
+    buildsPlaced: 0,
     ...over,
   };
 }
@@ -255,7 +225,7 @@ export const SAMPLES: Record<string, () => Sample> = {
   lobby: () => ({ team: sampleTeam(), me: sampleMe({ screen: 'lobby' }) }),
   'lobby-ready': () => ({
     team: sampleTeam({
-      roster: roster({ ...q, classId: 'engineer' }).map((p) => ({ ...p, ready: true })),
+      roster: roster({ ...q, classId: 'ranger' }).map((p) => ({ ...p, ready: true })),
     }),
     me: sampleMe({ screen: 'lobby', ready: true }),
   }),
@@ -267,6 +237,11 @@ export const SAMPLES: Record<string, () => Sample> = {
   'lobby-member': () => ({
     team: sampleTeam({ leaderId: 'p2' }),
     me: sampleMe({ screen: 'lobby', isLeader: false }),
+  }),
+  // A solo leader: Start is there (one Ready player is enough to force-start, #100).
+  'lobby-solo': () => ({
+    team: sampleTeam({ roster: roster({ ...q, classId: 'ranger' }).slice(0, 1) }),
+    me: sampleMe({ screen: 'lobby' }),
   }),
   waiting: () => ({ team: sampleTeam({ phase: 'combat' }), me: sampleMe({ screen: 'waiting' }) }),
   full: () => ({
@@ -282,8 +257,8 @@ export const SAMPLES: Record<string, () => Sample> = {
     me: sampleMe({
       screen: 'claim',
       claim: [
-        { slot: 0, name: 'Foster', classId: 'engineer' },
-        { slot: 2, name: 'Dev', classId: 'quartermaster' },
+        { slot: 0, name: 'Foster', classId: 'ranger' },
+        { slot: 2, name: 'Dev', classId: 'artificer' },
         { slot: 3, name: 'Sam', classId: 'commander' },
       ],
     }),
@@ -293,38 +268,101 @@ export const SAMPLES: Record<string, () => Sample> = {
     team: sampleTeam({ phase: 'combat' }),
     me: sampleMe({ superCharge: 1, superReady: true }),
   }),
-  'combat-carrying': () => ({
+  // The build button's states (SPEC §10.1): empty (dimmed), filling (dimmed, ring partly lit), full
+  // (lit, steady amber ring), recall (lit), and the aimed throw with the joystick floating.
+  'combat-build-empty': () => ({
     team: sampleTeam({ phase: 'combat' }),
-    me: sampleMe({ crates: 2, action: 'place', arc: ENGINEER_ARC }),
+    me: sampleMe({ build: BUILD_RANGER_OFF }),
   }),
-  'combat-deliver': () => ({
+  'combat-build-charging': () => ({
     team: sampleTeam({ phase: 'combat' }),
-    me: sampleMe({ crates: 2, action: 'deliver', give: 'give' }),
+    me: sampleMe({ build: buildBtn({ ...BUILD_RANGER_OFF, meter: 0.45 }) }),
   }),
-  'combat-kit': () => ({
+  'combat-build-ready': () => ({
     team: sampleTeam({ phase: 'combat' }),
-    me: sampleMe({ classId: 'quartermaster', action: 'kit', kits: 1, arc: GIVE_ONLY, crates: 1 }),
-  }),
-  'combat-none': () => ({
-    team: sampleTeam({ phase: 'combat' }),
-    me: sampleMe({ action: 'none', crates: 0, give: null }),
+    me: sampleMe({ build: buildBtn({ ...BUILD_RANGER_OFF, meter: 1, full: true, mode: 'place' }) }),
   }),
   'combat-warden': () => ({
     team: sampleTeam({ phase: 'combat' }),
-    me: sampleMe({ classId: 'warden', action: 'place', crates: 2, arc: WARDEN_ARC }),
+    me: sampleMe({
+      classId: 'warden',
+      build: buildBtn({ id: 'shield_gen', icon: 'act-shield', meter: 0.5, mode: 'none' }),
+    }),
+  }),
+  'combat-warden-ready': () => ({
+    team: sampleTeam({ phase: 'combat' }),
+    me: sampleMe({
+      classId: 'warden',
+      build: buildBtn({
+        id: 'shield_gen',
+        icon: 'act-shield',
+        meter: 1,
+        full: true,
+        mode: 'place',
+      }),
+    }),
   }),
   'combat-artificer': () => ({
     team: sampleTeam({ phase: 'combat' }),
-    me: sampleMe({ classId: 'quartermaster', action: 'throw', crates: 2, arc: GIVE_ONLY }),
+    me: sampleMe({
+      classId: 'artificer',
+      build: buildBtn({ id: 'beacon', icon: 'act-beacon', meter: 1, full: true, mode: 'place' }),
+    }),
   }),
   'combat-commander': () => ({
     team: sampleTeam({ phase: 'combat' }),
-    me: sampleMe({ classId: 'commander', action: 'recall', crates: 0 }),
+    me: sampleMe({
+      classId: 'commander',
+      build: buildBtn({
+        id: 'rally_flag',
+        input: 'tap',
+        icon: 'act-recall',
+        meter: 0.3,
+        mode: 'recall',
+        active: 1,
+      }),
+    }),
+  }),
+  'combat-commander-throw': () => ({
+    team: sampleTeam({ phase: 'combat' }),
+    me: sampleMe({
+      classId: 'commander',
+      build: buildBtn({ id: 'rally_flag', icon: 'act-flag', meter: 1, full: true, mode: 'place' }),
+    }),
+  }),
+  // A finger down on the build button, dragged out: the aimed throw's joystick floats to the touch.
+  'combat-build-aiming': () => ({
+    team: sampleTeam({ phase: 'combat' }),
+    me: sampleMe({
+      classId: 'warden',
+      build: buildBtn({
+        id: 'shield_gen',
+        icon: 'act-shield',
+        meter: 1,
+        full: true,
+        mode: 'place',
+      }),
+    }),
+    after: (stage) => {
+      const zone = stage.querySelector<HTMLElement>('.attack-zone');
+      const btn = stage.querySelector<HTMLElement>('.round-btn.action');
+      if (!zone || !btn) return;
+      const r = btn.getBoundingClientRect();
+      const fire = (type: string, x: number, y: number) => {
+        const e = new MouseEvent(type, { clientX: x, clientY: y, bubbles: true, cancelable: true });
+        Object.defineProperty(e, 'pointerId', { value: 92 });
+        zone.dispatchEvent(e);
+      };
+      const x = r.left + r.width / 2;
+      const y = r.top + r.height / 2;
+      fire('pointerdown', x, y);
+      fire('pointermove', x - 40, y - 12);
+    },
   }),
   // A finger down on the main button, dragged left: the joystick floats to the touch (aimed attacks).
   'combat-aiming': () => ({
     team: sampleTeam({ phase: 'combat' }),
-    me: sampleMe({ classId: 'quartermaster', action: 'throw', crates: 2, arc: GIVE_ONLY }),
+    me: sampleMe({ classId: 'artificer' }),
     after: (stage) => {
       const zone = stage.querySelector<HTMLElement>('.attack-zone');
       const main = stage.querySelector<HTMLElement>('.round-btn.main');
@@ -341,55 +379,65 @@ export const SAMPLES: Record<string, () => Sample> = {
       fire('pointermove', x - 44, y - 14);
     },
   }),
-  build: () => ({
+  // Card pop-up (SPEC §10.2): the growth header, three cards, Confirm; wave 0 has no header.
+  cards: () => ({
     team: sampleTeam({ phase: 'build' }),
     me: sampleMe({
       screen: 'build',
-      crates: 2,
-      buildKit: ['arrow_tower', 'bomb_tower'],
-      build: { selected: 'arrow_tower', valid: true },
+      cards: {
+        offer: OFFER,
+        picked: null,
+        owned: [{ id: 'haste', n: 2 }],
+        growth: { wave: 4, boss: false, stats: ['maxHp', 'damage'], pct: { maxHp: 2, damage: 2 } },
+      },
     }),
   }),
-  'build-blocked': () => ({
+  'cards-first': () => ({
+    team: sampleTeam({ phase: 'build', wave: 0 }),
+    me: sampleMe({
+      screen: 'build',
+      cards: { offer: OFFER, picked: null, owned: [], growth: null },
+    }),
+  }),
+  'cards-boss': () => ({
     team: sampleTeam({ phase: 'build' }),
     me: sampleMe({
       screen: 'build',
-      crates: 3,
-      classId: 'warden',
-      buildKit: ['wall', 'snare', 'fortify'],
-      build: { selected: 'wall', valid: false },
+      classId: 'artificer',
+      cards: {
+        offer: ['overflow', 'wide_aura', 'vitality'],
+        picked: null,
+        owned: [],
+        growth: {
+          wave: 5,
+          boss: true,
+          stats: ['maxHp', 'damage', 'healing'],
+          pct: { maxHp: 4, damage: 4, healing: 6 },
+        },
+      },
     }),
   }),
-  'build-none': () => ({
+  'cards-selected': () => ({
     team: sampleTeam({ phase: 'build' }),
     me: sampleMe({
       screen: 'build',
-      classId: 'quartermaster',
-      crates: 1,
-      action: 'buy',
-      kits: 1,
-      buildKit: [],
+      cards: {
+        offer: OFFER,
+        picked: null,
+        owned: [],
+        growth: { wave: 4, boss: false, stats: ['maxHp', 'damage'], pct: { maxHp: 2, damage: 2 } },
+      },
     }),
+    after: (stage) => stage.querySelector<HTMLElement>('.upgrade-card:nth-child(2)')?.click(),
   }),
+  // Shop (SPEC §10.3): after the pick; the stick on the left third, rows on the right 2/3.
   shop: () => ({
     team: sampleTeam({ phase: 'build' }),
     me: sampleMe({
       screen: 'build',
-      crates: 2,
-      buildKit: ['arrow_tower', 'bomb_tower'],
-      cards: { offer: OFFER, picked: null, owned: [{ id: 'haste', n: 2 }] },
+      classId: 'artificer',
+      cards: { offer: null, picked: 'overflow', owned: [{ id: 'overflow', n: 1 }], growth: null },
     }),
-    after: (stage) => stage.querySelector<HTMLElement>('[data-tab="shop"]')?.click(),
-  }),
-  'shop-picked': () => ({
-    team: sampleTeam({ phase: 'build' }),
-    me: sampleMe({
-      screen: 'build',
-      classId: 'quartermaster',
-      buildKit: [],
-      cards: { offer: null, picked: 'overflow', owned: [{ id: 'overflow', n: 1 }] },
-    }),
-    after: (stage) => stage.querySelector<HTMLElement>('[data-tab="shop"]')?.click(),
   }),
   dead: () => ({
     team: sampleTeam({ phase: 'combat' }),
@@ -405,7 +453,28 @@ export const SAMPLES: Record<string, () => Sample> = {
   }),
   'build-paused': () => ({
     team: sampleTeam({ phase: 'build', paused: { playerId: 'dev', name: q.name, color: q.color } }),
-    me: sampleMe({ screen: 'build', crates: 2, buildKit: ['arrow_tower', 'bomb_tower'] }),
+    me: sampleMe({ screen: 'build' }),
+  }),
+  // Pause menu (RD6-fix-1): a non-leader sees Leave game only; each option opens its confirm step.
+  'paused-member': () => ({
+    team: sampleTeam({
+      phase: 'combat',
+      paused: { playerId: 'p2', name: 'Riley', color: 'jade' },
+    }),
+    me: sampleMe({ isLeader: false }),
+  }),
+  'paused-leave': () => ({
+    team: sampleTeam({
+      phase: 'combat',
+      paused: { playerId: 'p2', name: 'Riley', color: 'jade' },
+    }),
+    me: sampleMe(),
+    after: (stage) => stage.querySelector<HTMLElement>('[data-leave]')?.click(),
+  }),
+  'paused-end': () => ({
+    team: sampleTeam({ phase: 'build', paused: { playerId: 'dev', name: q.name, color: q.color } }),
+    me: sampleMe({ screen: 'build' }),
+    after: (stage) => stage.querySelector<HTMLElement>('[data-end-game]')?.click(),
   }),
   'summary-victory': () => ({
     team: sampleTeam({ phase: 'summary', summary: SUMMARY }),

@@ -3,7 +3,7 @@
 // (scene/enemyFx.ts), so the legs keep their pace. Attack (FF10): the burst, the core swelling as
 // the body lunges (the Runner dies the same step, so the death clip takes over at once).
 import rig from '../../../../art/neon-knights/rigs/skitter.json';
-import type { Clip, Keyframe, RigDef } from '../../../themes/types';
+import type { Clip, Keyframe, RigDef } from '../../../presentation/types';
 import { cos, each, enemyDeath, enemyHit, loop, once, sin, wave } from '../clipKit';
 
 const pulse = (ms: number): Keyframe[] =>

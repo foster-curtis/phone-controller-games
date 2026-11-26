@@ -2,11 +2,11 @@
 // that changes run state enters as an input sample or a command at the start of a step; the step runs
 // its systems in the fixed order below.
 import { content as defaultContent, type Content } from '../../content';
-import type { EnemyId, StructureId } from '../../shared/ids';
+import type { BuildId, EnemyId, SideId } from '../../shared/ids';
 import { createCatalog } from './catalog';
-import { stepThrown } from './classes/quartermaster';
 import { stepSquads } from './squad';
-import { stepArchers, stepMarkers, stepProjectiles, stepStructures } from './combat';
+import { stepBuilds } from './builds/core';
+import { stepArchers, stepMarkers, stepProjectiles } from './combat';
 import { applyCommands } from './commands';
 import { stepDeaths, stepEffects, stepPhases, stepSpawner } from './lifecycle';
 import { rebuildSpatial, stepMovement } from './movement';
@@ -20,8 +20,8 @@ import type {
   PlayerInput,
   RunStart,
   SimCommand,
+  BuildEnt,
   SoldierEnt,
-  StructureEnt,
   World,
 } from './types';
 
@@ -55,8 +55,11 @@ export interface Sim {
    * rules and the command log, so a replay can't reproduce them: the host uses commands.
    */
   spawnEnemy(kind: EnemyId, x: number, y: number): EnemyEnt;
-  place(kind: StructureId, col: number, row: number, slot: number): StructureEnt;
+  /** A landed build at (x, y) for `slot`, outside the rules (the bench's peak builds, resume tests). */
+  addBuild(kind: BuildId, x: number, y: number, slot: number): BuildEnt;
   addSoldier(owner: number, x: number, y: number): SoldierEnt;
+  /** The debug panel's forced hot side (the `hot` debug command, RD6), or null. */
+  readonly debugHot: SideId | null;
 }
 
 const neutral = neutralInput();
@@ -69,26 +72,23 @@ function sampleInputs(s: FullState, sources: Map<number, InputSource>, obs?: Ste
     obs?.input?.(t, p.slot, raw);
     const st = s.inputs.get(p.slot)!;
     st.input = raw;
-    st.main = st.super = st.action = st.radial = false;
+    st.main = st.super = st.build = false;
     const prev = st.prev;
     if (!p.connected || st.baseline) {
       // Dazed, or the first sample after a (re)connect: baseline only, never fire (§15.3).
       prev.mainFires = raw.mainFires;
       prev.superFires = raw.superFires;
-      prev.actionTaps = raw.actionTaps;
-      prev.radialCommits = raw.radialCommits;
+      prev.buildFires = raw.buildFires;
       st.baseline = !p.connected;
       continue;
     }
     // A counter going backwards (phone reload) re-baselines without firing.
     st.main = raw.mainFires > prev.mainFires;
     st.super = raw.superFires > prev.superFires;
-    st.action = raw.actionTaps > prev.actionTaps;
-    st.radial = raw.radialCommits > prev.radialCommits;
+    st.build = raw.buildFires > prev.buildFires;
     prev.mainFires = raw.mainFires;
     prev.superFires = raw.superFires;
-    prev.actionTaps = raw.actionTaps;
-    prev.radialCommits = raw.radialCommits;
+    prev.buildFires = raw.buildFires;
   }
 }
 
@@ -123,30 +123,28 @@ export function createSim(start: RunStart, opts: SimOptions = {}): Sim {
     queue = [];
     obs?.commands?.(w.tick, cmds);
     applyCommands(s, cmds);
-    if (w.fields.dirty) s.rebuildFields();
     // 2. input samples → presses
     sampleInputs(s, sources, obs);
-    // 3. players: movement, attacks and supers, action button, build arc, crates
+    // 3. players: movement, attacks and supers, build presses
     rebuildSpatial(s);
     stepPlayers(s);
-    if (w.fields.dirty) s.rebuildFields();
-    // 4. AI: enemies (soldiers and the boss arrive with FF9/FF11), then structures and archers
+    // Builds: flights land, switch-on, effects in combat (the shield generator's guard)
+    stepBuilds(s);
+    // 4. AI: enemies (the boss module included), then the sentries
     if (w.phase === 'combat') {
       stepEnemies(s);
-      stepStructures(s);
       stepArchers(s);
     }
     // The Commanders' squads (FF9): follow or hold the flag in both phases, fight in combat.
     if (w.phase === 'combat' || w.phase === 'build') stepSquads(s);
-    // 5. integrate movement, soft separation, structure collision
+    // 5. integrate movement, soft separation, `blocked`-tile collision
     stepMovement(s);
     // 6. projectiles and area attacks
     stepProjectiles(s);
     stepMarkers(s);
-    stepThrown(s);
     // 7. status effects, onTick hooks
     stepEffects(s);
-    // 8. deaths: hooks, coins, crate drops; destroyed blockers rebuild the flow fields
+    // 8. deaths: hooks, coins; destroyed builds removed
     stepDeaths(s);
     // 9. wave spawner
     stepSpawner(s);
@@ -167,7 +165,10 @@ export function createSim(start: RunStart, opts: SimOptions = {}): Sim {
     },
     step,
     spawnEnemy: (kind, x, y) => s.spawnEnemy(kind, x, y, null),
-    place: (kind, col, row, slot) => s.placeStructure(kind, col, row, slot),
+    addBuild: (kind, x, y, slot) => s.addBuild(kind, x, y, slot),
     addSoldier: (owner, x, y) => s.addSoldier(owner, x, y),
+    get debugHot() {
+      return s.debugHot;
+    },
   };
 }

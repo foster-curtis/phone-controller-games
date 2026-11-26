@@ -1,10 +1,10 @@
-// Camera projection, ground ellipses and carried-cell pips (SPEC §2.5, §15.2).
+// Camera projection, ground ellipses (SPEC §2.5, §15.2).
 import { describe, expect, it } from 'vitest';
-import { FixedCamera, UNIT_PX } from '../camera';
-import { carryPip, carryPips, ellipsePoint, PIP_PAD_Y } from '../ground';
+import { FixedCamera, MAP_SIDE_MARGIN, UNIT_PX, UNIT_FIT, fitMap } from '../camera';
+import { ellipsePoint } from '../ground';
 
 describe('FixedCamera', () => {
-  const cam = new FixedCamera();
+  const cam = new FixedCamera(UNIT_FIT);
 
   it('projects sx = 96 + x·W, sy = 216 + y·W·0.6 − z·W', () => {
     expect(cam.worldToScreen(0, 0)).toEqual({ sx: 96, sy: 216 });
@@ -46,39 +46,39 @@ describe('FixedCamera', () => {
   });
 });
 
-describe('carry pips (§15.2: a = 90° + (cap − 1)·7.5° − k·15°)', () => {
-  const rx = 54.4;
-  const ry = 32.64;
-
-  it('centers a single slot straight in front of the ring', () => {
-    const p = carryPip(0, 1, 0, 0, rx, ry);
-    expect(p.x).toBeCloseTo(0);
-    expect(p.y).toBeCloseTo(ry + PIP_PAD_Y);
-  });
-
-  it('spreads cap 4 at 112.5°, 97.5°, 82.5°, 67.5°, left to right, symmetric', () => {
-    const pts = [0, 1, 2, 3].map((k) => carryPip(k, 4, 100, 200, rx, ry));
-    const deg = [112.5, 97.5, 82.5, 67.5].map((d) => (d * Math.PI) / 180);
-    pts.forEach((p, k) => {
-      expect(p.x).toBeCloseTo(100 + (rx + 8) * Math.cos(deg[k]!));
-      expect(p.y).toBeCloseTo(200 + (ry + 4.8) * Math.sin(deg[k]!));
+describe('fitMap (RD5-fix-4)', () => {
+  for (const [w, h] of [
+    [1920, 1080],
+    [1280, 720],
+    [3840, 2160],
+  ] as const) {
+    it(`fits the map just inside the view width at ${w}×${h}, whole map in view`, () => {
+      const f = fitMap(w, h);
+      expect(f.limit).toBe('width');
+      expect(f.mapW).toBeCloseTo(w * (1 - 2 * MAP_SIDE_MARGIN), 6);
+      expect(f.mapW).toBeLessThan(w);
+      expect(f.originX).toBeGreaterThan(0);
+      expect(f.originX + f.mapW).toBeLessThanOrEqual(w);
+      // Below the top HUD line and above the TV-safe bottom (96 px at 1080).
+      const s = h / 1080;
+      expect(f.originY).toBeGreaterThanOrEqual(136 * s);
+      expect(f.originY + f.mapH).toBeLessThanOrEqual(h - 96 * s + 1e-6);
+      expect(f.scale).toBeCloseTo((w / 1920) * 1.0889, 3);
     });
-    expect(pts[0]!.x).toBeLessThan(pts[3]!.x);
-    expect(pts[0]!.x - 100).toBeCloseTo(-(pts[3]!.x - 100));
-    expect(pts[0]!.y).toBeCloseTo(pts[3]!.y);
+  }
+
+  it('the TV camera uses the 1920 fit: k ≈ 1.089, map x 19–1901, y 223–976', () => {
+    const cam = new FixedCamera();
+    expect(cam.scale).toBeCloseTo(1.0889, 3);
+    const tl = cam.worldToScreen(0, 0);
+    const br = cam.worldToScreen(36, 24);
+    expect(tl.sx).toBeCloseTo(19.2, 1);
+    expect(br.sx).toBeCloseTo(1900.8, 1);
+    expect(tl.sy).toBeCloseTo(223.1, 0);
+    expect(br.sy).toBeCloseTo(975.75, 1);
   });
 
-  it('cap 8 (the Artificer) spans 142.5°…37.5°, all on the front arc', () => {
-    const first = carryPip(0, 8, 0, 0, rx, ry);
-    const last = carryPip(7, 8, 0, 0, rx, ry);
-    expect(first.x).toBeCloseTo((rx + 8) * Math.cos((142.5 * Math.PI) / 180));
-    expect(last.x).toBeCloseTo((rx + 8) * Math.cos((37.5 * Math.PI) / 180));
-    for (let k = 0; k < 8; k++) expect(carryPip(k, 8, 0, 0, rx, ry).y).toBeGreaterThan(0);
-  });
-
-  it('shows pips only while carrying, filled left to right', () => {
-    expect(carryPips(0, 4, 0, 0, rx, ry)).toEqual([]);
-    expect(carryPips(3, 4, 0, 0, rx, ry).map((p) => p.filled)).toEqual([true, true, true, false]);
-    expect(carryPips(5, 8, 0, 0, rx, ry)).toHaveLength(8);
+  it('the Citadel stays centered on x = 960', () => {
+    expect(new FixedCamera().worldToScreen(18, 0).sx).toBeCloseTo(960, 6);
   });
 });

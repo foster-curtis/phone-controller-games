@@ -1,7 +1,8 @@
-// Reconnect (SPEC §11.3, §15.9; BUILD_PLAN FF7): a phone drops mid-run → its knight is dazed and
+// Reconnect (SPEC §11.3, §15.9; BUILD_PLAN FF7, RD6): a phone drops mid-run → its knight is dazed and
 // the TV shows it disconnected → the phone comes back in a new browser with the same player key
-// and device ID → the same slot, with the same color and class. Sim time is frozen and stepped
-// through `__pcg` (presence changes apply on a step), so nothing waits on wall time.
+// and device ID → the same slot, with the same color and knight, its build meter and its card
+// pop-up (the same three cards) as it left them. Sim time is frozen and stepped through `__pcg`
+// (presence changes apply on a step), so nothing waits on wall time.
 import { expect } from '@playwright/test';
 import {
   closeContexts,
@@ -23,7 +24,7 @@ test('phone drop → dazed → back in the same slot', async ({ browser }) => {
   test.setTimeout(90_000);
   const host = await openHost(browser);
   await freeze(host);
-  const ann = await joinPhone(browser, host.code, 'Ann');
+  const ann = await joinPhone(browser, host.code, 'Ann', 'warden');
   const bob = await joinPhone(browser, host.code, 'Bob');
 
   // Ann takes rose in the lobby (the color intent).
@@ -35,6 +36,8 @@ test('phone drop → dazed → back in the same slot', async ({ browser }) => {
   await stepUntil(host, { phase: 'build' });
   const before = (await players(host)).find((p) => p.name === 'Ann')!;
   expect(before.slot).toBe(0);
+  const offer = (await host.page.evaluate(() => window.__pcg!.cards()))[0]!.offer!;
+  expect(offer).toHaveLength(3);
 
   // Drop: Ann's phone goes away. The knight stays, dazed (translucent, disconnected on the TV).
   const storage = await ann.page.evaluate(() => ({ ...localStorage }));
@@ -51,7 +54,7 @@ test('phone drop → dazed → back in the same slot', async ({ browser }) => {
     .toBe(false);
   expect((await players(host)).find((p) => p.name === 'Ann')?.slot).toBe(0);
 
-  // Back: a new browser with the same player key and device ID.
+  // Back: a new browser with the same player key and device ID, on the same card pop-up.
   const context = await newPhoneContext(browser, storage);
   const page = await context.newPage();
   await page.goto(url(`/play?code=${host.code}`));
@@ -63,7 +66,15 @@ test('phone drop → dazed → back in the same slot', async ({ browser }) => {
   expect(after.playerId).not.toBe(before.playerId);
   expect(after.slot).toBe(before.slot);
   expect(after.color).toBe('rose');
-  expect(after.classId).toBe('engineer');
+  expect(after.classId).toBe('warden');
   expect((await players(host)).length).toBe(2);
+  const shown = await page
+    .locator('.screen.build .upgrade-card')
+    .evaluateAll((cs) => cs.map((c) => c.getAttribute('data-card')));
+  expect(shown).toEqual(offer);
+  expect((await host.page.evaluate(() => window.__pcg!.meters()))[0]).toMatchObject({
+    build: 'shield_gen',
+    full: true,
+  });
   expect(host.errors).toEqual([]);
 });
