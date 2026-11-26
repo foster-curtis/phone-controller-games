@@ -1039,7 +1039,7 @@ Rules:
   - [x] NPC module (five techniques) + churn + tests
   - [x] Player movement + shared outfits + tests
   - [x] `crowd` and `bench` scripts (bench numbers logged in §8)
-  - [ ] Merged to `thieves-forum` and pushed
+  - [x] Merged to `thieves-forum` and pushed
 - **TF3**
   - [x] Latency simulator + host hold machine + tests
   - [x] Phone estimator + catch grace + hot hands + tests
