@@ -699,6 +699,16 @@ interface RoundStart {
   shops. The sim core entry is `createSim(roundStart, content?)` in `sim/world.ts`; the spatial hash and
   input edges are derived per world (`sim/derived.ts`), not stored in it. TF2 tuning the §7 sheet doesn't
   give (pauses, detour odds, queue gap, stand-still cap, player stick bands) is in `sim/tuning.ts`.
+- **Merchants and stalls (TF8, additive):** `Merchant.desk?: MerchantDesk` (serving queue, served list,
+  current `MerchantTask`: idle, serve with dialog, fetch get/bring/stow, show, away; the slot he left on
+  the counter) and `StallSlot.stocked?` (the item a slot restocks and `putBack` restores), types in
+  `sim/merchants/types.ts`; `MerchantsApi.callAway` takes an optional `AwayReason`. The merchants step
+  stocks each open stall and creates its merchant on the first step (`initStalls`), restocks, and
+  applies `browse`, `grab` and `dialog` commands. A shelf item left on the counter flips its slot to the
+  counter row (`forward`) so the hold machine times it as a counter grab. The round's ledger reaches
+  stall theft through `THEFT_HOOKS.ledger` (`sim/stalls/hooks.ts`, set by the host wiring); a Buy… from
+  the dialog ends service through `endService` (TF13). TF8 tuning the §7 sheet doesn't give is in
+  `sim/merchants/tuning.ts`.
 - **Disguise invariants** (tests, TF7, TF12, TF21): `WorldView` and every `tv` event are identical in
   shape for a player-controlled character and an NPC; `SfxCue` has no grab or pickpocket cue; player
   characters walk with NPC gait speeds below jog; outfits for players and NPCs come from one `assignOutfit`

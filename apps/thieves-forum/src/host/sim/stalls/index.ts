@@ -24,7 +24,9 @@ function slotOf(slot: number, row: StallSlot['row'], item: ItemDef | null): Stal
 
 /** `n` items cycling through `pool` from `start` (a row's spots repeat items when it has few). */
 function cycle(pool: readonly ItemDef[], n: number, start: number): ItemDef[] {
-  return pool.length === 0 ? [] : Array.from({ length: n }, (_, i) => pool[(start + i) % pool.length]!);
+  return pool.length === 0
+    ? []
+    : Array.from({ length: n }, (_, i) => pool[(start + i) % pool.length]!);
 }
 
 /**
@@ -53,7 +55,8 @@ export function stockShop(rng: Rng, shop: ShopId, content: Content): StallSlot[]
   ];
   const counterItems = cycle(counter, def.slots.counter, rng.int(0, counter.length));
   const out: StallSlot[] = [];
-  for (let i = 0; i < def.slots.counter; i++) out.push(slotOf(i, 'counter', counterItems[i] ?? null));
+  for (let i = 0; i < def.slots.counter; i++)
+    out.push(slotOf(i, 'counter', counterItems[i] ?? null));
   for (let i = 0; i < def.slots.shelf; i++) {
     out.push(slotOf(def.slots.counter + i, 'shelf', shelfItems[i] ?? null));
   }

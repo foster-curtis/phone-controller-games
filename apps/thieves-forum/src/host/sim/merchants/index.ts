@@ -122,7 +122,8 @@ function createMerchant(ctx: StepContext, s: Stall): Merchant {
     shouting: null,
     desk: { queue: [], served: [], task: { k: 'idle' }, leftOut: null },
   };
-  m.nextGlanceAt = w.tick + glanceIntervalTicks(rngOf(ctx, m), ctx.content.balance.merchants, 1, ctx.ticks);
+  m.nextGlanceAt =
+    w.tick + glanceIntervalTicks(rngOf(ctx, m), ctx.content.balance.merchants, 1, ctx.ticks);
   return m;
 }
 
@@ -171,7 +172,8 @@ function suspectOf(ctx: StepContext, m: Merchant, of: EntityId): void {
   if (e) e.until = until;
   else m.suspicion.push({ of, until });
   if (m.glance === null) {
-    const next = ctx.world.tick + glanceIntervalTicks(rngOf(ctx, m), b, b.suspicion.glanceMult, ctx.ticks);
+    const next =
+      ctx.world.tick + glanceIntervalTicks(rngOf(ctx, m), b, b.suspicion.glanceMult, ctx.ticks);
     m.nextGlanceAt = Math.min(m.nextGlanceAt, next);
   }
 }
@@ -300,7 +302,11 @@ function stepTask(ctx: StepContext, m: Merchant, arrived: readonly EntityId[]): 
   const inQueue = (id: EntityId | null) => id !== null && dk.queue.includes(id);
 
   // Another customer arrives while he shows a shelf item: he may leave it on the counter (§6.6).
-  if (arrived.length > 0 && m.carrying !== null && (t.k === 'show' || (t.k === 'fetch' && t.phase === 'bring'))) {
+  if (
+    arrived.length > 0 &&
+    m.carrying !== null &&
+    (t.k === 'show' || (t.k === 'fetch' && t.phase === 'bring'))
+  ) {
     if (rngOf(ctx, m).next() < b.leaveOutChance) {
       if (t.customer !== null) served(m, t.customer);
       layOut(ctx, m, t.slot);
@@ -383,7 +389,12 @@ function stepTask(ctx: StepContext, m: Merchant, arrived: readonly EntityId[]): 
         }
         if (!walk(ctx, m, counterSpot(d, c.x))) return;
         stand(m, FACE_COUNTER);
-        setTask(m, { k: 'show', slot: t.slot, customer: c.id, until: w.tick + ctx.ticks(T.showMs) });
+        setTask(m, {
+          k: 'show',
+          slot: t.slot,
+          customer: c.id,
+          until: w.tick + ctx.ticks(T.showMs),
+        });
         return;
       }
       // stow
@@ -450,10 +461,12 @@ function stepGlance(ctx: StepContext, m: Merchant): void {
     ctx.emit({ ch: 'tv', e: 'glanceLook', by: m.id });
   }
   catchGrabs(ctx, m);
-  if (m.shouting !== null || w.tick >= m.glance.until) {
+  // catchGrabs may have set `shouting` (TS keeps the earlier null narrowing, so re-read it).
+  const shout = m.shouting as Merchant['shouting'];
+  if (shout !== null || w.tick >= m.glance.until) {
     m.glance = null;
     const sus = strongestSuspicion(m, desk(m).queue, w.tick, b.suspicion.glanceMult, decay);
-    const after = m.shouting !== null ? m.shouting.until : w.tick;
+    const after = shout !== null ? shout.until : w.tick;
     m.nextGlanceAt = after + glanceIntervalTicks(rngOf(ctx, m), b, sus.factor, ctx.ticks);
   }
 }
@@ -508,7 +521,11 @@ function grab(ctx: StepContext, c: Character, stall: StallId, slot: number): voi
   holds.armGrab(ctx, c.id, stall, slot, tileGrabMs(def, sl));
 }
 
-function dialogPick(ctx: StepContext, c: Character, cmd: Extract<SimCommand, { k: 'dialog' }>): void {
+function dialogPick(
+  ctx: StepContext,
+  c: Character,
+  cmd: Extract<SimCommand, { k: 'dialog' }>,
+): void {
   const m = ctx.world.merchants.find((mm) => {
     const t = mm.desk?.task;
     return t?.k === 'serve' && t.customer === c.id && t.dialog;
@@ -578,7 +595,8 @@ function completeGrabs(ctx: StepContext): void {
 /** Re-sends the stall view to every player at a stall whose tiles may have changed this step. */
 function refreshViews(ctx: StepContext, dirty: ReadonlySet<StallId>): void {
   const w = ctx.world;
-  for (const e of w.events) if (e.ch === 'tv' && e.e === 'stallChanged') (dirty as Set<StallId>).add(e.stall);
+  for (const e of w.events)
+    if (e.ch === 'tv' && e.e === 'stallChanged') (dirty as Set<StallId>).add(e.stall);
   for (const h of w.holds) {
     if (h.target.k === 'item' && (h.result !== null || h.startTick === w.tick)) {
       (dirty as Set<StallId>).add(h.target.stall);

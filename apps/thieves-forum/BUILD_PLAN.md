@@ -1063,9 +1063,9 @@ Rules:
   - [ ] Merged to `thieves-forum` and pushed
   - [ ] User approved C1 (crowd spike, tip-off spike, phone dev, gallery)
 - **TF8**
-  - [ ] Stock, placement, restock, stall view state + tests
-  - [ ] Merchant attention, glance, suspicion, dialog, fetch/bring forward + tests
-  - [ ] Stall theft + merchant catch + tests
+  - [x] Stock, placement, restock, stall view state + tests
+  - [x] Merchant attention, glance, suspicion, dialog, fetch/bring forward + tests
+  - [x] Stall theft + merchant catch + tests
   - [ ] Merged to `thieves-forum` and pushed
 - **TF9**
   - [ ] Patrol, cones, LOS, spot, alerts + tests
@@ -1246,6 +1246,15 @@ Format: `- [TF#] decision: one line, with the reason.`
 - [TF10] decision: match pacing build values (hands-up 2.5 s, reveal card 3 s, crown 4 s, transition 5 s, podium step 2.5 s, 7 rules cards by default) live in `src/host/match/tuning.ts`, because `balance.ts` isn't TF10's file; move into `balance.match` when its owner next edits it.
 - [TF10] decision: joins after Start (rules excepted) get `waiting` with `joinedRound = round + 1` and join at the next round start; TF16 replaces the in-round case with the walk-on. Podium places use competition ranking (1, 1, 3); reveal ties keep join order and all tied top earners are crowned.
 - [TF10] decision: `src/host/roster.ts` stays as a shim over `party/roster.ts` (`createRoster(cleanName)`), because `host/main.ts` (TF7's this wave) and `host/__tests__/roster.test.ts` import it; TF12 rewires main.ts and deletes the shim and that test (party/__tests__ covers it). `party/` takes the name cleaner as a parameter because the party lint bans game imports.
+- [TF8] contract+: `Merchant.desk?: MerchantDesk` and `StallSlot.stocked?: ItemId | null` (`sim/types.ts`), `MerchantDesk`/`MerchantTask`/`AwayReason` in `sim/merchants/types.ts`, optional `reason` on `MerchantsApi.callAway`; new exports `initStalls`, `endService` (merchants), `stockShop`, `restock`, `stallViewFor`, `THEFT_HOOKS` (stalls); SPEC §12.3 updated.
+- [TF8] decision: the merchants step stocks open stalls and creates their merchants on its first step (ids right after the players'), and runs restock itself, because `world.ts` and the economy step aren't TF8's; TF12/TF13 may move either call without changing behavior.
+- [TF8] decision: the ledger reaches stall theft through a mutable `THEFT_HOOKS.ledger` (like `NPC_HOOKS`), null in headless runs, because neither `World` nor `StepContext` carries one; **TF12 must set it at round start**. Alerts go through `guards.raiseAlert` (lane = the stall's lane, cause `merchantCall`).
+- [TF8] decision: the merchants step also handles `browse` (nearest open selling stall within 1.2 tiles of its customer line; the pawnbroker's tap is left to TF13 as SELL) and ends browsing when a browsing player moves the stick (`stallView null`), because input.ts freezes browsing characters and nothing else releases them.
+- [TF8] decision: a glance runs only while he's behind his counter (not at the shelf, away or shouting; an interrupted wind-up is dropped); the look catches every live grab at his own stall on each tick of the look, so a release during the wind-up is always safe. The glance aims at the most suspected customer at his counter, and suspicion only speeds glances while that customer is there (×2 falling linearly to ×1 over `decayMs`).
+- [TF8] decision: a shelf item left on the counter flips its slot's `row` to `counter` (with `forward`) so the TF3 hold machine times it as a counter grab at its normal time; `take` and the return to the shelf flip it back. He returns it when idle and nobody holds it; distracted while carrying, he leaves it out (`leaveOutChance`) or puts it straight back.
+- [TF8] decision: dialog Buy… isn't a dialog pick in `SimCommand`, so the phone's `buy` goes to TF13, which calls `endService(ctx, merchant, customer)` to close the dialog; a dialog with no pick for 8 s reads as Leave (no suspicion).
+- [TF8] decision: "called away by an NPC" = 20% of NPCs he serves call him out from behind the counter for ~1.2 s; coin pick-up removes the coin and emits `coinPicked` on arrival (TF13 sets `merchant.coin` and calls `callAway`). Build tuning (help time, dialog timeout, show time, shout time, away wait, NPC call chance, browse reach) is in `sim/merchants/tuning.ts`, to move into `balance.ts` when its owner next edits it.
+- [TF8] decision: stock cycles a shop's counter items over its 4 counter spots and its uncommons over the shelf spots after `raresPerRound` rare(s), so repeated items fill a row when a shop has few; a shelf with only rares stocks one and leaves the rest empty.
 
 ## 9. Final handoff (and early setup)
 
