@@ -1060,7 +1060,7 @@ Rules:
   - [x] Host loop, input, world scene, HUD, debug hooks, timeScale
   - [x] Dev overlay, stress mode, phone wiring
   - [x] Spike e2e + scene disguise test
-  - [ ] Merged to `thieves-forum` and pushed
+  - [x] Merged to `thieves-forum` and pushed
   - [ ] User approved C1 (crowd spike, tip-off spike, phone dev, gallery)
 - **TF8**
   - [x] Stock, placement, restock, stall view state + tests
