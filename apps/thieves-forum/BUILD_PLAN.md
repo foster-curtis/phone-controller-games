@@ -1052,7 +1052,7 @@ Rules:
 - **TF5**
   - [x] Shell, router, dev mode
   - [x] Every §6.17 screen + jsdom tests + dev e2e
-  - [ ] Merged to `thieves-forum` and pushed
+  - [x] Merged to `thieves-forum` and pushed
 - **TF6**
   - [x] Title, lobby, HUD, hands-up, reveal card, podium, rules host + tests
   - [x] Merged to `thieves-forum` and pushed
