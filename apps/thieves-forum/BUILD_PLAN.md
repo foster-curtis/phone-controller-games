@@ -1055,7 +1055,7 @@ Rules:
   - [ ] Merged to `thieves-forum` and pushed
 - **TF6**
   - [x] Title, lobby, HUD, hands-up, reveal card, podium, rules host + tests
-  - [ ] Merged to `thieves-forum` and pushed
+  - [x] Merged to `thieves-forum` and pushed
 - **TF7**
   - [ ] Host loop, input, world scene, HUD, debug hooks, timeScale
   - [ ] Dev overlay, stress mode, phone wiring
