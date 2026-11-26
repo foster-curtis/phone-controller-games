@@ -1080,7 +1080,7 @@ Rules:
 - **TF11**
   - [x] Audio engine (bed, one-shots, ducking, scenes) + fake-context tests
   - [x] Forum AudioMap + `Sfx` + synth fallbacks
-  - [ ] Merged to `thieves-forum` and pushed
+  - [x] Merged to `thieves-forum` and pushed
 - **TF12**
   - [ ] Handler registry, private routing, stall view, hold events
   - [ ] Scene: merchants, guard cone, bubbles, catches, stocks; HUD; hands up; plain reveal
