@@ -31,7 +31,7 @@ function boot(): void {
   });
   createApp({ root, client, code, goToRoom });
   if (debugEnabled(import.meta.env.DEV)) {
-    // `send` lets e2e act as this phone (e.g. the leader's Start before TF12's lobby screen, BUILD_PLAN §8).
+    // `send` lets e2e act as this phone for messages that have no button yet (debug only).
     installDebug({
       playerId: () => client.playerId,
       status: () => client.status,

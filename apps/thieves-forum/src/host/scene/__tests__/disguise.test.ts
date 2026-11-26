@@ -71,6 +71,7 @@ describe('scene disguise', () => {
     const rt = createRuntime({ client: fake.client, origin: 'http://tv', seed: 7 });
     fake.join('p1', 'Livia');
     fake.join('p2', 'Marcus');
+    for (const id of ['p1', 'p2']) fake.msg(id, { t: 'ready', ready: true });
     expect(rt.start('p1')).toBe(true);
     for (let i = 0; i < 400; i++) rt.tick(16);
     const f = rt.frame(16)!;

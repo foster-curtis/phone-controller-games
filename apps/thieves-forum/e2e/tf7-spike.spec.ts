@@ -1,9 +1,10 @@
-// Crowd spike (BUILD_PLAN TF7, SPEC §6.2, §6.10, §6.11, §12.3, §12.5): host + 3 phones join, the
-// leader starts; each phone's stick moves its own character in the stick direction (`__pcg.world()`);
+// Crowd spike (BUILD_PLAN TF7, SPEC §6.2, §6.10, §6.11, §6.18, §12.3, §12.5): host + 3 phones join and
+// land on the lobby screen, press Ready, and the leader taps the visible Start (TF7-fix-1); a
+// non-leader has no Start; each phone's stick moves its own character in the stick direction (`__pcg.world()`);
 // the TV logs no console errors; the live NPC count stays within tolerance for 20 s at timeScale 2.
 // Also: `?stress=1&debug=1` runs the 8-bot crowd and reports FPS and step time (logged, BUILD_PLAN §8).
-import { closeContexts, expect, joinPhone, screen, test, type Phone } from './helpers';
-import { holdStick, openSpikeHost, phoneId, phoneSend, type W } from './helpers-tf7';
+import { closeContexts, expect, joinPhone, test, type Phone } from './helpers';
+import { holdStick, openSpikeHost, phoneId, type W } from './helpers-tf7';
 
 test.afterEach(closeContexts);
 
@@ -14,14 +15,36 @@ test('three phones drive their characters through the spike round', async ({ bro
   const phones: Phone[] = [];
   for (const name of ['Livia', 'Marcus', 'Julia'])
     phones.push(await joinPhone(browser, host.code, name));
-  for (const p of phones) await expect(screen(p.page, 'connected')).toBeVisible();
+  const lobby = (p: Phone) => p.page.locator('[data-screen=lobby]');
+  for (const p of phones) {
+    await expect(lobby(p)).toBeVisible();
+    await expect(lobby(p).locator('.player .label')).toHaveText(['Livia', 'Marcus', 'Julia']);
+  }
   await expect(tv.locator('[data-role=player]')).toHaveText(['Livia', 'Marcus', 'Julia']);
 
-  // A non-leader can't start; the leader can.
-  await phoneSend(phones[1]!, { t: 'leader', action: 'start' });
-  await tv.waitForTimeout(300);
-  expect(await tv.evaluate(() => (window as W).__pcg!.phase())).toBe('lobby');
-  await phoneSend(phones[0]!, { t: 'leader', action: 'start' });
+  // Only the leader (first to join) sees Start, disabled until enough players are ready.
+  const start = lobby(phones[0]!).locator('[data-action=start]');
+  await expect(start).toBeVisible();
+  await expect(start).toBeDisabled();
+  for (const p of phones.slice(1))
+    await expect(lobby(p).locator('[data-action=start]')).toHaveCount(0);
+
+  // A color tap reaches the host and every phone.
+  const swatch = lobby(phones[2]!).locator('.swatch:not([disabled])[aria-pressed=false]').first();
+  const picked = (await swatch.getAttribute('data-color'))!;
+  await swatch.click();
+  await expect(lobby(phones[0]!).locator('.player').nth(2).locator('.dot')).toHaveAttribute(
+    'style',
+    new RegExp(`--player-${picked}`),
+  );
+
+  for (const p of phones) await lobby(p).locator('[data-action=ready]').click();
+  for (const p of phones)
+    await expect(lobby(p).locator('.player .tag.ok')).toHaveCount(phones.length);
+  await expect(start).toBeEnabled();
+  for (const p of phones.slice(1))
+    await expect(lobby(p).locator('[data-action=start]')).toHaveCount(0);
+  await start.click();
   await expect(tv.locator('[data-tv=roundStart]')).toBeVisible();
   for (const p of phones) await expect(p.page.locator('[data-screen=roundStart]')).toBeVisible();
 

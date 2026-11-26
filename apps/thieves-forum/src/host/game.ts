@@ -1,6 +1,8 @@
 // Host runtime for the crowd spike (SPEC §6.2, §6.18, §12.3, §12.5; BUILD_PLAN TF7): relay client ↔
-// lobby roster ↔ one round of the sim. Lobby → "Spike start" (the leader phone's `leader start`, or
-// the TV's Start key) → the players-only opening → play → hands up → back to the lobby. Phone input
+// lobby roster ↔ one round of the sim. Lobby (SPEC §6.18: phones get the `lobby` screen with color,
+// Ready and the leader's Start, re-sent on every roster/color/ready/leader change) → Start (the leader
+// phone's `leader start`, or the TV's Start key, both only when ≥ minPlayers are ready, TF10's rule) →
+// the players-only opening → play → hands up → back to the lobby. Phone input
 // samples become `PlayerInput`s each fixed 60 Hz step; the scene gets `WorldView` plus the previous
 // step's positions for interpolation. `timeScale` (debug) runs n steps per step slot. No Phaser here.
 // The match flow proper (rules, three rounds, reveal, podium) is TF10/TF12/TF16.
@@ -13,11 +15,13 @@ import {
   MIN_PLAYERS,
   PROTOCOL_VERSION,
   type HostMsg,
+  type LobbyPlayer,
   type Screen,
 } from '../shared/messages';
 import { PLAYER_COLOR_IDS, type PlayerColorId } from '../shared/theme';
 import { pickOpenStalls } from './match/openStalls';
 import { createInputStore } from './net/inputs';
+import { resolveLeader } from './party';
 import { createRoster } from './roster';
 import type { FrameInput, SceneSource } from './scene/types';
 import type { DebugView, WorldView } from './sim/snapshot';
@@ -99,6 +103,9 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
   let roundPlayers: SpikePlayer[] = [];
   let handsUpAt = 0;
   let openStalls: StallId[] = CONTENT.layout.stalls.map((s) => s.id);
+  /** Lobby choices per roster phone (SPEC §6.18); the roster keeps join order and names. */
+  const lobby = new Map<PlayerId, { color: PlayerColorId; ready: boolean }>();
+  let leaderId: PlayerId | null = null;
   const prev = new Map<EntityId, Vec2>();
   const times = new Float64Array(STEP_WINDOW);
   let stepCount = 0;
@@ -117,7 +124,58 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
   const send = (msg: HostMsg, to: PlayerId) => client?.send(msg, to);
   const colorOf = (i: number): PlayerColorId => PLAYER_COLOR_IDS[i % PLAYER_COLOR_IDS.length]!;
   const lobbyPlayers = (): SpikePlayer[] =>
-    roster.players().map((p, i) => ({ id: p.id, name: p.name, color: colorOf(i) }));
+    roster.players().map((p, i) => ({
+      id: p.id,
+      name: p.name,
+      color: lobby.get(p.id)?.color ?? colorOf(i),
+    }));
+
+  /** The earliest-joined phone leads and keeps it while present (party/leader.ts, TF10). */
+  function syncLeader() {
+    leaderId = resolveLeader(
+      leaderId,
+      roster.players().map((p) => ({ id: p.id, connected: true })),
+    );
+  }
+
+  /** TF10's rule (match.ts `canStart`): a leader and ≥ minPlayers ready players, in the lobby. */
+  function canStart(): boolean {
+    if (phase !== 'lobby' || leaderId === null) return false;
+    const ready = roster.players().filter((p) => lobby.get(p.id)?.ready).length;
+    return ready >= MIN_PLAYERS;
+  }
+
+  function lobbyRows(): (LobbyPlayer & { id: PlayerId })[] {
+    return lobbyPlayers().map((p) => ({
+      id: p.id,
+      name: p.name,
+      color: p.color,
+      ready: lobby.get(p.id)?.ready ?? false,
+      leader: p.id === leaderId,
+      connected: true,
+    }));
+  }
+
+  /** Every lobby phone gets its `lobby` screen (SPEC §6.18); only the leader's carries canStart. */
+  function sendLobby() {
+    if (phase !== 'lobby') return;
+    const rows = lobbyRows();
+    const players: LobbyPlayer[] = rows.map(({ id: _id, ...p }) => p);
+    const ok = canStart();
+    rows.forEach((p, you) =>
+      send(
+        { t: 'screen', screen: { s: 'lobby', players, you, canStart: ok && p.id === leaderId } },
+        p.id,
+      ),
+    );
+  }
+
+  /** Roster, color, ready or leader changed: phones and the TV re-render. */
+  function lobbyChanged() {
+    syncLeader();
+    sendLobby();
+    changed();
+  }
   const rounds = balance.match.rounds;
   const wallMs = (simMs: number) => Math.max(0, Math.round(simMs / timeScale));
 
@@ -180,9 +238,10 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
     phase = 'lobby';
     prev.clear();
     inputs.clear();
-    for (const p of roundPlayers) send({ t: 'screen', screen: { s: 'joining' } }, p.id);
     roundPlayers = [];
-    changed();
+    // Ready resets for the next Start, as TF10's Play again does (BUILD_PLAN §8 [TF7-fix-1]).
+    for (const l of lobby.values()) l.ready = false;
+    lobbyChanged();
   }
 
   function start(by?: PlayerId): boolean {
@@ -190,8 +249,10 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
     const players = opts.bots
       ? opts.bots.ids.map((id, i) => ({ id, name: id, color: colorOf(i) }))
       : lobbyPlayers();
-    if (by !== undefined && players[0]?.id !== by) return false; // only the leader
-    if (!opts.bots && players.length < MIN_PLAYERS) return false;
+    if (!opts.bots) {
+      if (by !== undefined && by !== leaderId) return false; // only the leader
+      if (!canStart()) return false;
+    }
     const seed = opts.seed ?? Math.floor(Math.random() * 0x7fffffff);
     openStalls = pickOpenStalls(seed, players.length, CONTENT.layout, balance);
     const rs: RoundStart = {
@@ -238,25 +299,56 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
           const name = roster.join(from, data.name);
           if (name === null) return;
           send({ t: 'joined', name }, from);
+          if (!lobby.has(from)) {
+            const used = new Set([...lobby.values()].map((l) => l.color));
+            const color = PLAYER_COLOR_IDS.find((c) => !used.has(c)) ?? PLAYER_COLOR_IDS[0];
+            lobby.set(from, { color, ready: false });
+          }
+          if (phase === 'lobby') {
+            lobbyChanged();
+            return;
+          }
+          syncLeader();
           const p = roundPlayers.find((x) => x.id === from);
-          if (p) sendRoundState(p); // a reconnect heals itself (SPEC §12.5)
+          if (p)
+            sendRoundState(p); // a reconnect heals itself (SPEC §12.5)
+          else send({ t: 'screen', screen: { s: 'waiting', reason: 'nextRound' } }, from);
           changed();
+          return;
+        }
+        case 'color': {
+          const l = lobby.get(from);
+          if (phase !== 'lobby' || !l || !PLAYER_COLOR_IDS.includes(data.color)) return;
+          if ([...lobby.entries()].some(([id, o]) => id !== from && o.color === data.color)) return;
+          l.color = data.color;
+          lobbyChanged();
+          return;
+        }
+        case 'ready': {
+          const l = lobby.get(from);
+          if (phase !== 'lobby' || !l || l.ready === data.ready) return;
+          l.ready = data.ready;
+          lobbyChanged();
           return;
         }
         case 'input':
           inputs.set(from, data.x, data.y, data.bits, now());
           return;
         case 'leader':
+          // How to play from the lobby is TF12's match wiring (BUILD_PLAN §8 [TF7-fix-1]).
           if (data.action === 'start') start(from);
           return;
         default:
-          return; // holds, stalls, tips, lobby colors: later milestones
+          return; // holds, stalls, tips: later milestones
       }
     });
     client.onPeer((change) => {
       roster.peer(change);
-      if (change.event === 'left') inputs.forget(change.playerId);
-      changed();
+      if (change.event === 'left') {
+        inputs.forget(change.playerId);
+        lobby.delete(change.playerId);
+      }
+      lobbyChanged();
     });
     client.onRoom(() => changed());
     client.onStatus(() => changed());
@@ -303,18 +395,17 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
       const code = client?.code ?? null;
       const w = sim?.world;
       if (!w || phase === 'lobby') {
-        const players = lobbyPlayers();
         return {
           phase: 'lobby',
           code,
           joinUrl: code ? joinUrl(opts.origin, code) : null,
-          players: players.map((p, i) => ({
+          players: lobbyRows().map((p) => ({
             name: p.name,
             color: p.color,
-            ready: false,
-            leader: i === 0,
+            ready: p.ready,
+            leader: p.leader,
           })),
-          canStart: players.length >= MIN_PLAYERS,
+          canStart: canStart(),
         };
       }
       if (phase === 'opening')

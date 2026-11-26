@@ -1,6 +1,7 @@
-// Setup smoke (scaffold): the TV opens a room and shows its code; two phones join by code and name;
-// both see "Connected" and the TV lists both names.
-import { closeContexts, expect, hostPlayers, joinPhone, openHost, screen, test } from './helpers';
+// Setup smoke (scaffold; SPEC §6.18): the TV opens a room and shows its code; two phones join by code
+// and name; both land on the lobby screen with both names (TF7-fix-1: the lobby replaced "Connected"),
+// and the TV lists both names.
+import { closeContexts, expect, hostPlayers, joinPhone, openHost, test } from './helpers';
 
 test.afterEach(closeContexts);
 
@@ -17,9 +18,10 @@ test('host shows a room code; two phones join and the host lists both names', as
     await joinPhone(browser, host.code, 'Marcus'),
   ];
   for (const phone of phones) {
-    await expect(screen(phone.page, 'connected')).toBeVisible();
-    await expect(screen(phone.page, 'connected')).toContainText(phone.name);
-    await expect(screen(phone.page, 'connected')).toContainText('Watch the TV');
+    const lobby = phone.page.locator('[data-screen=lobby]');
+    await expect(lobby).toBeVisible();
+    await expect(lobby.locator('.player .label')).toHaveText(['Livia', 'Marcus']);
+    await expect(lobby.locator('[data-action=ready]')).toBeVisible();
   }
 
   await expect(host.page.locator('[data-role=player]')).toHaveText(['Livia', 'Marcus']);
@@ -27,5 +29,5 @@ test('host shows a room code; two phones join and the host lists both names', as
 
   // For review (gitignored): the TV lobby and a joined phone.
   await host.page.screenshot({ path: 'e2e/__screens__/smoke-tv-lobby.png' });
-  await phones[0]!.page.screenshot({ path: 'e2e/__screens__/smoke-phone-connected.png' });
+  await phones[0]!.page.screenshot({ path: 'e2e/__screens__/smoke-phone-lobby.png' });
 });
