@@ -16,7 +16,15 @@
 // points) and fails if an SVG outside the composed `*reference*` files is named by nothing.
 // `--watch` (dev) rebuilds on art changes and only warns: the renderer's dev-only fallback shapes
 // cover a missing frame. Every other run fails instead.
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, watch, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  watch,
+  writeFileSync,
+} from 'node:fs';
 import { deflateSync } from 'node:zlib';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -243,7 +251,8 @@ function validateRig(rig: RigDef, file: string) {
         seen.add(p);
         if (!rp.parts[p]) fail(`${at}: order names ${p}, which isn't a part`);
       }
-      for (const p of Object.keys(rp.parts)) if (!seen.has(p)) fail(`${at}: ${p} missing from order`);
+      for (const p of Object.keys(rp.parts))
+        if (!seen.has(p)) fail(`${at}: ${p} missing from order`);
       for (const [name, part] of Object.entries(rp.parts)) {
         if (!isPoint(part.pivot) || (part.at !== undefined && !isPoint(part.at)))
           fail(`${at}: part ${name} has a bad pivot/at`);
@@ -287,7 +296,8 @@ function buildRigPose(
   named.add(rp.file);
   const svg = parseSvg(readFileSync(path, 'utf8'), rp.file);
   const vb = viewBoxOf(svg, rp.file);
-  if (vb.join() !== rig.viewBox.join()) fail(`${at}: ${rp.file} viewBox ${vb} ≠ rig ${rig.viewBox}`);
+  if (vb.join() !== rig.viewBox.join())
+    fail(`${at}: ${rp.file} viewBox ${vb} ≠ rig ${rig.viewBox}`);
   for (const [name, part] of Object.entries(rp.parts)) {
     if (!part.src) continue;
     const el = findById(svg, part.src.id);
@@ -601,7 +611,9 @@ function run(strict: boolean): boolean {
     `${Object.keys(manifest.frames).length} frames, ${built.jobs.length} rasters, ` +
     `${manifest.rigs.length} rigs; atlases: ${sizes}`;
   if (errors.length > 0) {
-    console.warn(`assets built with errors (dev fallback shapes cover them):\n  ${errors.join('\n  ')}`);
+    console.warn(
+      `assets built with errors (dev fallback shapes cover them):\n  ${errors.join('\n  ')}`,
+    );
     return false;
   }
   console.log(`assets ok (${summary})`);

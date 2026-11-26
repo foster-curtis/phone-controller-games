@@ -1030,9 +1030,9 @@ Rules:
   - [x] Merged to `thieves-forum` and pushed
   - [x] User approved C0 (§12 + contracts)
 - **TF1**
-  - [ ] Atlas script + manifest + keys
-  - [ ] Rigs (citizen, merchant, guard) + pose clips + tests
-  - [ ] `?gallery=1` + stress view + gallery e2e
+  - [x] Atlas script + manifest + keys
+  - [x] Rigs (citizen, merchant, guard) + pose clips + tests
+  - [x] `?gallery=1` + stress view + gallery e2e
   - [ ] Merged to `thieves-forum` and pushed
 - **TF2**
   - [ ] Sim core, nav, LOS + determinism test
@@ -1205,6 +1205,17 @@ Format: `- [TF#] decision: one line, with the reason.`
 - [TF3] decision: grace and hot hands are inclusive (`midStealAt` in ms: true at 300 ms, false at 301 ms; `isHot` through `hotUntil`), because §6.13 says "300 ms grace" and "hot for 5 s".
 - [TF3] decision: the phone estimator caps at 95% until `complete`, freezes on release while a host hold is live (holdEnd decides), goes idle at once on release with no host hold, ignores events for older hold ids, and takes an optional `durationMs` on `press` (the tile's `grabMs`), because the frozen `press(now)` has no duration.
 - [TF3] decision: the latency link is in order (WebSocket/TCP) and drops only repeated 30 Hz samples, never bit changes or discrete events, because TCP never loses or reorders but a phone can skip a sample.
+- [TF1] decision: copied Fort Frenzy's atlas script (`scripts/build-atlases.ts`) and rig renderer (`src/host/render/{rig,rigMath,clip,atlas,camera}.ts`, clip kit) with source headers; extraction candidate (→ a render kit with Fort Frenzy migrated), because the user chose copy over extraction ([plan] above).
+- [TF1] decision: rig parts are `id` groups inside one SVG per view/pose (`src: {id, pick?}` in the rig JSON), not one file per part as in Fort Frenzy, because the delivery is drawn that way; `pick` takes children of a group (the one-piece `legs` → `leg-l`/`leg-r`), never redraws them.
+- [TF1] decision: tinting splits every frame into back-to-front runs of shapes that share a `var(--slot)` (tunic, mantle, hair, skin, wrap, canopy, player); tint runs are rasterized white and multiplied at draw time, so one atlas serves every outfit and canopy, because a whole-part multiply would tint the belt, shoes and eyes too.
+- [TF1] decision: characters draw at 1.8 px per rig unit (60-unit viewBox → 108 px), not the 2× SPEC §12.2 quotes, because 108 px is the stated height and the layout reference draws them 24 × 36 at ×3; stalls, gate and stocks at 3 px per unit (the reference ×3), and the floor tile at 0.6 (80 units per 48 px tile, as Fort Frenzy).
+- [TF1] decision: hair and skin tone tables (5 each) live in `src/host/render/tones.ts`, taken from the art's own defaults and reference files (hair #3b2a20 …, skin #c8946c, #e2b48c, #8d5a3b …), because the brand kit has no hair or skin palette (TF0 decision); flag for C1.
+- [TF1] decision: part names are viewer-relative (`-l`/`-r`); in side views `-l` is the far limb. The citizen and merchant side views draw no far arm, so `arm-l` there reuses the near arm's drawing behind the tunic (composed from parts); the guard's far arm is hidden behind the scutum. Parts a view doesn't show are listed with `src: null` (merchant hair in front, beard in back, guard `helmet-top` in side/back).
+- [TF1] decision: views missing from the delivery are composed by per-view clips (`<clip>@<view>`): citizen hands-up side/back, run front/back, merchant point-back, and every gait/browse/throw/stocks in each view; no art was redrawn. User list (could be drawn later, TF20): hands-up side/back, run front/back, merchant point-back, a 3/4 head for the merchant glance (now a head squeeze and shift).
+- [TF1] decision: the merchant glance is three clips (`glanceWindup`, `glanceLook`, `glanceBack`); `glanceBack` is a clip name only (not a `PoseId`), because §6.21 asks for three stages and `PoseId` has two.
+- [TF1] decision: composed `*reference*` SVGs are not frames and are skipped by the atlas check (as Fort Frenzy's `review/`); every other SVG must be named by a rig or `sprites.json`.
+- [TF1] decision: the gallery has one page per section (`&page=citizen|merchant|guard|stalls|items|effects|stress`, nav links on top) and reports `window.__pcgGallery` (ready, fallbacks, missing, stress fps); the stress page at 1920 × 1080 in headless Chromium read 61 fps with 46 rigs and 652 images (indicative; TF7 measures the real scene).
+- [TF1] contract+: froze `src/host/render/types.ts` (rig JSON, `Clip`, `sprites.json`, `AssetManifest`/`FrameMeta` with raster `layers`, `Camera`, `RigInstance`, `StallInstance`, `EffectSpawner`) and the `generated/manifest.ts` shape; SPEC §12.2 and §12.11 updated.
 
 ## 9. Final handoff (and early setup)
 

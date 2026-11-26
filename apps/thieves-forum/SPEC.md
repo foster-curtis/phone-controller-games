@@ -593,7 +593,8 @@ interface Camera {
 - **Rigs from tinted cut-out parts** (as in Fort Frenzy): `art/forum/rigs/<id>.json` for `citizen`,
   `merchant` and `guard` names each part per view (`front`, `side`, `back`), its pivot, parent and draw
   order; tintable parts (`--tunic`, `--mantle`, `--hair`, `--skin`, `--wrap`) are rasterized neutral
-  and tinted from the character's `Outfit` at draw time. **Clips are code** (`render/clips/*.ts`):
+  and tinted from the character's `Outfit` at draw time. (TF1: each frame is split into runs of shapes sharing a tint variable, rasterized white and
+  multiplied by the slot color; characters draw at 1.8 px per rig unit, 108 px tall.) **Clips are code** (`render/clips/*.ts`):
   keyframed part rotations and offsets per pose (walk, browse/reach, pickpocket, throw, point, hands-up,
   run, stocks; merchant glance in three stages, fetch, carry; guard patrol, jog, catch, march). Browse and
   reach share one clip, so stealing never looks different from browsing (§6.7, §6.21).
@@ -861,6 +862,7 @@ ride in `send.data` and are defined in `src/shared/messages.ts` with runtime gua
 | `src/host/sim/<subsystem>/{index,types}.ts` | each subsystem's step and API (`raiseAlert`, the ledger keyed by `Side`, the distraction handler list, `assignOutfit`, …) |
 | `src/host/match/types.ts`, `src/host/ui/types.ts` | `MatchPhase`, `Side`, `MatchState`, `RoundResult`; `TvView`; additive at TF6: `TvControl`, `TvAnchors` |
 | Mode entries (`host/{gallery,spike}/index.ts`, `host/ui/preview.ts`, `controller/dev.ts`, `controller/tipoff/spike.ts`) | `mount(root)` |
+| `src/host/render/types.ts` (TF1) | rig JSON (`RigDef`, parts as SVG `id` groups, viewer-relative names, hidden parts), `Clip` (with `pose`, `groups`, `<clip>@<view>` variants), `sprites.json`, `AssetManifest` / `FrameMeta` (raster `layers` per tint slot), `Camera`, `RigInstance`, `StallInstance`, `EffectSpawner` |
 
 Later freezes: the renderer API and asset manifest (TF1), the hold machine and blob-transfer APIs (TF3,
 TF4), the host handler registry (TF12). Tuning values in `src/content/` are never frozen.
