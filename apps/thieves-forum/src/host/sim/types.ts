@@ -7,6 +7,7 @@ import type { EntryId, ItemId, Outfit, ShopId, StallId, Vec2 } from '../../conte
 import type { HoldKind, HoldResult } from '../../shared/hold';
 import type { SimEvent } from './events';
 import type { HoldMachineState } from './holds/types';
+import type { MerchantDesk } from './merchants/types';
 import type { Side } from './ledger/types';
 import type { CrowdState, NpcNav } from './npc/types';
 
@@ -194,6 +195,8 @@ export interface Merchant extends Body {
   coin: number | null;
   /** Shouting "THIEF!" at this character until the tick (merchant catch, SPEC §6.6). */
   shouting: { at: EntityId; until: Tick } | null;
+  /** Serving queue, current task and dialog (TF8 contract+; set when the merchants step creates him). */
+  desk?: MerchantDesk;
 }
 
 /** Why a guard was activated (SPEC §6.12 escalation counts all of these). */
@@ -231,6 +234,8 @@ export interface StallSlot {
   forward: boolean;
   /** Restocks at this tick (null = not waiting, or never for rares). */
   restockAt: Tick | null;
+  /** The item this slot was stocked with: what restock and `putBack` restore (TF8 contract+). */
+  stocked?: ItemId | null;
 }
 
 export interface Stall {
