@@ -984,6 +984,13 @@ Each enemy type is designed as a problem that specific classes solve.
 - **Every enemy must be answerable by at least two classes or by a baseline every team has** (§2); the
   table's last column is the v1 check.
 - **Melee attacks cannot hit Flyers.**
+- **Map-edge wall (§15.11 #182):** an invisible, code-only wall on the map's four edges holds
+  enemies in. Nothing that pushes an enemy (every knockback: shield bash, shockwave, mine burst, any
+  later source; soft separation; being pushed out of the Citadel) moves its feet circle past an edge,
+  so it stops at the edge minus its radius. An enemy still outside (spawned just past the edge at a
+  portal, §3.1) is never pushed further out: a push may only hold it or bring it in. Its own walking
+  is never held, so portal spawns walk in as before. Flyers obey it too; the Colossus takes no
+  knockback. Knights keep their own clamp to the map; soldiers are unchanged. No art.
 - **Body hitboxes (C4, Foster):** our attacks (knights' shots, arcs, cones and circles, mine blasts,
   the sentries) hit an enemy anywhere on its drawn body: torso, head and legs, from the feet up to the
   top of the head (the Wasp: its hull at its flight height, not its shadow). Arms, tails, rotors and
@@ -2163,7 +2170,8 @@ export type SimCommand = (
      re-applied and beacon pulses (combat only)
   5. AI: enemies (path, aggro leash over knights and HP builds, Brute build hunt, Siege priority,
      Hunter stalk and sprint, flyer, runner), soldiers (thrown soldiers land and join), the boss module
-  6. integrate movement, soft separation, `blocked`-tile collision
+  6. integrate movement, soft separation, `blocked`-tile collision; the map-edge wall holds enemies' forced
+     moves (§9)
   7. projectiles and area attacks → `applyDamage` (ours hit enemy bodies, `sim/body.ts`, C4: the
      content body swept up the screen as a ground capsule, `segmentHitsBody`, `circleHitsBody`,
      `sectorHitsBody`; candidates from `SpatialHash.queryBox`, which looks the tallest body's reach
@@ -3347,3 +3355,4 @@ states, then RD0's own.
 | 179 | 2026-11-25 | TV home mouse (RD5-fix-3) | The home rows take mouse clicks and hover (§11.1): the TV overlay root is `pointer-events: none` so the canvas below stays untouched, and the rows had no pointer handlers or `pointer-events`, so only keys and pads worked. Rows now opt in with `pointer-events: auto`; hover moves focus, click activates like Enter. Lobby, summary and pause have no TV buttons (leader's phone drives them) | User, RC4: "The 'create room' button and other lobby buttons only work with arrow keys/controller buttons, but not the mouse." |
 | 180 | 2026-11-25 | Larger TV picture (RD5-fix-4) | The TV draws the world at k = tile / 48, fitted by `fitMap` (`render/camera.ts`) so the map is just narrower than the view: `MAP_SIDE_MARGIN` = 1% of the view width each side, centered. At 1920 × 1080: k 1 → 1.089 (W 48 → 52.3 px; map 1728 → 1882 px wide, 691 → 753 deep), origin (96, 216) → (19.2, 223.1); the same fractions hold at 1280 × 720 and 3840 × 2160. The width bound wins at 16:9: the map's bottom (976) stays above the 984 TV-safe line (the height bound would allow k ≈ 1.15). Knights, enemies, builds, effects, bars and aim previews scale with k (all go through the camera); the HUD bands stay where they are, so during a boss wave the boss bar (907–984) overlays the bottom two map rows' middle (x 640–1280, as the next-wave card already overlays them in the build phase); the art gallery keeps the unscaled k = 1 camera (`UNIT_FIT`) for its hand-placed pages | User, before the release PR: "Scale everything up by a few pixels so it's larger! The map should be just BARELY narrower than the available view width." |
 | 181 | 2026-11-25 | Coin income by player count (RD11-fix-1) | The player-count table (§9.4) gains a coin factor that multiplies every kill's coins (§6): 1.8 / 1.0 / 0.95 / 0.85 / 0.8 / 0.7 for 1–6 players, so pay per enemy strictly falls as the team grows; 2 players keep #165's curve. Fixed at each wave start with the rest of the row (a late joiner counts from the next wave start); the fractional pool and whole-coin views are unchanged. Economy runs (seed 1, Normal; seed 2 in brackets), purchases: 1p 8 (10), 2p 9 (8), 3p 8 (8), 4p 8 (8), 5p 9 (9), 6p 9 (9), every size first buying before wave 4, coins before waves 2/3/4 from 3/7/12 (2p) to 4/9/17 (6p) (§6.2) | User, before the release PR: "Coins should scale with player count--it should be higher for fewer players." Income followed the wave budget, so solo bought 7 (first before wave 6) and 6 players ran out of items with 79 coins spare |
+| 182 | 2026-11-25 | Map-edge wall for enemies (RD10-fix-4) | Knockback (shield bash, shockwave, mine burst, any source through an enemy's `push`), soft separation and the Citadel push-out never move an enemy's feet circle past a map edge (edge minus radius); an enemy already outside is only held or brought in, never pushed further out; the knockback axis that meets the wall is spent. Its own walking is never held, so portal spawns enter as before; Flyers included; knights and soldiers unchanged. No margin beyond the radius, no art (§9, §15.3) | User, before the release PR: "Make a 'wall' around the edges of the map (no art, just code-enforced) that enemies can't be pushed back past" |
