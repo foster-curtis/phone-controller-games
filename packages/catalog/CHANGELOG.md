@@ -1,5 +1,11 @@
 # @pcg/catalog
 
+## 0.2.1
+
+### Patch Changes
+
+- 7a618c5: List Thieves' Forum in the catalog (hidden, so the gallery doesn't show it yet)
+
 ## 0.2.0
 
 ### Minor Changes
