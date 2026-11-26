@@ -1,0 +1,43 @@
+/* Tip-off spike TV page (BUILD_PLAN TF4): the test canvas fitted to the window, a side panel with the
+   QR, room code and send log. Colors, fonts and sizes from brand.css only. */
+.spike-stage {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--brand-ink);
+}
+
+.spike-canvas {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.spike-panel {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  width: 300px;
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+  background: var(--surface);
+  color: var(--travertine);
+  border-radius: var(--radius-panel);
+}
+
+.spike-panel p {
+  margin: 0;
+}
+
+.spike-qr .qr {
+  width: 160px;
+  height: 160px;
+}
+
+.spike-log {
+  margin: 0;
+  max-width: 100%;
+  color: var(--muted);
+}

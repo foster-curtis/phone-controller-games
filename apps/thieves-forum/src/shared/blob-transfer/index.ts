@@ -202,7 +202,12 @@ export function createBlobReceiver(opts: BlobReceiverOptions): BlobReceiver {
       if (dead.includes(blobId)) return 'stale';
       if (!current || current.blobId !== blobId || current.n !== chunk.n) {
         if (current && current.blobId !== blobId) remember(dead, current.blobId);
-        current = { blobId, n: chunk.n, parts: new Array<string | undefined>(chunk.n), received: 0 };
+        current = {
+          blobId,
+          n: chunk.n,
+          parts: new Array<string | undefined>(chunk.n),
+          received: 0,
+        };
       }
       const inc = current;
       if (inc.parts[chunk.i] !== undefined) return 'duplicate';

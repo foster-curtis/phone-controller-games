@@ -1,0 +1,108 @@
+/* Tip-off sheet (SPEC §6.17 "Tip-off"): the snapshot fills the landscape screen beside a slim action
+   column; the chosen suspect gets the select outline. Colors, fonts and sizes from brand.css only. */
+.tipoff {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  box-sizing: border-box;
+  background: var(--brand-ink);
+  color: var(--travertine);
+  touch-action: none;
+}
+
+.tipoff-stage {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface-strong);
+}
+
+.tipoff-img,
+.tipoff-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.tipoff-img {
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.tipoff:not([data-loaded]) .tipoff-img {
+  visibility: hidden;
+}
+
+.tipoff-overlay {
+  pointer-events: none;
+}
+
+.tipoff-outline {
+  fill: none;
+  stroke: var(--select);
+  stroke-width: 3;
+  rx: 4;
+}
+
+.tipoff-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--muted);
+}
+
+.tipoff[data-loaded] .tipoff-loading {
+  display: none;
+}
+
+.tipoff-bar {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-3);
+  width: 140px;
+  text-align: center;
+}
+
+.tipoff-bar p {
+  margin: 0;
+}
+
+.tipoff-fee {
+  color: var(--gold);
+}
+
+.tipoff-send,
+.tipoff-cancel {
+  min-height: 48px;
+  padding: var(--space-3);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.tipoff-send {
+  background: var(--accent);
+  color: var(--accent-on);
+  border: 0;
+}
+
+.tipoff-send:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tipoff-cancel {
+  background: transparent;
+  color: var(--travertine);
+  border: 1px solid var(--bronze);
+}

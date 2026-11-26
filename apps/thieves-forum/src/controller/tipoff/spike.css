@@ -1,0 +1,40 @@
+/* Tip-off spike page (BUILD_PLAN TF4): a dev page, kept plain. Colors and fonts from brand.css only. */
+.spike {
+  box-sizing: border-box;
+  height: 100%;
+  padding: var(--space-4);
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: var(--space-3);
+  color: var(--travertine);
+  text-align: center;
+  overflow-y: auto;
+}
+
+.spike h1,
+.spike p {
+  margin: 0;
+}
+
+.spike-shoot {
+  min-height: 48px;
+  padding: var(--space-3) var(--space-8);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-on);
+}
+
+.spike-shoot:disabled {
+  opacity: 0.4;
+}
+
+.spike-stats {
+  color: var(--gold);
+}
+
+.spike-log {
+  margin: 0;
+  color: var(--muted);
+}

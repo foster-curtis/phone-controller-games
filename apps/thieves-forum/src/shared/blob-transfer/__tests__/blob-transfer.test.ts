@@ -178,7 +178,7 @@ describe('sender', () => {
     const tx = createBlobSender({ send: (to, c) => sent.push([to, c]) });
     await tx.add('p2', 7, rand(30_000));
     const n = sent.length;
-    expect(n).toBe(Math.ceil(Math.ceil(30_000 / 3) * 4 / CHUNK_B64_MAX));
+    expect(n).toBe(Math.ceil((Math.ceil(30_000 / 3) * 4) / CHUNK_B64_MAX));
     expect(sent.every(([to]) => to === 'p2')).toBe(true);
     expect(tx.pending()).toEqual([{ to: 'p2', blobId: 7 }]);
 

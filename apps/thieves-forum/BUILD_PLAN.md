@@ -1045,9 +1045,9 @@ Rules:
   - [ ] Phone estimator + catch grace + hot hands + tests
   - [ ] Merged to `thieves-forum` and pushed
 - **TF4**
-  - [ ] Blob transfer (host → phone) + 16 KB envelope test
-  - [ ] Snapshot encoder + tip viewer + tests
-  - [ ] Spike mode + tip-off e2e
+  - [x] Blob transfer (host → phone) + 16 KB envelope test
+  - [x] Snapshot encoder + tip viewer + tests
+  - [x] Spike mode + tip-off e2e
   - [ ] Merged to `thieves-forum` and pushed
 - **TF5**
   - [ ] Shell, router, dev mode
@@ -1181,6 +1181,14 @@ Format: `- [TF#] decision: one line, with the reason.`
 - [TF6] decision: the podium reveals by `step` 0 (4th+ row only), 1 (3rd), 2 (2nd), 3 (1st + banner), and an empty place after a tie (e.g. nobody 2nd) shows a blank block, because SPEC §6.15 gives the order but not the step numbering.
 - [TF6] decision: host keys are Enter / Space / → / gamepad A or Start (Start in lobby when `canStart`, Play again on the podium), H / ? / gamepad Y (How to play from the lobby); the kit shell keeps Enter / → / Space = Next and Esc = Skip, because SPEC §6.16 asks for keyboard and gamepad without hover.
 - [TF6] decision: jsdom UI tests use a `// @vitest-environment jsdom` docblock under `src/host/ui/__tests__/`, because `vitest.config.ts` (not TF6's file) only runs `src/controller/**` in jsdom.
+- [TF4] decision: blob transfer keeps one blob in flight per phone: the host sender replaces an unacked blob when it adds a newer one for the same phone, and the phone receiver treats the first chunk of a new `blobId` as making any unfinished older one stale (later chunks of it read `stale`), because the tip-off only ever needs the latest snapshot and this needs no ordering of ids.
+- [TF4] decision: the spike's blob ids start at `Date.now()` and count up, because a TV reload must never reuse an id a phone already marked done; TF14 can use any never-reused counter.
+- [TF4] decision: the encoder's retry rule (0.45 above 90 KB) and the 960 long edge are defaults in `src/shared/viewer/encode.ts` (game-free), and the host passes `balance.tip.jpegQuality`, because `src/content/` is not TF4's to edit; TF14 may name them in `balance.tip`.
+- [TF4] decision: a tap picks the hit area under it or the nearest within 32 snapshot px (`TAP_SLOP_PX`, about a character width), ties by nearest center; a tap on empty market keeps the current pick, because a near miss shouldn't undo a choice.
+- [TF4] decision: the spike draws a 2D-canvas test scene (paving, ten stall blocks, 30 wandering 54 × 108 boxes), so `canvas.toBlob` reads it directly; the Phaser WebGL path (blank `toBlob` without `preserveDrawingBuffer`) is untested until TF7/TF14, which pass `renderer.snapshot`'s image to `encodeSnapshot` (it takes any canvas or image).
+- [TF4] decision: the tip viewer and spike CSS sit beside their modules (`src/controller/tipoff/*.css`, `src/host/spike/spike.css`), because `src/styles/` is outside TF4's Owns.
+- [TF4] decision: measured on the local relay (e2e): three 960 × 540 snapshots of 33.8–34.0 KB at q0.6, 4 chunks each, 28–93 ms from tap to last chunk, no socket close. The deployed relay is unreachable from the sandbox (egress proxy 403 on relay.fostercurtis.dev), so the deployed-relay numbers are read at C1 from the spike page (phone shows KB, chunks, ms; TV logs encode ms and acks; `?edge=800` for the slow-relay fallback).
+- [TF4] decision: extraction candidates (no game imports, source named in headers): `src/shared/blob-transfer/{index,base64}.ts` (from Say Cheese, generalized to `blobId` and host → phone) and `src/shared/viewer/{hits,encode}.ts` join the `viewer/` candidate for `@pcg/net-client`.
 
 ## 9. Final handoff (and early setup)
 
