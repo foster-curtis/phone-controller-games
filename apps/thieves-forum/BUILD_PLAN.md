@@ -1071,7 +1071,7 @@ Rules:
   - [x] Patrol, cones, LOS, spot, alerts + tests
   - [x] Chase/escape, guard + in-person catches, pot, stocks, immunity + tests
   - [x] Activations, reinforcements, cap + tests
-  - [ ] Merged to `thieves-forum` and pushed
+  - [x] Merged to `thieves-forum` and pushed
 - **TF10**
   - [x] Match state machine + transition tests
   - [x] Ledger (by side) + payout tests
