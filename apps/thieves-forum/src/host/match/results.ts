@@ -24,7 +24,10 @@ export function topEarners(hauls: readonly RoundHaul[]): Side[] {
  * competition ranking: ties share a place and the next place is skipped. `sides` limits the list
  * (players still in the match), in join order for ties; default: every side seen.
  */
-export function matchTotals(results: readonly RoundResult[], sides?: readonly Side[]): MatchTotal[] {
+export function matchTotals(
+  results: readonly RoundResult[],
+  sides?: readonly Side[],
+): MatchTotal[] {
   const sums = new Map<string, { side: Side; total: number; order: number }>();
   const add = (side: Side) => {
     const key = sideKey(side);

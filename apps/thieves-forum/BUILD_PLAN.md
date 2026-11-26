@@ -1073,9 +1073,9 @@ Rules:
   - [ ] Activations, reinforcements, cap + tests
   - [ ] Merged to `thieves-forum` and pushed
 - **TF10**
-  - [ ] Match state machine + transition tests
-  - [ ] Ledger (by side) + payout tests
-  - [ ] Party/leader + open-stall rule + tests
+  - [x] Match state machine + transition tests
+  - [x] Ledger (by side) + payout tests
+  - [x] Party/leader + open-stall rule + tests
   - [ ] Merged to `thieves-forum` and pushed
 - **TF11**
   - [x] Audio engine (bed, one-shots, ducking, scenes) + fake-context tests
@@ -1236,6 +1236,16 @@ Format: `- [TF#] decision: one line, with the reason.`
 - [TF11] decision: sound variation uses `Math.random` by default in `createSfx` (never sim state, so not the seeded RNG); tests inject a seeded `rng`.
 - [TF11] decision: `createSfx()` registers the bed and one-shots as wanted at once; they start on `unlock()`. Wiring left for TF7/TF12: call `installUnlock(document, sfx)` once in `main.ts`, call `sfx.unlock()` from the lobby "Sound on" control, `sfx.scene('play'|'reveal'|'podium')` on phase changes (`sfx.engine.setScene('lobby')` for the lobby), and `sfx.play(cue, {pan})` from `tv` events only.
 - [TF11] extraction candidate: `src/shared/audio/` (engine, fake context in `__tests__/fakeContext.ts`) → `@pcg/game-kit`; no game imports. Fake-context idea and unlock pattern follow `apps/say-cheese/src/shared/audio/synth.ts`.
+- [TF10] contract+: ledger (`sim/ledger/index.ts`) adds `settleCatch(ledger, thief, {by: 'player', catcher} | {by: 'tip', tipper} | {by: 'guard'})` → `Settlement {pot, catcher, tipper, guard}`, `chargeWrongGrab`, `chargeTipFee`, `roundHauls`, and an optional `packCapacity` on `createLedger` (default `balance.match.packCapacity`); SPEC §12.11 row updated. TF8/TF9/TF13/TF14 pay through these so the §6.13 table lives in one place.
+- [TF10] decision: the match API is `createMatch({rng, now, content?, rulesCards?, feedbackUrl?, tuning?})` with `dispatch(MatchEvent): Effect[]` (events: join, color, ready, leader, control, disconnect, reconnect, leave, room, hauls, tick; effects: tv, screen, roundStart, play, handsUp, reveal, transition, podium, lobby, left), because the wiring (TF12) then only maps relay messages in and effects out.
+- [TF10] decision: at the play deadline the match emits `handsUp` and waits for a `hauls` event (the ledger's `roundHauls` plus each player's character id) before the reveal; phones get their hands-up tiles when the hauls arrive, because the ledger lives with the round sim, not the match.
+- [TF10] decision: Start needs ≥ `minPlayers` connected players ready (from game.meta.ts), pressed by the leader phone or the TV controls; un-ready players still play, because SPEC §6.18 gates Start on player count and the brief says "≥ 2 ready".
+- [TF10] decision: rules open on the first Start of the session only (a lobby How to play doesn't count), via game-kit's `openRulesOverview`/`stepRulesOverview` with sources `firstStart`/`lobby`; Play again → Start goes straight to round 1, because SPEC §6.19 follows Sunny Side/Say Cheese.
+- [TF10] decision: the open-stall pick runs at round 1's start (so rules-time joiners count) from `rngStream(matchSeed, 'openStalls')`; round seeds are `rngStream(matchSeed, 'round:<n>')`; the match seed is drawn from the `rng` option at each Start, because SPEC §12.4 says "once per match from the match seed".
+- [TF10] decision: the phone's THIS IS YOU outfit is computed in the match with `assignOutfit` over `rngStream(roundSeed, 'outfits')` in player order, the same draw `sim/world.ts` makes (a test checks equality against `createSim`), and rides on the `roundStart` effect, because the frozen `RoundStart` has no outfits.
+- [TF10] decision: match pacing build values (hands-up 2.5 s, reveal card 3 s, crown 4 s, transition 5 s, podium step 2.5 s, 7 rules cards by default) live in `src/host/match/tuning.ts`, because `balance.ts` isn't TF10's file; move into `balance.match` when its owner next edits it.
+- [TF10] decision: joins after Start (rules excepted) get `waiting` with `joinedRound = round + 1` and join at the next round start; TF16 replaces the in-round case with the walk-on. Podium places use competition ranking (1, 1, 3); reveal ties keep join order and all tied top earners are crowned.
+- [TF10] decision: `src/host/roster.ts` stays as a shim over `party/roster.ts` (`createRoster(cleanName)`), because `host/main.ts` (TF7's this wave) and `host/__tests__/roster.test.ts` import it; TF12 rewires main.ts and deletes the shim and that test (party/__tests__ covers it). `party/` takes the name cleaner as a parameter because the party lint bans game imports.
 
 ## 9. Final handoff (and early setup)
 

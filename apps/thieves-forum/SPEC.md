@@ -866,7 +866,7 @@ ride in `send.data` and are defined in `src/shared/messages.ts` with runtime gua
 | `src/shared/sfx.ts`, `src/shared/audio/types.ts` | `SfxCue`, `Sfx`, `noopSfx`; `AudioMap` |
 | `src/content/types.ts` | items, shops, rarity, balance, layout |
 | `src/host/sim/types.ts`, `snapshot.ts`, `events.ts`, `systems.ts` | `World` and its entities, `PlayerInput`, `SimCommand`, `RoundStart`; `WorldView`, `RevealView`, `DebugView`; `SimEvent`; the step order and `StepContext` |
-| `src/host/sim/<subsystem>/{index,types}.ts` | each subsystem's step and API (`raiseAlert`, the ledger keyed by `Side`, the distraction handler list, `assignOutfit`, …) |
+| `src/host/sim/<subsystem>/{index,types}.ts` | each subsystem's step and API (`raiseAlert`, the ledger keyed by `Side` (additive at TF10: `settleCatch`, `chargeWrongGrab`, `chargeTipFee`, `roundHauls`, optional `createLedger(packCapacity)`), the distraction handler list, `assignOutfit`, …) |
 | `src/host/match/types.ts`, `src/host/ui/types.ts` | `MatchPhase`, `Side`, `MatchState`, `RoundResult`; `TvView`; additive at TF6: `TvControl`, `TvAnchors` |
 | Mode entries (`host/{gallery,spike}/index.ts`, `host/ui/preview.ts`, `controller/dev.ts`, `controller/tipoff/spike.ts`) | `mount(root)` |
 | `src/host/render/types.ts` (TF1) | rig JSON (`RigDef`, parts as SVG `id` groups, viewer-relative names, hidden parts), `Clip` (with `pose`, `groups`, `<clip>@<view>` variants), `sprites.json`, `AssetManifest` / `FrameMeta` (raster `layers` per tint slot), `Camera`, `RigInstance`, `StallInstance`, `EffectSpawner` |

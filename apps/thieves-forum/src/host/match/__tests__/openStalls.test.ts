@@ -33,7 +33,7 @@ describe('open stalls', () => {
         expect(shops).toContain('pawnbroker');
         expect(shops).toContain('jewelry');
         expect(shops.includes('bakery') || shops.includes('pottery')).toBe(true);
-        for (const s of ['bakery', 'pottery']) if (shops.includes(s)) cheap.add(s);
+        for (const s of ['bakery', 'pottery'] as const) if (shops.includes(s)) cheap.add(s);
       }
     }
     expect(cheap).toEqual(new Set(['bakery', 'pottery']));
@@ -42,7 +42,8 @@ describe('open stalls', () => {
   it('is seeded: the same seed gives the same set, different seeds vary', () => {
     expect(pickOpenStalls(42, 3, LAYOUT, balance)).toEqual(pickOpenStalls(42, 3, LAYOUT, balance));
     const sets = new Set<string>();
-    for (let seed = 1; seed <= 50; seed++) sets.add(pickOpenStalls(seed, 3, LAYOUT, balance).join());
+    for (let seed = 1; seed <= 50; seed++)
+      sets.add(pickOpenStalls(seed, 3, LAYOUT, balance).join());
     expect(sets.size).toBeGreaterThan(5);
   });
 

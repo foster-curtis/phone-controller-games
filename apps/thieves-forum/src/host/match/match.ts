@@ -134,7 +134,8 @@ export function createMatch(opts: MatchOptions): Match {
   const now = () => opts.now();
   const find = (id: PlayerId) => st.players.find((p) => p.id === id);
   const active = () => st.players.filter((p) => !p.waiting);
-  const endsIn = () => (st.phaseEndsAt === null ? 0 : Math.max(0, Math.round(st.phaseEndsAt - now())));
+  const endsIn = () =>
+    st.phaseEndsAt === null ? 0 : Math.max(0, Math.round(st.phaseEndsAt - now()));
 
   function syncLeader(): void {
     leaderId = resolveLeader(leaderId, st.players);

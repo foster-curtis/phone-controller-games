@@ -116,8 +116,11 @@ export const chargeWrongGrab = (
 ): number => ledger.debit(side, b.catch.wrongGrabPenalty, 'sink');
 
 /** The tip-off fee (SPEC §6.13), paid on send whether it lands or not. */
-export const chargeTipFee = (ledger: Ledger, side: Side, b: Pick<Balance, 'tip'> = balance): number =>
-  ledger.debit(side, b.tip.fee, 'sink');
+export const chargeTipFee = (
+  ledger: Ledger,
+  side: Side,
+  b: Pick<Balance, 'tip'> = balance,
+): number => ledger.debit(side, b.tip.fee, 'sink');
 
 /** Every side's round result (SPEC §6.14), in the order the sides were opened. */
 export function roundHauls(ledger: Ledger): RoundHaul[] {

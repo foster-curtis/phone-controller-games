@@ -22,7 +22,11 @@ describe('reveal', () => {
 
 describe('match totals', () => {
   it('sums the round hauls, negative ones included', () => {
-    const t = matchTotals([r(1, h('a', 10), h('b', -5)), r(2, h('a', -12), h('b', 20)), r(3, h('a', 7), h('b', 0))]);
+    const t = matchTotals([
+      r(1, h('a', 10), h('b', -5)),
+      r(2, h('a', -12), h('b', 20)),
+      r(3, h('a', 7), h('b', 0)),
+    ]);
     expect(t.map((x) => [x.side.id, x.total, x.place, x.tied])).toEqual([
       ['b', 15, 1, false],
       ['a', 5, 2, false],
@@ -30,7 +34,11 @@ describe('match totals', () => {
   });
 
   it('counts only the rounds a late joiner played', () => {
-    const t = matchTotals([r(1, h('a', 10)), r(2, h('a', 10), h('c', 15)), r(3, h('a', 0), h('c', 4))]);
+    const t = matchTotals([
+      r(1, h('a', 10)),
+      r(2, h('a', 10), h('c', 15)),
+      r(3, h('a', 0), h('c', 4)),
+    ]);
     expect(t.find((x) => x.side.id === 'c')!.total).toBe(19);
     expect(t.find((x) => x.side.id === 'a')!.total).toBe(20);
   });
