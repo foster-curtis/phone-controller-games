@@ -1066,7 +1066,7 @@ Rules:
   - [x] Stock, placement, restock, stall view state + tests
   - [x] Merchant attention, glance, suspicion, dialog, fetch/bring forward + tests
   - [x] Stall theft + merchant catch + tests
-  - [ ] Merged to `thieves-forum` and pushed
+  - [x] Merged to `thieves-forum` and pushed
 - **TF9**
   - [ ] Patrol, cones, LOS, spot, alerts + tests
   - [ ] Chase/escape, guard + in-person catches, pot, stocks, immunity + tests
