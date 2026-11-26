@@ -692,6 +692,13 @@ interface RoundStart {
   `playerId`, `isPlayer` or controller field: checked by a type test and an `Object.keys` allowlist),
   `RevealView` only in `handsUp`, and a debug-only `DebugView` (controllers, hot flags, NPC states) for
   the dev overlay behind `?debug=1`.
+- **Crowd state (TF2, additive):** each mind carries its steering memory as `Npc.nav` (`NpcNav`: leg,
+  waypoints, customer spot, wander angle, slow/glance, pause, still/stuck counters) and `World.crowd`
+  (`CrowdState`) holds the churn bookkeeping, so the whole crowd is in `World` and hashes; both types
+  live in `sim/npc/types.ts`. `npc.createMind(rng, content, open?)` limits the wish list to the open
+  shops. The sim core entry is `createSim(roundStart, content?)` in `sim/world.ts`; the spatial hash and
+  input edges are derived per world (`sim/derived.ts`), not stored in it. TF2 tuning the §7 sheet doesn't
+  give (pauses, detour odds, queue gap, stand-still cap, player stick bands) is in `sim/tuning.ts`.
 - **Disguise invariants** (tests, TF7, TF12, TF21): `WorldView` and every `tv` event are identical in
   shape for a player-controlled character and an NPC; `SfxCue` has no grab or pickpocket cue; player
   characters walk with NPC gait speeds below jog; outfits for players and NPCs come from one `assignOutfit`

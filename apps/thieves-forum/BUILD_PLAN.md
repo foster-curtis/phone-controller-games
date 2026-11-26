@@ -1035,10 +1035,10 @@ Rules:
   - [x] `?gallery=1` + stress view + gallery e2e
   - [x] Merged to `thieves-forum` and pushed
 - **TF2**
-  - [ ] Sim core, nav, LOS + determinism test
-  - [ ] NPC module (five techniques) + churn + tests
-  - [ ] Player movement + shared outfits + tests
-  - [ ] `crowd` and `bench` scripts (bench numbers logged in §8)
+  - [x] Sim core, nav, LOS + determinism test
+  - [x] NPC module (five techniques) + churn + tests
+  - [x] Player movement + shared outfits + tests
+  - [x] `crowd` and `bench` scripts (bench numbers logged in §8)
   - [ ] Merged to `thieves-forum` and pushed
 - **TF3**
   - [x] Latency simulator + host hold machine + tests
@@ -1216,6 +1216,19 @@ Format: `- [TF#] decision: one line, with the reason.`
 - [TF1] decision: composed `*reference*` SVGs are not frames and are skipped by the atlas check (as Fort Frenzy's `review/`); every other SVG must be named by a rig or `sprites.json`.
 - [TF1] decision: the gallery has one page per section (`&page=citizen|merchant|guard|stalls|items|effects|stress`, nav links on top) and reports `window.__pcgGallery` (ready, fallbacks, missing, stress fps); the stress page at 1920 × 1080 in headless Chromium read 61 fps with 46 rigs and 652 images (indicative; TF7 measures the real scene).
 - [TF1] contract+: froze `src/host/render/types.ts` (rig JSON, `Clip`, `sprites.json`, `AssetManifest`/`FrameMeta` with raster `layers`, `Camera`, `RigInstance`, `StallInstance`, `EffectSpawner`) and the `generated/manifest.ts` shape; SPEC §12.2 and §12.11 updated.
+- [TF2] contract+: `Npc.nav?: NpcNav` and `World.crowd?: CrowdState` (types in `sim/npc/types.ts`), optional `open` param on `NpcApi.createMind`, new `NpcLeg`/`NpcNav`/`CrowdState` exports; SPEC §12.3 updated.
+- [TF2] decision: `assignOutfit` lives in `src/host/sim/outfits.ts` (TF2's Owns); `lifecycle/index.ts` still has the TF0 throwing stub because lifecycle isn't TF2's, so TF16 should re-export `assignOutfit` from `../outfits` there, because one function must serve players and NPCs.
+- [TF2] decision: churn runs inside the `npc` step (after the minds, so exits are counted), not in `lifecycle`, because SPEC §12.3 step 3 lists churn under `npc` and lifecycle isn't TF2's; the live count is NPC-controlled characters including those walking on or off.
+- [TF2] decision: the stream-in spawns the planned count evenly over `streamInMs` round-robin over the four entries; after it, a missing NPC is replaced after 0.3–2.5 s (at once below the band), so the count sits in [min, planned], because departures are natural (wish list done) and arrivals refill.
+- [TF2] decision: build tuning numbers (pauses, detour odds, queue gap, 3 customer spots per stall, wait 4 s, stand-still cap 7 s, stick bands) live in `src/host/sim/tuning.ts`, because `src/content/balance.ts` isn't in TF2's Owns; move them into `balance.ts` when its owner next edits it.
+- [TF2] decision: one acceleration (7 tiles/s²) and one speed → gait → pose rule for players and NPCs; player stick: < 0.1 stand, 0.1–0.4 shuffle (0.6 → NPC min walk), 0.4–0.85 walk band = NPC walk range (1.275–1.725 tiles/s), ≥ 0.85 jog (3.2 > NPC max 2.3 brisk), because movement is the disguise (SPEC §6.11).
+- [TF2] decision: players stand still outside `play` (the opening shows them standing; hands up freezes), and the sim's own timers move `opening → play → handsUp`; TF16 owns what follows.
+- [TF2] decision: players' opening spots are random lane points from a `start` stream (a label beyond SPEC §12.3's list), at least 2 tiles apart and from blockers, because the layout has no player start spots.
+- [TF2] decision: the NPC buy at the counter is a hook (`NPC_HOOKS.buy`, no-op) that TF13 sets, and `chaseCoin(ctx, character, at)` is the coin-chase hook, because economy and coins are TF13's.
+- [TF2] decision: stuck handling — walking but not moving for 1.5 s re-paths (or, within 1.2 tiles of the goal or on an aside leg, counts as arrived); anyone still for 7 s ends the standing state, because the crowd script found NPCs boxed in at entries and counters.
+- [TF2] bench: `scripts/bench.ts` (8 players + 24 NPCs, 6000 steps): mean 0.047 ms, p99 0.344 ms per step (sandbox, load average ~1.7 from parallel milestones). `scripts/crowd.ts --seed 1 --players 8 --seconds 270`: live 22–24 (band 22–26), max still 7.72 s, 0 overlaps deeper than 50% of a radius (max 0.43 r), 98 arrivals / 74 exits.
+- [TF2] decision: copied Fort Frenzy's `spatial.ts`, `hash.ts` and geometry helpers into `src/host/sim/{spatial,hash,geometry}.ts` (headers name the source); extraction candidates alongside Fort Frenzy's.
+- [TF2] decision: `WorldView.guards` and `coins` stay empty until TF9/TF13 fill them (their cones and flight need those milestones' values).
 
 ## 9. Final handoff (and early setup)
 
