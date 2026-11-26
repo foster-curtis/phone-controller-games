@@ -253,8 +253,12 @@ describe('tip-off collect (SPEC §6.13)', () => {
       expect(near.mode.k === 'collect' || caught).toBe(true);
     }
     expect(caught).toBe(true);
-    expect(h.ledger.calls).toContainEqual({ op: 'debit', side: 'p1', amount: 25, to: 'guard' });
-    expect(h.ledger.calls).toContainEqual({ op: 'credit', side: 'p2', amount: 6 });
+    expect(h.ledger.calls).toEqual([
+      { op: 'debit', side: 'p1', amount: 6, to: { kind: 'player', id: 'p2' } },
+      { op: 'credit', side: 'p2', amount: 6 },
+      { op: 'debit', side: 'p1', amount: 19, to: 'guard' },
+    ]);
+    expect(h.ledger.account({ kind: 'player', id: 'p2' })!.purse).toBe(106);
     expect(far.mode.k).toBe('patrol');
   });
 });

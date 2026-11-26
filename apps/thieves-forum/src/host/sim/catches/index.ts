@@ -9,6 +9,7 @@ import { inputEdges } from '../derived';
 import { angleDiff, dist } from '../geometry';
 import { GUARD_TUNING } from '../guards/tuning';
 import { holds } from '../holds';
+import { chargeWrongGrab, settleCatch, type CatchBy, type Settlement } from '../ledger';
 import type { Side } from '../ledger/types';
 import type { StepContext } from '../systems';
 import type { Character, EntityId, Hold, PlayerId, World } from '../types';
@@ -111,12 +112,11 @@ function returnLoot(ctx: StepContext, thief: Character): void {
   if (p !== null) ctx.emit({ ch: 'phone', player: p, e: 'bagChanged' });
 }
 
-/** Takes the pot (25% of the bag, rounded down) from the thief; returns what was taken. */
-function takePot(ctx: StepContext, thief: Character, to: Side | 'guard'): number {
+/** Takes and pays out the pot through TF10's `settleCatch` (the §6.13 payout table in one place). */
+function settle(ctx: StepContext, thief: Character, how: CatchBy): Settlement {
   const ledger = ledgerOf(ctx.world);
-  if (!ledger || !thief.side) return 0;
-  const pot = ledger.pot(thief.side, ctx.content.balance.catch.potShare);
-  return pot > 0 ? ledger.debit(thief.side, pot, to) : 0;
+  if (!ledger || !thief.side) return { pot: 0, catcher: 0, tipper: 0, guard: 0 };
+  return settleCatch(ledger, thief.side, how, ctx.content.balance);
 }
 
 function freeStocksSlot(world: World): number {
@@ -157,9 +157,9 @@ function inPerson(ctx: StepContext, catcherId: EntityId): void {
     // A thief in the stocks or just out of them can't be caught again: the grab does nothing.
     if (!catchable(ctx, target.id)) return;
     returnLoot(ctx, target);
-    const ledger = ledgerOf(w);
-    const taken = catcher.side ? takePot(ctx, target, catcher.side) : 0;
-    if (ledger && catcher.side && taken > 0) ledger.credit(catcher.side, taken);
+    const taken = catcher.side
+      ? settle(ctx, target, { by: 'player', catcher: catcher.side }).pot
+      : 0;
     caughtBeat(ctx, target);
     ctx.emit({ ch: 'tv', e: 'grabAttempt', by: catcher.id, at: target.id, right: true });
     ctx.emit({ ch: 'tv', e: 'caught', thief: target.id, to: catcher.id, coins: taken });
@@ -176,8 +176,7 @@ function inPerson(ctx: StepContext, catcherId: EntityId): void {
   }
   // Wrong (not mid-steal, or an NPC): the grabber pays the penalty; the TV shows the grab either way.
   const ledger = ledgerOf(w);
-  const paid =
-    ledger && catcher.side ? ledger.debit(catcher.side, b.catch.wrongGrabPenalty, 'sink') : 0;
+  const paid = ledger && catcher.side ? chargeWrongGrab(ledger, catcher.side, b) : 0;
   ctx.emit({ ch: 'tv', e: 'grabAttempt', by: catcher.id, at: target.id, right: false });
   if (catcherPlayer !== null) {
     ctx.emit({ ch: 'phone', player: catcherPlayer, e: 'wrongGrab', penalty: paid });
@@ -198,13 +197,17 @@ function byGuard(
   // Guards never grab NPCs (SPEC §6.12).
   if (!guard || !thief || thief.side === null || !catchable(ctx, thiefId)) return;
   returnLoot(ctx, thief);
-  const taken = takePot(ctx, thief, 'guard');
+  const tip = kind === 'guardTip' && tipper !== undefined;
+  const paid = settle(
+    ctx,
+    thief,
+    tip ? { by: 'tip', tipper: sideOfPlayer(w, tipper) } : { by: 'guard' },
+  );
+  const taken = paid.pot;
   // The tipper's cut (¼ of the pot) is paid on their phone only (SPEC §6.13).
-  if (kind === 'guardTip' && tipper !== undefined) {
-    const cut = Math.floor(taken * ctx.content.balance.tip.share);
-    const ledger = ledgerOf(w);
-    if (ledger && cut > 0) {
-      ledger.credit(sideOfPlayer(w, tipper), cut);
+  if (tip) {
+    const cut = paid.tipper;
+    if (cut > 0) {
       ctx.emit({ ch: 'phone', player: tipper, e: 'tipPayout', amount: cut });
       ctx.emit({ ch: 'phone', player: tipper, e: 'bagChanged' });
     }

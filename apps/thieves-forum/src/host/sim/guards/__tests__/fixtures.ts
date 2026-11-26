@@ -40,6 +40,8 @@ export function fakeLedger(purse = 100): FakeLedger {
       const taken = Math.min(a.purse, amount);
       a.purse -= taken;
       calls.push({ op: 'debit', side: s.id, amount: taken, to });
+      // As TF10's ledger: a Side payee is credited by the debit itself.
+      if (typeof to === 'object') this.credit(to, taken);
       return taken;
     },
     addItem(s, e: PackEntry) {
