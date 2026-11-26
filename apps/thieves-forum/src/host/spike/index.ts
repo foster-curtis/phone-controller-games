@@ -10,7 +10,7 @@ import { balance } from '../../content/balance';
 import { createBlobSender } from '../../shared/blob-transfer';
 import { GAME_ID, isPhoneMsg, MAX_PLAYERS, type HostMsg } from '../../shared/messages';
 import { encodeSnapshot, SNAPSHOT_LONG_EDGE } from '../../shared/viewer/encode';
-import { qrSvg } from '../lobby';
+import { qrSvg } from '../ui/dom';
 import { createSpikeScene } from './scene';
 import './spike.css';
 
@@ -137,7 +137,7 @@ export function mount(root: HTMLElement): void {
   client.onRoom((room) => {
     code.textContent = room.code;
     const url = `${location.origin}/play?spike=tipoff&code=${encodeURIComponent(room.code)}`;
-    qr.replaceChildren(qrSvg(url));
+    qr.replaceChildren(qrSvg(url, 'Join QR code'));
   });
 
   let last = performance.now();
