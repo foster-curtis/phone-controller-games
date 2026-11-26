@@ -1078,8 +1078,8 @@ Rules:
   - [ ] Party/leader + open-stall rule + tests
   - [ ] Merged to `thieves-forum` and pushed
 - **TF11**
-  - [ ] Audio engine (bed, one-shots, ducking, scenes) + fake-context tests
-  - [ ] Forum AudioMap + `Sfx` + synth fallbacks
+  - [x] Audio engine (bed, one-shots, ducking, scenes) + fake-context tests
+  - [x] Forum AudioMap + `Sfx` + synth fallbacks
   - [ ] Merged to `thieves-forum` and pushed
 - **TF12**
   - [ ] Handler registry, private routing, stall view, hold events
@@ -1229,6 +1229,13 @@ Format: `- [TF#] decision: one line, with the reason.`
 - [TF2] bench: `scripts/bench.ts` (8 players + 24 NPCs, 6000 steps): mean 0.047 ms, p99 0.344 ms per step (sandbox, load average ~1.7 from parallel milestones). `scripts/crowd.ts --seed 1 --players 8 --seconds 270`: live 22–24 (band 22–26), max still 7.72 s, 0 overlaps deeper than 50% of a radius (max 0.43 r), 98 arrivals / 74 exits.
 - [TF2] decision: copied Fort Frenzy's `spatial.ts`, `hash.ts` and geometry helpers into `src/host/sim/{spatial,hash,geometry}.ts` (headers name the source); extraction candidates alongside Fort Frenzy's.
 - [TF2] decision: `WorldView.guards` and `coins` stay empty until TF9/TF13 fill them (their cones and flight need those milestones' values).
+- [TF11] decision: files are found with `import.meta.glob('/audio/forum/**/*.mp3')` in `src/host/audio/map.ts`, so an absent file is `src: null` (synthesized, no request, no 404 console error, no build failure) and TF19 only has to commit files, because a literal `new URL(...)` of a missing file would fail the build.
+- [TF11] decision: synth recipes live in `src/host/audio/synth.ts` and are passed to the engine as a `SynthSet`; the shared engine knows no cue names and falls back to a generic blip for any entry without a recipe, because cue names are game-specific.
+- [TF11] decision: `duck(ms, db)`: `ms` is the whole duck (attack + hold + release); map defaults −8 dB, 1000 ms (100 down, 700 hold, 200 up). Ducking cues are `thiefShout`, `guardWhistle`, `stocksClank` (THIEF!, whistle, catches, §6.20); a scene change ends any duck in progress.
+- [TF11] decision: the engine scene set is `lobby|play|reveal|podium|silent`; `silentAmbienceIn` = `silent`, `reveal`, `podium`, so the lobby has ambience. `Sfx.scene('silent')` maps straight through.
+- [TF11] decision: sound variation uses `Math.random` by default in `createSfx` (never sim state, so not the seeded RNG); tests inject a seeded `rng`.
+- [TF11] decision: `createSfx()` registers the bed and one-shots as wanted at once; they start on `unlock()`. Wiring left for TF7/TF12: call `installUnlock(document, sfx)` once in `main.ts`, call `sfx.unlock()` from the lobby "Sound on" control, `sfx.scene('play'|'reveal'|'podium')` on phase changes (`sfx.engine.setScene('lobby')` for the lobby), and `sfx.play(cue, {pan})` from `tv` events only.
+- [TF11] extraction candidate: `src/shared/audio/` (engine, fake context in `__tests__/fakeContext.ts`) → `@pcg/game-kit`; no game imports. Fake-context idea and unlock pattern follow `apps/say-cheese/src/shared/audio/synth.ts`.
 
 ## 9. Final handoff (and early setup)
 
