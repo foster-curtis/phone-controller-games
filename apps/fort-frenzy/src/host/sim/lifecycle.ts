@@ -73,8 +73,12 @@ function coinsFor(s: FullState, e: EnemyEnt, paid: Set<number>): number {
   if (groupLeft || paid.has(e.group)) return 0;
   paid.add(e.group);
   // Kept fractional (RD11): a coin rate under 1 would round a Grunt's pay to 0. The views show whole
-  // coins (net/views.ts), and a purchase needs the whole price.
-  return s.cat.enemy(e.kind).budget * s.cat.rules.coinRate * s.cat.difficulty.coinIncome;
+  // coins (net/views.ts), and a purchase needs the whole price. The player-count table's coin factor
+  // (RD11-fix-1) comes from the row this wave started with, like its budget (§9.4, §11.3).
+  const row = s.cat.playerCount(Math.max(1, s.world.team.scaling.players));
+  return (
+    s.cat.enemy(e.kind).budget * s.cat.rules.coinRate * s.cat.difficulty.coinIncome * row.coins
+  );
 }
 
 export function stepDeaths(s: FullState): void {

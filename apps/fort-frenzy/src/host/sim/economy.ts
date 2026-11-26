@@ -24,6 +24,15 @@ export const ECONOMY_PLAN: readonly ShopItemId[] = [
   'base_armor',
 ];
 
+/** The team per player count the economy runs use (RD11-fix-1: 1, 2, 3, 4 and 6 players). */
+export const ECONOMY_TEAMS: Readonly<Record<number, readonly ClassId[]>> = {
+  1: ['warden'],
+  2: ['ranger', 'artificer'],
+  3: ['warden', 'ranger', 'artificer'],
+  4: ['warden', 'ranger', 'artificer', 'commander'],
+  6: ['ranger', 'warden', 'artificer', 'commander', 'ranger', 'warden'],
+};
+
 export interface EconomyWave {
   /** The build phase before this wave. */
   wave: number;

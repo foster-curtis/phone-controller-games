@@ -508,6 +508,7 @@ hits; feet circles still walk, collide and take enemy attacks.
 | Players | 1 | 2 | 3 | 4 | 5 | 6 |
 |---|---|---|---|---|---|---|
 | Respawn time | 6 s | 10 s | 10 s | 10 s | 15 s | 15 s |
+| Coin factor (RD11-fix-1) | 1.8 | 1.0 | 0.95 | 0.85 | 0.8 | 0.7 |
 
   multiplied by the difficulty's respawn multiplier (§2.2). Quick Recovery (§6.1) subtracts 2 s per
   stack but never takes the respawn below **4 s solo, 5 s otherwise**; that floor never raises a
@@ -534,7 +535,8 @@ hits; feet circles still walk, collide and take enemy attacks.
 - **Team coins are the only currency.** Kills add coins to the **shared team pool**. Players never
   carry anything.
 - **Coin income is low on purpose:** coins per kill = the enemy's budget cost (§9.1) × the coin rate in
-  the balance sheet, times the difficulty's coin multiplier (§2.2). A Swarm group pays when its last
+  the balance sheet, times the difficulty's coin multiplier (§2.2), times the player-count table's coin
+  factor (§9.4: higher for fewer players, 2 players = 1). A Swarm group pays when its last
   unit dies. Starting values are set with the shop prices (§6.2, §14): a coin rate of 0.25 and no
   starting coins (RD11). The pool keeps the fraction (a Grunt pays a quarter coin); phones and the TV
   show whole coins, and a purchase needs the whole price (§15.11 #165).
@@ -727,8 +729,11 @@ growth, so every coin purchase is a team choice.
   armor 14 / 22 / 30 (+0.1 damage reduction each). Press-and-hold from 20 coins. Measured with the
   economy run (an autopilot team that repairs below 75% base HP and otherwise saves for a fixed want
   list; `sim/economy.ts`, seed 1, Normal): 2 players have 3 coins before wave 2 and 7 before wave 3,
-  buy their first item before wave 4 and 9 items in the run; solo buys 7 (first before wave 6), 4
-  players 9 plus a 46-coin surplus. Coin income scales with the player-count table like the waves.
+  buy their first item before wave 4 and 9 items in the run. Every team size earns about as much
+  (RD11-fix-1, §15.11 #181): the player-count table's coin factor (§9.4) pays more a kill to smaller
+  teams, so with seed 1 solo buys 8, 3 players 8, 4 players 8, 5 players 9 and 6 players 9 (seed 2:
+  10/8/8/8/9/9 for 1/2/3/4/5/6), every size first before wave 4, with 3–4 coins before wave 2 and 7–9
+  before wave 3.
 - The shop is thin in v1 on purpose; more items are a v2 addition (§13).
 
 **Purchasing rules**
@@ -1038,7 +1043,8 @@ balance sheet.
 | Hunter | 200 | 1.3 (sprint faster) | 15/hit | 3 | Hunts players |
 
 - **Coins per kill** follow the budget cost times the coin rate (§6). A Swarm group pays when its last
-  unit dies. Difficulty applies a coin-income multiplier (§2.2).
+  unit dies. Difficulty applies a coin-income multiplier (§2.2), and the player-count table a coin
+  factor (§9.4).
 - Enemy HP bars and the per-wave enemy multiplier apply to every type.
 - v1 has no elite variants (§13).
 
@@ -1164,6 +1170,10 @@ walker mech with a glowing core in its chest (§2.1); its art is in §9.6.
   fronts and a death leaves only the sentries defending. Scaling the number of enemies, not their HP,
   keeps each enemy type feeling the same. Difficulty multipliers (§2.2) apply on top, and the wave's
   own enemy multiplier after both.
+  The **coin factor** multiplies every kill's coins (§6) so a smaller team, with fewer enemies to kill,
+  can still afford about as much as 2 players, and a larger one doesn't run out of things to buy. It
+  is set from economy runs (§6.2), not from the budget row, and like the rest of the row it is fixed
+  at the wave start: a late joiner changes it from the next wave (§11.2, §11.3, §15.11 #181).
 
 ### 9.5 Debug panel (developer only)
 
@@ -2513,7 +2523,8 @@ export interface DifficultyDef { id: DifficultyId; budget: number; enemyHp: numb
   enemyDamage: number; baseHp: number; coinIncome: number; respawn: number }
 
 /** One row per player count 1–6 (§9.4): replaces ScalingDef. */
-export interface PlayerCountRow { players: number; budget: number; bossHp: number; respawnMs: number }
+export interface PlayerCountRow { players: number; budget: number; bossHp: number; respawnMs: number;
+  coins: number }                                   // coin factor, 2 players = 1 (RD11-fix-1)
 
 export interface MapDef {
   id: string; cols: number; rows: number; tiles: string[];          // ASCII rows
@@ -3335,3 +3346,4 @@ states, then RD0's own.
 | 178 | 2026-11-25 | Resumed run keeps its leader (RD14) | After a TV reload every restored slot starts away, so the first phone back used to take the lead and keep it. Now the party remembers the saved leader's slot: whoever comes back first may lead until that slot's phone matches (key, device ID or a claim), then the lead goes back to it, once; after that the usual handoff rule applies (no snap-back). New run (the lobby) forgets it | §11.5 saves the party leader; a resume shouldn't hand the TV's menus to whichever phone reconnects fastest (the resume e2e lost Ann's lead to Bob's phone) |
 | 179 | 2026-11-25 | TV home mouse (RD5-fix-3) | The home rows take mouse clicks and hover (§11.1): the TV overlay root is `pointer-events: none` so the canvas below stays untouched, and the rows had no pointer handlers or `pointer-events`, so only keys and pads worked. Rows now opt in with `pointer-events: auto`; hover moves focus, click activates like Enter. Lobby, summary and pause have no TV buttons (leader's phone drives them) | User, RC4: "The 'create room' button and other lobby buttons only work with arrow keys/controller buttons, but not the mouse." |
 | 180 | 2026-11-25 | Larger TV picture (RD5-fix-4) | The TV draws the world at k = tile / 48, fitted by `fitMap` (`render/camera.ts`) so the map is just narrower than the view: `MAP_SIDE_MARGIN` = 1% of the view width each side, centered. At 1920 × 1080: k 1 → 1.089 (W 48 → 52.3 px; map 1728 → 1882 px wide, 691 → 753 deep), origin (96, 216) → (19.2, 223.1); the same fractions hold at 1280 × 720 and 3840 × 2160. The width bound wins at 16:9: the map's bottom (976) stays above the 984 TV-safe line (the height bound would allow k ≈ 1.15). Knights, enemies, builds, effects, bars and aim previews scale with k (all go through the camera); the HUD bands stay where they are, so during a boss wave the boss bar (907–984) overlays the bottom two map rows' middle (x 640–1280, as the next-wave card already overlays them in the build phase); the art gallery keeps the unscaled k = 1 camera (`UNIT_FIT`) for its hand-placed pages | User, before the release PR: "Scale everything up by a few pixels so it's larger! The map should be just BARELY narrower than the available view width." |
+| 181 | 2026-11-25 | Coin income by player count (RD11-fix-1) | The player-count table (§9.4) gains a coin factor that multiplies every kill's coins (§6): 1.8 / 1.0 / 0.95 / 0.85 / 0.8 / 0.7 for 1–6 players, so pay per enemy strictly falls as the team grows; 2 players keep #165's curve. Fixed at each wave start with the rest of the row (a late joiner counts from the next wave start); the fractional pool and whole-coin views are unchanged. Economy runs (seed 1, Normal; seed 2 in brackets), purchases: 1p 8 (10), 2p 9 (8), 3p 8 (8), 4p 8 (8), 5p 9 (9), 6p 9 (9), every size first buying before wave 4, coins before waves 2/3/4 from 3/7/12 (2p) to 4/9/17 (6p) (§6.2) | User, before the release PR: "Coins should scale with player count--it should be higher for fewer players." Income followed the wave budget, so solo bought 7 (first before wave 6) and 6 players ran out of items with 79 coins spare |

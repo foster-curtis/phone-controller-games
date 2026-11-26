@@ -127,12 +127,12 @@ export const difficulties: DifficultyDef[] = [
 
 /** The player-count table (§9.4): one row per player count, fixed at each wave start. */
 export const scaling: PlayerCountRow[] = [
-  { players: 1, budget: 0.6, bossHp: 0.6, respawnMs: 6000 },
-  { players: 2, budget: 1, bossHp: 1, respawnMs: 10_000 },
-  { players: 3, budget: 1.25, bossHp: 1.25, respawnMs: 10_000 },
-  { players: 4, budget: 1.5, bossHp: 1.5, respawnMs: 10_000 },
-  { players: 5, budget: 1.75, bossHp: 1.75, respawnMs: 15_000 },
-  { players: 6, budget: 2, bossHp: 2, respawnMs: 15_000 },
+  { players: 1, budget: 0.6, bossHp: 0.6, respawnMs: 6000, coins: 1.8 },
+  { players: 2, budget: 1, bossHp: 1, respawnMs: 10_000, coins: 1 },
+  { players: 3, budget: 1.25, bossHp: 1.25, respawnMs: 10_000, coins: 0.95 },
+  { players: 4, budget: 1.5, bossHp: 1.5, respawnMs: 10_000, coins: 0.85 },
+  { players: 5, budget: 1.75, bossHp: 1.75, respawnMs: 15_000, coins: 0.8 },
+  { players: 6, budget: 2, bossHp: 2, respawnMs: 15_000, coins: 0.7 },
 ];
 
 // ==== Classes ====================================================================================

@@ -364,6 +364,8 @@ export interface PlayerCountRow {
   budget: number;
   bossHp: number;
   respawnMs: number;
+  /** Coin income multiplier, 2 players = 1 (§6.2; RD11-fix-1): fewer players earn more a kill. */
+  coins: number;
 }
 
 export interface MapDef {
