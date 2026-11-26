@@ -8,6 +8,7 @@ import type { HoldKind, HoldResult } from '../../shared/hold';
 import type { SimEvent } from './events';
 import type { HoldMachineState } from './holds/types';
 import type { Side } from './ledger/types';
+import type { CrowdState, NpcNav } from './npc/types';
 
 export type { SimEvent } from './events';
 export type { Outfit, StallId, Vec2 } from '../../content/types';
@@ -134,6 +135,8 @@ export interface Npc {
   alertUntil: Tick;
   /** Glance wind-up / look against a pickpocket (SPEC §6.8). */
   glance: Glance | null;
+  /** Steering and navigation memory (TF2 contract+; set by `npc.createMind`). */
+  nav?: NpcNav;
 }
 
 /** A head-turn glance with a wind-up (SPEC §6.6, §6.8). */
@@ -317,6 +320,8 @@ export interface World {
   pawn: { rate: number; rerollAt: Tick };
   /** NPCs the crowd aims for this round (SPEC §6.10). */
   plannedNpcs: number;
+  /** Crowd churn bookkeeping (TF2 contract+; set by `createWorld`). */
+  crowd?: CrowdState;
   /** Cleared at the start of each step; views, audio and phones read them. */
   events: SimEvent[];
   /** The hold machine's arms and hold-id counter (TF3); absent until the first arm. */
