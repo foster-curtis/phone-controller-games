@@ -38,3 +38,18 @@ export type TvView =
   | { phase: 'transition'; round: number; rounds: number }
   | { phase: 'podium'; rows: TvPodiumRow[]; feedbackUrl: string; step: number };
 export type TvScreen = TvView['phase'];
+
+// ---- additive at TF6 (BUILD_PLAN §8 "contract+"): host controls and reveal anchors ----------------
+
+/**
+ * What the TV's own controls (keyboard, gamepad) ask the match for (SPEC §6.16 "drivable from the
+ * leader's phone, keyboard or gamepad"). The leader phone's start / how-to-play / next / skip /
+ * play-again map to the same five.
+ */
+export type TvControl = 'start' | 'rules' | 'playAgain' | 'next' | 'skip';
+
+/**
+ * Screen position (1920 x 1080 logical px, SPEC §12.2) just above a character's head, from the
+ * scene, keyed by `RevealEntry.character`. Reveal cards stand on these (SPEC §6.14).
+ */
+export type TvAnchors = Readonly<Record<number, { x: number; y: number }>>;

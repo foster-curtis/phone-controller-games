@@ -1,5 +1,7 @@
-/* TV layout (SPEC §6.16): the Phaser canvas fills the window (Scale.FIT), the lobby sits over it as
-   DOM. Colors, fonts and sizes come from brand.css only. */
+/* TV layout (SPEC §6.14–§6.16, §6.18, §6.19): the Phaser canvas fills the window (Scale.FIT), the DOM UI
+   sits over it in a 1920 x 1080 frame scaled to fit (tvUi.ts sets --tv-scale/-x/-y), so the scene's
+   screen coordinates for reveal cards map 1:1. Colors, fonts and sizes come from brand.css only; no hex
+   literals here. No hover states: the TV is driven by keys, gamepad and the leader's phone. */
 html,
 body {
   height: 100%;
@@ -12,17 +14,99 @@ body {
   z-index: 0;
 }
 
-.lobby {
+.tv-ui {
   position: fixed;
   inset: 0;
   z-index: 1;
+  overflow: hidden;
+  color: var(--travertine);
+  pointer-events: none;
+}
+
+/* The forum backdrop (title, lobby, How to play, podium) covers the canvas; play and the reveal show it. */
+.tv-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+.tv-ui[data-phase='lobby'] .tv-bg,
+.tv-ui[data-phase='rules'] .tv-bg,
+.tv-ui[data-phase='podium'] .tv-bg {
+  display: block;
+}
+
+.tv-frame {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  transform-origin: 0 0;
+  transform: translate(var(--tv-x, 0px), var(--tv-y, 0px)) scale(var(--tv-scale, 1));
+}
+
+.tv-frame > section {
+  position: absolute;
+  inset: 0;
   box-sizing: border-box;
-  padding: var(--space-12);
+}
+
+/* player colors for chips, swatches and card edges: `data-color` on the element */
+[data-color='crimson'] {
+  --pc: var(--player-crimson);
+  --pc-on: var(--player-crimson-on);
+}
+[data-color='cobalt'] {
+  --pc: var(--player-cobalt);
+  --pc-on: var(--player-cobalt-on);
+}
+[data-color='jade'] {
+  --pc: var(--player-jade);
+  --pc-on: var(--player-jade-on);
+}
+[data-color='berry'] {
+  --pc: var(--player-berry);
+  --pc-on: var(--player-berry-on);
+}
+[data-color='bone'] {
+  --pc: var(--player-bone);
+  --pc-on: var(--player-bone-on);
+}
+[data-color='sky'] {
+  --pc: var(--player-sky);
+  --pc-on: var(--player-sky-on);
+}
+[data-color='rose'] {
+  --pc: var(--player-rose);
+  --pc-on: var(--player-rose-on);
+}
+[data-color='forest'] {
+  --pc: var(--player-forest);
+  --pc-on: var(--player-forest-on);
+}
+
+.qr-bg {
+  fill: var(--brand-paper);
+}
+.qr-fg {
+  fill: var(--brand-ink);
+}
+.qr {
+  display: block;
+  border-radius: var(--radius);
+}
+
+/* ---- title / lobby (SPEC §6.16, §6.18) ---- */
+.lobby {
+  padding: var(--space-tv-safe);
   display: grid;
   grid-template-columns: 1.2fr 1fr 1fr;
   gap: var(--space-8);
   align-items: center;
-  color: var(--travertine);
 }
 
 .lobby-brand {
@@ -30,13 +114,12 @@ body {
 }
 
 .lobby-mark {
-  width: min(22vh, 240px);
+  width: 240px;
   height: auto;
 }
 
 .lobby .title {
   margin: var(--space-4) 0 var(--space-2);
-  font-size: clamp(40px, 6vw, 96px);
   color: var(--travertine);
 }
 
@@ -60,20 +143,24 @@ body {
 }
 
 .lobby-qr .qr {
-  width: min(30vh, 280px);
-  height: auto;
-  border-radius: var(--radius);
+  width: 280px;
+  height: 280px;
+  margin: 0 auto;
 }
 
 .lobby-code {
   margin-top: var(--space-4);
   color: var(--accent-text);
-  font-size: clamp(32px, 4vw, 64px);
 }
 
 .lobby-players .h2 {
-  margin: 0 0 var(--space-4);
+  margin: 0 0 var(--space-2);
   color: var(--travertine);
+}
+
+.lobby-leader {
+  margin: 0 0 var(--space-4);
+  color: var(--muted);
 }
 
 .lobby-list {
@@ -82,16 +169,430 @@ body {
   padding: 0;
   display: grid;
   gap: var(--space-2);
+  text-align: left;
 }
 
-.lobby-list li {
+.lobby-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
   background: var(--surface-strong);
   border-radius: var(--radius-card);
   padding: var(--space-3) var(--space-4);
 }
 
+.lobby-row .name-tv {
+  flex: 1;
+}
+
+.lobby-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-pill);
+  background: var(--pc, var(--presence-off));
+  border: 2px solid var(--travertine);
+}
+
+.lobby-ready {
+  color: var(--success);
+  border: 1.5px solid var(--success);
+  border-radius: var(--radius-pill);
+  padding: 2px var(--space-3);
+}
+
+.lobby-ready[hidden],
+.lobby-empty[hidden],
+.lobby-leader[hidden] {
+  display: none;
+}
+
 .lobby-empty {
   color: var(--muted);
+}
+
+.lobby-start {
+  margin: var(--space-4) 0 0;
+  color: var(--muted);
+}
+
+.lobby[data-can-start='true'] .lobby-start {
+  color: var(--accent-text);
+}
+
+/* ---- in-round HUD (SPEC §6.16): timer ring + round pill top center, room code bottom right ---- */
+.hud-top {
+  position: absolute;
+  left: 50%;
+  top: var(--space-6);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--scrim);
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-6) var(--space-2) var(--space-2);
+}
+
+.hud-ring {
+  width: 56px;
+  height: 56px;
+  transform: rotate(-90deg);
+}
+
+.hud-ring circle {
+  fill: none;
+  stroke-width: 7;
+}
+
+.hud-ring-track {
+  stroke: var(--border);
+}
+
+.hud-ring-arc {
+  stroke: var(--bronze);
+  stroke-linecap: round;
+}
+
+.hud-time {
+  font-size: 28px;
+  color: var(--travertine);
+}
+
+.hud-pill {
+  color: var(--travertine);
+  letter-spacing: 2px;
+}
+
+.hud-code {
+  position: absolute;
+  right: var(--space-6);
+  bottom: var(--space-6);
+  background: var(--scrim);
+  border-radius: var(--radius-card);
+  padding: var(--space-2) var(--space-4);
+  color: var(--accent-text);
+}
+
+.hud-code[hidden] {
+  display: none;
+}
+
+/* ---- round start, hands up, transition ---- */
+.banner-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+}
+
+.banner-screen .hud-pill {
+  background: var(--scrim);
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-6);
+  margin: 0;
+}
+
+.banner-screen .banner {
+  margin: 0;
+  color: var(--accent-text);
+  font-size: 120px;
+  text-shadow: 0 4px 0 var(--brand-ink);
+}
+
+.banner-screen.is-handsUp {
+  justify-content: flex-start;
+  padding-top: calc(var(--space-tv-safe) + var(--space-4));
+}
+
+.banner-screen.is-transition {
+  background: var(--scrim);
+}
+
+.banner-screen.is-transition .banner {
+  display: none;
+}
+
+/* ---- reveal cards (SPEC §6.14) ---- */
+.reveal .hud-pill {
+  position: absolute;
+  left: 50%;
+  top: var(--space-6);
+  transform: translateX(-50%);
+  margin: 0;
+  background: var(--scrim);
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-6);
+  color: var(--travertine);
+  letter-spacing: 2px;
+}
+
+.reveal-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.reveal-card {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  width: 240px;
+  box-sizing: border-box;
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--surface);
+  border: 3px solid var(--pc, var(--border));
+  border-radius: var(--radius-card);
+  color: var(--travertine);
+}
+
+.reveal-card[hidden] {
+  display: none;
+}
+
+.reveal-name {
+  margin: 0;
+  background: var(--pc, var(--surface-strong));
+  color: var(--pc-on, var(--travertine));
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-3);
+  text-align: center;
+}
+
+.reveal-bag {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.reveal-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.reveal-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  background: var(--surface-strong);
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-2);
+}
+
+.reveal-icon {
+  width: 40px;
+  height: 40px;
+}
+
+/* the amber coin-edge strip: this round's haul only */
+.reveal-haul,
+.podium-total {
+  background: var(--accent);
+  color: var(--accent-on);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-4);
+  text-align: center;
+  font-size: 28px;
+}
+
+.podium-total.is-gold {
+  background: var(--gold);
+  font-size: 36px;
+}
+
+.reveal-tag {
+  display: none;
+  background: var(--accent);
+  color: var(--accent-on);
+  border-radius: var(--radius-pill);
+  padding: var(--space-1) var(--space-3);
+}
+
+.reveal-card[data-state='tag'] {
+  width: auto;
+  padding: var(--space-1);
+  gap: 0;
+  border-width: 2px;
+}
+
+.reveal-card[data-state='tag'] > :not(.reveal-tag) {
+  display: none;
+}
+
+.reveal-card[data-state='tag'] .reveal-tag {
+  display: block;
+}
+
+/* ---- podium (SPEC §6.15) ---- */
+.podium {
+  padding: var(--space-tv-safe);
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  grid-template-rows: auto 1fr auto;
+  column-gap: var(--space-8);
+  align-items: end;
+}
+
+.podium-banner {
+  grid-column: 1 / -1;
+  margin: 0;
+  text-align: center;
+  color: var(--accent-text);
+}
+
+.podium-banner[hidden] {
+  display: none;
+}
+
+.podium-art {
+  position: relative;
+  align-self: end;
+  width: 100%;
+  aspect-ratio: 362 / 112;
+  margin-top: 220px;
+}
+
+.podium-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.podium-slot {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  width: 33.15%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* standing on each block's top face: left II, middle I, right III (art/forum/ui/podium.svg) */
+.podium-slot[data-place='2'] {
+  left: 0.3%;
+  bottom: calc(100% - 31.3%);
+}
+.podium-slot[data-place='1'] {
+  left: 33.5%;
+  bottom: calc(100% - 0.9%);
+}
+.podium-slot[data-place='3'] {
+  left: 66.7%;
+  bottom: calc(100% - 50.9%);
+}
+
+.podium-q {
+  font: 900 64px/1 var(--font-display);
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.podium-who {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.podium-name {
+  background: var(--pc, var(--surface-strong));
+  color: var(--pc-on, var(--travertine));
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-3);
+}
+
+.podium-rest {
+  grid-column: 1;
+  list-style: none;
+  margin: var(--space-6) 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-6);
+}
+
+.podium-rest .podium-total {
+  font-size: 22px;
+}
+
+.podium-feedback {
+  grid-column: 2;
+  grid-row: 2 / 4;
+  align-self: end;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  padding: var(--space-4);
+}
+
+.podium-feedback .label {
+  margin: 0 0 var(--space-3);
+  color: var(--muted);
+}
+
+.podium-feedback .qr {
+  width: 100%;
+  height: auto;
+}
+
+/* ---- How to play (kit shell, SPEC §6.19): game styling through --pcg-rules-* ---- */
+.tv-rules {
+  --pcg-rules-bg: var(--scrim);
+  --pcg-rules-fg: var(--travertine);
+  --pcg-rules-muted: var(--muted);
+  --pcg-rules-accent: var(--accent);
+  --pcg-rules-title-font: var(--font-display);
+  --pcg-rules-title-size: 56px;
+  --pcg-rules-body-font: var(--font-sans);
+  --pcg-rules-body-size: 32px;
+  --pcg-rules-note-size: 22px;
+  --pcg-rules-hint-size: 20px;
+  --pcg-rules-gap: var(--space-4);
+  --pcg-rules-pad: var(--space-tv-safe);
+  --pcg-rules-radius: var(--radius-card);
+  --pcg-rules-slot-aspect: 16 / 7;
+  --pcg-rules-slot-max-height: 380px;
+  --pcg-rules-dot-size: 16px;
+  --pcg-rules-dot: var(--travertine);
+  --pcg-rules-dot-on: var(--accent);
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+}
+
+.tv-rules .pcg-rules__title {
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--travertine);
+}
+
+.tv-rules .pcg-rules__buttons button {
+  font: 900 24px/1 var(--font-display);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--accent-on);
+}
+
+.tv-rules .pcg-rules__buttons button[data-action='skip'] {
+  color: var(--travertine);
+  border-color: var(--bronze);
+}
+
+.tv-rules-art {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .pcg-fullscreen-btn {

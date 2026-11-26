@@ -1054,7 +1054,7 @@ Rules:
   - [ ] Every §6.17 screen + jsdom tests + dev e2e
   - [ ] Merged to `thieves-forum` and pushed
 - **TF6**
-  - [ ] Title, lobby, HUD, hands-up, reveal card, podium, rules host + tests
+  - [x] Title, lobby, HUD, hands-up, reveal card, podium, rules host + tests
   - [ ] Merged to `thieves-forum` and pushed
 - **TF7**
   - [ ] Host loop, input, world scene, HUD, debug hooks, timeScale
@@ -1172,6 +1172,15 @@ Format: `- [TF#] decision: one line, with the reason.`
 - [TF0] decision: created `src/controller/tipoff/spike.ts` (not in the TF0 Owns list) as the stub the controller mode routing dispatches to, because the deliverable names it; TF4 owns it from here.
 - [TF0] decision: `.changeset/*.md` added for the minor note (repo root, required by the brief).
 - [TF0] decision: Full gate run in the sandbox: `pnpm check:affected` passed; `pnpm e2e:affected` passed every chromium test (thieves-forum, gallery, and all other apps' chromium projects) but 17 Firefox/WebKit `compat` tests in sunny-side, fort-frenzy and say-cheese fail to launch (`/opt/pw-browsers` has no firefox or webkit, and installs are not allowed), so the "Full gate green" tick waits for CI or a machine with those browsers; TF0 touched none of those apps.
+- [TF6] contract+: `src/host/ui/types.ts` gains `TvControl` ('start' | 'rules' | 'playAgain' | 'next' | 'skip', what keyboard, gamepad and the leader phone ask of the match) and `TvAnchors` (reveal card positions in 1920 x 1080 px, keyed by `RevealEntry.character`); SPEC §12.11 row updated.
+- [TF6] decision: the DOM UI lives in a 1920 x 1080 frame scaled to fit the window (`createTvUi`), because the scene's reveal anchors are then plain canvas pixels and the brand's fixed px type sizes stay correct.
+- [TF6] decision: no separate title phase; `?ui=title` is the `lobby` view with no players (title, room code card and QR are the lobby screen's left and middle columns), because `TvView` has no title phase and the contract is frozen.
+- [TF6] decision: `src/host/lobby.ts` stays as a two-line re-export of `ui/lobby.ts` (the moved scaffold, now a thin adapter over `createTvUi`), because `host/main.ts` is not TF6's file; TF7 / TF12 rewire main.ts to `createTvUi` with real `TvView`s and delete the shim.
+- [TF6] decision: the HUD ring's full length is the first `timeLeftMs` seen in a round, and the reveal's "ROUND n / 3" uses `balance.match.rounds`, because `TvView` carries no round length and `reveal` carries no round count.
+- [TF6] decision: How to play cards come from `createTvUi`'s `rulesCards` option; `src/host/ui/rules/placeholder.ts` is a DEV-ONLY seven-card fallback (coin mark art, outline text) until TF15's `src/content/rules.ts` exists, because the cards are TF15's.
+- [TF6] decision: the podium reveals by `step` 0 (4th+ row only), 1 (3rd), 2 (2nd), 3 (1st + banner), and an empty place after a tie (e.g. nobody 2nd) shows a blank block, because SPEC §6.15 gives the order but not the step numbering.
+- [TF6] decision: host keys are Enter / Space / → / gamepad A or Start (Start in lobby when `canStart`, Play again on the podium), H / ? / gamepad Y (How to play from the lobby); the kit shell keeps Enter / → / Space = Next and Esc = Skip, because SPEC §6.16 asks for keyboard and gamepad without hover.
+- [TF6] decision: jsdom UI tests use a `// @vitest-environment jsdom` docblock under `src/host/ui/__tests__/`, because `vitest.config.ts` (not TF6's file) only runs `src/controller/**` in jsdom.
 
 ## 9. Final handoff (and early setup)
 
