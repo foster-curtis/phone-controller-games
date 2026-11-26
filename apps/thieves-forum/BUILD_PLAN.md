@@ -1041,8 +1041,8 @@ Rules:
   - [ ] `crowd` and `bench` scripts (bench numbers logged in §8)
   - [ ] Merged to `thieves-forum` and pushed
 - **TF3**
-  - [ ] Latency simulator + host hold machine + tests
-  - [ ] Phone estimator + catch grace + hot hands + tests
+  - [x] Latency simulator + host hold machine + tests
+  - [x] Phone estimator + catch grace + hot hands + tests
   - [ ] Merged to `thieves-forum` and pushed
 - **TF4**
   - [x] Blob transfer (host → phone) + 16 KB envelope test
@@ -1196,6 +1196,15 @@ Format: `- [TF#] decision: one line, with the reason.`
 - [TF5] decision: the phone toasts "Tip missed −N" and "Tip-off expired" from `tipResult` itself; the host sends only gain toasts (grab, pickpocket, tip payout, Lucky!) and loss toasts that have no other message, because `tipResult` already carries the fee.
 - [TF5] decision: a hold bar shows only while the phone presses or the host's hold runs, reads at most 99% until `holdEnd complete` (then 100% for 500 ms), and stays hidden after the host ends a hold under a still-held thumb, because SPEC §3 makes the host the judge.
 - [TF5] decision: Sell and Pawnbroker sheets get a local Close (no wire message; the host's next sheet reopens them), and the in-person CAUGHT! banner shows over the controller for 3.5 s, because the frozen protocol has no close-sheet message and the spec bans full-screen flashes.
+- [TF3] contract+: `World.holdMachine?: HoldMachineState` (arms + hold-id counter, `sim/types.ts`) and the TF3 hold machine API in `sim/holds/types.ts` (`armGrab`, `armPickpocket`, `caught`, `isHot`, `ARM_WAIT_MS`, `HoldArm`, `HoldMachineState`); SPEC §12.3 updated.
+- [TF3] decision: the holds step reads no commands; TF8 calls `armGrab` with the tile's `grabMs` on a `grab` command and TF14 calls `armPickpocket` when the bit rises behind someone, because each owns the validation (stall view, behind-someone test) and the hold machine only times.
+- [TF3] decision: hold ids come from their own counter, not `World.nextId`, because consuming entity ids on steals would put steal-correlated gaps in character ids.
+- [TF3] decision: `ARM_WAIT_MS` (500 ms) is a constant beside the machine, not a balance value, because `src/content/` is outside TF3's Owns and it is a protocol timeout, not tuning.
+- [TF3] decision: "move or turn" cancels on any non-zero stick in the step's input (facing follows the stick; separation pushes don't cancel); a grab has no geometric reach check beyond that, because walking away needs the stick.
+- [TF3] decision: a hold completes iff the host-observed bit is still set at `endTick`, with an input arriving exactly on a step boundary seen the next step, so the latency tests prove "complete iff the release reaches the host at or after start + grab time", to the ms.
+- [TF3] decision: grace and hot hands are inclusive (`midStealAt` in ms: true at 300 ms, false at 301 ms; `isHot` through `hotUntil`), because §6.13 says "300 ms grace" and "hot for 5 s".
+- [TF3] decision: the phone estimator caps at 95% until `complete`, freezes on release while a host hold is live (holdEnd decides), goes idle at once on release with no host hold, ignores events for older hold ids, and takes an optional `durationMs` on `press` (the tile's `grabMs`), because the frozen `press(now)` has no duration.
+- [TF3] decision: the latency link is in order (WebSocket/TCP) and drops only repeated 30 Hz samples, never bit changes or discrete events, because TCP never loses or reorders but a phone can skip a sample.
 
 ## 9. Final handoff (and early setup)
 

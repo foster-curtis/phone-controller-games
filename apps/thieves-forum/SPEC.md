@@ -672,8 +672,15 @@ interface RoundStart {
   the target behind the actor). Either completes at `endTick` if the bit is still set, and cancels when
   the bit clears, the actor moves or turns away, the target leaves reach, or (back shelf) the merchant
   returns. The host sends `holdStart` and `holdEnd` (§12.5); the phone's bar is an estimate.
+  The machine API (`sim/holds/types.ts`, frozen at TF3) adds `armGrab` / `armPickpocket` (an arm waits
+  `ARM_WAIT_MS` = 500 ms for the bit, then disarms), `caught` (the merchant, NPC and in-person catch
+  hook) and `isHot`; arms and the hold-id counter live in `World.holdMachine`. An input that arrives
+  exactly on a step boundary is seen the next step, so a hold completes iff the host receives the release
+  at or after `endTick` (every grab and pickpocket time is a whole number of 60 Hz steps).
 - **Hot hands, grace, immunity** are per-character tick stamps: `hotUntil` (start of any steal +
-  `catch.hotMs`), `holdEndedAt` (for the in-person grace), `immuneUntil` (stocks release + immunity).
+  `catch.hotMs`), `holdEndedAt` (for the in-person grace), `immuneUntil` (stocks release + immunity). Both
+  windows are inclusive: mid-steal through 300 ms after the hold ends (false at 301 ms), hot through
+  5 s after the start.
 - **`SimEvent`s are tagged** `ch: 'tv'` or `ch: 'phone'` (`sim/events.ts`, append-only). The scene, the
   audio and the TV HUD consume **only `tv` events**, which carry entity ids and never a player id. `phone`
   events carry the `PlayerId` they're for and are routed privately by `host/net` (TF12). There is **no
