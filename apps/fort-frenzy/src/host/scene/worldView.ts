@@ -822,7 +822,7 @@ export class WorldView {
       en.sy = at.sy;
       en.wx = at.x;
       en.wy = at.y;
-      const fly = (en.info.fly ?? 0) * TILE_W;
+      const fly = (en.info.fly ?? 0) * TILE_W * this.w.camera.scale;
       en.rig.setPosition(at.sx, at.sy - fly, at.sy);
       const moving = Math.hypot(e.vx, e.vy) > 0.05;
       en.mirror = enemyMirror(moving ? e.vx : Math.cos(e.facing), en.mirror);

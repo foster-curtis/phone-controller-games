@@ -284,7 +284,7 @@ nothing is drawn as a flat front view with no top.
   projectiles sort by their shadow. Groups draw back-to-front.
 
 **Grid and scale:** a tile is W wide and 0.6 W deep on screen. On the 1920 × 1080 logical canvas,
-W = 48 px (48 × 28.8). Characters are about 1.6 W tall (about 77 px). Art is authored with a tile of
+the TV fits the map to the view width (§15.2), so W ≈ 52.3 px (k ≈ 1.089; 48 px is the art's reference scale at k = 1). Characters are about 1.6 W tall (about 77 px). Art is authored with a tile of
 80 × 48 sprite units.
 
 **Implementation:** the sim stays in square tile coordinates with circular hitboxes. Only the renderer
@@ -1765,7 +1765,7 @@ apps/fort-frenzy/
   hitbox overlay (§9.5) draws each enemy's capsule as a 0.6 stadium over its feet circle, and the
   gallery's too.
 - **Canvas:** 1920 × 1080 logical, `Scale.FIT`.
-- **Screen layout** (W = 48 px tile width, depth 28.8 px per §2.5):
+- **Screen layout** (the HUD bands are in canvas px; the map is drawn at W ≈ 52.3 px, depth 31.4 px, k ≈ 1.089, §2.5):
 
 Everything sits inside the brand's 96 px TV-safe margin (`--space-tv-safe`) on all four sides.
 
@@ -1774,7 +1774,7 @@ Everything sits inside the brand's 96 px TV-safe margin (`--space-tv-safe`) on a
 | Top margin | 0–96 | nothing (TV-safe) |
 | Top HUD | 96–136 | wave and phase (left), base HP bar centered directly above the Citadel, team coins (right); "Citadel under attack" under the bar at low HP |
 | Headroom | 136–216 | the Citadel's keep, core and smoke plumes rise into it (§3.6) |
-| Playfield | 216–907 | 36 × 24 sim tiles, x 96–1824; during the build phase, ready status and the wishlist overlay its right side |
+| Playfield | 223–976 | 36 × 24 sim tiles, x 19–1901 (the map is 98% of the view width, `MAP_SIDE_MARGIN`; the Citadel's headroom grows with it); during the build phase, ready status and the wishlist overlay its right side |
 | Bottom HUD | 907–984 | boss bar (boss waves); purchase announcements stack bottom-left. The build phase's next-wave card is 156 px tall (828–984, x 600–1760, clear of the announcements): it ends on the bottom edge and overlays the playfield's last rows so enemy icons (120 × 88, shrinking to 56 wide with tighter spacing when a wave has many types, so none is cut) read from the couch (C1); the text block is only as wide as its text and the icons follow it (RC2) |
 | Bottom margin | 984–1080 | nothing (TV-safe) |
 
@@ -1796,7 +1796,9 @@ interface Camera {
   readonly scale: number;
   update(dtMs: number, focus: readonly { x: number; y: number }[]): void; // no-op in v1
 }
-// v1 FixedCamera: sx = 96 + x·W, sy = 216 + y·W·0.6 − z·W
+// v1 FixedCamera: sx = originX + x·W·k, sy = originY + (y·0.6 − z)·W·k, with k and the origin from
+// fitMap(): the map is as wide as the view less a 1% side margin each side, centered, its top at
+// 136 + 80·k (below the top HUD plus the scaled Citadel headroom), k ≈ 1.089 at 1920 × 1080.
 ```
 
 - **Layers** (v2), bottom to top:
@@ -3332,3 +3334,4 @@ states, then RD0's own.
 | 177 | 2026-11-25 | Resume, soak and bench (RD14) | The snapshot shape needed nothing new (v stays 3): RD3–RD11's builds, meters, mines, flags, squads with Veterans gains, growth counts, cards and the fractional coin pool were already saved, and a real autopilot run of every knight now round-trips (same snapshot back, two restores hash the same). The soak adds each knight solo (4 mixes) and, for each solo knight, a run saved and resumed at wave 8's build phase; the bench's 24 builds are real (each knight's own, 4 apiece) and it times a solo run too; the stress overlay counts builds. The autopilot skips enemies outside the field beyond its main attack's reach (§15.9) | A solo Commander soak stalled forever on a Siege that set up below the map's edge (it stops for any target in range while still walking in), out of a melee knight's reach; the tooling must not hang on it. Whether a Siege may set up outside the field is gameplay, left for RC4 |
 | 178 | 2026-11-25 | Resumed run keeps its leader (RD14) | After a TV reload every restored slot starts away, so the first phone back used to take the lead and keep it. Now the party remembers the saved leader's slot: whoever comes back first may lead until that slot's phone matches (key, device ID or a claim), then the lead goes back to it, once; after that the usual handoff rule applies (no snap-back). New run (the lobby) forgets it | §11.5 saves the party leader; a resume shouldn't hand the TV's menus to whichever phone reconnects fastest (the resume e2e lost Ann's lead to Bob's phone) |
 | 179 | 2026-11-25 | TV home mouse (RD5-fix-3) | The home rows take mouse clicks and hover (§11.1): the TV overlay root is `pointer-events: none` so the canvas below stays untouched, and the rows had no pointer handlers or `pointer-events`, so only keys and pads worked. Rows now opt in with `pointer-events: auto`; hover moves focus, click activates like Enter. Lobby, summary and pause have no TV buttons (leader's phone drives them) | User, RC4: "The 'create room' button and other lobby buttons only work with arrow keys/controller buttons, but not the mouse." |
+| 180 | 2026-11-25 | Larger TV picture (RD5-fix-4) | The TV draws the world at k = tile / 48, fitted by `fitMap` (`render/camera.ts`) so the map is just narrower than the view: `MAP_SIDE_MARGIN` = 1% of the view width each side, centered. At 1920 × 1080: k 1 → 1.089 (W 48 → 52.3 px; map 1728 → 1882 px wide, 691 → 753 deep), origin (96, 216) → (19.2, 223.1); the same fractions hold at 1280 × 720 and 3840 × 2160. The width bound wins at 16:9: the map's bottom (976) stays above the 984 TV-safe line (the height bound would allow k ≈ 1.15). Knights, enemies, builds, effects, bars and aim previews scale with k (all go through the camera); the HUD bands stay where they are, so during a boss wave the boss bar (907–984) overlays the bottom two map rows' middle (x 640–1280, as the next-wave card already overlays them in the build phase); the art gallery keeps the unscaled k = 1 camera (`UNIT_FIT`) for its hand-placed pages | User, before the release PR: "Scale everything up by a few pixels so it's larger! The map should be just BARELY narrower than the available view width." |

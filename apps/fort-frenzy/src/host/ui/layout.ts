@@ -22,7 +22,7 @@ const box = (x0: number, y0: number, x1: number, y1: number): Box => ({
 /** The TV-safe rectangle. */
 export const SAFE_BOX: Box = box(SAFE, SAFE, CANVAS.w - SAFE, CANVAS.h - SAFE);
 
-/** Playfield: 36 × 24 sim tiles of 48 px wide and 28.8 px deep (SPEC §2.5, §15.2). */
+/** HUD slot geometry from the v1 playfield (36 × 24 tiles of 48 × 28.8 px). The drawn map is larger since RD5-fix-4 (render/camera.ts `fitMap`: x 19–1901, y 223–976); the HUD stays on these slots. */
 const TILE_W = 48;
 const TILE_D = 28.8;
 const PLAY_Y0 = 216;

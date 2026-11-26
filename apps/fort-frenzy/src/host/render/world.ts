@@ -15,7 +15,7 @@ import { rigPartCount } from './rigMath';
 import { LAYER_IDS, type LayerId, type RigOptions } from './types';
 
 export class RenderWorld implements RenderContext {
-  readonly camera = new FixedCamera();
+  readonly camera: FixedCamera;
   readonly layers: Record<LayerId, Phaser.GameObjects.Layer>;
   readonly lib: ArtLibrary;
   readonly unitPx: number;
@@ -30,8 +30,9 @@ export class RenderWorld implements RenderContext {
     readonly theme: PresentationHost,
     assets: ArtSetAssets,
     scale: 1 | 2,
-    opts: { bloom?: boolean } = {},
+    opts: { bloom?: boolean; camera?: FixedCamera } = {},
   ) {
+    this.camera = opts.camera ?? new FixedCamera();
     this.unitPx = UNIT_PX * this.camera.scale;
     this.layers = Object.fromEntries(
       LAYER_IDS.map((id) => [id, scene.add.layer().setName(id)]),

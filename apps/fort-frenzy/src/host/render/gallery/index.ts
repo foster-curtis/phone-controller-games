@@ -10,7 +10,7 @@ import { theme } from '../../../shared/theme';
 import { presentationHost } from '../../../presentation/host';
 import { ART_SET, type ArtSetAssets } from '../../../presentation/types';
 import { pickAtlasScale, preloadAtlases } from '../atlas';
-import { CANVAS_H, CANVAS_W } from '../camera';
+import { CANVAS_H, CANVAS_W, FixedCamera, UNIT_FIT } from '../camera';
 import { RenderWorld } from '../world';
 import { PAGE_BUILDERS, type PageKit, type Unit } from './pages';
 import { CLIP_NAMES, PAGES, readState, writeState, type GalleryState } from './state';
@@ -65,7 +65,10 @@ class GalleryScene extends Phaser.Scene {
     this.ticks = [];
     this.hitboxes = [];
     this.t = 0;
-    this.world = new RenderWorld(this, presentationHost, assets, scale, { bloom: true });
+    this.world = new RenderWorld(this, presentationHost, assets, scale, {
+      bloom: true,
+      camera: new FixedCamera(UNIT_FIT),
+    });
     if (stress) {
       const s = runStress(this.world);
       this.ticks.push(s.tick);
