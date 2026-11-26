@@ -89,7 +89,7 @@ function setup() {
     fake.peer('joined', id);
     hello(id);
     intent(id, { k: 'name', name });
-    intent(id, { k: 'class', classId: 'engineer' });
+    intent(id, { k: 'class', classId: 'ranger' });
   };
   /** Wall time: `ms` in 50 ms ticks (the clock moves with it, so phone input stays fresh). */
   const run = (ms: number) => {
@@ -130,7 +130,7 @@ function toCombat() {
 }
 
 const tuple = (over: Partial<Record<number, number>> = {}): InputTuple => {
-  const t: InputTuple = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1];
+  const t: InputTuple = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
   for (const [i, v] of Object.entries(over)) t[Number(i)] = v!;
   return t;
 };
@@ -240,18 +240,18 @@ describe('team pause: input while paused (FF14-fix-1)', () => {
     env.run(500);
     env.intent('b', { k: 'pause', paused: true });
     // A tap released while paused: the counter goes up on the phone.
-    env.fake.message('a', tuple({ 7: 1 }));
+    env.fake.message('a', tuple({ 9: 1 }));
     env.run(200);
     env.intent('a', { k: 'pause', paused: false });
     const shots = rt.stats.shots;
     for (let i = 0; i < 20; i++) {
-      env.fake.message('a', tuple({ 7: 1 }));
+      env.fake.message('a', tuple({ 9: 1 }));
       env.run(50);
     }
     expect(rt.stats.shots).toBe(shots);
     // The next real press fires.
     for (let i = 0; i < 40; i++) {
-      env.fake.message('a', tuple({ 7: 2 }));
+      env.fake.message('a', tuple({ 9: 2 }));
       env.run(50);
     }
     expect(rt.stats.shots).toBeGreaterThan(shots);
@@ -260,28 +260,25 @@ describe('team pause: input while paused (FF14-fix-1)', () => {
   it('sim-bound intents while paused ack `phase` and queue nothing', () => {
     const env = toBuild();
     env.intent('a', { k: 'pause', paused: true });
-    const n1 = env.intent('a', { k: 'build', action: 'select', structure: 'arrow_tower' });
-    const n2 = env.intent('b', { k: 'give' });
     const n3 = env.intent('b', { k: 'ready', ready: true });
-    for (const n of [n1, n2, n3]) expect(env.ackOf(n)?.reason).toBe('phase');
+    expect(env.ackOf(n3)?.reason).toBe('phase');
     env.intent('a', { k: 'pause', paused: false });
     env.run(200);
     expect(playerOf(env.rt, 'b').ready).toBe(false);
-    expect(playerOf(env.rt, 'a').ghost).toBeNull();
   });
 
   it('PhoneInputSource swallows the counters between hold and release', () => {
     let t = 0;
     const src = new PhoneInputSource(() => t);
-    src.push(tuple({ 7: 3, 9: 1 }));
+    src.push(tuple({ 9: 3, 11: 1 }));
     src.hold();
-    src.push(tuple({ 7: 5, 9: 2 }));
+    src.push(tuple({ 9: 5, 11: 2 }));
     src.release();
     let s = src.sample(0);
-    expect([s.mainFires, s.actionTaps]).toEqual([3, 1]);
-    src.push(tuple({ 7: 6, 9: 2 }));
+    expect([s.mainFires, s.buildFires]).toEqual([3, 1]);
+    src.push(tuple({ 9: 6, 11: 2 }));
     s = src.sample(0);
-    expect([s.mainFires, s.actionTaps]).toEqual([4, 1]);
+    expect([s.mainFires, s.buildFires]).toEqual([4, 1]);
     // Stale samples keep the shifted counters too.
     t += 1000;
     expect(src.sample(0).mainFires).toBe(4);

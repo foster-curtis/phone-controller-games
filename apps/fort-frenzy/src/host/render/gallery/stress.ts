@@ -1,12 +1,12 @@
 // Stress mode (`?gallery=1&stress=1`): SPEC §15.2 peak load (6 knights, 30 footmen, 150 enemies,
-// 100 projectiles, 60 structures) on the full map, animated along seeded paths, with the overlay of
+// 100 projectiles) on the full map, animated along seeded paths, with the overlay of
 // frame, render and bloom time (render/stressOverlay.ts). The real sim at peak is the in-game stress
 // mode, `?debug=1&stress=1` (host/stress.ts).
 import { StressOverlay } from '../stressOverlay';
 import { pickFacing, type Facing } from '../aim';
-import { Citadel, Mortar, PulseTurret, WallField } from '../structures';
+import { Citadel } from '../structures';
 import { MapView, tileHash } from '../map';
-import type { ProjectileKind, ProjectileSprite, TowerTier } from '../types';
+import type { ProjectileKind, ProjectileSprite } from '../types';
 import type { RenderWorld } from '../world';
 import type { Unit } from './pages';
 import { RIG_INFO } from './rigInfo';
@@ -84,35 +84,8 @@ export function runStress(world: RenderWorld): {
   ];
   let n = 200;
   for (const [rig, count] of mix) for (let i = 0; i < count; i++) spawn(rig, n++, true);
-  // 60 structures: 30 pulse turrets, 10 mortars, 20 walls.
-  const turrets: PulseTurret[] = [];
-  for (let i = 0; i < 30; i++) {
-    const t = new PulseTurret(world, 2.5 + (i % 10) * 3.3, 4.5 + Math.floor(i / 10) * 6);
-    t.setTier((i % 4) as TowerTier);
-    turrets.push(t);
-  }
-  const mortars: Mortar[] = [];
-  for (let i = 0; i < 10; i++) {
-    const m = new Mortar(world, world.rig('mortar'), 4 + i * 3, 21.5);
-    m.setTier((i % 4) as TowerTier);
-    mortars.push(m);
-  }
-  new WallField(world).set(
-    Array.from({ length: 20 }, (_, i) => ({
-      c: 8 + (i % 10),
-      r: 14 + Math.floor(i / 10),
-      charged: i % 3 === 0,
-    })),
-  );
   // 100 projectiles.
-  const kinds: ProjectileKind[] = [
-    'bolt',
-    'nanite-bolt',
-    'mortar-shell',
-    'bombard-shell',
-    'boulder',
-    'wasp-shot',
-  ];
+  const kinds: ProjectileKind[] = ['bolt', 'nanite-bolt', 'bombard-shell', 'boulder', 'wasp-shot'];
   const shots: { p: ProjectileSprite; i: number; arc: boolean }[] = Array.from(
     { length: 100 },
     (_, i) => {
@@ -142,8 +115,6 @@ export function runStress(world: RenderWorld): {
         m.unit.aim = Math.atan2(dy, dx);
       }
     }
-    turrets.forEach((tu, i) => tu.aimAt(s * 0.7 + i));
-    mortars.forEach((mo, i) => mo.aimScreen(Math.sin(s + i), -1));
     for (const sh of shots) {
       const u = (s * 0.5 + rnd(sh.i, 11)) % 1;
       const x0 = 2 + rnd(sh.i, 12) * 30;

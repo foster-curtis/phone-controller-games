@@ -10,7 +10,10 @@ export interface CardLike {
   /** A class id, or a shared owner such as `'common'`. */
   owner: string;
   unique?: boolean;
-  /** Combo prerequisites: offered only once both are owned. Combos are unique. */
+  /**
+   * Prerequisites: offered only once all are owned. Two ids make a combo, which is unique; one id
+   * improves a passive card and stacks like any other card unless marked unique (§6.1).
+   */
   requires?: readonly string[];
   /** Offered only if this enemy can spawn for the team. */
   favoredEnemy?: string;
@@ -30,9 +33,9 @@ export interface EligibilityCtx {
 /** §6.1 "the card picker excludes" rules. */
 export function cardEligible(card: CardLike, ctx: EligibilityCtx): boolean {
   if (!ctx.owners.includes(card.owner)) return false;
-  const isCombo = card.requires !== undefined && card.requires.length > 0;
-  if ((card.unique || isCombo) && ctx.owned(card.id) > 0) return false;
-  if (isCombo && !card.requires!.every((id) => ctx.owned(id) > 0)) return false;
+  const requires = card.requires ?? [];
+  if ((card.unique || requires.length >= 2) && ctx.owned(card.id) > 0) return false;
+  if (!requires.every((id) => ctx.owned(id) > 0)) return false;
   if (card.favoredEnemy !== undefined && !ctx.canSpawn(card.favoredEnemy)) return false;
   if (card.requiresClass !== undefined && !ctx.teamHas(card.requiresClass)) return false;
   return true;

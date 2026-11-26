@@ -1,18 +1,24 @@
-// `path` AI (SPEC §9 Grunt, §15.5): follow the flow field to the base and attack whatever blocks it
-// (a tower or wall on the next tile) or the base itself; aggro-leash enemies leave the path for a
-// targetable player in the aggro radius, chase up to the leash, then walk back (§9, §11.3).
+// `path` AI (SPEC §9 Grunt, §15.5): follow the ground field to the base and attack it; aggro-leash
+// enemies leave the path for a targetable player, Commander's soldier or HP build (§7.3, RD3,
+// RD10-fix-1: exactly like a knight, the nearest wins, a knight on a tie) in the aggro radius, chase
+// up to the leash, then go on toward the base from where they stand, not back to where they left
+// the path (§9, §11.3; RC2 note). A knight carrying `taunt` (Challenger, RD11) in the aggro radius
+// wins over anything nearer, and pulls an enemy already chasing someone else.
 // Melee swings wind up, root the enemy, and land if the target is still in reach.
 import type { EnemyDef } from '../../../content/types';
-import { dist, rectDist, rectNearest, tileRect } from '../geometry';
+import { buildTargetable } from '../builds/core';
+import { dist, rectDist, rectNearest } from '../geometry';
 import { state, type SimState } from '../internal';
 import { steerTile } from '../../systems/flowfield';
 import {
   BASE_ID,
+  type BuildEnt,
   type EnemyEnt,
   type FlowField,
   type PlayerEnt,
   type SimCtx,
-  type StructureEnt,
+  type SoldierEnt,
+  type Unit,
 } from '../types';
 
 /** A knockback faster than this (tiles/s) overrides walking. */
@@ -44,46 +50,122 @@ export function pathAi(ctx: SimCtx, e: EnemyEnt): void {
   if (def.aggro) leash(s, e, def.aggro);
 
   if (e.ai === 'aggro') {
-    const p = s.units.get(e.target!) as PlayerEnt;
+    const p = s.units.get(e.target!)!;
     const reach = dist(e.x, e.y, p.x, p.y) - e.r - p.r;
     if (reach <= def.attack.range) swing(s, e, def, p.id, p.x, p.y);
     else walkTo(e, p.x, p.y, e.stats.moveSpeed);
     return;
   }
-  if (e.ai === 'return') {
-    walkTo(e, e.leashFrom!.x, e.leashFrom!.y, e.stats.moveSpeed);
-    return;
-  }
   followPath(s, e, def);
 }
 
-/** Aggro and leash transitions. */
-export function leash(s: SimState, e: EnemyEnt, a: { radius: number; leash: number }) {
-  if (e.ai === 'aggro') {
-    const p = e.target === null ? undefined : (s.units.get(e.target) as PlayerEnt | undefined);
-    const ok = p !== undefined && s.kinds.get(p.id) === 'player' && s.targetable(p);
-    const from = e.leashFrom!;
-    if (!ok || dist(e.x, e.y, from.x, from.y) > a.leash) {
-      e.ai = 'return';
-      e.target = null;
-    }
-    return;
-  }
-  if (e.ai === 'return') {
-    const from = e.leashFrom!;
-    if (dist(e.x, e.y, from.x, from.y) <= 0.5) {
-      e.ai = 'path';
-      e.leashFrom = null;
-    }
-    return;
-  }
+/** A Commander's soldier enemies may target: alive and on the ground (§8.4: not in the air). */
+export function soldierTargetable(u: SoldierEnt): boolean {
+  return u.hp > 0 && !u.flight;
+}
+
+/**
+ * A unit an aggro-leash enemy may chase: a targetable knight, soldier or HP build (§7.3, §8.4),
+ * else null.
+ */
+export function aggroTarget(s: SimState, id: number | null): Unit | null {
+  if (id === null) return null;
+  const u = s.units.get(id);
+  if (!u) return null;
+  const kind = s.kinds.get(id);
+  if (kind === 'player') return s.targetable(u as PlayerEnt) ? u : null;
+  if (kind === 'soldier') return soldierTargetable(u as SoldierEnt) ? u : null;
+  if (kind === 'build') return buildTargetable(u as BuildEnt) ? u : null;
+  return null;
+}
+
+/** Carries Challenger's `taunt` (§6.1). */
+function taunting(u: Unit): boolean {
+  return u.effects.some((x) => x.def === 'taunt');
+}
+
+/** The nearest targetable taunting knight in `radius` of the enemy (not `skip`), or null. */
+function nearestTaunt(
+  s: SimState,
+  e: EnemyEnt,
+  radius: number,
+  skip: number | undefined,
+): PlayerEnt | null {
   let best: PlayerEnt | null = null;
   let bestD = Infinity;
   for (const p of s.world.players) {
-    if (!s.targetable(p)) continue;
+    if (p.id === skip || !taunting(p) || !s.targetable(p)) continue;
+    const d = dist(e.x, e.y, p.x, p.y) - p.r;
+    if (d <= radius && d < bestD) {
+      best = p;
+      bestD = d;
+    }
+  }
+  return best;
+}
+
+/**
+ * Aggro and leash transitions. Past the leash, or with its target gone, it lets go and walks on
+ * toward the base from where it stands (RD10-fix-1); a target it let go at the leash stays ignored
+ * until it leaves the aggro radius, so the leash still ends a chase.
+ */
+export function leash(s: SimState, e: EnemyEnt, a: { radius: number; leash: number }) {
+  // A save from before RD10-fix-1 may hold a walk back: it goes on from here instead.
+  if (e.ai === 'return') {
+    e.ai = 'path';
+    e.leashFrom = null;
+  }
+  if (e.ai === 'aggro') {
+    const ok = aggroTarget(s, e.target) !== null;
+    const from = e.leashFrom!;
+    if (ok && dist(e.x, e.y, from.x, from.y) <= a.leash) {
+      // Challenger: a taunting knight in the aggro radius takes the chase over (same leash).
+      const cur = s.units.get(e.target!);
+      if (!cur || !taunting(cur)) {
+        const t = nearestTaunt(s, e, a.radius, e.dropped);
+        if (t) e.target = t.id;
+      }
+      return;
+    }
+    if (ok) e.dropped = e.target!;
+    e.ai = 'path';
+    e.target = null;
+    e.leashFrom = null;
+    return;
+  }
+  let skip = e.dropped;
+  if (skip !== undefined) {
+    const u = aggroTarget(s, skip);
+    if (!u || dist(e.x, e.y, u.x, u.y) - u.r > a.radius) {
+      delete e.dropped;
+      skip = undefined;
+    }
+  }
+  // A taunting knight (Challenger) first; then knights, so a knight wins an exact tie with a soldier
+  // or a build.
+  let best: Unit | null = nearestTaunt(s, e, a.radius, skip);
+  let bestD = best ? -Infinity : Infinity;
+  for (const p of s.world.players) {
+    if (p.id === skip || !s.targetable(p)) continue;
     const d = dist(e.x, e.y, p.x, p.y) - p.r;
     if (d <= a.radius && d < bestD) {
       best = p;
+      bestD = d;
+    }
+  }
+  for (const u of s.world.soldiers) {
+    if (u.id === skip || !soldierTargetable(u)) continue;
+    const d = dist(e.x, e.y, u.x, u.y) - u.r;
+    if (d <= a.radius && d < bestD) {
+      best = u;
+      bestD = d;
+    }
+  }
+  for (const b of s.world.builds) {
+    if (b.id === skip || !buildTargetable(b)) continue;
+    const d = dist(e.x, e.y, b.x, b.y) - b.r;
+    if (d <= a.radius && d < bestD) {
+      best = b;
       bestD = d;
     }
   }
@@ -103,14 +185,14 @@ function followPath(s: SimState, e: EnemyEnt, def: EnemyDef) {
     swing(s, e, def, BASE_ID, n.x, n.y);
     return;
   }
-  const field = def.field === 'breaker' ? w.fields.breaker : w.fields.ground;
+  const field = w.fields.ground;
   const { cols, rows } = field;
   const col = Math.floor(e.x);
   const row = Math.floor(e.y);
   e.ai = 'path';
   e.target = null;
   if (col < 0 || row < 0 || col >= cols || row >= rows) {
-    toLane(s, e, speed);
+    toPortal(s, e, speed);
     return;
   }
   const t = row * cols + col;
@@ -120,20 +202,6 @@ function followPath(s: SimState, e: EnemyEnt, def: EnemyDef) {
     const n = rectNearest(e.x, e.y, s.baseRect);
     walkTo(e, n.x, n.y, speed);
     return;
-  }
-  const occ = w.grid.occupant[next]!;
-  if (occ !== 0) {
-    const st = s.units.get(occ) as StructureEnt | undefined;
-    if (st && st.damageable && s.cat.structure(st.kind).pathCost > 1) {
-      const nc = next % cols;
-      const nr = (next - nc) / cols;
-      if (rectDist(e.x, e.y, tileRect(nc, nr)) - e.r <= def.attack.range) {
-        swing(s, e, def, st.id, st.x, st.y);
-        return;
-      }
-      walkTo(e, st.x, st.y, speed);
-      return;
-    }
   }
   steerAlong(e, field, t, next, speed);
 }
@@ -176,10 +244,12 @@ export function steerAlong(e: EnemyEnt, field: FlowField, t: number, next: numbe
   e.facing = Math.atan2(dy, dx);
 }
 
-/** Off the map: walk to the nearest entry tile of the lane (spawns sit just outside the edge). */
-export function toLane(s: SimState, e: EnemyEnt, speed: number) {
-  const lanes = s.cat.map.lanes;
-  const entries = e.lane ? lanes[e.lane].entry : Object.values(lanes).flatMap((l) => l.entry);
+/** Off the map: walk to the nearest entry tile of its portal (spawns sit just outside the edge). */
+export function toPortal(s: SimState, e: EnemyEnt, speed: number) {
+  const portals = s.cat.map.portals;
+  const entries = e.portal
+    ? portals[e.portal].entry
+    : Object.values(portals).flatMap((p) => p.entry);
   let bx = 0;
   let by = 0;
   let bd = Infinity;
@@ -240,20 +310,13 @@ export function land(s: SimState, e: EnemyEnt, def: EnemyDef) {
   const kind = s.kinds.get(id);
   // A little extra reach: the target may have stepped back during the wind-up.
   const range = def.attack.range + s.cat.rules.enemySwingSlack;
-  let mult = 1;
   if (kind === 'base') {
     if (rectDist(e.x, e.y, s.baseRect) - e.r > range) return;
-    mult = def.vsStructure?.base ?? 1;
-  } else if (kind === 'structure') {
-    const st = u as StructureEnt;
-    if (!st.damageable) return;
-    if (rectDist(e.x, e.y, tileRect(st.tile[0], st.tile[1])) - e.r > range) return;
-    mult = def.vsStructure?.[st.kind] ?? 1;
   } else if (kind === 'player') {
     if (!s.targetable(u as PlayerEnt)) return;
     if (dist(e.x, e.y, u.x, u.y) - e.r - u.r > range) return;
   } else {
     if (dist(e.x, e.y, u.x, u.y) - e.r - u.r > range) return;
   }
-  s.damage({ source: e.id, target: id, amount: e.stats.damage * mult, kind: 'melee', tags: [] });
+  s.damage({ source: e.id, target: id, amount: e.stats.damage, kind: 'melee', tags: [] });
 }

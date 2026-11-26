@@ -3,7 +3,7 @@
 // re-layers as it moves (C1 note 3) and is never in step. Attack (FF10): a quick rear-back, then a
 // bite on the content wind-up's end.
 import rig from '../../../../art/neon-knights/rigs/mite.json';
-import type { Clip, RigDef } from '../../../themes/types';
+import type { Clip, RigDef } from '../../../presentation/types';
 import { enemyDeath, enemyHit, idleBob, loop, once, sin, wave } from '../clipKit';
 
 /** The Swarm's wind-up is 150 ms (content); the bite lands then. */

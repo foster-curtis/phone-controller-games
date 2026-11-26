@@ -2,7 +2,7 @@
 // kicks down into its dome socket, the dome and ring take the recoil, the bands flare). The tube's
 // aim is a code override on top (render/structures.ts), so the recoil rides along with any aim; the
 // shell leaves from the `muzzle` point at the clip's start.
-import type { Clip } from '../../../themes/types';
+import type { Clip } from '../../../presentation/types';
 import { each, loop, once } from '../clipKit';
 
 export const MORTAR_FIRE_MS = 420;

@@ -20,11 +20,11 @@ const has = (msgs: Awaited<ReturnType<typeof lint>>, rule: string, text: string)
   msgs.some((m) => m.rule === rule && m.text.includes(text));
 
 describe('ESLint boundaries', () => {
-  it('src/host/sim: no phaser, net-client, themes, DOM or wall clock / Math.random', async () => {
+  it('src/host/sim: no phaser, net-client, presentation, DOM or wall clock / Math.random', async () => {
     const msgs = await lint('sim');
     expect(has(msgs, 'no-restricted-imports', "'phaser'")).toBe(true);
     expect(has(msgs, 'no-restricted-imports', "'@pcg/net-client'")).toBe(true);
-    expect(has(msgs, 'no-restricted-imports', 'themes/types')).toBe(true);
+    expect(has(msgs, 'no-restricted-imports', 'presentation/types')).toBe(true);
     expect(has(msgs, 'no-restricted-globals', "'document'")).toBe(true);
     expect(has(msgs, 'no-restricted-properties', 'Math.random')).toBe(true);
     expect(has(msgs, 'no-restricted-properties', 'Date.now')).toBe(true);

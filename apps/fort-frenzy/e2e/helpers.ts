@@ -136,19 +136,74 @@ export async function newPhoneContext(
   return context;
 }
 
-/** A phone joins by the QR's URL, enters its name, picks the first knight (the Ranger). */
-export async function joinPhone(browser: Browser, code: string, name: string): Promise<Phone> {
+/** Knight select order on the phone (shared/ids `KNIGHT_IDS`). */
+const KNIGHTS = ['ranger', 'warden', 'artificer', 'commander'] as const;
+export type Knight = (typeof KNIGHTS)[number];
+
+/** On knight select, swipes card by card (one swipe, one card) to `knight` and picks it. */
+export async function pickKnight(page: Page, knight: Knight): Promise<void> {
+  const pick = page.locator('.screen.lobby .pick');
+  await expect(pick).toBeVisible();
+  await expect(pick).toHaveText(/RANGER/);
+  for (let i = 0; i < KNIGHTS.indexOf(knight); i++) {
+    const track = (await page.locator('.screen.lobby .class-track').boundingBox())!;
+    const y = track.y + track.height / 2;
+    await page.mouse.move(track.x + track.width - 20, y);
+    await page.mouse.down();
+    await page.mouse.move(track.x + 10, y, { steps: 6 });
+    await page.mouse.move(track.x - 400, y, { steps: 3 });
+    await page.mouse.up();
+    await expect(pick).toHaveText(`PICK ${KNIGHTS[i + 1]!.toUpperCase()}`);
+  }
+  await pick.click();
+}
+
+/** A phone joins by the QR's URL, enters its name, picks a knight (default the Ranger, the first). */
+export async function joinPhone(
+  browser: Browser,
+  code: string,
+  name: string,
+  knight: Knight = 'ranger',
+): Promise<Phone> {
   const context = await newPhoneContext(browser);
   const page = await context.newPage();
   await page.goto(url(`/play?code=${code}`));
   await page.getByLabel('Your name').fill(name);
   await page.getByRole('button', { name: 'JOIN' }).click();
-  const pick = page.locator('.screen.lobby .pick');
-  await expect(pick).toBeVisible();
-  await expect(pick).toHaveText(/RANGER/);
-  await pick.click();
+  await pickKnight(page, knight);
   await expect(page.locator('.screen.lobby .ready')).toBeVisible();
   return { context, page, name };
+}
+
+/**
+ * The card pop-up (§10.2): tap the first card, then Confirm; the phone moves on to the shop. Returns
+ * the card's id.
+ */
+export async function confirmCard(phone: Phone): Promise<string> {
+  const card = phone.page.locator('.screen.build .upgrade-card').first();
+  await expect(card).toBeVisible();
+  const id = (await card.getAttribute('data-card')) ?? '';
+  await card.click();
+  await expect(card).toHaveClass(/selected/);
+  await phone.page.locator('.screen.build .confirm').click();
+  await expect(phone.page.locator('.screen.build .shop-row').first()).toBeVisible();
+  return id;
+}
+
+/**
+ * Drags the build button (an aimed build: the Warden's shield generator) `dx` px across and holds it;
+ * returns the release. The button must be lit (meter full, in combat).
+ */
+export async function holdBuildAim(phone: Phone, dx: number, dy = 0): Promise<() => Promise<void>> {
+  const btn = phone.page.locator('.screen.combat .round-btn.action');
+  await expect(btn).not.toHaveClass(/dimmed/);
+  const face = (await btn.locator('.round-face').boundingBox())!;
+  const x = face.x + face.width / 2;
+  const y = face.y + face.height / 2;
+  await phone.page.mouse.move(x, y);
+  await phone.page.mouse.down();
+  await phone.page.mouse.move(x + dx, y + dy, { steps: 6 });
+  return () => phone.page.mouse.up();
 }
 
 export function phase(host: Host) {

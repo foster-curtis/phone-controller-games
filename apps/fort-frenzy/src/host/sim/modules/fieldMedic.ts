@@ -1,9 +1,10 @@
-// Quartermaster passive, Field Medic (SPEC §8): a small regeneration aura for nearby players (him
-// included), off during the build phase. Its healing charges his super at `chargeRate` per HP healed,
-// more slowly than damage does; the super's own healing never charges it (only this module charges
-// from heals). Ticks on whole-second step multiples, so it needs no state.
-import { dist } from '../geometry';
+// Field Medic, the Artificer's passive card (SPEC §6.1, §8): a small healing aura for nearby knights
+// (him included), in combat only. Its healing charges his super (§8.3) and his build meter (§7.2), the
+// one healing that charges the meter. Ticks on whole-second step multiples, so it needs no state.
+import { chargeMeter } from '../builds/meter';
 import { num } from '../cards/common';
+import { chargeSuperFromHeal, healKnights } from '../classes/artificer';
+import { dist } from '../geometry';
 import { state } from '../internal';
 import type { ModuleDef, PlayerEnt } from '../types';
 
@@ -13,9 +14,8 @@ export const fieldMedic: ModuleDef = {
     const radius = num(params, 'radius');
     const heal = num(params, 'heal');
     const everyMs = num(params, 'everyMs');
-    const chargeRate = num(params, 'chargeRate');
     return {
-      id: 'passive:field_medic',
+      id: 'card:field_medic',
       hooks: {
         onTick(ctx, self) {
           const s = state(ctx);
@@ -25,25 +25,11 @@ export const fieldMedic: ModuleDef = {
           if (w.tick % s.cat.steps(everyMs) !== 0) return;
           const r = s.attackStat(p, radius, 'auraRadius');
           const amount = s.attackStat(p, heal, 'healing');
-          let healed = 0;
-          // With Overflow (FF12) a full player still takes the heal, as a shield.
-          const overflow = (p.cards.overflow ?? 0) > 0;
-          for (const q of w.players) {
-            if (!s.targetable(q) || (q.hp >= q.maxHp && !overflow)) continue;
-            if (dist(p.x, p.y, q.x, q.y) > r + q.r) continue;
-            healed += ctx.heal(q.id, amount, p.id).healed;
-          }
-          if (healed > 0 && p.superCharge < 1) {
-            p.superCharge = Math.min(1, p.superCharge + healed * chargeRate);
-            if (p.superCharge >= 1) ctx.emit({ e: 'superReady', slot: p.slot });
-          }
+          const healed = healKnights(s, p, amount, (q) => dist(p.x, p.y, q.x, q.y) <= r + q.r);
+          chargeMeter(s, p, healed, 'healing');
+          chargeSuperFromHeal(s, p, healed);
         },
       },
     };
   },
 };
-
-/** The aura's radius for a Quartermaster (render's dotted circle; params as content gives them). */
-export function fieldMedicRadius(params: Record<string, unknown> | undefined): number {
-  return num(params, 'radius');
-}

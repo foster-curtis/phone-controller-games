@@ -6,10 +6,11 @@
 //   pnpm --filter @pcg/fort-frenzy bench [scenario…]
 //
 // - `boss`: the real peak (FF15): wave 15 in the full sim, the Colossus Mk III in its final phase,
-//   Swarm packs through the spawn command, 60 towers, 6 knights (every class), 30 footmen, 100
+//   Swarm packs through the spawn command, 24 real builds, 6 knights (every class), 30 footmen, 100
 //   projectiles (sim/peak.ts).
 // - `peak`: the same counts with the whole roster scattered over the field.
-// - `run2`, `run6`: whole autopilot runs (waves 1–15, soak class rotations), every step timed.
+// - `run1`, `run2`, `run6`: whole autopilot runs (waves 1–15, soak class rotations; run1 a solo
+//   Ranger), every step timed.
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { stateHash } from '../src/host/sim/index';
@@ -31,7 +32,7 @@ interface Outcome {
 function counts(w: World): string {
   return (
     `${w.players.length} knights, ${w.soldiers.length} footmen, ${w.enemies.length} enemies, ` +
-    `${w.projectiles.length} projectiles, ${w.structures.length} structures, ` +
+    `${w.projectiles.length} projectiles, ${w.builds.length} builds, ` +
     `state ${stateHash(w).toString(16)}`
   );
 }
@@ -95,6 +96,7 @@ function stats(times: number[]) {
 const scenarios: { name: string; run(): Outcome }[] = [
   { name: 'boss', run: () => peak('boss', 15) },
   { name: 'peak', run: () => peak('synthetic', 7) },
+  { name: 'run1', run: () => run(1, 0) },
   { name: 'run2', run: () => run(2, 0) },
   { name: 'run6', run: () => run(6, 1) },
 ];

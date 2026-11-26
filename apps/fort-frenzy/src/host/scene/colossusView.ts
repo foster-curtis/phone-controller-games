@@ -1,16 +1,18 @@
 // The Colossus on the TV (SPEC §9.2, §9.6; FF11), driven from the boss's sim state on top of the
 // enemy drawing in worldView.ts: its Mk I/II/III groups and the final phase's cracked core and
-// plumes, the clip for each attack in sync with the sim's wind-up (slam and wall breaker, boulder
+// plumes, the clip for each attack in sync with the sim's wind-up (slam, boulder
 // throw, Runner call) and the kneel while staggered, head tracking that snaps to the target before a
-// slam or throw, the tells (fist seams flaring through the slam's wind-up, the targeted wall
-// flashing, scrap torn up for a boulder, spires surging before Runners launch), the core showing the
+// slam or throw, the tells (fist seams flaring through the slam's wind-up, scrap torn up for a boulder, spires surging before Runners launch), the core showing the
 // stagger meter, the shockwave rings rolling out of final-phase slams (a violet outline on the
 // sim's band, so dodging reads), and impacts where slams and boulders land. The sim is read, never
-// written. Graphics are made on first use (FF7-fix-1's frame-cost rule).
+// written. Graphics are made on first use (FF7-fix-1's frame-cost rule). The Charge (RD10): its tell
+// clip with `landing-dust` puffs on each paw, `charge-dust` at the feet through the run; the red lane
+// marker is drawn with the other danger markers (worldView.ts).
 import type * as Phaser from 'phaser';
 import { theme } from '../../shared/theme';
 import {
   COLOSSUS_CALL_MS,
+  COLOSSUS_PAW_MS,
   COLOSSUS_SLAM_MS,
   COLOSSUS_STAGGER_MS,
   COLOSSUS_THROW_MS,
@@ -40,6 +42,8 @@ interface Look {
   /** The act whose clip is playing (its start tick), and the one-off effects it already fired. */
   act: number | null;
   fired: Set<string>;
+  /** The last `charge-dust` puff of the run (a count of `DUST_EVERY_MS`). */
+  dust: number;
 }
 
 /** A batch of shockwave ring markers from one slam: the band rolling out, as the sim lands it. */
@@ -63,23 +67,20 @@ interface KnownMarker {
 
 /** The scrap grab in the throw clip (render/clips/colossus.ts). */
 const GRAB_MS = 300;
+/** A `charge-dust` puff at the feet this often through the run, each fading over `DUST_MS`. */
+const DUST_EVERY_MS = 110;
+const DUST_MS = 420;
 
 export class ColossusView {
   private readonly looks = new Map<EntityId, Look>();
   private readonly markers = new Map<EntityId, KnownMarker>();
   private readonly waves = new Map<string, Wave>();
   private readonly glow: Scratch<Phaser.GameObjects.Graphics>;
-  private readonly flash: Scratch<Phaser.GameObjects.Graphics>;
   private t = 0;
 
   constructor(private readonly w: RenderWorld) {
     this.glow = new Scratch(() => {
       const g = w.scene.make.graphics({}, false).setDepth(1e6 + 1);
-      w.layers.effects.add(g);
-      return g;
-    });
-    this.flash = new Scratch(() => {
-      const g = w.scene.make.graphics({}, false).setDepth(1e6);
       w.layers.effects.add(g);
       return g;
     });
@@ -89,23 +90,19 @@ export class ColossusView {
   begin(dtMs: number): void {
     this.t += dtMs;
     this.glow.begin();
-    this.flash.begin();
   }
 
   /** The Colossus is playing one of its own clips: a hit flashes it but doesn't replace the clip. */
   holds(rig: RigSprite): boolean {
-    return (
-      rig.rigId === 'colossus' &&
-      rig.clip !== null &&
-      COLOSSUS_ONE_SHOTS.has(rig.clip) &&
-      !rig.clipDone
-    );
+    if (rig.rigId !== 'colossus' || rig.clip === null) return false;
+    // The run loops until the sim ends it (`update` leaves it then).
+    return rig.clip === 'chargeRun' || (COLOSSUS_ONE_SHOTS.has(rig.clip) && !rig.clipDone);
   }
 
   private look(id: EntityId): Look {
     let l = this.looks.get(id);
     if (!l) {
-      l = { head: { rot: 0, dy: 0 }, pulse: 0, act: null, fired: new Set() };
+      l = { head: { rot: 0, dy: 0 }, pulse: 0, act: null, fired: new Set(), dust: -1 };
       this.looks.set(id, l);
     }
     return l;
@@ -139,13 +136,17 @@ export class ColossusView {
       if (l.act !== act.startedAt || rig.clip !== clip) {
         l.act = act.startedAt;
         l.fired.clear();
+        l.dust = -1;
         rig.play(clip, {
           restart: true,
           fadeMs: 60,
           offsetMs: Math.max(0, (w.tick - act.startedAt) * STEP_MS),
         });
       }
-    } else if (!this.holds(rig) && !(rig.clip === 'hit' && !rig.clipDone)) {
+    } else if (
+      rig.clip === 'chargeRun' ||
+      (!this.holds(rig) && !(rig.clip === 'hit' && !rig.clipDone))
+    ) {
       rig.play(moving ? 'walk' : 'idle', { speed: walkSpeed });
     }
 
@@ -190,17 +191,33 @@ export class ColossusView {
     const age = (w.tick - act.startedAt) * STEP_MS;
     const g = this.glow.draw();
     switch (act.kind) {
-      case 'slam':
-      case 'breaker': {
+      case 'charge': {
+        // The near foot paws the ground: a puff of dust on each strike.
+        COLOSSUS_PAW_MS.forEach((at, i) => {
+          if (age < at || l.fired.has(`paw${i}`)) return;
+          l.fired.add(`paw${i}`);
+          const f = this.w.camera.worldToScreen(e.x, e.y);
+          const ahead = (Math.cos(e.facing) < 0 ? -1 : 1) * 16 * k1;
+          this.w.fx.mark?.('landing-dust', f.sx + ahead, f.sy, 420, 0.55);
+        });
+        return;
+      }
+      case 'chargeRun': {
+        const n = Math.floor(age / DUST_EVERY_MS);
+        if (n !== l.dust) {
+          l.dust = n;
+          const f = this.w.camera.worldToScreen(e.x, e.y);
+          // The art's puffs trail toward −x, behind a right-facing Colossus.
+          this.w.fx.mark?.('charge-dust', f.sx, f.sy, DUST_MS, 1, e.vx < 0);
+        }
+        return;
+      }
+      case 'slam': {
         // Fist seams flare as the fists come up.
         const lvl = chargeLevel(age, COLOSSUS_SLAM_MS);
         for (const a of ['fist-near', 'fist-far']) {
           const p = rig.attach(a);
           if (p) drawGlow(g, p.sx, p.sy - 10 * k1, 9 * k1, lvl);
-        }
-        if (act.kind === 'breaker' && act.target !== null) {
-          const st = w.structures.find((s) => s.id === act.target);
-          if (st) this.flashTile(st.tile[0], st.tile[1]);
         }
         return;
       }
@@ -230,19 +247,6 @@ export class ColossusView {
     }
   }
 
-  /** The wall a breaker targets flashes (danger red, pulsing) until the slam lands. */
-  private flashTile(col: number, row: number) {
-    const cam = this.w.camera;
-    const a = cam.worldToScreen(col, row);
-    const b = cam.worldToScreen(col + 1, row + 1);
-    const u = 0.5 + 0.5 * Math.sin(this.t * 0.03);
-    const up = 0.6 * (b.sy - a.sy) + 6;
-    this.flash
-      .draw()
-      .fillStyle(theme.color.danger.num, 0.18 + 0.3 * u)
-      .fillRect(a.sx, a.sy - up, b.sx - a.sx, b.sy - a.sy + up);
-  }
-
   /**
    * Once a frame, after the enemies: impacts where the Colossus's markers land (not the ones a
    * stagger called off), Runners launching from the spires, and the final-phase shockwave bands.
@@ -254,6 +258,7 @@ export class ColossusView {
 
     const live = new Set<EntityId>();
     for (const m of w.markers) {
+      if (m.shape === 'lane') continue; // only shows the Charge's path: no impact where it ends
       if (!bosses.has(m.source) && !this.markers.has(m.id)) continue;
       live.add(m.id);
       if (this.markers.has(m.id)) continue;
@@ -348,6 +353,5 @@ export class ColossusView {
   destroy(): void {
     this.clear();
     this.glow.destroy();
-    this.flash.destroy();
   }
 }

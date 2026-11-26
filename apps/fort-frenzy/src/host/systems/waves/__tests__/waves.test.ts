@@ -153,3 +153,161 @@ describe('scaling (§9.4)', () => {
     }
   });
 });
+
+// ---- RD3: hot side, active-portal cap, spawn pulses (§9.3, §9.4, §15.4 rules with `hot` set) ----
+
+const portals = ['bottom-w', 'bottom-e', 'left-n', 'left-s', 'right-n', 'right-s'];
+const sides: Record<string, string> = {
+  'bottom-w': 'bottom',
+  'bottom-e': 'bottom',
+  'left-n': 'left',
+  'left-s': 'left',
+  'right-n': 'right',
+  'right-s': 'right',
+};
+
+const hotWave = (
+  seed: number,
+  hot: NonNullable<WaveInput<E>['hot']>,
+  cap: number,
+  over: Partial<WaveInput<E>> = {},
+): WaveGroup<E>[] =>
+  wave(seed, { lanes: portals, sides, hot, hotShare: 0.55, activeCap: cap, ...over });
+
+/** The pulses of a wave: groups sharing a spawn time, in time order. */
+function pulses(gs: WaveGroup<E>[]): WaveGroup<E>[][] {
+  const out: WaveGroup<E>[][] = [];
+  for (const g of gs) {
+    const last = out[out.length - 1];
+    if (last && last[0]!.atMs === g.atMs) last.push(g);
+    else out.push([g]);
+  }
+  return out;
+}
+
+/** Changes of the hot side from one pulse to the next. */
+function changes(gs: WaveGroup<E>[]): number {
+  const ps = pulses(gs);
+  let n = 0;
+  for (let i = 1; i < ps.length; i++) if (ps[i]![0]!.hot !== ps[i - 1]![0]!.hot) n++;
+  return n;
+}
+
+/** The share of the wave's cost spent on the side hot at each group's pulse. */
+function hotShareOf(gs: WaveGroup<E>[]): number {
+  const cost = (g: WaveGroup<E>) => pool.find((p) => p.id === g.id)!.cost;
+  let hot = 0;
+  let all = 0;
+  for (const g of gs) {
+    all += cost(g);
+    if (sides[g.lane] === g.hot) hot += cost(g);
+  }
+  return hot / all;
+}
+
+describe('generateWave: hot side (RD3)', () => {
+  it('every pulse uses at most activeCap portals and at least one hot-side portal', () => {
+    for (let seed = 0; seed < 200; seed++) {
+      for (const cap of [2, 3, 4, 5, 6]) {
+        const gs = hotWave(seed, { mode: 'wave', shifts: 1 }, cap, { budget: 50 });
+        for (const ps of pulses(gs)) {
+          expect(new Set(ps.map((g) => g.lane)).size).toBeLessThanOrEqual(cap);
+          expect(ps.some((g) => sides[g.lane] === g.hot)).toBe(true);
+          // One hot side per pulse.
+          expect(new Set(ps.map((g) => g.hot)).size).toBe(1);
+        }
+      }
+    }
+  });
+
+  it('solo (cap 2): one hot-side portal and one other per full pulse', () => {
+    for (let seed = 0; seed < 100; seed++) {
+      const gs = hotWave(seed, { mode: 'wave', shifts: 0 }, 2, {
+        pool: [{ id: 'grunt', cost: 1 }],
+        budget: 12,
+      });
+      for (const ps of pulses(gs)) {
+        expect(ps.length).toBeLessThanOrEqual(2);
+        if (ps.length === 2) {
+          expect(ps.filter((g) => sides[g.lane] === g.hot)).toHaveLength(1);
+        }
+      }
+    }
+  });
+
+  it('a full team (cap 6) sees every portal over a wave', () => {
+    for (let seed = 0; seed < 100; seed++) {
+      const gs = hotWave(seed, { mode: 'wave', shifts: 0 }, 6, { budget: 60 });
+      expect(new Set(gs.map((g) => g.lane)).size).toBe(6);
+    }
+  });
+
+  it('the hot side gets at least half of the budget, within the share ± 0.10', () => {
+    for (let seed = 0; seed < 300; seed++) {
+      for (const cap of [2, 3, 6]) {
+        const share = hotShareOf(hotWave(seed, { mode: 'wave', shifts: 0 }, cap, { budget: 50 }));
+        expect(share).toBeGreaterThanOrEqual(0.5);
+        expect(Math.abs(share - 0.55)).toBeLessThanOrEqual(0.1);
+      }
+    }
+  });
+
+  it('no shifts: one hot side for the whole wave', () => {
+    for (let seed = 0; seed < 100; seed++) {
+      const gs = hotWave(seed, { mode: 'wave', shifts: 0 }, 3);
+      expect(new Set(gs.map((g) => g.hot)).size).toBe(1);
+    }
+  });
+
+  it('shifts happen at 1/2, or 1/3 and 2/3, of the duration, each to a different side', () => {
+    for (let seed = 0; seed < 200; seed++) {
+      for (const shifts of [1, 2] as const) {
+        const gs = hotWave(seed, { mode: 'wave', shifts }, 3, { budget: 60 });
+        const at = (k: number) => (60_000 * k) / (shifts + 1);
+        // Pulses in one segment share its side; consecutive segments differ.
+        const seg = (ms: number) => [1, 2].filter((k) => k <= shifts && ms >= at(k)).length;
+        const bySeg = new Map<number, Set<string>>();
+        for (const g of gs) {
+          const set = bySeg.get(seg(g.atMs)) ?? new Set<string>();
+          set.add(g.hot!);
+          bySeg.set(seg(g.atMs), set);
+        }
+        for (const set of bySeg.values()) expect(set.size).toBe(1);
+        for (let k = 1; k <= shifts; k++) {
+          const a = bySeg.get(k - 1);
+          const b = bySeg.get(k);
+          if (a && b) expect([...b][0]).not.toBe([...a][0]);
+        }
+        expect(changes(gs)).toBeLessThanOrEqual(shifts);
+      }
+    }
+  });
+
+  it('per group: each pulse rolls its own hot side, never the same twice in a row', () => {
+    for (let seed = 0; seed < 200; seed++) {
+      const gs = hotWave(seed, { mode: 'group' }, 3, { budget: 60 });
+      const ps = pulses(gs);
+      expect(ps.length).toBeGreaterThan(3);
+      for (let i = 1; i < ps.length; i++) expect(ps[i]![0]!.hot).not.toBe(ps[i - 1]![0]!.hot);
+      expect(new Set(ps.map((p) => p[0]!.hot)).size).toBeGreaterThan(1);
+    }
+  });
+
+  it('a pinned guaranteed spawn keeps its lane; the same seed gives the same wave', () => {
+    const over = { guaranteed: [{ id: 'brute' as const, count: 2, lane: 'left-n' }] };
+    const a = hotWave(5, { mode: 'wave', shifts: 2 }, 4, over);
+    expect(a.filter((g) => g.id === 'brute' && g.lane === 'left-n').length).toBeGreaterThanOrEqual(
+      2,
+    );
+    expect(hotWave(5, { mode: 'wave', shifts: 2 }, 4, over)).toEqual(a);
+    expect(hotWave(6, { mode: 'wave', shifts: 2 }, 4, over)).not.toEqual(a);
+  });
+
+  it('spends within ±1 of the budget and keeps every group at a real lane', () => {
+    for (let seed = 0; seed < 200; seed++) {
+      const gs = hotWave(seed, { mode: 'group' }, 2 + (seed % 5), { budget: 20 + (seed % 40) });
+      expect(Math.abs(groupsCost(gs, pool) - (20 + (seed % 40)))).toBeLessThanOrEqual(1);
+      for (const g of gs) expect(portals).toContain(g.lane);
+    }
+  });
+});

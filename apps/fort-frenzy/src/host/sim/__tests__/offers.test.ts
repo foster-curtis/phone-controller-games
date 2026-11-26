@@ -25,7 +25,7 @@ function ack(h: Harness, cmd: Parameters<Harness['sim']['command']>[0]) {
   return h.events('command').find((e) => e.ref === 99) as Extract<SimEvent, { e: 'command' }>;
 }
 
-const ALL: ClassId[] = ['engineer', 'warden', 'quartermaster', 'commander'];
+const ALL: ClassId[] = ['ranger', 'warden', 'artificer', 'commander'];
 
 describe('offers', () => {
   it('every build phase deals each player 3 distinct cards of their class or the commons', () => {
@@ -43,8 +43,8 @@ describe('offers', () => {
   });
 
   it('comes from the stream cards:<wave>:<slot>: the same seed gives the same offer, and recomputing it matches', () => {
-    const a = harness(2, 11, { classes: ['engineer', 'warden'] });
-    const b = harness(2, 11, { classes: ['engineer', 'warden'] });
+    const a = harness(2, 11, { classes: ['ranger', 'warden'] });
+    const b = harness(2, 11, { classes: ['ranger', 'warden'] });
     a.toBuild();
     b.toBuild();
     for (const s of [0, 1]) {
@@ -94,7 +94,7 @@ describe('picker exclusions (real content)', () => {
     eligibleFor(cat, h.sim.world, p)(def(id) as CardDef);
 
   it('excludes Skyhunter when Flyers are substituted (no ranged class connected)', () => {
-    const h = harness(2, 1, { classes: ['engineer', 'warden'] });
+    const h = harness(2, 1, { classes: ['ranger', 'warden'] });
     h.toBuild();
     const eng = h.p(0);
     expect(eligible(h, eng, 'skyhunter')).toBe(true);
@@ -103,7 +103,7 @@ describe('picker exclusions (real content)', () => {
     expect(eligible(h, eng, 'skyhunter')).toBe(false);
     // Over many seeds, a dealt offer never holds it.
     for (let seed = 1; seed <= 40; seed++) {
-      const g = harness(2, seed, { classes: ['engineer', 'warden'] });
+      const g = harness(2, seed, { classes: ['ranger', 'warden'] });
       g.sim.command({ c: 'presence', slot: 0, connected: false });
       g.toBuild();
       expect(g.p(0).offer).not.toContain('skyhunter');
@@ -118,7 +118,7 @@ describe('picker exclusions (real content)', () => {
   });
 
   it('gates combos by both prerequisites, and drops unique cards once owned', () => {
-    const h = harness(1, 1, { classes: ['engineer'] });
+    const h = harness(1, 1, { classes: ['ranger'] });
     h.toBuild();
     const p = h.p(0);
     expect(eligible(h, p, 'wildfire')).toBe(false);
@@ -136,6 +136,48 @@ describe('picker exclusions (real content)', () => {
     expect(eligible(w, w.p(0), 'unshakable')).toBe(false);
     // Other classes' cards never.
     expect(eligible(w, w.p(0), 'volley')).toBe(false);
+  });
+
+  it('Wide Aura and Deadeye only once their passive is owned, then they stack (RD11, #122)', () => {
+    for (const [cls, passive, card] of [
+      ['artificer', 'field_medic', 'wide_aura'],
+      ['ranger', 'steady_aim', 'deadeye'],
+    ] as const) {
+      const h = harness(1, 1, { classes: [cls] });
+      h.toBuild();
+      const p = h.p(0);
+      expect(eligible(h, p, card), card).toBe(false);
+      // Never dealt before the passive, over many seeds.
+      for (let seed = 1; seed <= 30; seed++) {
+        const g = harness(1, seed, { classes: [cls] });
+        g.toBuild();
+        expect(g.p(0).offer).not.toContain(card);
+      }
+      h.give(0, passive);
+      expect(eligible(h, p, passive), passive).toBe(false); // unique
+      expect(eligible(h, p, card), card).toBe(true);
+      h.give(0, card);
+      expect(eligible(h, p, card), card).toBe(true);
+    }
+  });
+
+  it('Fault Line needs Aftershock and Earthshaker, then is unique; Challenger is unique', () => {
+    const h = harness(1, 1, { classes: ['warden'] });
+    h.toBuild();
+    const p = h.p(0);
+    expect(eligible(h, p, 'fault_line')).toBe(false);
+    h.give(0, 'aftershock');
+    expect(eligible(h, p, 'fault_line')).toBe(false);
+    h.give(0, 'earthshaker');
+    expect(eligible(h, p, 'fault_line')).toBe(true);
+    h.give(0, 'fault_line');
+    expect(eligible(h, p, 'fault_line')).toBe(false);
+    expect(eligible(h, p, 'challenger')).toBe(true);
+    h.give(0, 'challenger');
+    expect(eligible(h, p, 'challenger')).toBe(false);
+    // The Warden's cards and the commons, Tinkerer included, all reach his offers.
+    for (const id of ['wide_field', 'reinforced_generator', 'tinkerer'] as const)
+      expect(eligible(h, p, id), id).toBe(true);
   });
 });
 

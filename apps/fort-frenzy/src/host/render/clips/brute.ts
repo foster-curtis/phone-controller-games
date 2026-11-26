@@ -4,7 +4,7 @@
 // the tell is the ram fist rearing back with the torso leaning away while the furnace flares (code
 // draws the flare, scene/enemyFx.ts), then the fist rams forward on the content wind-up's end.
 import rig from '../../../../art/neon-knights/rigs/brute.json';
-import type { Clip, RigDef } from '../../../themes/types';
+import type { Clip, RigDef } from '../../../presentation/types';
 import {
   each,
   enemyDeath,

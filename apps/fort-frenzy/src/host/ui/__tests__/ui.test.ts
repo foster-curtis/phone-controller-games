@@ -8,7 +8,6 @@ import {
   fitScale,
   fitTransform,
   insideSafe,
-  laneBand,
 } from '../layout';
 import { ARM_MS, createRemoveArm } from '../removeArm';
 import type { HomeRow } from '../types';
@@ -36,11 +35,8 @@ describe('band geometry (SPEC §15.2 table)', () => {
     expect([BANDS.playfield.x, BANDS.playfield.x + BANDS.playfield.w]).toEqual([96, 1824]);
     expect(SAFE_BOX).toEqual({ x: 96, y: 96, w: 1728, h: 888 });
   });
-  it('centers the base bar over the Citadel and puts lane bands on their edges', () => {
+  it('centers the base bar over the Citadel ', () => {
     expect(CITADEL_CENTER_X).toBe(960);
-    expect(laneBand('bottom').y + laneBand('bottom').h).toBe(1080);
-    expect(laneBand('left').x).toBe(0);
-    expect(laneBand('right').x + laneBand('right').w).toBe(1920);
   });
   it('fits 1920 × 1080 into any window', () => {
     expect(fitScale(1280, 720)).toEqual({ scale: 2 / 3, x: 0, y: 0 });
@@ -63,7 +59,6 @@ describe('band geometry (SPEC §15.2 table)', () => {
 
 const rows: HomeRow[] = [
   { id: 'create' },
-  { id: 'theme', theme: 'neon-knights' },
   { id: 'difficulty', difficulty: 'normal' },
   { id: 'resume', wave: 7, savedAgoMs: 1000 },
   { id: 'newRun' },
@@ -77,19 +72,18 @@ describe('home navigation', () => {
   });
   it('moves focus with up/down and wraps', () => {
     expect(stepHome(rows, 0, 'down')).toEqual({ type: 'focus', index: 1 });
-    expect(stepHome(rows, 0, 'up')).toEqual({ type: 'focus', index: 4 });
-    expect(stepHome(rows, 4, 'down')).toEqual({ type: 'focus', index: 0 });
+    expect(stepHome(rows, 0, 'up')).toEqual({ type: 'focus', index: 3 });
+    expect(stepHome(rows, 3, 'down')).toEqual({ type: 'focus', index: 0 });
   });
-  it('◂ ▸ cycle theme and difficulty only', () => {
-    expect(stepHome(rows, 1, 'right')).toEqual({ type: 'cycle', row: 'theme', dir: 1 });
-    expect(stepHome(rows, 2, 'left')).toEqual({ type: 'cycle', row: 'difficulty', dir: -1 });
+  it('◂ ▸ cycle difficulty only', () => {
+    expect(stepHome(rows, 1, 'left')).toEqual({ type: 'cycle', row: 'difficulty', dir: -1 });
     expect(stepHome(rows, 0, 'left')).toBeNull();
-    expect(stepHome(rows, 3, 'right')).toBeNull();
+    expect(stepHome(rows, 2, 'right')).toBeNull();
   });
   it('select activates rows (and nudges the ◂ ▸ rows forward)', () => {
     expect(stepHome(rows, 0, 'select')).toEqual({ type: 'activate', row: 'create' });
-    expect(stepHome(rows, 3, 'select')).toEqual({ type: 'activate', row: 'resume' });
-    expect(stepHome(rows, 2, 'select')).toEqual({ type: 'cycle', row: 'difficulty', dir: 1 });
+    expect(stepHome(rows, 2, 'select')).toEqual({ type: 'activate', row: 'resume' });
+    expect(stepHome(rows, 1, 'select')).toEqual({ type: 'cycle', row: 'difficulty', dir: 1 });
   });
   it('does nothing without rows', () => {
     expect(stepHome([], 0, 'down')).toBeNull();

@@ -1,6 +1,7 @@
 // FF15 in-game stress mode (`?debug=1&stress=1`): the real sim and World scene at the SPEC §15.2 peak
-// load run with no console errors and no fallback shapes, and the overlay reports frame and sim step
-// times. The numbers themselves are judged on the target laptop (software GL here, BUILD_PLAN §8).
+// load (24 real builds included, RD14) run with no console errors and no fallback shapes, and the
+// overlay reports frame and sim step times. The numbers themselves are judged on the target laptop
+// (software GL here, BUILD_PLAN §8).
 import { expect } from '@playwright/test';
 import { serveFonts, test } from './helpers';
 
@@ -10,6 +11,7 @@ interface StressProbe {
   frameMs: number;
   simMs: number | null;
   simP99Ms: number | null;
+  builds: number | null;
   fallbacks: number;
 }
 
@@ -32,6 +34,8 @@ test('in-game stress mode', async ({ page }) => {
   expect(stats.frameMs).toBeGreaterThan(0);
   expect(stats.simP99Ms).toBeGreaterThan(0);
   expect(stats.fallbacks).toBe(0);
+  // The peak's real builds are on the map and drawn (RD14).
+  expect(stats.builds).toBeGreaterThanOrEqual(20);
   await page.screenshot({ path: 'e2e/__screens__/stress.png' });
   expect(errors).toEqual([]);
 });

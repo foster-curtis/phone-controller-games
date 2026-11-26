@@ -1,7 +1,10 @@
-// Run phases (SPEC §4, §9.3, §9.4, §10.2, §15.3 step 10): countdown, build (ready + 45 s cap), combat
+// Run phases (SPEC §4, §9.3, §9.4, §10.2, §15.3 step 10): countdown, build (ready + 20 s cap, the
+// random card pick at its end), combat
 // (spawner, warnings, scaling), wave clear, victory, defeat, summary.
+import { rngStream } from '@pcg/game-kit';
 import { describe, expect, it } from 'vitest';
-import { rules, waves } from '../../../content/balance';
+import { rules, scaling, waves } from '../../../content/balance';
+import { PORTAL_IDS } from '../../../shared/ids';
 import { createSim } from '../index';
 import { harness, startOf } from './harness';
 
@@ -46,7 +49,8 @@ describe('countdown and build', () => {
     expect(h.events('command')[0]).toMatchObject({ ok: false, reason: 'phase' });
   });
 
-  it('the 45 s cap starts the wave without everyone ready', () => {
+  it('the 20 s cap starts the wave without everyone ready', () => {
+    expect(rules.buildCapMs).toBe(20_000);
     const h = harness(2);
     h.toBuild();
     const start = h.sim.world.tick;
@@ -54,28 +58,97 @@ describe('countdown and build', () => {
     h.until(() => h.sim.world.phase === 'combat', steps(rules.buildCapMs) + 5);
     expect(h.sim.world.tick - 1 - start).toBe(steps(rules.buildCapMs) - 1);
   });
+
+  it('at the deadline a card not confirmed is picked from cardPick:<wave>:<slot> (§10.2)', () => {
+    const run = (seed: number) => {
+      const h = harness(3, seed);
+      h.toBuild();
+      const offers = h.sim.world.players.map((p) => [...p.offer!]);
+      // Slot 0 confirms; slot 1 is Ready without a card; slot 2 does nothing.
+      h.sim.command({ c: 'card', slot: 0, card: offers[0]![2]! });
+      h.sim.command({ c: 'ready', slot: 1, ready: true });
+      const autos: { slot: number; card: string }[] = [];
+      for (let i = 0; i < steps(rules.buildCapMs) + 5 && h.sim.world.phase === 'build'; i++) {
+        h.sim.step();
+        for (const e of h.events('cardAuto')) autos.push({ slot: e.slot, card: e.card });
+      }
+      expect(h.sim.world.phase).toBe('combat');
+      return { h, offers, autos, cards: h.sim.world.players.map((p) => ({ ...p.cards })) };
+    };
+    const a = run(4);
+    expect(a.autos.map((x) => x.slot)).toEqual([1, 2]);
+    for (const x of a.autos) {
+      const want = rngStream(4, `cardPick:1:${x.slot}`).pick(a.offers[x.slot]!);
+      expect(x.card).toBe(want);
+      expect(a.cards[x.slot]).toEqual({ [want]: 1 });
+    }
+    expect(a.cards[0]).toEqual({ [a.offers[0]![2]!]: 1 });
+    // The same seed picks the same cards.
+    const b = run(4);
+    expect(b.autos).toEqual(a.autos);
+    expect(b.cards).toEqual(a.cards);
+  });
+
+  it('everyone Ready ends the phase early; unconfirmed cards are still picked', () => {
+    const h = harness(2, 6);
+    h.toBuild();
+    const start = h.sim.world.tick;
+    for (const p of h.sim.world.players) h.sim.command({ c: 'ready', slot: p.slot, ready: true });
+    const autos = h.collect('cardAuto', 2);
+    expect(h.sim.world.phase).toBe('combat');
+    expect(h.sim.world.tick - start).toBeLessThan(5);
+    expect(autos.map((e) => e.slot)).toEqual([0, 1]);
+    for (const p of h.sim.world.players) expect(Object.keys(p.cards)).toHaveLength(1);
+  });
 });
 
 describe('combat: spawner, warnings, scaling', () => {
-  it('each group is announced on its lane 3 s before it spawns', () => {
+  it('a group’s portal flares flareMs before it spawns; groups use all six portals', () => {
     const h = harness(2);
     h.toCombat();
-    const warnings: { lane: string; spawnsAtTick: number; at: number }[] = [];
-    const spawns: { lane: string | null; at: number }[] = [];
+    const flares: { portal: string; at: number }[] = [];
+    const spawns: { portal: string | null; at: number }[] = [];
     h.sim.command({ c: 'debug', slot: -1, action: 'invincible', on: true });
     for (let i = 0; i < 60 * 40 && h.sim.world.phase === 'combat'; i++) {
       h.sim.step();
       const t = h.sim.world.tick - 1;
-      for (const e of h.events('laneWarning')) warnings.push({ ...e, at: t });
-      for (const e of h.events('spawn')) spawns.push({ lane: e.lane, at: t });
+      for (const e of h.events('portalFlare')) flares.push({ portal: e.portal, at: t });
+      for (const e of h.events('spawn')) spawns.push({ portal: e.portal, at: t });
     }
-    expect(warnings.length).toBeGreaterThan(0);
-    for (const w of warnings) {
-      expect(w.lane).toBe('bottom');
-      expect(w.spawnsAtTick - w.at).toBe(steps(rules.spawnWarningMs));
-      expect(spawns.some((s) => s.at === w.spawnsAtTick)).toBe(true);
+    expect(flares.length).toBeGreaterThan(0);
+    const lead = steps(rules.flareMs);
+    for (const fl of flares) {
+      expect(PORTAL_IDS).toContain(fl.portal);
+      expect(spawns.some((x) => x.portal === fl.portal && x.at === fl.at + lead)).toBe(true);
     }
-    expect(spawns.every((s) => s.lane === 'bottom')).toBe(true);
+    for (const x of spawns) expect(PORTAL_IDS).toContain(x.portal);
+    // Spawn pulses spread over every portal (each pulse up to players + 1 of them, §9.3).
+    expect(new Set(spawns.map((x) => x.portal)).size).toBe(PORTAL_IDS.length);
+  });
+
+  it('debug spawn: a group at the chosen portal; an unknown portal is refused', () => {
+    const h = harness(1);
+    h.toCombat();
+    h.holdSpawns();
+    h.sim.command({ c: 'debug', slot: -1, action: 'spawn', enemy: 'grunt', portal: 'right-s' });
+    h.sim.step();
+    const e = h.sim.world.enemies.find((x) => x.portal === 'right-s')!;
+    const at = h.sim.content.map!.portals['right-s'].spawn;
+    expect(Math.abs(e.x - at.x)).toBeLessThan(1);
+    expect(Math.abs(e.y - at.y)).toBeLessThan(1);
+    h.sim.command({
+      c: 'debug',
+      slot: -1,
+      action: 'spawn',
+      enemy: 'grunt',
+      portal: 'top' as never,
+      ref: 9,
+    });
+    h.sim.step();
+    expect(h.events('command').find((x) => x.ref === 9)).toMatchObject({
+      ok: false,
+      reason: 'invalid',
+    });
   });
 
   it('scales the wave from the players connected at its start', () => {
@@ -91,10 +164,17 @@ describe('combat: spawner, warnings, scaling', () => {
       return { n, scaling: sim.world.team.scaling };
     };
     const two = count(4, 2);
-    expect(two.scaling).toEqual({ players: 2, mult: 1, flyers: true });
+    expect(two.scaling).toEqual({
+      players: 2,
+      budget: 1,
+      bossHp: 1,
+      respawnMs: 10_000,
+      activeCap: 3,
+      flyers: true,
+    });
     expect(Math.abs(two.n - waves[0]!.budget)).toBeLessThanOrEqual(1);
     const four = count(4, 4);
-    expect(four.scaling.mult).toBe(1.5);
+    expect(four.scaling.budget).toBe(1.5);
     expect(Math.abs(four.n - waves[0]!.budget * 1.5)).toBeLessThanOrEqual(1);
   });
 });
@@ -123,7 +203,7 @@ describe('wave end, victory, defeat', () => {
     expect(p.hp).toBe(p.maxHp);
   });
 
-  it('kills pay their budget cost into the team pool', () => {
+  it('kills pay their budget cost × the coin rate × the solo coin factor into the team pool', () => {
     const h = harness(1);
     h.toCombat();
     h.holdSpawns();
@@ -133,7 +213,7 @@ describe('wave end, victory, defeat', () => {
     h.put(0, 10, 18);
     h.pads[0]!.tap('mainFires');
     h.run(30);
-    expect(h.sim.world.team.coins).toBe(coins + 1);
+    expect(h.sim.world.team.coins).toBeCloseTo(coins + rules.coinRate * scaling[0]!.coins, 9);
     expect(h.p(0).run.kills).toBe(1);
   });
 

@@ -12,9 +12,36 @@ import { clips as skitter } from '../../render/clips/skitter';
 import { clips as stalker, STALKER_LUNGE_MS } from '../../render/clips/stalker';
 import { clips as wasp, WASP_FIRE_MS } from '../../render/clips/wasp';
 import { PROJECTILE_SPEEDS } from '../../render/effectsMath';
-import { chargeLevel, enemyShotPos, pulseHz, pulseLevel, TELL_GLOW } from '../enemyFx';
+import {
+  bruteArrowLift,
+  bruteCueScale,
+  chargeLevel,
+  enemyShotPos,
+  laneQuad,
+  pulseHz,
+  pulseLevel,
+  TELL_GLOW,
+} from '../enemyFx';
 
 const enemy = (id: string) => content.enemies.find((e) => e.id === id)!;
+
+describe('RD10 cues', () => {
+  it('fits the Brute target ring to a build, never below the art size', () => {
+    expect(bruteCueScale(0.1)).toBe(1);
+    expect(bruteCueScale(0.6)).toBeCloseTo(2, 5);
+  });
+
+  it('puts the arrow tip above the build', () => {
+    expect(bruteArrowLift('beacon')).toBeGreaterThan(bruteArrowLift('shield_gen'));
+    expect(bruteArrowLift('anything')).toBeGreaterThan(0);
+  });
+
+  it('draws the Charge lane as a quad around its center line, filled along it', () => {
+    const m = { x: 2, y: 3, x2: 12, y2: 3, r: 1 };
+    expect(laneQuad(m, 1)).toEqual([2, 4, 2, 2, 12, 2, 12, 4]);
+    expect(laneQuad(m, 0.5)).toEqual([2, 4, 2, 2, 7, 2, 7, 4]);
+  });
+});
 
 describe('enemy clips', () => {
   const all = { drone, skitter, brute, bombard, wasp, mite, stalker };

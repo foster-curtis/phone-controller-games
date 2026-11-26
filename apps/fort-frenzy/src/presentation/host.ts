@@ -1,0 +1,91 @@
+// Neon knights theme, TV only (SPEC §15.4 PresentationHost): the packed atlases (1× and 2×), the rigs, the
+// clips from src/host/render/clips/<rig>.ts (found by glob, BUILD_PLAN §3), the rig map from
+// internal ids to the theme's rigs and the map frames.
+import { atlasFiles } from '../../generated/keys';
+import { fk } from '../host/render/keys';
+import type { EnemyId } from '../shared/ids';
+import { ART_SET, type AtlasRef, type Clip, type PresentationHost, type RigDef } from './types';
+
+const atlasUrls = import.meta.glob<string>('../../generated/atlases/*.{png,json}', {
+  query: '?url',
+  import: 'default',
+  eager: true,
+});
+
+const rigJson = import.meta.glob<RigDef>('../../art/neon-knights/rigs/*.json', {
+  import: 'default',
+  eager: true,
+});
+
+const clipModules = import.meta.glob<Record<string, Clip>>('../host/render/clips/*.ts', {
+  import: 'clips',
+  eager: true,
+});
+
+const sfxUrls = import.meta.glob<string>('../../audio/neon-knights/*.mp3', {
+  query: '?url',
+  import: 'default',
+  eager: true,
+});
+
+const url = (path: string) => atlasUrls[`../../generated/${path}`] ?? '';
+
+const atlases: AtlasRef[] = atlasFiles
+  .filter((a) => a.set === ART_SET)
+  .map((a) => ({ key: a.key, json: url(a.json), image: url(a.image), scale: a.scale }));
+
+const rigs: Record<string, RigDef> = {};
+for (const rig of Object.values(rigJson)) rigs[rig.id] = rig;
+
+const clips: Record<string, Clip> = {};
+for (const [path, byName] of Object.entries(clipModules)) {
+  const rig = /([^/]+)\.ts$/.exec(path)![1]!;
+  for (const [name, clip] of Object.entries(byName)) clips[`${rig}/${name}`] = clip;
+}
+
+export const presentationHost: PresentationHost = {
+  atlases,
+  rigs,
+  clips,
+  rigFor: {
+    // A knight's rig id is its id (RD1).
+    knight: { ranger: 'ranger', warden: 'warden', artificer: 'artificer', commander: 'commander' },
+    enemy: {
+      grunt: 'drone',
+      runner: 'skitter',
+      swarm: 'mite',
+      brute: 'brute',
+      flyer: 'wasp',
+      siege: 'bombard',
+      hunter: 'stalker',
+      colossus: 'colossus',
+    } satisfies Record<EnemyId, string>,
+    soldier: 'footman',
+  },
+  sfx: Object.fromEntries(
+    Object.entries(sfxUrls).map(([p, u]) => [p.slice(p.lastIndexOf('/') + 1, -4), u]),
+  ) as PresentationHost['sfx'],
+  map: {
+    ground: [fk('ground/1'), fk('ground/2'), fk('ground/3'), fk('ground/4')],
+    edges: {
+      n: fk('edge/n'),
+      s: fk('edge/s'),
+      e: fk('edge/e'),
+      w: fk('edge/w'),
+      ne: fk('edge/ne'),
+      nw: fk('edge/nw'),
+      se: fk('edge/se'),
+      sw: fk('edge/sw'),
+    },
+    portals: {
+      left: { idle: fk('portal/left-idle'), flare: fk('portal/left-flare') },
+      bottom: { idle: fk('portal/bottom-idle'), flare: fk('portal/bottom-flare') },
+      right: { idle: fk('portal/right-idle'), flare: fk('portal/right-flare') },
+    },
+    decor: [fk('decor/grate'), fk('decor/plate'), fk('decor/lines'), fk('decor/crack')],
+    // C3: the art's #262b33 stone sat at the violet-iron hulls' luminance (1.0–1.2:1), so enemies
+    // vanished. Lifted to #62676f: ink outlines 3.4:1, hulls 2.1–2.6:1, still under the bloom and
+    // darker than every glow (BUILD_PLAN §8 FF3-fix-2; floor-contrast.test.ts).
+    floorLift: 0x3c3c3c,
+  },
+};

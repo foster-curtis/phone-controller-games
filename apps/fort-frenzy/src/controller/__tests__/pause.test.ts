@@ -59,7 +59,7 @@ describe('team pause on the phone (C4, FF14-fix-1)', () => {
     expect(layer().hidden).toBe(true);
     pauseBtn()!.click();
     expect(intents(client).at(-1)).toEqual({ k: 'pause', paused: true });
-    emitSample(client, 'build', 2);
+    emitSample(client, 'shop', 2);
     expect(pauseBtn()!.hidden).toBe(false);
     emitSample(client, 'dead', 3);
     expect(pauseBtn()!.hidden).toBe(false);
@@ -95,5 +95,73 @@ describe('team pause on the phone (C4, FF14-fix-1)', () => {
     emitSample(client, 'build-paused');
     expect(layer().hidden).toBe(false);
     expect(layer().textContent).toContain('paused the run');
+  });
+});
+
+describe('pause menu: Leave game and End game (RD6-fix-1)', () => {
+  const q = (sel: string) => root.querySelector<HTMLButtonElement>(sel)!;
+  const shown = (sel: string) => {
+    const n = root.querySelector<HTMLElement>(sel);
+    return n !== null && !n.hidden && n.closest('[hidden]') === null;
+  };
+
+  it('Leave game needs the confirm step: one tap sends nothing, Confirm sends one leave', () => {
+    const client = mount();
+    emitSample(client, 'combat-paused');
+    const before = intents(client).length;
+    expect(shown('[data-leave]')).toBe(true);
+    q('[data-leave]').click();
+    expect(intents(client)).toHaveLength(before);
+    expect(shown('[data-pause-confirm]')).toBe(true);
+    expect(layer().textContent).toContain('Leave the game?');
+    q('[data-pause-confirm]').click();
+    q('[data-pause-confirm]').click(); // a double tap still sends one
+    expect(intents(client).slice(before)).toEqual([{ k: 'leave' }]);
+  });
+
+  it('Cancel sends nothing and goes back to the menu', () => {
+    const client = mount();
+    emitSample(client, 'combat-paused');
+    const before = intents(client).length;
+    q('[data-leave]').click();
+    q('[data-pause-cancel]').click();
+    expect(shown('[data-pause-confirm]')).toBe(false);
+    expect(shown('[data-resume]')).toBe(true);
+    q('[data-end-game]').click();
+    expect(layer().textContent).toContain('End the game for everyone?');
+    q('[data-pause-cancel]').click();
+    expect(intents(client)).toHaveLength(before);
+  });
+
+  it('End game (leader) needs the confirm step and sends one endGame', () => {
+    const client = mount();
+    emitSample(client, 'build-paused');
+    const before = intents(client).length;
+    q('[data-end-game]').click();
+    expect(intents(client)).toHaveLength(before);
+    q('[data-pause-confirm]').click();
+    expect(intents(client).slice(before)).toEqual([{ k: 'leader', action: 'endGame' }]);
+  });
+
+  it('End game is hidden for non-leaders; Leave game is not', () => {
+    const client = mount();
+    emitSample(client, 'paused-member');
+    expect(shown('[data-leave]')).toBe(true);
+    expect(shown('[data-end-game]')).toBe(false);
+  });
+
+  it('after a confirmed leave, the host`s kick returns the phone to the join screen', () => {
+    const client = mount();
+    emitSample(client, 'combat-paused');
+    q('[data-leave]').click();
+    q('[data-pause-confirm]').click();
+    const sent = client.sent.find(
+      (m) => (m as { intent?: { k: string } }).intent?.k === 'leave',
+    ) as { seq: number };
+    client.emit({ t: 'ack', seq: sent.seq, ok: true });
+    client.kick();
+    expect(app!.group()).toBe('join');
+    expect(root.querySelector('input[aria-label="Room code"]')).not.toBeNull();
+    expect(root.textContent).toContain('You left the game');
   });
 });

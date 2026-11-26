@@ -92,12 +92,12 @@ export function refreshStats(u: Unit, base: StatBlock, effects: EffectTable, cap
   if (u.hp > u.maxHp) u.hp = u.maxHp;
 }
 
-/** One attack value: `base` through the unit's mods for `stat`, scoped to `scope` (main/super). */
+/** One attack value: `base` through the unit's mods for `stat`, scoped to `scope` (main/super/build/squad). */
 export function attackStat(
   u: Unit,
   base: number,
   stat: StatId,
-  scope: 'main' | 'super' | 'passive' | undefined,
+  scope: 'main' | 'super' | 'build' | 'squad' | undefined,
   effects: EffectTable,
   caps: Caps,
 ): number {

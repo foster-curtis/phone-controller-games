@@ -6,6 +6,7 @@
 // team, cards for classes not on it). A pick adds a stack (×N) and rebuilds that card's modifier:
 // the card's stats (and the commons' per-class numbers) times the stacks, plus its module built with
 // `stacks`. Stats add, never multiply, and caps come from the rules (§6.1 stat math).
+import { rngStream } from '@pcg/game-kit';
 import type { CardDef } from '../../../content/types';
 import type { CardId, EnemyId } from '../../../shared/ids';
 import type { AckReason } from '../../../shared/messages';
@@ -20,7 +21,7 @@ import type { Modifier, PlayerEnt, StatMod, World } from '../types';
 const isRare = (c: CardDef) => c.tier !== 'common';
 
 /** Classes that bring ranged attackers: without one, Flyers are replaced (§9, lifecycle.ts). */
-const RANGED = new Set(['engineer', 'quartermaster']);
+const RANGED = new Set(['ranger', 'artificer']);
 
 /**
  * Can `enemy` still spawn for this team, from wave `from` on? Flyers are substituted when no ranged
@@ -97,7 +98,7 @@ export function cardModifier(cat: Catalog, p: PlayerEnt, id: CardId, n: number):
   const mod = def?.module ? modules[def.module.module] : undefined;
   const m: Modifier = mod ? mod.make({ ...(def?.module?.params ?? {}), stacks: n }) : { id: '' };
   m.id = `card:${id}`;
-  const stats = [...(def?.stats ?? []), ...(def?.perClass?.[p.classId] ?? [])];
+  const stats = [...(def?.stats ?? []), ...(def?.perKnight?.[p.classId] ?? [])];
   if (stats.length > 0) m.stats = [...(m.stats ?? []), ...scaled(stats, n)];
   return m;
 }
@@ -120,13 +121,64 @@ export function attachAllCards(s: FullState, p: PlayerEnt): void {
     if ((p.cards[id] ?? 0) > 0) attachCard(s, p, id);
 }
 
+/**
+ * The build phase's end (§10.2): every offer not confirmed is picked at random from the seeded
+ * stream `cardPick:<wave>:<slot>`, so the same seed picks the same card (event `cardAuto`).
+ */
+export function autoPickCards(s: FullState): void {
+  const w = s.world;
+  for (const p of w.players) {
+    if (!p.offer || p.offer.length === 0 || p.picked !== null) continue;
+    const card = rngStream(w.seed, `cardPick:${w.wave}:${p.slot}`).pick(p.offer);
+    if (pickCard(s, p, card) === null) s.emit({ e: 'cardAuto', slot: p.slot, card });
+  }
+}
+
+/** One more stack of `card`: the apply path a pick and a debug give share. */
+function addStack(s: FullState, p: PlayerEnt, card: CardId): void {
+  p.cards[card] = (p.cards[card] ?? 0) + 1;
+  attachCard(s, p, card);
+}
+
 /** The `card` command: a private pick of one card from the player's offer (build phase). */
 export function pickCard(s: FullState, p: PlayerEnt, card: CardId): AckReason | null {
   if (s.world.phase !== 'build') return 'phase';
   if (p.picked !== null || !p.offer || !p.offer.includes(card)) return 'invalid';
-  p.cards[card] = (p.cards[card] ?? 0) + 1;
+  addStack(s, p, card);
   p.picked = card;
-  attachCard(s, p, card);
   s.emit({ e: 'cardPicked', slot: p.slot, card });
+  return null;
+}
+
+/** Unique per knight: marked unique, or a combo (two prerequisites, §6.1). */
+export function isUniqueCard(c: CardDef): boolean {
+  return c.unique === true || (c.requires?.length ?? 0) >= 2;
+}
+
+/**
+ * Can a knight of `classId` holding `owned` be given `card` by the debug panel (RD6-fix-2)? `invalid`:
+ * not a card this knight could ever hold (another knight's); `cap`: a unique card it already owns.
+ * `requires` is not checked: the panel labels those cards instead.
+ */
+export function giveRefusal(
+  cards: readonly CardDef[],
+  classId: string,
+  owned: Partial<Record<CardId, number>>,
+  card: CardId,
+): 'invalid' | 'cap' | null {
+  const def = cards.find((c) => c.id === card);
+  if (!def || (def.owner !== 'common' && def.owner !== classId)) return 'invalid';
+  if (isUniqueCard(def) && (owned[card] ?? 0) > 0) return 'cap';
+  return null;
+}
+
+/**
+ * The debug `card` command (§9.5, RD6-fix-2): one stack through the pick's apply path in any phase,
+ * leaving the offer and `picked` alone and emitting nothing (the phones and the TV show no pick).
+ */
+export function giveCard(s: FullState, p: PlayerEnt, card: CardId): AckReason | null {
+  const no = giveRefusal(s.cat.content.cards, p.classId, p.cards, card);
+  if (no) return no;
+  addStack(s, p, card);
   return null;
 }

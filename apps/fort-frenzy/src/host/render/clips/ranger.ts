@@ -3,7 +3,7 @@
 // kneel are FF7's: wiring snaps to `ready` for the shot. The back views have no quiver strap (art
 // note, BUILD_PLAN §8), so no clip moves one there.
 import rig from '../../../../art/neon-knights/rigs/ranger.json';
-import type { Clip, Keyframe, Point, RigDef, ViewId } from '../../../themes/types';
+import type { Clip, Keyframe, Point, RigDef, ViewId } from '../../../presentation/types';
 import { sampleClip } from '../clip';
 import { each, knightClips, once, type KnightParts } from '../clipKit';
 import { half } from '../split';

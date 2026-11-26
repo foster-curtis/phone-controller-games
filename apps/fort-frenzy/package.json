@@ -1,6 +1,6 @@
 {
   "name": "@pcg/fort-frenzy",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,7 +12,8 @@
     "test": "pnpm assets && vitest run",
     "e2e": "pnpm assets && playwright test --pass-with-no-tests",
     "bench": "tsx scripts/bench.ts",
-    "soak": "tsx scripts/soak.ts"
+    "soak": "tsx scripts/soak.ts",
+    "balance": "tsx scripts/balance.ts"
   },
   "dependencies": {
     "@pcg/controller-kit": "workspace:*",

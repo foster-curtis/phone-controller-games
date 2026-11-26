@@ -10,26 +10,32 @@ import {
   aimGesture,
   encodeAimed,
   encodeAimedState,
-  type AttackKey,
+  touchName,
+  type AimKey,
   type PhoneSender,
 } from './input';
-import { pickZone, type CombatLayout } from './layout';
+import { pickZone, type CombatLayout, type ZoneKey } from './layout';
 
 export interface AimZoneOptions {
   sender: PhoneSender;
   getLayout(): CombatLayout;
   /** The drawn buttons; they get `floating` + `--fx/--fy/--kx/--ky` while a finger drives them. */
-  buttons: Record<AttackKey, HTMLElement>;
+  buttons: Partial<Record<AimKey, HTMLElement>>;
+  /** False while a button can't fire (the build button's dimmed state); its touches do nothing. */
+  enabled?(key: AimKey): boolean;
   now?: () => number;
 }
 
 export interface AimZones {
   el: HTMLElement;
   /** Which attack keys are aimed for the current class; the rest are left to their own buttons. */
-  setAimed(keys: readonly AttackKey[]): void;
+  setAimed(keys: readonly AimKey[]): void;
   reset(): void;
   destroy(): void;
 }
+
+const KEY_OF: Record<ZoneKey, AimKey> = { main: 'main', super: 'super', action: 'build' };
+const ZONE_OF: Record<AimKey, ZoneKey> = { main: 'main', super: 'super', build: 'action' };
 
 type Machine = ReturnType<typeof aimGesture>;
 type Input = Parameters<Machine['step']>[1];
@@ -39,12 +45,12 @@ export function mountAimZones(parent: HTMLElement, o: AimZoneOptions): AimZones 
   parent.append(zone);
   const now = o.now ?? (() => Date.now());
   const machine = aimGesture();
-  let aimed: readonly AttackKey[] = [];
-  let active: { id: number; key: AttackKey; ox: number; oy: number; state: AimedState } | null =
-    null;
+  let aimed: readonly AimKey[] = [];
+  let active: { id: number; key: AimKey; ox: number; oy: number; state: AimedState } | null = null;
 
-  const paint = (key: AttackKey, st: AimedState | null, floatX?: number, floatY?: number) => {
+  const paint = (key: AimKey, st: AimedState | null, floatX?: number, floatY?: number) => {
     const b = o.buttons[key];
+    if (!b) return;
     if (!st) {
       b.classList.remove('floating', 'pressed', 'aiming');
       for (const v of ['--fx', '--fy', '--kx', '--ky']) b.style.removeProperty(v);
@@ -67,7 +73,7 @@ export function mountAimZones(parent: HTMLElement, o: AimZoneOptions): AimZones 
     active.state = r.state;
     const idle = r.state.phase === 'idle';
     encodeAimedState(o.sender, key, r.state);
-    o.sender.touch(key, !idle);
+    o.sender.touch(touchName(key), !idle);
     paint(key, idle ? null : r.state);
     for (const out of r.out) encodeAimed(o.sender, key, out);
     if (idle) active = null;
@@ -79,10 +85,11 @@ export function mountAimZones(parent: HTMLElement, o: AimZoneOptions): AimZones 
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     const layout = o.getLayout();
-    const key = pickZone(layout, x, y);
-    // A tap or radial button is not ours: its own element takes touches on it, and a touch in the
+    const picked = pickZone(layout, x, y);
+    // A tap button is not ours: its own element takes touches on it, and a touch in the
     // bounds of one of those does nothing here.
-    if (key === null || key === 'action' || !aimed.includes(key)) return;
+    const key = picked === null ? null : KEY_OF[picked];
+    if (key === null || !aimed.includes(key) || o.enabled?.(key) === false) return;
     e.preventDefault();
     try {
       zone.setPointerCapture?.(e.pointerId);
@@ -92,7 +99,7 @@ export function mountAimZones(parent: HTMLElement, o: AimZoneOptions): AimZones 
     active = { id: e.pointerId, key, ox: e.clientX, oy: e.clientY, state: machine.initial() };
     feed({ type: 'down', t: now() });
     // The joystick floats to the finger: offset from the button's resting center.
-    const rest = layout[key];
+    const rest = layout[ZONE_OF[key]];
     if (active) paint(key, active.state, x - rest.cx, y - rest.cy);
   };
   const move = (e: PointerEvent) => {
@@ -118,7 +125,7 @@ export function mountAimZones(parent: HTMLElement, o: AimZoneOptions): AimZones 
     const { key } = active;
     active = null;
     encodeAimedState(o.sender, key, machine.initial());
-    o.sender.touch(key, false);
+    o.sender.touch(touchName(key), false);
     paint(key, null);
   };
 

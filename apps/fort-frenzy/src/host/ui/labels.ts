@@ -1,34 +1,27 @@
-// Display text and icon ids for the TV overlay (neon knights, SPEC §2.1, §2.6, §6.2). FF3's theme
-// pack will own these maps for the whole game; until it lands the overlay carries the one theme in v1.
+// Display text and icon ids for the TV overlay (SPEC §2.1, §2.6, §6.2). Presentation (src/presentation/) will
+// own these maps for the whole game; until then the overlay carries them.
 import type { RunStats } from '../../shared/messages';
-import type {
-  ClassId,
-  DifficultyId,
-  EnemyId,
-  PlayerColorId,
-  ShopItemId,
-  ThemeId,
-} from '../../shared/ids';
+import type { ClassId, DifficultyId, EnemyId, PlayerColorId, ShopItemId } from '../../shared/ids';
 
 export const CLASS_NAME: Record<ClassId, string> = {
-  engineer: 'Ranger',
+  ranger: 'Ranger',
   warden: 'Warden',
-  quartermaster: 'Artificer',
+  artificer: 'Artificer',
   commander: 'Commander',
 };
 
 /** Rig id for a class: the portrait files are named after it. */
 export const CLASS_RIG: Record<ClassId, string> = {
-  engineer: 'ranger',
+  ranger: 'ranger',
   warden: 'warden',
-  quartermaster: 'artificer',
+  artificer: 'artificer',
   commander: 'commander',
 };
 
 export const CLASS_ICON: Record<ClassId, string> = {
-  engineer: 'class-ranger',
+  ranger: 'class-ranger',
   warden: 'class-warden',
-  quartermaster: 'class-artificer',
+  artificer: 'class-artificer',
   commander: 'class-commander',
 };
 
@@ -55,40 +48,22 @@ export const ENEMY_RIG: Record<EnemyId, string> = {
 };
 
 export const SHOP_NAME: Record<ShopItemId, string> = {
-  crate: 'Power cell',
   repair: 'Base repair',
   archer_damage: 'Sentry damage',
   archer_range: 'Sentry range',
   archer_third: 'Third sentry',
-  squad_stats: 'Squad stats',
-  arrow_rate: 'Pulse turret fire rate',
-  bomb_radius: 'Mortar blast radius',
-  tower_hp: 'Tower HP',
-  wall_hp: 'Wall HP',
-  snare_charges: 'Shock net charges',
-  spiked_walls: 'Charged walls',
+  base_hp: 'Base max HP',
   base_armor: 'Base armor',
-  emergency_kit: 'Emergency kit',
 };
 
 export const SHOP_ICON: Record<ShopItemId, string> = {
-  crate: 'cell',
   repair: 'repair',
   archer_damage: 'sentry-damage',
   archer_range: 'sentry-range',
   archer_third: 'sentry-third',
-  squad_stats: 'squad',
-  arrow_rate: 'turret-rate',
-  bomb_radius: 'mortar-radius',
-  tower_hp: 'tower-hp',
-  wall_hp: 'wall-hp',
-  snare_charges: 'net-charges',
-  spiked_walls: 'charged-walls',
+  base_hp: 'base-hp',
   base_armor: 'base-armor',
-  emergency_kit: 'emergency-kit',
 };
-
-export const THEME_NAME: Record<ThemeId, string> = { 'neon-knights': 'Neon Knights' };
 
 export const DIFFICULTY_NAME: Record<DifficultyId, string> = {
   easy: 'Easy',
@@ -104,9 +79,7 @@ export const AWARD: Record<keyof RunStats, { label: string; icon: string }> = {
   damageTaken: { label: 'Took the hits', icon: 'base-armor' },
   deaths: { label: 'Most falls', icon: 'reconnecting' },
   healingDone: { label: 'Best medic', icon: 'repair' },
-  cratesDelivered: { label: 'Cells delivered', icon: 'cell' },
-  cratesGiven: { label: 'Cells shared', icon: 'act-give' },
-  structuresBuilt: { label: 'Most built', icon: 'wall' },
+  buildsPlaced: { label: 'Most builds', icon: 'act-shield' },
 };
 
 export const COLOR_VAR = (c: PlayerColorId): string => `var(--player-${c})`;

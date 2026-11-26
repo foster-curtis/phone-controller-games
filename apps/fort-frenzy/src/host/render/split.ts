@@ -2,7 +2,7 @@
 // draw both legs as one `legs` part (and one `legs-glow`). The renderer draws that frame twice,
 // cropped at the crotch into two halves (screen left and right), so clips move each leg on its own
 // and swap which one is in front. The art stays as is; pure TS, tested headless.
-import type { Point, RigPart, RigView, ViewId } from '../../themes/types';
+import type { Point, RigPart, RigView, ViewId } from '../../presentation/types';
 
 /** Half-width of the overlap at the cut, sprite units: each half keeps the shared ink edge. */
 const OVERLAP = 1;

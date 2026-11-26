@@ -2,7 +2,7 @@
 import type * as Phaser from 'phaser';
 import type { ArtImage, ArtLibrary } from './atlas';
 import type { Camera, LayerId } from './types';
-import type { Point } from '../../themes/types';
+import type { Point } from '../../presentation/types';
 
 export interface RenderContext {
   readonly scene: Phaser.Scene;

@@ -4,7 +4,7 @@
 // the head don't count, the Wasp is hit at its flight height, and the Colossus stays low.
 import { describe, expect, it } from 'vitest';
 import { content } from '../../../content';
-import { brute, colossus, engineer, grunt, rules } from '../../../content/balance';
+import { brute, colossus, ranger, grunt, rules } from '../../../content/balance';
 import type { EnemyId } from '../../../shared/ids';
 import { GROUND_SQUASH } from '../../../shared/projection';
 import { circleHitsBody, groundBody, sectorHitsBody, segmentHitsBody } from '../body';
@@ -76,7 +76,7 @@ describe('a Ranger shot at an enemy’s drawn body', () => {
     const top = PY + 5 - grunt.body.top / GROUND_SQUASH;
     // It hits on the step it reaches the top of the body (the bolt is 0.12 thick).
     const steps = h.until(() => e.hp < e.maxHp, 60);
-    const travelled = (steps * engineer.main.speed) / 60;
+    const travelled = (steps * ranger.main.speed) / 60;
     expect(PY + travelled).toBeGreaterThan(top - rules.projectileRadius - 0.3);
     expect(PY + travelled).toBeLessThan(top + 0.3);
   });

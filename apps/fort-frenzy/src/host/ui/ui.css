@@ -176,6 +176,14 @@
 #tv-ui .row {
   height: 64px;
 }
+/* Mouse: the overlay root ignores the pointer (the canvas sits under it), so only the home rows take it. */
+#tv-ui .hit {
+  display: contents;
+}
+#tv-ui .hit .pnl {
+  pointer-events: auto;
+  cursor: pointer;
+}
 #tv-ui .row .in {
   display: flex;
   align-items: center;
@@ -566,62 +574,6 @@
   color: var(--danger);
   animation: ff-pulse var(--pulse-period) ease-in-out infinite;
 }
-#tv-ui .lane {
-  position: absolute;
-  animation: ff-pulse var(--pulse-period) ease-in-out infinite;
-}
-#tv-ui .lane.bottom {
-  background: linear-gradient(
-    to top,
-    color-mix(in srgb, var(--hostile) 70%, transparent),
-    transparent
-  );
-  mask-image: linear-gradient(
-    to right,
-    transparent,
-    var(--brand-ink) 30%,
-    var(--brand-ink) 70%,
-    transparent
-  );
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent,
-    var(--brand-ink) 30%,
-    var(--brand-ink) 70%,
-    transparent
-  );
-}
-#tv-ui .lane.left,
-#tv-ui .lane.right {
-  mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    var(--brand-ink) 30%,
-    var(--brand-ink) 70%,
-    transparent
-  );
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent,
-    var(--brand-ink) 30%,
-    var(--brand-ink) 70%,
-    transparent
-  );
-}
-#tv-ui .lane.left {
-  background: linear-gradient(
-    to right,
-    color-mix(in srgb, var(--hostile) 70%, transparent),
-    transparent
-  );
-}
-#tv-ui .lane.right {
-  background: linear-gradient(
-    to left,
-    color-mix(in srgb, var(--hostile) 70%, transparent),
-    transparent
-  );
-}
 #tv-ui .hud-boss {
   left: 640px;
   top: 907px;
@@ -671,7 +623,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 260px;
+  flex: none;
 }
 #tv-ui .pv-head .pad {
   font: 700 28px/1 var(--font-display);
@@ -681,21 +633,23 @@
 }
 #tv-ui .pv-tiles {
   display: flex;
-  gap: 14px;
+  gap: var(--pv-gap, 14px);
   flex: 1;
-  justify-content: flex-end;
+  min-width: 0;
+  justify-content: flex-start;
 }
 #tv-ui .eny {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 120px;
+  width: var(--pv-tile, 120px);
+  flex: none;
 }
 #tv-ui .eny .tile {
   position: relative;
   display: block;
-  width: 120px;
-  height: 88px;
+  width: var(--pv-tile, 120px);
+  height: calc(var(--pv-tile, 120px) * 88 / 120);
   background: var(--stone);
   clip-path: var(--clip-chamfer-sm);
 }

@@ -1,9 +1,12 @@
-// Commander card modules (SPEC §6.1): Forced March, Siege Breakers, Veterans, Last Stand, Vanguard and
-// the Warcry combo. Bladework and Rally Cry are plain stat cards (content/balance.ts). Squad cards
-// change how the squad behaves, never its raw stats (shop): the Commander's module keeps a small
-// modifier on each of his soldiers, which reads his current stacks live (a re-pick needs no resync).
+// Commander card modules (SPEC §6.1): Rally Cry, Morale, Siege Breakers, Veterans, Last Stand, Vanguard
+// and the Warcry combo. Heavy Bash, Forced March, Drillmaster and Reinforced Ranks are plain stat cards
+// (content/balance.ts; the squad reads its `squad*` stats from him, squad/index.ts). The Commander's
+// module keeps a small modifier on each of his soldiers, which reads his current stacks live (a re-pick
+// needs no resync).
+import type { Rng } from '@pcg/game-kit';
 import { dist } from '../geometry';
-import { squadSize } from '../squad';
+import { applyMorale } from '../modules/morale';
+import { squadCapOf } from '../squad';
 import { state, type SimState } from '../internal';
 import type { Modifier, ModuleDef, PlayerEnt, SoldierEnt } from '../types';
 import { enemyTarget, num, stacksOf } from './common';
@@ -24,19 +27,57 @@ const stacksOfCard = (
   card: 'siege_breakers' | 'last_stand' | 'veterans',
 ) => s.player(slot)?.cards[card] ?? 0;
 
-/** The squad moves faster, following and to the flag: a refreshed haste on each soldier. */
-export const forcedMarch: ModuleDef = {
-  id: 'forced_march',
+/** Rally Cry's chance of a second soldier at `stacks` copies: +`perCopy` per extra, up to 100%. */
+export const rallyCryChance = (stacks: number, chance: number, perCopy: number): number =>
+  Math.min(1, chance + perCopy * Math.max(0, stacks - 1));
+
+/** One Reinforcements roll, from the seeded combat stream. A sure thing draws nothing. */
+export function rollRallyCry(rng: Rng, chance: number): boolean {
+  if (chance >= 1) return true;
+  return chance > 0 && rng.next() < chance;
+}
+
+/** Reinforcements may throw 2 soldiers instead of 1 (§6.1); the TV shows "×2". */
+export const rallyCry: ModuleDef = {
+  id: 'rally_cry',
   make(p) {
-    const strength = num(p, 'pct') * stacksOf(p);
-    const auraMs = num(p, 'auraMs');
+    const chance = rallyCryChance(stacksOf(p), num(p, 'chance'), num(p, 'perCopy'));
     return {
-      id: 'card:forced_march',
+      id: 'card:rally_cry',
+      hooks: {
+        onAttack(ctx, _self, atk) {
+          if (atk.slot !== 'super') return;
+          const s = state(ctx);
+          if (rollRallyCry(s.rng(`combat:${s.world.wave}`), chance)) atk.count = 2;
+        },
+      },
+    };
+  },
+};
+
+/**
+ * Morale (§6.1): allied knights and soldiers near him gain damage, attack rate and movement. His
+ * flag holds the same area (builds/rallyFlag.ts, so it works while he's down); inside both a unit
+ * still has one effect. No visual of its own.
+ */
+export const moraleCard: ModuleDef = {
+  id: 'morale',
+  make(p) {
+    const radius = num(p, 'radius');
+    num(p, 'flagRadius');
+    const fx = {
+      effect: 'morale' as const,
+      strength: num(p, 'strength'),
+      durationMs: num(p, 'auraMs'),
+    };
+    return {
+      id: 'card:morale',
       hooks: {
         onTick(ctx, self) {
           const s = state(ctx);
-          for (const u of ownSoldiers(s, (self as PlayerEnt).slot))
-            ctx.applyEffect(u.id, { effect: 'haste', strength, durationMs: auraMs }, self.id);
+          const me = self as PlayerEnt;
+          if (s.world.phase !== 'combat' || !s.targetable(me)) return;
+          applyMorale(s, me.id, me.x, me.y, radius, fx);
         },
       },
     };
@@ -70,7 +111,7 @@ export const siegeBreakers: ModuleDef = {
   },
 };
 
-/** The squad deals +`pct` × stacks damage per soldier lost from its full size. */
+/** The squad deals +`pct` × stacks damage per soldier short of its cap (§6.1). */
 export const lastStand: ModuleDef = {
   id: 'last_stand',
   make(p) {
@@ -86,9 +127,10 @@ export const lastStand: ModuleDef = {
             hooks: {
               modifyOutgoing(c, _u, d) {
                 const st = state(c);
-                const sizes = st.cat.character(me.classId).squad?.size ?? [];
-                const full = squadSize(st.cat.waves, sizes, st.world.wave);
-                const lost = Math.max(0, full - ownSoldiers(st, me.slot).length);
+                const squad = st.cat.knight(me.classId).squad;
+                if (!squad) return;
+                const cap = squadCapOf(squad, (b) => st.attackStat(me, b, 'squadCap', 'squad'));
+                const lost = Math.max(0, cap - ownSoldiers(st, me.slot).length);
                 d.amount *= 1 + pct * lost * stacksOfCard(st, me.slot, 'last_stand');
               },
             },
@@ -101,8 +143,8 @@ export const lastStand: ModuleDef = {
 
 /**
  * Soldiers who survive a wave permanently gain `gain` × stacks max HP and damage per wave survived
- * (up to `max` waves). Survivors are the soldiers alive at the end of combat: the build phase's
- * replacements are new entities, so they start fresh.
+ * (up to `max` waves). Survivors are the soldiers alive at the end of combat; one thrown in later
+ * starts fresh.
  */
 export const veterans: ModuleDef = {
   id: 'veterans',
@@ -139,7 +181,7 @@ export const veterans: ModuleDef = {
           if (!m.fighting) return;
           m.fighting = false;
           if (s.world.phase !== 'build') return;
-          const baseHp = s.cat.character(me.classId).squad?.soldier.hp ?? 0;
+          const baseHp = s.cat.knight(me.classId).squad?.soldier.hp ?? 0;
           for (const u of ownSoldiers(s, me.slot)) {
             if (!m.alive.includes(u.id) || u.veterans >= max) continue;
             u.veterans++;
@@ -176,7 +218,7 @@ export const vanguard: ModuleDef = {
   },
 };
 
-/** The super also gives morale to other players within `radius`, briefly. */
+/** Reinforcements also gives other knights within `radius` morale, briefly, with its flash (§6.1). */
 export const warcry: ModuleDef = {
   id: 'warcry',
   make(p) {
@@ -190,10 +232,13 @@ export const warcry: ModuleDef = {
           if (atk.slot !== 'super') return;
           const s = state(ctx);
           const me = self as PlayerEnt;
+          const targets: number[] = [];
           for (const q of s.world.players) {
             if (q === me || !s.targetable(q) || dist(me.x, me.y, q.x, q.y) > radius) continue;
             ctx.applyEffect(q.id, { effect: 'morale', strength, durationMs }, me.id);
+            targets.push(q.id);
           }
+          if (targets.length > 0) s.emit({ e: 'warcry', slot: me.slot, targets, durationMs });
         },
       },
     };

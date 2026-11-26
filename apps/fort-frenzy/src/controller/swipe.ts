@@ -8,6 +8,8 @@ export const SWIPE_MIN_PX = 36;
 export const SWIPE_MIN_SPEED = 0.35;
 /** Smallest movement a flick needs, px. */
 export const FLICK_MIN_PX = 12;
+/** Movement before a press counts as a drag (and takes pointer capture), px. A tap never captures. */
+export const DRAG_SLOP_PX = 8;
 
 /** The card to land on after a drag of `dx` px over `dtMs`: at most one place from `index`. */
 export function swipeTarget(
@@ -31,7 +33,7 @@ export interface Swipe {
   destroy(): void;
 }
 
-/** Binds pointer swipes on `viewport`, moving `strip` by transform. `onIndex` fires on a change. */
+/** Binds pointer swipes on `viewport` (the whole select screen, not just the card row), moving `strip` by transform. `onIndex` fires on a change. */
 export function bindSwipe(
   viewport: HTMLElement,
   strip: HTMLElement,
@@ -39,7 +41,7 @@ export function bindSwipe(
 ): Swipe {
   const now = opts.now ?? (() => Date.now());
   let index = 0;
-  let down: { id: number; x: number; t: number } | null = null;
+  let down: { id: number; x: number; y: number; t: number; drag: boolean } | null = null;
 
   /** Card pitch (width + gap), px; 0 before layout. */
   const pitch = () => {
@@ -65,16 +67,23 @@ export function bindSwipe(
 
   const onDown = (e: PointerEvent) => {
     if (down) return;
-    down = { id: e.pointerId, x: e.clientX, t: now() };
-    try {
-      viewport.setPointerCapture?.(e.pointerId);
-    } catch {
-      /* pointer already gone */
-    }
+    // No capture yet: capturing here would retarget the click and swallow taps on the card's buttons.
+    down = { id: e.pointerId, x: e.clientX, y: e.clientY, t: now(), drag: false };
   };
   const onMove = (e: PointerEvent) => {
     if (!down || e.pointerId !== down.id) return;
     let dx = e.clientX - down.x;
+    const dy = e.clientY - down.y;
+    if (!down.drag) {
+      // Horizontal-dominant moves start the drag; vertical ones never do.
+      if (Math.abs(dx) < DRAG_SLOP_PX || Math.abs(dx) <= Math.abs(dy)) return;
+      down.drag = true;
+      try {
+        viewport.setPointerCapture?.(e.pointerId);
+      } catch {
+        /* pointer already gone */
+      }
+    }
     // Rubber band at the ends, and never drag more than one card.
     const p = pitch();
     if ((index === 0 && dx > 0) || (index === opts.count() - 1 && dx < 0)) dx *= 0.3;
@@ -87,9 +96,11 @@ export function bindSwipe(
     const d = down;
     down = null;
     const dx = e.clientX - d.x;
-    const next = cancelled
-      ? index
-      : swipeTarget(index, opts.count(), dx, now() - d.t, viewport.clientWidth);
+    const dy = e.clientY - d.y;
+    const next =
+      cancelled || Math.abs(dx) <= Math.abs(dy)
+        ? index
+        : swipeTarget(index, opts.count(), dx, now() - d.t, viewport.clientWidth);
     setIndex(next);
   };
   const onUp = (e: PointerEvent) => finish(e, false);

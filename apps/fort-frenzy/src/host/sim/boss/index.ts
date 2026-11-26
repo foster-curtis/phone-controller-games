@@ -2,6 +2,7 @@
 // boss's spawn in its wave, and its death ending the wave. The bosses themselves are modules in the
 // registry (`bosses`), so a new boss (§13) adds a file here and touches none of this.
 import type { WaveDef } from '../../../content/types';
+import type { PortalId } from '../../../shared/ids';
 import type { FullState } from '../state';
 import type { EnemyEnt, PendingSpawn } from '../types';
 
@@ -10,12 +11,13 @@ export function bossMk(def: WaveDef | undefined, n: number): 1 | 2 | 3 {
   return def?.boss?.mk ?? (n >= 15 ? 3 : n >= 10 ? 2 : 1);
 }
 
-/** A boss wave's boss: one unit up its wave's first lane, right after that lane's spawn warning. */
-export function bossSpawn(def: WaveDef, atTick: number): PendingSpawn | null {
+/**
+ * A boss wave's boss: one unit at `portal` (seeded by the caller from `waves:<n>`; RD3 keeps it on the
+ * hot side), right after that portal's flare.
+ */
+export function bossSpawn(def: WaveDef, atTick: number, portal: PortalId): PendingSpawn | null {
   if (!def.boss) return null;
-  const lane = def.lanes[0];
-  if (!lane) return null;
-  return { atTick, lane, enemy: def.boss.id, count: 1, warned: false };
+  return { atTick, portal, enemy: def.boss.id, count: 1, hot: null, flared: false };
 }
 
 /**

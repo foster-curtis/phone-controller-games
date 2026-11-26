@@ -1,25 +1,36 @@
 // Wasp drone (Flyer) clips (SPEC §9.6): no legs. It bobs at a fixed height (never toward the
-// ground); the rotor discs flicker to read as spinning. On death it drops from its hover height
-// (WASP_HOVER_TILES, the gallery's and the world's) and breaks apart on the ground.
+// ground); the rotor discs flicker to read as spinning. It is drawn at WASP_SCALE (RIG_INFO). On
+// death it drops from its hover height (WASP_HOVER_TILES, the gallery's and the world's) and breaks
+// apart on the ground.
 // Attack (FF10): it tips its stinger toward the target while the muzzle charges (code draws the
 // charge), fires on the content wind-up's end with a small kick back, and levels out.
 import rig from '../../../../art/neon-knights/rigs/wasp.json';
-import type { Clip, RigDef } from '../../../themes/types';
+import type { Clip, RigDef } from '../../../presentation/types';
 import { each, enemyDeath, enemyHit, loop, once, sin, wave } from '../clipKit';
 
+/** Drawn size over the art (RD10-fix-3, RC3: "larger so it can be seen better"): 1.4×. */
+export const WASP_SCALE = 1.4;
 /**
  * The art's own lift, tiles (a tile is 80 sprite units of height, SPEC §2.5): the hull's underside
- * (`body` part, y 30) sits 91 units over the rig's foot (y 121).
+ * (`body` part, y 30) sits 91 units over the rig's foot (y 121), at the art's size.
  */
 export const WASP_ART_LIFT_TILES = 91 / 80;
+/** C4 (Foster): half of FF10's flight height (the art's lift + a 1.6-tile hover = 2.74), 1.37. */
+export const WASP_C4_FLIGHT_TILES = (WASP_ART_LIFT_TILES + 1.6) / 2;
 /**
  * Flight height in tiles: the hull's underside over its shadow, the gap the room reads (§2.5
- * height). C4 (Foster): half of FF10's (the art's lift + a 1.6-tile hover = 2.74). The content
- * body hitbox's `bottom` is this value (body.test.ts).
+ * height). RD10-fix-3 (RC3: "keep it about the same height, or even a little lower"): 90% of C4's,
+ * 1.23. The content body hitbox's `bottom` is this value (body.test.ts).
  */
-export const WASP_FLIGHT_TILES = (WASP_ART_LIFT_TILES + 1.6) / 2;
-/** The hover the renderer adds over the art's lift, tiles. */
-export const WASP_HOVER_TILES = WASP_FLIGHT_TILES - WASP_ART_LIFT_TILES;
+export const WASP_FLIGHT_TILES = 0.9 * WASP_C4_FLIGHT_TILES;
+/**
+ * The hover the renderer adds over the drawn (scaled) art's lift, tiles. Negative since
+ * RD10-fix-3: the scaled lift (1.59) is above the flight height, so the rig's foot point (empty
+ * air under the hull) is drawn below its ground point; the shadow stays on the ground point.
+ */
+export const WASP_HOVER_TILES = WASP_FLIGHT_TILES - WASP_ART_LIFT_TILES * WASP_SCALE;
+/** The death clip's drop to the ground below the foot point, art units (the clip is drawn scaled). */
+export const WASP_DEATH_DROP = (WASP_HOVER_TILES * 80) / WASP_SCALE;
 /** The Flyer's wind-up is 300 ms (content); the shot leaves the stinger then. */
 export const WASP_FIRE_MS = 300;
 
@@ -60,7 +71,7 @@ export const clips: Record<string, Clip> = {
   death: enemyDeath(rig as unknown as RigDef, {
     fall: 520,
     stagger: 80,
-    drop: WASP_HOVER_TILES * 80,
+    drop: WASP_DEATH_DROP,
   }),
   attack,
 };

@@ -4,7 +4,7 @@ import { cleanName, createParty, type Party } from './index';
 
 const COLORS = ['cobalt', 'jade', 'sky', 'bone', 'rose', 'forest'] as const;
 type Color = (typeof COLORS)[number];
-type Cls = 'engineer' | 'warden';
+type Cls = 'ranger' | 'warden';
 
 const party = (): Party<Color, Cls> => createParty<Color, Cls>({ colors: COLORS, maxPlayers: 6 });
 
@@ -14,7 +14,7 @@ function filled(n: number, opts: { ready?: boolean } = {}) {
   for (let i = 1; i <= n; i++) {
     p.connect({ playerId: `p${i}`, key: `k${i}`, deviceId: `d${i}` });
     p.setName(`p${i}`, `Player ${i}`);
-    p.setClass(`p${i}`, 'engineer');
+    p.setClass(`p${i}`, 'ranger');
     if (opts.ready) p.setReady(`p${i}`, true);
   }
   return p;
@@ -124,7 +124,7 @@ describe('ready and start', () => {
     expect(p.member('p1')!.ready).toBe(true);
   });
 
-  it('auto-starts when every connected player is ready (at least 2)', () => {
+  it('auto-starts when every connected player is ready', () => {
     const p = filled(3);
     expect(p.canAutoStart()).toBe(false);
     p.setReady('p1', true);
@@ -135,17 +135,35 @@ describe('ready and start', () => {
     p.setReady('p3', false);
     p.disconnect('p3'); // a dropped phone doesn't hold the lobby
     expect(p.canAutoStart()).toBe(true);
-    const solo = filled(1, { ready: true });
-    expect(solo.canAutoStart()).toBe(false);
   });
 
-  it('the leader can force-start once 2 players are ready', () => {
+  it('solo (§11.1, RD3): one Ready player auto-starts; the leader starts alone', () => {
+    const solo = filled(1);
+    expect(solo.canAutoStart()).toBe(false);
+    expect(solo.canForceStart('p1')).toEqual({ ok: false, reason: 'invalid' });
+    solo.setReady('p1', true);
+    expect(solo.canAutoStart()).toBe(true);
+    expect(solo.canForceStart('p1')).toEqual({ ok: true });
+    const r = solo.startRun();
+    expect(r.ok && r.slots).toHaveLength(1);
+  });
+
+  it('the leader can force-start once one player is ready (himself or another)', () => {
     const p = filled(4);
-    p.setReady('p2', true);
     expect(p.canForceStart('p1')).toEqual({ ok: false, reason: 'invalid' });
-    p.setReady('p3', true);
+    p.setReady('p2', true);
     expect(p.canForceStart('p1')).toEqual({ ok: true });
     expect(p.canForceStart('p2')).toEqual({ ok: false, reason: 'notLeader' });
+  });
+
+  it('a game may still ask for more players (minPlayers option)', () => {
+    const p = createParty<Color, Cls>({ colors: COLORS, maxPlayers: 6, minPlayers: 2 });
+    p.connect({ playerId: 'p1' });
+    p.setName('p1', 'A');
+    p.setClass('p1', 'ranger');
+    p.setReady('p1', true);
+    expect(p.canAutoStart()).toBe(false);
+    expect(p.canForceStart('p1')).toEqual({ ok: false, reason: 'invalid' });
   });
 
   it('starts a run with a slot per named player with a class, in join order', () => {
@@ -161,7 +179,7 @@ describe('ready and start', () => {
           playerId: 'p1',
           name: 'Player 1',
           color: 'cobalt',
-          classId: 'engineer',
+          classId: 'ranger',
           connected: true,
         },
         {
@@ -169,7 +187,7 @@ describe('ready and start', () => {
           playerId: 'p2',
           name: 'Player 2',
           color: 'jade',
-          classId: 'engineer',
+          classId: 'ranger',
           connected: false,
         },
         {
@@ -177,7 +195,7 @@ describe('ready and start', () => {
           playerId: 'p3',
           name: 'Player 3',
           color: 'sky',
-          classId: 'engineer',
+          classId: 'ranger',
           connected: true,
         },
       ],
@@ -303,7 +321,7 @@ describe('late joins (§11.2)', () => {
     p.setStage('build');
     p.connect({ playerId: 'late' });
     p.setName('late', 'L');
-    p.setClass('late', 'engineer');
+    p.setClass('late', 'ranger');
     expect(p.joinLate('late')).toMatchObject({ ok: true, slot: { slot: 3 } });
   });
 
@@ -331,8 +349,8 @@ describe('late joins (§11.2)', () => {
     p.endRun();
     expect(p.stage).toBe('lobby');
     expect(p.members.map((m) => [m.slot, m.ready, m.classId, m.color])).toEqual([
-      [null, false, 'engineer', 'cobalt'],
-      [null, false, 'engineer', 'jade'],
+      [null, false, 'ranger', 'cobalt'],
+      [null, false, 'ranger', 'jade'],
     ]);
   });
 });
@@ -459,7 +477,7 @@ describe('resume (FF14, §11.5, §15.8)', () => {
       deviceId: `d${i}`,
       name: `P${i}`,
       color: COLORS[i]!,
-      classId: 'engineer' as const,
+      classId: 'ranger' as const,
     }));
 
   it('restores the slots away, matches phones by key or device ID, keeps the saved leader', () => {
@@ -474,6 +492,29 @@ describe('resume (FF14, §11.5, §15.8)', () => {
     });
     expect(p.member('b')).toMatchObject({ slot: 0, key: 'new', connected: true });
     expect(p.claimable().map((m) => m.slot)).toEqual([2]);
+  });
+
+  it('the saved leader takes the lead back when their phone comes in after another (RD14)', () => {
+    const p = party();
+    p.restore(slots(3), 'old1', { claimable: true });
+    // Another phone back first leads for now (the handoff rule) ...
+    p.connect({ playerId: 'a', key: 'old0' });
+    expect(p.leaderId).toBe('a');
+    // ... and the saved leader takes it back when theirs matches, by key or by a claim.
+    p.connect({ playerId: 'b', key: 'old1' });
+    expect(p.leaderId).toBe('b');
+    // From then on the usual rule: a returning leader doesn't snap back.
+    p.disconnect('b');
+    expect(p.leaderId).toBe('a');
+    p.connect({ playerId: 'b', key: 'old1' });
+    expect(p.leaderId).toBe('a');
+
+    const q = party();
+    q.restore(slots(2), 'old1', { claimable: true });
+    q.connect({ playerId: 'x', key: 'old0' });
+    q.connect({ playerId: 'y', key: 'unknown', deviceId: 'dy' });
+    expect(q.claim('y', 1)).toEqual({ ok: true });
+    expect(q.leaderId).toBe('y');
   });
 
   it('an unknown phone claims a free slot, even with every color held', () => {
@@ -501,5 +542,45 @@ describe('resume (FF14, §11.5, §15.8)', () => {
     p.restore(slots(2), null, { claimable: true });
     p.endRun();
     expect(p.claimable()).toEqual([]);
+  });
+});
+
+describe('leave (RD6-fix-1: the pause menu`s Leave game)', () => {
+  it('frees the slot mid-run: the member goes, a reconnect is a new player, a new phone fits', () => {
+    const p = filled(6, { ready: true });
+    p.startRun();
+    expect(p.leave('p3')).toMatchObject({ ok: true, removed: { playerId: 'p3', slot: 2 } });
+    expect(p.member('p3')).toBeNull();
+    expect(p.members).toHaveLength(5);
+    // Its key no longer matches a slot: the same phone comes back as someone new.
+    expect(p.connect({ playerId: 'p3b', key: 'k3', deviceId: 'd3' })).toMatchObject({
+      kind: 'joined',
+      member: { slot: null, name: '' },
+    });
+    expect(p.leave('nobody')).toEqual({ ok: false, reason: 'invalid' });
+  });
+
+  it('the leader leaving passes leadership to the next-earliest connected player', () => {
+    const p = filled(3, { ready: true });
+    p.startRun();
+    p.disconnect('p2');
+    expect(p.leaderId).toBe('p1');
+    p.leave('p1');
+    expect(p.leaderId).toBe('p3');
+  });
+
+  it('a late joiner never takes a left slot (the knight stays in the run)', () => {
+    const p = filled(3, { ready: true });
+    p.startRun();
+    p.setStage('build');
+    p.leave('p3'); // the highest slot, 2
+    p.connect({ playerId: 'late' });
+    p.setName('late', 'Late');
+    p.setClass('late', 'warden');
+    expect(p.joinLate('late')).toMatchObject({ ok: true, slot: { slot: 3 } });
+    // A new run starts numbering from 0 again.
+    p.endRun();
+    expect(p.startRun()).toMatchObject({ ok: true });
+    expect(p.members.map((m) => m.slot)).toEqual([0, 1, 2]);
   });
 });

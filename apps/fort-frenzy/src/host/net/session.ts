@@ -5,7 +5,8 @@
 // lifecycle (FF14): late joins at the build phase, the end-of-run options, and the resume snapshot
 // (§11.5, §15.8: saved at each build start and on build-phase changes, offered after a reload,
 // restored into the same or a new room), and the team pause (C4, FF14-fix-1: any run phone pauses or
-// resumes; the runtime stops stepping while `paused` is set). No Phaser, no relay client: the runtime
+// resumes; the runtime stops stepping while `paused` is set) with its menu's Leave game and the
+// leader's End game (RD6-fix-1). No Phaser, no relay client: the runtime
 // passes `send` and `kick`.
 import { maxPlayers, minPlayers } from '../../../game.meta';
 import { content as defaultContent, type Content } from '../../content';
@@ -129,7 +130,7 @@ export function createSession(deps: SessionDeps): Session {
     maxPlayers: MAX_PARTY,
     minPlayers,
   });
-  const settings: RunSettings = { theme: 'neon-knights', difficulty: 'normal' };
+  const settings: RunSettings = { difficulty: 'normal' };
   /** Relay player keys by playerId (from peer events; hello carries the device ID). */
   const keys = new Map<string, string>();
   /** Phones refused as `full`. */
@@ -191,7 +192,6 @@ export function createSession(deps: SessionDeps): Session {
   // A saved run: its slots wait for their phones (key, then device ID, or a claim) until Resume.
   if (saved) {
     Object.assign(settings, {
-      theme: saved.settings.theme,
       difficulty: saved.settings.difficulty,
     });
     party.restore(
@@ -305,6 +305,29 @@ export function createSession(deps: SessionDeps): Session {
     return null;
   }
 
+  /** Run phases the pause menu's Leave game and End game work in (the pause's own, §10.5). */
+  const inRun = () => {
+    const phase = sim?.world.phase;
+    return phase === 'countdown' || phase === 'build' || phase === 'combat';
+  };
+
+  /**
+   * Leave game (RD6-fix-1, §10.5, §11.3): a deliberate leave frees the party slot (no reconnect into
+   * it; leadership passes on) and the phone is kicked back to the join screen. The knight stays in
+   * the sim, dazed like a dropped phone, for the rest of the run. The last player out ends the run.
+   */
+  function leave(from: string, seq: number) {
+    const m = party.member(from);
+    if (!m || m.slot === null || !inRun()) return ack(from, seq, 'phase');
+    const slot = m.slot;
+    party.leave(from);
+    mes.delete(from);
+    sim!.command({ c: 'presence', slot, connected: false });
+    ack(from, seq, null);
+    deps.kick(from);
+    if (!party.members.some((x) => x.slot !== null)) endRun();
+  }
+
   const maybeAutoStart = () => {
     if (!sim && !saved && party.canAutoStart()) startRun();
   };
@@ -355,8 +378,8 @@ export function createSession(deps: SessionDeps): Session {
       case 'name':
         return res(party.setName(from, i.name));
       case 'class':
-        // Only classes in content (the Warden arrives with FF8).
-        if (!content.characters.some((c) => c.id === i.classId)) return ack(from, seq, 'invalid');
+        // Only knights in content.
+        if (!content.knights.some((c) => c.id === i.classId)) return ack(from, seq, 'invalid');
         return res(party.setClass(from, i.classId));
       case 'color':
         // Reasons pass through unchanged (FF2-fix-1: they are ack reasons).
@@ -383,11 +406,14 @@ export function createSession(deps: SessionDeps): Session {
             return ack(from, seq, resume());
           case 'newRun':
             return ack(from, seq, newRun());
-          case 'theme':
+          case 'endGame':
+            // End game from the pause menu (RD6-fix-1): straight back to the lobby, knights kept.
+            if (!inRun()) return ack(from, seq, 'phase');
+            ack(from, seq, null);
+            return endRun();
           case 'difficulty':
             if (sim || saved) return ack(from, seq, 'phase');
-            if (i.action === 'theme') settings.theme = i.theme;
-            else settings.difficulty = i.difficulty;
+            settings.difficulty = i.difficulty;
             return ack(from, seq, null);
           case 'remove': {
             const r = party.remove(from, i.playerId);
@@ -401,15 +427,6 @@ export function createSession(deps: SessionDeps): Session {
         }
         return ack(from, seq, 'invalid');
       }
-      case 'build':
-        if (slot === null) return ack(from, seq, 'phase');
-        return toSim(
-          from,
-          seq,
-          i.action === 'select'
-            ? { c: 'build', slot, action: 'select', structure: i.structure }
-            : { c: 'build', slot, action: i.action },
-        );
       case 'buy':
         if (slot === null) return ack(from, seq, 'phase');
         return toSim(from, seq, { c: 'buy', slot, item: i.item });
@@ -419,9 +436,6 @@ export function createSession(deps: SessionDeps): Session {
       case 'card':
         if (slot === null) return ack(from, seq, 'phase');
         return toSim(from, seq, { c: 'card', slot, card: i.card });
-      case 'give':
-        if (slot === null) return ack(from, seq, 'phase');
-        return toSim(from, seq, { c: 'give', slot });
       case 'claim': {
         // Resume into a new room (§15.8): an unmatched phone takes a free restored slot.
         const r = party.claim(from, i.slot);
@@ -431,6 +445,8 @@ export function createSession(deps: SessionDeps): Session {
       }
       case 'pause':
         return ack(from, seq, setPause(from, i.paused));
+      case 'leave':
+        return leave(from, seq);
     }
   }
 

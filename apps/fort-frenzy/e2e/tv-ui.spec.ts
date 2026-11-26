@@ -82,10 +82,21 @@ test('home: keyboard moves focus and cycles difficulty', async ({ page }) => {
   const focused = () => page.locator('#tv-ui .row.focus .lbl').innerText();
   expect((await focused()).toLowerCase()).toBe('create room');
   await page.keyboard.press('ArrowDown');
-  await page.keyboard.press('ArrowDown');
   expect((await focused()).toLowerCase()).toBe('difficulty');
   await page.keyboard.press('ArrowRight');
   await expect(page.locator('#tv-ui .row.focus .val')).toContainText('Hard');
+});
+
+test('home: the mouse hovers, clicks rows and cycles difficulty', async ({ page }) => {
+  await serveFonts(page);
+  await page.goto('/?ui=home');
+  const focused = () => page.locator('#tv-ui .row.focus .lbl').innerText();
+  await page.locator('#tv-ui .row', { hasText: 'Difficulty' }).hover();
+  expect((await focused()).toLowerCase()).toBe('difficulty');
+  await page.locator('#tv-ui .row.focus .arr.r').click();
+  await expect(page.locator('#tv-ui .row.focus .val')).toContainText('Hard');
+  await page.locator('#tv-ui .row.primary').click(); // Create room: no keyboard involved
+  expect((await focused()).toLowerCase()).toBe('create room');
 });
 
 test('lobby: a slot number arms, the second press removes', async ({ page }) => {

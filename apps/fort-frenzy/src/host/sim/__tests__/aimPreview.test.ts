@@ -5,8 +5,8 @@
 // body.test.ts covers how a drawn body reaches into the same shapes (C4).
 import { describe, expect, it } from 'vitest';
 import { content as baseContent, type Content } from '../../../content';
-import { commander, engineer, grunt, quartermaster, warden } from '../../../content/balance';
-import type { CharacterDef } from '../../../content/types';
+import { artificer, commander, grunt, ranger, rangerCards, warden } from '../../../content/balance';
+import type { KnightDef } from '../../../content/types';
 import type { CardId, ClassId } from '../../../shared/ids';
 import { windupSteps } from '../classes/warden';
 import { aimPreview } from '../preview';
@@ -21,7 +21,7 @@ const content: Content = {
   ),
 };
 const DEG = Math.PI / 180;
-const DEFS: Record<ClassId, CharacterDef> = { engineer, quartermaster, commander, warden };
+const DEFS: Record<ClassId, KnightDef> = { ranger, artificer, commander, warden };
 const AIM = { x: 1, y: 0 };
 const PX = 10;
 const PY = 13;
@@ -32,8 +32,11 @@ const BOOST: Modifier = {
     { stat: 'range', addPct: 0.3 },
     { stat: 'arcDeg', add: 12 },
     { stat: 'radius', addPct: 0.25 },
+    { stat: 'width', addPct: 0.2 },
   ],
 };
+
+const steadyParams = rangerCards.find((c) => c.id === 'steady_aim')!.module!.params!;
 
 /** `true` adds `BOOST`; a card id picks that real card (FF12) before combat. */
 type Boost = boolean | CardId;
@@ -103,32 +106,32 @@ const cone = (s: HitShape) => {
   if (s.kind !== 'cone') throw new Error(`expected a cone, got ${s.kind}`);
   return s;
 };
+const rect = (s: HitShape) => {
+  if (s.kind !== 'rect') throw new Error(`expected a rect, got ${s.kind}`);
+  return s;
+};
 
 describe('preview geometry is the content through modifiers', () => {
   it('matches each class kit with no mods', () => {
     const expected: Record<ClassId, Record<'main' | 'super', HitShape>> = {
-      engineer: {
-        main: { kind: 'line', range: engineer.main.range },
-        super: { kind: 'circle', radius: engineer.super.radius },
+      ranger: {
+        main: { kind: 'line', range: ranger.main.range },
+        super: { kind: 'circle', radius: ranger.super.radius },
       },
-      quartermaster: {
+      artificer: {
         main: {
           kind: 'cone',
-          range: quartermaster.main.range,
-          half: (quartermaster.main.spreadDeg / 2) * DEG,
+          range: artificer.main.range,
+          half: (artificer.main.spreadDeg / 2) * DEG,
         },
         super: {
           kind: 'cone',
-          range: quartermaster.super.range,
-          half: (quartermaster.super.arcDeg / 2) * DEG,
+          range: artificer.super.range,
+          half: (artificer.super.arcDeg / 2) * DEG,
         },
       },
       commander: {
-        main: {
-          kind: 'cone',
-          range: commander.main.range,
-          half: (commander.main.arcDeg / 2) * DEG,
-        },
+        main: { kind: 'rect', range: commander.main.range, width: commander.main.width },
         super: { kind: 'none' },
       },
       warden: {
@@ -160,23 +163,25 @@ describe('preview geometry is the content through modifiers', () => {
       const h = setup(cls, false);
       for (const slot of ['main', 'super'] as const) {
         if (DEFS[cls].input[slot] !== 'aimed') continue;
+        // Reinforcements hits nothing: its aim shows the landing spot (`soldierPreview`, RD9).
+        if (DEFS[cls][slot].shape === 'spawn') continue;
         expect(shapeOf(h, slot).kind, `${cls} ${slot}`).not.toBe('none');
       }
     }
   });
 
-  it('moves with a mod (and with Steady Aim, the Ranger passive)', () => {
+  it('moves with a mod (and with Steady Aim, the Ranger passive card)', () => {
     const h = setup('warden', true);
     const s = cone(shapeOf(h, 'super'));
     expect(s.range).toBeCloseTo(warden.super.range * 1.3, 9);
     expect(s.half).toBeCloseTo(((warden.super.arcDeg + 12) / 2) * DEG, 9);
-    const r = setup('engineer', false);
-    expect(shapeOf(r, 'main')).toEqual({ kind: 'line', range: engineer.main.range });
+    const r = setup('ranger', 'steady_aim');
+    expect(shapeOf(r, 'main')).toEqual({ kind: 'line', range: ranger.main.range });
     r.pads[0]!.set({ move: { x: 0, y: 0 } });
     r.run(40); // past Steady Aim's 600 ms
     const steady = shapeOf(r, 'main');
     expect(steady.kind === 'line' && steady.range).toBeCloseTo(
-      engineer.main.range * (1 + (engineer.passive.params.rangePct as number)),
+      ranger.main.range * (1 + (steadyParams.rangePct as number)),
       9,
     );
   });
@@ -186,7 +191,6 @@ describe('the sim hits exactly the previewed area', () => {
   const arcs: [ClassId, 'main' | 'super'][] = [
     ['warden', 'main'],
     ['warden', 'super'],
-    ['commander', 'main'],
   ];
   for (const [cls, slot] of arcs) {
     for (const boosted of [false, true]) {
@@ -202,9 +206,9 @@ describe('the sim hits exactly the previewed area', () => {
     }
   }
 
-  // FF7-fix-3: the Warden's slam and the Commander's slash are aimed, so the previewed sector turns
-  // with the phone's aim and the hit turns with it.
-  for (const cls of ['warden', 'commander'] as const) {
+  // FF7-fix-3: the Warden's slam is aimed, so the previewed sector turns with the phone's aim and
+  // the hit turns with it (the Commander's bash: the rectangle below).
+  for (const cls of ['warden'] as const) {
     for (const ang of [2.2, -1.1]) {
       it(`${cls} main aimed at ${ang} rad: the reach and both edges follow the aim`, () => {
         const reach = (s: HitShape) => cone(s).range + R;
@@ -224,13 +228,11 @@ describe('the sim hits exactly the previewed area', () => {
     }
   }
 
-  // FF12's slam and slash cards (Heavy Slam, Bladework: +20% arc, main only) and Reach move the
+  // FF12's slam card (Heavy Slam: +20% arc, main only) and Reach move the
   // aimed preview with the hit.
   for (const [cls, card] of [
     ['warden', 'heavy_slam'],
-    ['commander', 'bladework'],
     ['warden', 'reach'],
-    ['commander', 'reach'],
   ] as const) {
     it(`${cls} main with ${card}: the preview and the aimed hit agree`, () => {
       const base = cone(shapeOf(setup(cls, false), 'main'));
@@ -248,39 +250,55 @@ describe('the sim hits exactly the previewed area', () => {
     });
   }
 
-  for (const boosted of [false, true]) {
-    it(`engineer super${boosted ? ' (with a mod)' : ''}: the circle's edge`, () => {
-      const rad = (s: HitShape) => (s.kind === 'circle' ? s.radius : NaN) + R;
-      const a = 30 * DEG;
-      expect(hits('engineer', 'super', boosted, (s) => polar(rad(s) - 0.02, a))).toBe(true);
-      expect(hits('engineer', 'super', boosted, (s) => polar(rad(s) + 0.02, a))).toBe(false);
-    });
+  // RD9-fix-1 (RC2): the Commander's bash is a solid rectangle from him along the aim. A body
+  // overlapping it anywhere is hit (its far corners too), one just past its end or a side isn't;
+  // it turns with the aim and moves with mods and cards (Reach: longer; Heavy Bash: wider).
+  for (const boosted of [false, true, 'reach', 'heavy_bash'] as const) {
+    for (const ang of [0, 2.2, -1.1]) {
+      it(`commander main${boosted ? ` (${boosted === true ? 'a mod' : boosted})` : ''} at ${ang} rad: the rectangle`, () => {
+        const end = (s: HitShape) => rect(s).range + R;
+        const side = (s: HitShape) => rect(s).width / 2 + R;
+        const mid = (s: HitShape) => rect(s).range / 2;
+        expect(hits('commander', 'main', boosted, (s) => [end(s) - 0.02, 0], ang)).toBe(true);
+        expect(hits('commander', 'main', boosted, (s) => [end(s) + 0.02, 0], ang)).toBe(false);
+        for (const sd of [1, -1]) {
+          expect(
+            hits('commander', 'main', boosted, (s) => [mid(s), sd * (side(s) - 0.02)], ang),
+          ).toBe(true);
+          expect(
+            hits('commander', 'main', boosted, (s) => [mid(s), sd * (side(s) + 0.02)], ang),
+          ).toBe(false);
+          // The far corner, just inside.
+          const corner = (s: HitShape): [number, number] => [
+            rect(s).range - 0.02,
+            sd * (rect(s).width / 2 - 0.02),
+          ];
+          expect(hits('commander', 'main', boosted, corner, ang)).toBe(true);
+        }
+      });
+    }
   }
 
+  it('Reach lengthens the bash and Heavy Bash widens it, in the preview', () => {
+    const base = rect(shapeOf(setup('commander', false), 'main'));
+    expect(rect(shapeOf(setup('commander', 'reach'), 'main')).range).toBeGreaterThan(base.range);
+    const wide = rect(shapeOf(setup('commander', 'heavy_bash'), 'main'));
+    expect(wide.width).toBeCloseTo(base.width * 1.2, 9);
+    expect(wide.range).toBeCloseTo(base.range, 9);
+  });
+
   for (const boosted of [false, true]) {
-    it(`artificer super${boosted ? ' (with a mod)' : ''}: towers inside the cone get the bonus`, () => {
-      const probe = (at: (s: HitShape, r: number) => [number, number]) => {
-        const h = setup('quartermaster', boosted);
-        const st = h.sim.place('arrow_tower', 10, 14, 0);
-        const [dx, dy] = at(shapeOf(h, 'super'), st.r);
-        h.put(0, st.x - dx, st.y - dy);
-        fire(h, 'super');
-        return st.effects.some((e) => e.def === 'tower_defense');
-      };
-      expect(probe((s, r) => [cone(s).range + r - 0.02, 0])).toBe(true);
-      expect(probe((s, r) => [cone(s).range + r + 0.02, 0])).toBe(false);
-      const d = (s: HitShape) => cone(s).range * 0.6;
-      const edge = (s: HitShape, r: number) => cone(s).half + Math.asin(r / d(s));
-      expect(probe((s, r) => polar(d(s), edge(s, r) - 0.02))).toBe(true);
-      expect(probe((s, r) => polar(d(s), edge(s, r) + 0.02))).toBe(false);
+    it(`ranger super${boosted ? ' (with a mod)' : ''}: the circle's edge`, () => {
+      const rad = (s: HitShape) => (s.kind === 'circle' ? s.radius : NaN) + R;
+      const a = 30 * DEG;
+      expect(hits('ranger', 'super', boosted, (s) => polar(rad(s) - 0.02, a))).toBe(true);
+      expect(hits('ranger', 'super', boosted, (s) => polar(rad(s) + 0.02, a))).toBe(false);
     });
   }
 
   for (const [cls, boosted] of [
-    ['engineer', false],
-    ['engineer', true],
-    ['quartermaster', false],
-    ['quartermaster', true],
+    ['ranger', false],
+    ['ranger', true],
   ] as const) {
     it(`${cls} main${boosted ? ' (with a mod)' : ''}: bolts fly the preview's reach and fan`, () => {
       const h = setup(cls, boosted);
@@ -298,6 +316,32 @@ describe('the sim hits exactly the previewed area', () => {
         // Bolts expire on the first step at or past the reach (state.ts `fire`).
         expect((b.expiresAt - t0) * perStep).toBeGreaterThanOrEqual(reach - 1e-9);
         expect((b.expiresAt - t0 - 2) * perStep).toBeLessThan(reach);
+      }
+    });
+  }
+
+  for (const boosted of [false, true]) {
+    it(`artificer main${boosted ? ' (with a mod)' : ''}: every nanite stays inside the preview`, () => {
+      const h = setup('artificer', boosted);
+      const s = shapeOf(h, 'main');
+      if (s.kind !== 'cone') throw new Error('the nanite blast previews as a cone');
+      const seen = new Map<number, { angle: number; flight: number }>();
+      h.pads[0]!.tap('mainFires', { mainAim: AIM });
+      for (let i = 0; i < 60; i++) {
+        h.run(1);
+        for (const b of h.sim.world.projectiles) {
+          if (b.source !== h.p(0).id || seen.has(b.id)) continue;
+          const flight = ((b.expiresAt - h.sim.world.tick) * Math.hypot(b.vx, b.vy)) / 60;
+          seen.set(b.id, { angle: Math.abs(Math.atan2(b.vy, b.vx)), flight });
+        }
+      }
+      expect(seen.size).toBe(artificer.main.count);
+      for (const b of seen.values()) {
+        expect(b.angle).toBeLessThanOrEqual(s.half + 1e-9);
+        // Its random spot: within the preview's reach, never short of the minimum (a step's slack).
+        const step = artificer.main.speed / 60;
+        expect(b.flight).toBeLessThanOrEqual(s.range + step);
+        expect(b.flight).toBeGreaterThanOrEqual(s.range * artificer.main.burstMinReach - 2 * step);
       }
     });
   }

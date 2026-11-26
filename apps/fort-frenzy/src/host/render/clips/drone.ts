@@ -2,7 +2,7 @@
 // Hit and death are shared (clipKit). The attack (FF7) is the Grunt's melee slash: a wind-up with the
 // blade arm raised, then a lunge and a downward cut.
 import rig from '../../../../art/neon-knights/rigs/drone.json';
-import type { Clip, RigDef } from '../../../themes/types';
+import type { Clip, RigDef } from '../../../presentation/types';
 import { each, enemyDeath, enemyHit, idleBob, once, sin, walkerWalk, wave } from '../clipKit';
 
 /** The Grunt's wind-up is 250 ms (content); the cut lands then. */

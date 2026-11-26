@@ -1,5 +1,5 @@
-// An attack's hit area (SPEC §8, §10.1, §15.2): one source of truth for the sim's arc and cone tests
-// and the TV's aim previews (C3), from the attack's def through the player's effective stats, so
+// An attack's hit area (SPEC §8, §10.1, §15.2): one source of truth for the sim's arc, cone and
+// rectangle tests and the TV's aim previews (C3), from the attack's def through the player's effective stats, so
 // tuning and cards move the preview with the hit. Leaf module: types only.
 import type { AttackDef, StatId } from '../../../content/types';
 
@@ -13,7 +13,9 @@ export type HitShape =
   | { kind: 'cone'; range: number; half: number }
   /** A circle of `radius` around the attacker. */
   | { kind: 'circle'; radius: number }
-  /** Hits nothing (the Commander's morale). */
+  /** A solid rectangle from the attacker along the aim: `range` long, `width` across (RD9-fix-1). */
+  | { kind: 'rect'; range: number; width: number }
+  /** Hits nothing (Reinforcements: its aim shows the landing spot, §10.1). */
   | { kind: 'none' };
 
 const RAD = Math.PI / 180;
@@ -33,9 +35,16 @@ export function hitShape(a: AttackDef, stat: AttackStatFn): HitShape {
       return { kind: 'cone', ...sectorGeometry(a, stat) };
     case 'circle':
       return { kind: 'circle', radius: stat(a.radius ?? a.range, 'radius') };
-    case 'buff':
+    case 'rect':
+      return { kind: 'rect', ...rectGeometry(a, stat) };
+    case 'spawn':
       return { kind: 'none' };
   }
+}
+
+/** The rectangle of a `rect` attack (the shield bash): its length along the aim and full width. */
+export function rectGeometry(a: AttackDef, stat: AttackStatFn): { range: number; width: number } {
+  return { range: stat(a.range, 'range'), width: stat(a.width!, 'width') };
 }
 
 /** The sector of an `arc` or `cone` attack: its reach and half the opening (radians). */

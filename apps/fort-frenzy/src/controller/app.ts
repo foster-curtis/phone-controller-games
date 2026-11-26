@@ -15,6 +15,7 @@ import { title } from '../../game.meta';
 import { GAME_VERSION } from '../shared/version';
 import { PROTOCOL_VERSION, isHostMsg, type Intent, type TeamView } from '../shared/messages';
 import { Toast } from './components';
+import { PAUSE_MENU } from './copy';
 import { createPhoneSender, type PhoneSender } from './input';
 import { createJoin, createNote } from './screens/simple';
 import { GROUP_OF, INPUT_GROUPS, createView, type ViewGroup } from './screens';
@@ -69,7 +70,6 @@ export const EMPTY_TEAM: TeamView = {
   coins: 0,
   baseHp: 0,
   baseMaxHp: 0,
-  theme: 'neon-knights',
   difficulty: 'normal',
   leaderId: null,
   roster: [],
@@ -136,8 +136,13 @@ export function createApp(opts: AppOptions): App {
   });
   const toast = Toast(shell.overlayHost);
 
+  /** The seq of a sent Leave game (RD6-fix-1): the host's kick that follows means "you left". */
+  let leaveSeq: number | null = null;
   const ctx: ScreenCtx = {
-    intent: (i: Intent) => void tracker.send(i),
+    intent: (i: Intent) => {
+      const n = tracker.send(i);
+      if (i.k === 'leave') leaveSeq = n;
+    },
     sender,
     code: opts.code ?? null,
     storage,
@@ -197,6 +202,18 @@ export function createApp(opts: AppOptions): App {
     router.showLocal('home', view.el, view);
   };
 
+  /** After Leave game: back to the room-code join screen, with a toast (RD6-fix-1). */
+  const showLeft = () => {
+    leaveSeq = null;
+    state = INITIAL_STATE;
+    joinError = null;
+    sender.neutral();
+    sender.stop();
+    join.set({ code: null, error: null });
+    router.showLocal('join', join.el);
+    toast.show(PAUSE_MENU.left);
+  };
+
   const session =
     opts.session ??
     (() => {
@@ -229,6 +246,7 @@ export function createApp(opts: AppOptions): App {
     client.onMessage((data) => {
       if (!isHostMsg(data)) return;
       if (data.t === 'ack') {
+        if (data.seq === leaveSeq && !data.ok) leaveSeq = null;
         const text = tracker.ack(data);
         if (text) toast.show(text);
         return;
@@ -255,8 +273,9 @@ export function createApp(opts: AppOptions): App {
       if (client.status === 'open') hello();
     }),
     client.onKicked(() =>
-      // "Return to home" closes the room for everyone (§4); a lobby removal is the other kick.
-      state.team?.phase === 'summary' ? showHome() : showRemoved(),
+      // Leave game (RD6-fix-1) ends in the host's kick; "Return to home" closes the room for everyone
+      // (§4); a lobby removal is the other kick.
+      leaveSeq !== null ? showLeft() : state.team?.phase === 'summary' ? showHome() : showRemoved(),
     ),
     client.onError((e) => {
       joinError = ERROR_TEXT[e.code] ?? e.message;

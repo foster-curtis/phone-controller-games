@@ -29,14 +29,24 @@ export const TUNING: Record<SfxId, CueTuning> = {
   player_hit: D(0.7, 2, 200),
   enemy_hit: D(0.35, 3, 120),
   enemy_death: D(0.5, 3, 150),
-  structure_placed: D(0.7, 2, 200),
-  structure_destroyed: D(0.8, 2, 250),
+  build_placed: D(0.7, 2, 200),
+  build_destroyed: D(0.8, 2, 250),
   boss_windup: D(0.9, 1, 1000),
   purchase: D(0.6, 2, 200),
   card_pick: D(0.6, 2, 200),
   wave_start: D(0.8, 1, 2000),
   victory: D(0.9, 1, 5000),
   defeat: D(0.9, 1, 5000),
+  // RD13: the beacon ticks and the mine tick are quiet and capped; the big ones are rare.
+  mine_trigger: D(0.5, 2, 200),
+  mine_blast: D(0.8, 2, 250),
+  shield_hit: D(0.5, 2, 150),
+  beacon_tick: D(0.35, 1, 800),
+  portal_flare: D(0.6, 2, 500),
+  brute_lock: D(0.6, 1, 600),
+  charge_windup: D(0.9, 1, 1500),
+  slam_land: D(0.9, 1, 500),
+  rally_double: D(0.8, 1, 1000),
 };
 
 /** The slice of the Web Audio API the player uses (a fake stands in under test). */
@@ -74,7 +84,7 @@ function browserAudio(): AudioLike | undefined {
   };
 }
 
-/** `files` is `ThemeHost.sfx`: cue id to file URL. */
+/** `files` is `PresentationHost.sfx`: cue id to file URL. */
 export function createSfx(files: Partial<Record<SfxId, string>> = {}, deps: SfxDeps = {}): Sfx {
   const audio = deps.audio ?? browserAudio();
   const now = deps.now ?? (() => performance.now());

@@ -19,7 +19,7 @@ const keys = (slot: Slot) =>
     ? ({ aim: 'mainAim', aiming: 'mainAiming', fires: 'mainFires' } as const)
     : ({ aim: 'superAim', aiming: 'superAiming', fires: 'superFires' } as const);
 
-function setup(classId: (typeof content.characters)[number]['id']) {
+function setup(classId: (typeof content.knights)[number]['id']) {
   const h = harness(1, 1, { classes: [classId] });
   h.toCombat();
   h.holdSpawns();
@@ -48,7 +48,7 @@ describe('aim preview: hidden only while in the grace zone', () => {
     expect(AIM_DEAD_ZONE).toBeLessThanOrEqual(0.3);
   });
 
-  for (const def of content.characters) {
+  for (const def of content.knights) {
     for (const slot of ['main', 'super'] as const) {
       if (def.input[slot] !== 'aimed') continue;
       describe(`${def.id} ${slot}`, () => {

@@ -3,24 +3,31 @@
 // drawn art, the Wasp's at its new flight height, the Colossus's kept low.
 import { describe, expect, it } from 'vitest';
 import { content } from '../../../content';
-import { neonKnightsHost } from '../../../themes/neon-knights/host';
-import type { RigView } from '../../../themes/types';
-import { WASP_ART_LIFT_TILES, WASP_FLIGHT_TILES, WASP_HOVER_TILES } from '../clips/wasp';
+import { presentationHost } from '../../../presentation/host';
+import type { RigView } from '../../../presentation/types';
+import {
+  WASP_ART_LIFT_TILES,
+  WASP_C4_FLIGHT_TILES,
+  WASP_FLIGHT_TILES,
+  WASP_HOVER_TILES,
+  WASP_SCALE,
+} from '../clips/wasp';
 import { RIG_INFO } from '../gallery/rigInfo';
 
 /** FF10's render hover over the art's lift (C3), tiles. */
 const OLD_HOVER = 1.6;
 const enemy = (id: string) => content.enemies.find((e) => e.id === id)!;
-const side = (rig: string) => neonKnightsHost.rigs[rig]!.views.side as RigView;
+const side = (rig: string) => presentationHost.rigs[rig]!.views.side as RigView;
 /** Height of a rig point above its feet, tiles (80 sprite units). */
 const heightOf = (rig: string, y: number) => (side(rig).foot[1] - y) / 80;
 
 describe('C4 note 1: the Wasp flies at half its old height', () => {
   it('its hull flies half as high over its shadow as in FF10', () => {
     const old = WASP_ART_LIFT_TILES + OLD_HOVER;
-    expect(WASP_FLIGHT_TILES).toBeCloseTo(old / 2, 9);
-    expect(WASP_HOVER_TILES).toBeCloseTo(WASP_FLIGHT_TILES - WASP_ART_LIFT_TILES, 9);
-    expect(WASP_HOVER_TILES).toBeGreaterThan(0);
+    expect(WASP_C4_FLIGHT_TILES).toBeCloseTo(old / 2, 9);
+    // RD10-fix-3 (RC3): drawn 1.4× and 10% lower again, so the hover over the scaled lift is negative.
+    expect(WASP_FLIGHT_TILES).toBeCloseTo(0.9 * WASP_C4_FLIGHT_TILES, 9);
+    expect(WASP_HOVER_TILES).toBeCloseTo(WASP_FLIGHT_TILES - WASP_ART_LIFT_TILES * WASP_SCALE, 9);
     // The world and the gallery draw it at that hover.
     expect(RIG_INFO.wasp!.fly).toBe(WASP_HOVER_TILES);
   });
@@ -40,7 +47,7 @@ describe('C4 note 1: the Wasp flies at half its old height', () => {
 
 describe('C4 note 2: bodies cover the drawn body', () => {
   it('every enemy has a body reaching above its feet circle, below its rig’s top', () => {
-    const rigFor = neonKnightsHost.rigFor.enemy;
+    const rigFor = presentationHost.rigFor.enemy;
     for (const e of content.enemies) {
       const b = e.body;
       expect(b, e.id).toBeDefined();

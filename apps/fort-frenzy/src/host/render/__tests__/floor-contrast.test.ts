@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { Resvg } from '@resvg/resvg-js';
 import { describe, expect, it } from 'vitest';
 import { theme } from '../../../shared/theme';
-import { neonKnightsHost } from '../../../themes/neon-knights/host';
+import { presentationHost } from '../../../presentation/host';
 import { bloomWeight } from '../bloomPick';
 import { contrast, lift, luminance, over, rgb, toHex } from '../color';
 import { DANGER_EDGE } from '../legibility';
@@ -36,7 +36,7 @@ const SMALL = new Set(['mite', 'skitter']);
 const INK = '#0d0f12';
 const isGlow = (hex: string) => bloomWeight(rgb(hex)) > 0;
 
-const LIFT = neonKnightsHost.map.floorLift!;
+const LIFT = presentationHost.map.floorLift!;
 const ART_FLOOR = rgb(
   /<path d="M-40-24h80v48h-80z" fill="(#[0-9a-f]{6})"/.exec(read('map', 'ground', '1.svg'))![1]!,
 );
@@ -66,7 +66,7 @@ function bodyShares(rig: string): Map<string, number> {
   return shares;
 }
 
-const ENEMY_RIGS = Object.values(neonKnightsHost.rigFor.enemy);
+const ENEMY_RIGS = Object.values(presentationHost.rigFor.enemy);
 
 describe('C3 floor (FF3-fix-2)', () => {
   it('checks against the bloom shader’s own threshold: amber and violet only', () => {

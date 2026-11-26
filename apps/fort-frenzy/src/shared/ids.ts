@@ -1,11 +1,44 @@
-// Internal ids (SPEC §2.1, §15.4). Game code and data refer only to these; theme packs map them to
+// Internal ids (SPEC §2.1, §15.4). Game code and data refer only to these; presentation maps them to
 // display names, rigs and icons. Shared by the phones and the TV.
-// Frozen at FF1 (BUILD_PLAN §3): additive changes only. Append new ids at the end of an array, never
+// Frozen after RD2 (REDESIGN_BUILD_PLAN §3): append-only. Append new ids at the end of an array, never
 // reorder or remove (lists are iterated in order, e.g. player colors in brand order).
 
-/** The four classes (SPEC §8). Display names come from the theme (neon knights: Ranger, Warden, …). */
-export const CLASS_IDS = ['engineer', 'warden', 'quartermaster', 'commander'] as const;
-export type ClassId = (typeof CLASS_IDS)[number];
+/** The knights (SPEC §8.2). `ClassId` is the knights' historic wire name and stays an alias (#94). */
+export const KNIGHT_IDS = ['ranger', 'warden', 'artificer', 'commander'] as const;
+export type KnightId = (typeof KNIGHT_IDS)[number];
+export const CLASS_IDS = KNIGHT_IDS;
+export type ClassId = KnightId;
+
+/** The classes (SPEC §8.1): a knight's playstyle. */
+export const ROLE_IDS = ['tank', 'marksman', 'support', 'control'] as const;
+export type RoleId = (typeof ROLE_IDS)[number];
+
+/** One build per knight (SPEC §7.4). */
+export const BUILD_IDS = ['shield_gen', 'mine', 'beacon', 'rally_flag'] as const;
+export type BuildId = (typeof BUILD_IDS)[number];
+
+/** The six portals (SPEC §3.1) and the three sides. */
+export const PORTAL_IDS = [
+  'bottom-w',
+  'bottom-e',
+  'left-n',
+  'left-s',
+  'right-n',
+  'right-s',
+] as const;
+export type PortalId = (typeof PORTAL_IDS)[number];
+export const SIDE_IDS = ['left', 'bottom', 'right'] as const;
+export type SideId = (typeof SIDE_IDS)[number];
+
+/** Build-button icons (SPEC §2.6, §10.1). */
+export const ACT_ICON_IDS = [
+  'act-shield',
+  'act-mine',
+  'act-beacon',
+  'act-flag',
+  'act-recall',
+] as const;
+export type ActIconId = (typeof ACT_ICON_IDS)[number];
 
 /** The Iron Tide (SPEC §9) plus the boss (§9.2). */
 export const ENEMY_IDS = [
@@ -20,32 +53,19 @@ export const ENEMY_IDS = [
 ] as const;
 export type EnemyId = (typeof ENEMY_IDS)[number];
 
-/** Buildable structures (SPEC §7, §8 build kits). The rally flag is free and isn't a structure. */
-export const STRUCTURE_IDS = ['arrow_tower', 'bomb_tower', 'wall', 'snare', 'fortify'] as const;
-export type StructureId = (typeof STRUCTURE_IDS)[number];
-
-/** Team shop items (SPEC §6.2), Quartermaster-only items included. */
+/** Team shop (SPEC §6.2). The sentry upgrades keep their `archer_*` code ids (#95). */
 export const SHOP_ITEM_IDS = [
-  'crate',
   'repair',
   'archer_damage',
   'archer_range',
   'archer_third',
-  'squad_stats',
-  'arrow_rate',
-  'bomb_radius',
-  'tower_hp',
-  'wall_hp',
-  'snare_charges',
-  'spiked_walls',
+  'base_hp',
   'base_armor',
-  'emergency_kit',
 ] as const;
 export type ShopItemId = (typeof SHOP_ITEM_IDS)[number];
 
-/** Upgrade cards (SPEC §6.1): the 8 shared commons, then each class's 8, in the spec's table order. */
+/** Upgrade cards (SPEC §6.1): the 9 commons, then each knight's, in the spec's table order. */
 export const CARD_IDS = [
-  // shared commons (numbers tuned per class, CardDef.perClass)
   'vitality',
   'might',
   'haste',
@@ -54,71 +74,69 @@ export const CARD_IDS = [
   'focus',
   'toughness',
   'quick_recovery',
-  // engineer
+  'tinkerer',
+  // ranger
   'quick_draw',
   'blast_radius',
+  'shrapnel_charge',
   'fire_arrows',
   'piercing_shot',
   'skyhunter',
-  'deadeye',
   'volley',
+  'steady_aim',
+  'deadeye',
+  'minefield',
   'wildfire',
   // warden
   'heavy_slam',
   'earthshaker',
+  'wide_field',
   'aftershock',
   'giant_slayer',
-  'master_mason',
-  'bodyguard',
   'unshakable',
+  'challenger',
+  'reinforced_generator',
   'fault_line',
-  // quartermaster
-  'light_load',
+  // artificer
   'strong_arm',
+  'booster_beacon',
   'venom_bolts',
   'overflow',
-  'bulk_buyer',
-  'wide_aura',
   'triage',
+  'field_medic',
+  'wide_aura',
   'plague',
   // commander
-  'bladework',
+  'heavy_bash',
   'forced_march',
-  'rally_cry',
+  'drillmaster',
   'siege_breakers',
   'veterans',
   'last_stand',
   'vanguard',
+  'rally_cry',
+  'morale',
+  'reinforced_ranks',
   'warcry',
 ] as const;
 export type CardId = (typeof CARD_IDS)[number];
 
-/** Timed status effects (SPEC §6.1, §15.3), auras included (re-applied each step with `refresh`). */
+/**
+ * Timed status effects (SPEC §15.3), auras included (re-applied each step with `refresh`).
+ */
 export const EFFECT_IDS = [
   'burn',
   'poison',
   'stun',
   'slow',
   'morale',
-  'tower_defense',
   'shield',
   'aura_field_medic',
-  'aura_mason',
-  'aura_bodyguard',
-  'aura_lead_from_the_front',
   'aura_vanguard',
-  // FF9: the Commander's morale movement boost (his super's `selfEffects`).
-  'haste',
+  'guard',
+  'taunt',
 ] as const;
 export type EffectId = (typeof EFFECT_IDS)[number];
-
-/** Lane entries (SPEC §15.2 Map v1): bottom opens at wave 1, left at 3, right at 8. */
-export const LANE_IDS = ['bottom', 'left', 'right'] as const;
-export type LaneId = (typeof LANE_IDS)[number];
-
-/** Theme packs (SPEC §2.1). v1 ships neon knights (tech-medieval); Pillow Fort is v2. */
-export const THEME_IDS = ['neon-knights'] as const;
-export type ThemeId = (typeof THEME_IDS)[number];
 
 /** SPEC §2.2. */
 export const DIFFICULTY_IDS = ['easy', 'normal', 'hard'] as const;
@@ -128,21 +146,31 @@ export type DifficultyId = (typeof DIFFICULTY_IDS)[number];
 export const PLAYER_COLOR_IDS = ['cobalt', 'jade', 'sky', 'bone', 'rose', 'forest'] as const;
 export type PlayerColorId = (typeof PLAYER_COLOR_IDS)[number];
 
-/** Sound cues (SPEC §12; BUILD_PLAN FF13). Theme packs map each to a file (`ThemeHost.sfx`). */
+/** Sound cues (SPEC §12); RD13 may append. Presentation maps each to a file (`PresentationHost.sfx`). */
 export const SFX_IDS = [
   'base_alarm',
   'base_hit',
   'player_hit',
   'enemy_hit',
   'enemy_death',
-  'structure_placed',
-  'structure_destroyed',
+  'build_placed',
+  'build_destroyed',
   'boss_windup',
   'purchase',
   'card_pick',
   'wave_start',
   'victory',
   'defeat',
+  // RD13
+  'mine_trigger',
+  'mine_blast',
+  'shield_hit',
+  'beacon_tick',
+  'portal_flare',
+  'brute_lock',
+  'charge_windup',
+  'slam_land',
+  'rally_double',
 ] as const;
 export type SfxId = (typeof SFX_IDS)[number];
 

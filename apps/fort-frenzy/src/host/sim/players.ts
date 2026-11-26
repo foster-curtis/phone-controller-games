@@ -1,26 +1,19 @@
-// Step 3 (SPEC §15.3): players — respawn, movement with carry slowdown, attacks and supers (fire on
-// release, a release during the cooldown fires when it ends), the action button (§10.1 rows 1–5), the
-// build arc and Give.
+// Step 3 (SPEC §15.3): players — respawn, movement, attacks and supers (fire on
+// release, a release during the cooldown fires when it ends), build presses (§10.1), the meter's
+// passive fill (combat) and delayed regen (§5: combat and build phase).
 import type { AttackDef, EffectApply, Vec2 } from '../../content/types';
 import { AIM_DEAD_ZONE } from '../../shared/messages';
 import { bodyAimY, circleHitsBody } from './body';
-import { buildAtFeet } from './building';
 import { landArc, windupSteps } from './classes/warden';
-import {
-  buyCrate,
-  canDeliver,
-  carryCap,
-  carrySpeed,
-  deliver,
-  give,
-  inZone,
-  pickUp,
-} from './crates';
-import { toggleFlag } from './classes/commander';
-import { canUseKit, throwCrate, throwTarget, useKit } from './classes/quartermaster';
+import { startBlast, stepBlast } from './classes/artificer';
+import { recallFlag, reinforceAim } from './classes/commander';
+import { placeBuild } from './builds/core';
+import { fillMeter } from './builds/meter';
 import { attackShapes } from './classes/shapes';
 import { cleanVec } from './geometry';
-import type { SlotInput } from './internal';
+import type { SimState, SlotInput } from './internal';
+import { holdRegen } from './regen';
+import { superBlocked } from './squad';
 import type { FullState } from './state';
 import type { AttackEvent, AttackState, EnemyEnt, PlayerEnt } from './types';
 
@@ -36,20 +29,25 @@ export function respawn(s: FullState, p: PlayerEnt): void {
   s.emit({ e: 'respawn', slot: p.slot });
 }
 
-/** Drops queued shots and wind-ups (a wind-up cut short never lands). */
-function releaseAttacks(p: PlayerEnt): void {
+const ATTACK_SLOTS = ['main', 'super'] as const;
+
+/** Drops queued shots and wind-ups: one cut short never lands, and the TV calls off its impact. */
+function releaseAttacks(s: Pick<SimState, 'emit'>, p: PlayerEnt): void {
   p.main.queued = p.super.queued = false;
-  p.main.windupEndsAt = p.super.windupEndsAt = null;
-  p.main.windupAim = p.super.windupAim = null;
+  p.burst = null;
+  for (const slot of ATTACK_SLOTS) {
+    const st = p[slot];
+    if (st.windupEndsAt !== null) s.emit({ e: 'windupCancelled', source: p.id, slot });
+    st.windupEndsAt = null;
+    st.windupAim = null;
+  }
 }
 
 /** Clears held gestures and queued shots (death, dazed, phase changes). */
-export function releaseAll(p: PlayerEnt): void {
-  p.mainAim = p.superAim = null;
-  p.main.held = p.super.held = null;
-  p.radialOpen = false;
-  p.radialSlot = -1;
-  releaseAttacks(p);
+export function releaseAll(s: Pick<SimState, 'emit'>, p: PlayerEnt): void {
+  p.mainAim = p.superAim = p.buildAim = null;
+  p.main.held = p.super.held = p.build.held = null;
+  releaseAttacks(s, p);
   p.vx = p.vy = 0;
 }
 
@@ -82,31 +80,50 @@ export function stepPlayers(s: FullState): void {
       else continue;
     }
     if (!p.connected) {
-      releaseAll(p);
+      releaseAll(s, p);
       continue;
     }
     const inp = s.inputs.get(p.slot)!;
-    move(s, p, inp, acting);
+    move(p, inp, acting);
     p.mainAim = heldAim(p.main, inp.input.mainAiming, inp.input.mainAim);
     p.superAim = heldAim(p.super, inp.input.superAiming, inp.input.superAim);
-    p.radialOpen = inp.input.radialOpen;
-    p.radialSlot = inp.input.radialOpen ? inp.input.radialSlot : -1;
+    // Builds are placed only in combat (§7.1): the preview shows only then.
+    p.buildAim = fighting ? heldAim(p.build, inp.input.buildAiming, inp.input.buildAim) : null;
 
-    if (fighting) attacks(s, p, inp);
-    else releaseAttacks(p);
-    if (!acting) continue;
-    if (inp.action) action(s, p);
-    if (inp.radial) radial(s, p, inp.input.radialSlot);
+    if (fighting) {
+      attacks(s, p, inp);
+      fillMeter(s, p);
+      // In the air he can't throw his build (§8.2): the press is lost, the meter stays full.
+      if (inp.build && p.super.windupEndsAt === null) buildPress(s, p, inp);
+    } else releaseAttacks(s, p);
+    if (acting) regen(s, p);
   }
 }
 
-function move(s: FullState, p: PlayerEnt, inp: SlotInput, acting: boolean) {
+/**
+ * Delayed regen (§5): from `regen.quietUntil` (`regen.delayMs` after the last damage taken, main
+ * attack or super) the knight heals `regen.pct` of max HP every `regen.everyMs` until full. Not a
+ * heal: HP is set directly, with no hooks, charge, stats or event (§15.11 #98). Down or dazed knights
+ * don't get here.
+ */
+function regen(s: FullState, p: PlayerEnt) {
+  if (p.hp <= 0 || p.hp >= p.maxHp) return;
+  const t = s.world.tick;
+  const r = p.regen;
+  if (t < r.quietUntil || t < r.nextRegen) return;
+  const rule = s.cat.rules.regen;
+  p.hp = Math.min(p.maxHp, p.hp + p.maxHp * rule.pct);
+  r.nextRegen = t + s.cat.steps(rule.everyMs);
+}
+
+function move(p: PlayerEnt, inp: SlotInput, acting: boolean) {
   const m = acting ? cleanVec(inp.input.move.x, inp.input.move.y) : { x: 0, y: 0 };
-  const speed = p.stats.moveSpeed * carrySpeed(s, p);
+  const speed = p.stats.moveSpeed;
   p.vx = m.x * speed;
   p.vy = m.y * speed;
   if (m.x !== 0 || m.y !== 0) {
-    p.facing = Math.atan2(m.y, m.x);
+    // The jump slam keeps the facing it left the ground with (§8.2): it lands along that aim.
+    if (p.super.windupEndsAt === null) p.facing = Math.atan2(m.y, m.x);
     p.stillTicks = 0;
   } else {
     p.stillTicks++;
@@ -114,9 +131,10 @@ function move(s: FullState, p: PlayerEnt, inp: SlotInput, acting: boolean) {
 }
 
 function attacks(s: FullState, p: PlayerEnt, inp: SlotInput) {
-  const def = s.cat.character(p.classId);
+  const def = s.cat.knight(p.classId);
   const t = s.world.tick;
-  if (inp.main) {
+  // Committed to the jump slam (§8.2): a main press in the air is lost, not fired on the landing.
+  if (inp.main && p.super.windupEndsAt === null) {
     p.main.queued = true;
     p.main.aim = cleanVec(inp.input.mainAim.x, inp.input.mainAim.y);
   }
@@ -125,23 +143,41 @@ function attacks(s: FullState, p: PlayerEnt, inp: SlotInput) {
     p.vx = p.vy = 0;
     return;
   }
+  stepBlast(s, p);
   if (p.main.queued && t >= p.main.readyAt) {
     p.main.queued = false;
     fire(s, p, 'main', def.main, p.main.aim);
     const as = Math.max(0.05, s.attackStat(p, 1, 'attackSpeed', 'main'));
-    p.main.readyAt = t + s.cat.steps(def.main.cooldownMs / as);
+    // A blast never overlaps the next one, however fast he attacks (§8.2).
+    p.main.readyAt = t + s.cat.steps(Math.max(def.main.burstMs ?? 0, def.main.cooldownMs / as));
   }
   // Supers fire on release when full; a release while charging does nothing.
-  if (inp.super && p.superCharge >= 1 && t >= p.super.readyAt) {
-    fire(s, p, 'super', def.super, cleanVec(inp.input.superAim.x, inp.input.superAim.y));
+  // Not on the step a main wind-up starts: he can't slam and leave the ground at once.
+  // A Commander at his squad cap can't: the charge is held (§8.4).
+  if (
+    inp.super &&
+    p.superCharge >= 1 &&
+    t >= p.super.readyAt &&
+    p.main.windupEndsAt === null &&
+    !superBlocked(s, p)
+  ) {
+    let aim = cleanVec(inp.input.superAim.x, inp.input.superAim.y);
+    // Reinforcements' quick tap aims at his flag or straight ahead, never at an enemy (§10.1).
+    if (def.super.spawn) {
+      const range = s.attackStat(p, def.super.spawn.throwRange, 'throwRange', 'super');
+      aim = reinforceAim(p, aim, range);
+      p.super.aim = aim;
+    }
+    fire(s, p, 'super', def.super, aim);
     p.superCharge = 0;
     p.super.readyAt = t + s.cat.steps(def.super.cooldownMs);
+    if (p.super.windupEndsAt !== null) p.main.queued = false;
   }
 }
 
 /** Lands the wind-ups that end this step; true while one is still winding. */
 function landWindups(s: FullState, p: PlayerEnt): boolean {
-  const def = s.cat.character(p.classId);
+  const def = s.cat.knight(p.classId);
   for (const slot of ['main', 'super'] as const) {
     const st = p[slot];
     if (st.windupEndsAt === null) continue;
@@ -150,6 +186,7 @@ function landWindups(s: FullState, p: PlayerEnt): boolean {
     const aim = st.windupAim ?? st.aim;
     st.windupAim = null;
     fire(s, p, slot, def[slot], aim, true);
+    s.emit({ e: 'windupLanded', source: p.id, slot });
   }
   return false;
 }
@@ -167,6 +204,8 @@ function fire(
   /** A wound-up attack landing: no new event, no new wind-up. */
   landing = false,
 ) {
+  // Attacking holds regen off like damage does (§5, RC1): at the press and when a wind-up lands.
+  holdRegen(s, p);
   const range = s.attackStat(p, a.range, 'range', slot);
   let dx = aim.x;
   let dy = aim.y;
@@ -209,13 +248,15 @@ function fire(
   for (const f of s.hooks(p, 'onAttack')) f(s, p, atk);
   p.facing = Math.atan2(dy, dx);
   if (!landing) s.emit({ e: 'attack', source: p.id, slot, x: p.x, y: p.y, angle: p.facing });
-  const damage = s.attackStat(p, a.damage, 'damage', slot);
+  // The class's damage band multiplies the knight's main and super (§8.1), under the cards.
+  const band = s.cat.role(s.cat.knight(p.classId).role).damage;
+  const damage = s.attackStat(p, a.damage * band, 'damage', slot);
 
   if (a.shape === 'circle') {
     circle(s, p, a, slot, damage, atk);
     return;
   }
-  // A wound-up arc landing (the Warden's slam and stomp, FF8): its effects (stun) and knockback.
+  // A wound-up arc landing (the Warden's slam and stomp, FF8): its effects (stun), no knockback (RC2).
   if (a.shape === 'arc' && landing) {
     // Cards lengthen the attack's own effects (FF12: Earthshaker's `stunMs`, others' `durationMs`).
     const extra = ((a as { effects?: readonly EffectApply[] }).effects ?? []).map((fx) => ({
@@ -242,6 +283,10 @@ function fire(
     return;
   }
   const speed = s.attackStat(p, a.speed!, 'projectileSpeed', slot);
+  if (a.burstMs) {
+    startBlast(s, p, a, damage, range, speed, atk);
+    return;
+  }
   const spread = (atk.spreadDeg * Math.PI) / 180;
   for (let i = 0; i < atk.count; i++) {
     const off = atk.count > 1 ? spread * (i / (atk.count - 1) - 0.5) : 0;
@@ -267,7 +312,7 @@ function fire(
   }
 }
 
-/** A circle around the player: area damage and knockback (Engineer super, §8). */
+/** A circle around the player: area damage and knockback (Ranger super, §8). */
 function circle(
   s: FullState,
   p: PlayerEnt,
@@ -309,45 +354,12 @@ function circle(
   }
 }
 
-/** The action button (§10.1): the first matching row wins; build phase uses rows 1–4 (§10.2). */
-function action(s: FullState, p: PlayerEnt) {
-  const cap = carryCap(s, p);
-  if (p.crates < cap && pickUp(s, p)) return;
-  if (canDeliver(s, p)) {
-    deliver(s, p);
-    return;
-  }
-  // Row 3: the Quartermaster's emergency kit (FF9).
-  if (canUseKit(s, p)) {
-    useKit(s, p);
-    return;
-  }
-  if (inZone(s, p, 'armory') && p.crates < cap) {
-    buyCrate(s, p);
-    return;
-  }
-  const kit = s.cat.character(p.classId).build;
-  if (s.world.phase !== 'combat') return;
-  if (kit.length > 0 && p.crates > 0) {
-    buildAtFeet(s, p, p.lastBuilt ?? kit[0]!);
-    return;
-  }
-  // Row 6: a Quartermaster throws a crate; row 7: the Commander's rally flag (FF9).
-  const to = throwTarget(s.world, p, (q) => carryCap(s, q));
-  if (to) {
-    throwCrate(s, p, to);
-    return;
-  }
-  if (p.classId === 'commander') toggleFlag(s, p);
-}
-
-/** A build-arc commit: left/up/right build that structure (combat), down (3) gives a crate. */
-function radial(s: FullState, p: PlayerEnt, slot: number) {
-  if (slot === 3) {
-    give(s, p);
-    return;
-  }
-  if (s.world.phase !== 'combat' || slot < 0 || slot > 2) return;
-  const kind = s.cat.character(p.classId).build[slot];
-  if (kind) buildAtFeet(s, p, kind);
+/**
+ * A build press (§15.3, §15.11 #97), resolved from the state at this step: with the meter full the
+ * knight places or throws its build toward the build aim (0,0 = at his feet; builds/core.ts); else a
+ * Commander with a flag out recalls it; else nothing.
+ */
+function buildPress(s: FullState, p: PlayerEnt, inp: SlotInput) {
+  if (p.meter >= 1 && placeBuild(s, p, inp.input.buildAim)) return;
+  if (p.classId === 'commander' && p.flag !== null && p.meter < 1) recallFlag(s, p);
 }

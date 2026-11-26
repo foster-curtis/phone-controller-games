@@ -14,7 +14,7 @@ function wanderer(slot: number): ScriptedInputSource {
     if (t % 45 === 0) pad.tap('mainFires', { mainAim: { x: 0, y: 0 } });
     if (t % 70 === 0) pad.tap('mainFires', { mainAim: { x: a - 0.5, y: 0.9 } });
     if (t % 400 === 0) pad.tap('superFires');
-    if (t % 150 === 0) pad.tap('actionTaps');
+    if (t % 150 === 0) pad.tap('buildFires');
   });
 }
 
@@ -57,6 +57,32 @@ describe('determinism', () => {
     const b = runHashes(11, mk);
     expect(a.maxWave).toBe(2);
     expect(a.phase).toBe('summary');
+    expect(b.hashes).toEqual(a.hashes);
+  });
+
+  it('two Wardens on autopilot with builds (RD3): identical hashes over 2 waves', () => {
+    const run = () => {
+      const start = startOf(2, 13, 'warden');
+      const sim = createSim(start, { content: { ...content, waves: content.waves.slice(0, 2) } });
+      for (const s of start.slots)
+        sim.setSource(s.slot, new AutopilotInputSource(() => sim.world, s.slot));
+      sim.command({ c: 'debug', slot: -1, action: 'invincible', on: true });
+      const hashes: number[] = [];
+      let placed = 0;
+      for (let i = 0; i < 60 * 60 * 6 && sim.world.phase !== 'summary'; i++) {
+        if (sim.world.phase === 'build' && sim.world.tick % 600 === 300) {
+          for (const p of sim.world.players) sim.command({ c: 'ready', slot: p.slot, ready: true });
+        }
+        sim.step();
+        placed += sim.world.events.filter((e) => e.e === 'buildPlaced').length;
+        if (sim.world.tick % 60 === 0) hashes.push(stateHash(sim.world));
+      }
+      return { hashes, placed, phase: sim.world.phase };
+    };
+    const a = run();
+    const b = run();
+    expect(a.phase).toBe('summary');
+    expect(a.placed).toBeGreaterThan(1);
     expect(b.hashes).toEqual(a.hashes);
   });
 

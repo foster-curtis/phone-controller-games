@@ -70,7 +70,7 @@ export interface PartyOptions<Color extends string> {
   colors: readonly Color[];
   /** Game cap (6); the next new phone gets `full`. */
   maxPlayers: number;
-  /** Ready players needed to start (2). */
+  /** Ready players needed to start (default 1: solo play, §11.1; RD3). */
   minPlayers?: number;
   /** Name length in characters (10). */
   nameMax?: number;
@@ -106,6 +106,14 @@ export interface Party<Color extends string, Cls extends string> {
     by: string | null,
     target: string,
   ): { ok: true; removed: Readonly<Member<Color, Cls>> } | { ok: false; reason: PartyRefusal };
+  /**
+   * A player leaves for good, at any stage (the pause menu's Leave game, RD6-fix-1): the member goes,
+   * so no reconnect matches it again; leadership passes as on a disconnect. A run slot it held is
+   * never handed to a late joiner (the knight stays in the sim). Unknown player: `invalid`.
+   */
+  leave(
+    playerId: string,
+  ): { ok: true; removed: Readonly<Member<Color, Cls>> } | { ok: false; reason: PartyRefusal };
   /** Every connected player is ready, and at least `minPlayers` of them. */
   canAutoStart(): boolean;
   /** The leader may force-start once `minPlayers` connected players are ready. */
@@ -125,7 +133,8 @@ export interface Party<Color extends string, Cls extends string> {
   endRun(): void;
   /**
    * FF14 (§11.5, §15.8): a resumed run. The members become the snapshot's slots, away until a phone
-   * matches one (playerId, key, then device ID); the stage is `build`; `leaderKey` picks the leader.
+   * matches one (playerId, key, then device ID); the stage is `build`; `leaderKey` picks the leader,
+   * who leads again once their phone matches even if another phone came back first and led (RD14).
    * With `claimable`, unmatched slots can be claimed by an unknown phone (resume into a new room).
    */
   restore(
@@ -154,7 +163,7 @@ const no = (reason: PartyRefusal) => ({ ok: false as const, reason });
 export function createParty<Color extends string, Cls extends string>(
   opts: PartyOptions<Color>,
 ): Party<Color, Cls> {
-  const { colors, maxPlayers, minPlayers = 2, nameMax = 10 } = opts;
+  const { colors, maxPlayers, minPlayers = 1, nameMax = 10 } = opts;
   if (colors.length < maxPlayers) throw new Error('createParty: fewer colors than players');
   type M = Member<Color, Cls>;
   const members: M[] = [];
@@ -162,6 +171,13 @@ export function createParty<Color extends string, Cls extends string>(
   let stage: PartyStage = 'lobby';
   /** Restored slots still open to a claim (FF14). */
   const open = new Set<number>();
+  /**
+   * The saved leader's restored slot until its phone matches (RD14, §11.5): another phone may lead
+   * until then (the handoff rule), and the saved leader takes it back when their phone comes in.
+   */
+  let savedLead: M | null = null;
+  /** Highest run slot a player left this run (RD6-fix-1): late joins go above it, never into it. */
+  let leftSlot = -1;
 
   const find = (playerId: string) => members.find((m) => m.playerId === playerId) ?? null;
   // With every color held by restored slots, a phone that is about to claim one borrows the first
@@ -207,7 +223,8 @@ export function createParty<Color extends string, Cls extends string>(
       }
       if (m) {
         // Known ids are kept; a device-ID match is a new room, so it takes the new relay key.
-        if (leaderId === m.playerId) leaderId = playerId;
+        if (leaderId === m.playerId || savedLead === m) leaderId = playerId;
+        if (savedLead === m) savedLead = null;
         m.playerId = playerId;
         m.key = newRoom && key ? key : (m.key ?? key);
         m.deviceId = m.deviceId ?? deviceId;
@@ -289,6 +306,18 @@ export function createParty<Color extends string, Cls extends string>(
       return { ok: true, removed: removed! };
     },
 
+    leave(playerId) {
+      const i = members.findIndex((m) => m.playerId === playerId);
+      if (i < 0) return no('invalid');
+      const [removed] = members.splice(i, 1);
+      if (removed!.slot !== null) {
+        leftSlot = Math.max(leftSlot, removed!.slot);
+        open.delete(removed!.slot);
+      }
+      updateLeader();
+      return { ok: true, removed: removed! };
+    },
+
     canAutoStart() {
       if (stage !== 'lobby') return false;
       const on = members.filter((m) => m.connected);
@@ -325,7 +354,7 @@ export function createParty<Color extends string, Cls extends string>(
       if (!m) return no('invalid');
       if (stage !== 'build') return no('phase');
       if (m.slot !== null || !m.name || m.classId === null) return no('invalid');
-      m.slot = members.reduce((hi, x) => Math.max(hi, x.slot ?? -1), -1) + 1;
+      m.slot = members.reduce((hi, x) => Math.max(hi, x.slot ?? -1), leftSlot) + 1;
       return { ok: true, slot: slotOf(m) };
     },
 
@@ -341,6 +370,8 @@ export function createParty<Color extends string, Cls extends string>(
     endRun() {
       stage = 'lobby';
       open.clear();
+      leftSlot = -1;
+      savedLead = null;
       for (const m of members) {
         m.slot = null;
         m.ready = false;
@@ -350,6 +381,7 @@ export function createParty<Color extends string, Cls extends string>(
     restore(slots, leaderKey, o = {}) {
       members.length = 0;
       open.clear();
+      leftSlot = -1;
       for (const s of [...slots].sort((a, b) => a.slot - b.slot)) {
         members.push({
           // Placeholder until a phone matches the slot (relay ids never look like this).
@@ -367,7 +399,8 @@ export function createParty<Color extends string, Cls extends string>(
       }
       stage = 'build';
       const lead = leaderKey === null ? undefined : members.find((m) => m.key === leaderKey);
-      leaderId = (lead ?? members[0])?.playerId ?? null;
+      savedLead = lead ?? members[0] ?? null;
+      leaderId = savedLead?.playerId ?? null;
     },
 
     claimable: () => members.filter((m) => m.slot !== null && open.has(m.slot)),
@@ -379,7 +412,9 @@ export function createParty<Color extends string, Cls extends string>(
       const target = members.find((m) => m.slot === slot);
       if (!target || !open.has(slot)) return no('invalid');
       members.splice(members.indexOf(fresh), 1);
-      if (leaderId === target.playerId || leaderId === fresh.playerId) leaderId = playerId;
+      if (leaderId === target.playerId || leaderId === fresh.playerId || savedLead === target)
+        leaderId = playerId;
+      if (savedLead === target) savedLead = null;
       target.playerId = playerId;
       target.key = fresh.key ?? target.key;
       target.deviceId = fresh.deviceId ?? target.deviceId;
