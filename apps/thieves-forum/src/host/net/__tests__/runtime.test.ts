@@ -1,9 +1,7 @@
 // The crowd spike runtime (game.ts; SPEC §6.2, §6.3, §12.3, §12.5; BUILD_PLAN TF7): lobby → leader
-// Start → opening → play, phone screens, stick input moves the phone's character, timeScale, the
-// open-stall rule.
+// Start → opening → play, phone screens, stick input moves the phone's character, timeScale.
 import { describe, expect, it } from 'vitest';
-import { CONTENT } from '../../../content';
-import { createRuntime, spikeOpenStalls } from '../../game';
+import { createRuntime } from '../../game';
 import { fakeHostClient } from './fakeClient';
 
 function setup() {
@@ -78,19 +76,5 @@ describe('spike runtime', () => {
     const { fake } = setup();
     fake.msg('p1', { t: 'join', name: 'Old', proto: 99 });
     expect(fake.sent.at(-1)).toEqual({ to: 'p1', data: { t: 'outdated', proto: 1 } });
-  });
-
-  it('opens pawnbroker, jewelry, one of bakery/pottery, players + 2 clamped 5–10', () => {
-    const shopsOf = (ids: number[]) => ids.map((i) => CONTENT.layout.stalls[i]!.shop);
-    for (let seed = 1; seed < 30; seed++) {
-      for (const n of [2, 3, 5, 8]) {
-        const shops = shopsOf(spikeOpenStalls(seed, n));
-        expect(shops.length).toBe(Math.max(5, Math.min(10, n + 2)));
-        expect(shops).toContain('pawnbroker');
-        expect(shops).toContain('jewelry');
-        expect(shops.includes('bakery') || shops.includes('pottery')).toBe(true);
-        expect(new Set(shops).size).toBe(shops.length);
-      }
-    }
   });
 });

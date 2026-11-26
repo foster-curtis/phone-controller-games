@@ -4,10 +4,10 @@
 // samples become `PlayerInput`s each fixed 60 Hz step; the scene gets `WorldView` plus the previous
 // step's positions for interpolation. `timeScale` (debug) runs n steps per step slot. No Phaser here.
 // The match flow proper (rules, three rounds, reveal, podium) is TF10/TF12/TF16.
-import { catchUpSteps, createFixedStep, joinUrl, rngStream } from '@pcg/game-kit';
+import { catchUpSteps, createFixedStep, joinUrl } from '@pcg/game-kit';
 import type { ConnectionStatus, HostClient } from '@pcg/net-client';
 import { CONTENT } from '../content';
-import type { ShopId, StallId, Vec2 } from '../content/types';
+import type { StallId, Vec2 } from '../content/types';
 import {
   isPhoneMsg,
   MIN_PLAYERS,
@@ -16,6 +16,7 @@ import {
   type Screen,
 } from '../shared/messages';
 import { PLAYER_COLOR_IDS, type PlayerColorId } from '../shared/theme';
+import { pickOpenStalls } from './match/openStalls';
 import { createInputStore } from './net/inputs';
 import { createRoster } from './roster';
 import type { FrameInput, SceneSource } from './scene/types';
@@ -82,22 +83,6 @@ export interface Runtime extends SceneSource {
   stepStats(): StepStats;
   /** Called when the TV view's phase changes (main.ts re-renders at once). */
   onChange(cb: () => void): void;
-}
-
-/**
- * The match's open stalls (SPEC §6.3, §11 #24, settled): pawnbroker, jewelry and one of bakery /
- * pottery, then the rest at random until players + 2, clamped 5–10. The spike's own copy until the
- * match layer (TF10) decides it once per match.
- */
-export function spikeOpenStalls(seed: number, players: number): StallId[] {
-  const b = CONTENT.balance.stalls;
-  const want = Math.max(b.openMin, Math.min(b.openMax, players + b.openExtra));
-  const rng = rngStream(seed, 'openStalls');
-  const shops: ShopId[] = ['pawnbroker', 'jewelry', rng.next() < 0.5 ? 'bakery' : 'pottery'];
-  const rest = CONTENT.layout.stalls.map((s) => s.shop).filter((s) => !shops.includes(s));
-  while (shops.length < want && rest.length > 0)
-    shops.push(rest.splice(rng.int(0, rest.length - 1), 1)[0]!);
-  return CONTENT.layout.stalls.filter((s) => shops.includes(s.shop)).map((s) => s.id);
 }
 
 export function createRuntime(opts: RuntimeOptions): Runtime {
@@ -208,7 +193,7 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
     if (by !== undefined && players[0]?.id !== by) return false; // only the leader
     if (!opts.bots && players.length < MIN_PLAYERS) return false;
     const seed = opts.seed ?? Math.floor(Math.random() * 0x7fffffff);
-    openStalls = spikeOpenStalls(seed, players.length);
+    openStalls = pickOpenStalls(seed, players.length, CONTENT.layout, balance);
     const rs: RoundStart = {
       seed,
       round: 1,
