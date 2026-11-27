@@ -5,7 +5,9 @@
 // the body), carry shows both arms, fetch and other raised near arms draw in front of the head, and
 // front/back points aim into / out of the screen.
 import type { Clip } from '../types';
+import { GLANCE_MS } from '../glance';
 import {
+  aimedGlanceClips,
   breathe,
   gaitFront,
   gaitSide,
@@ -88,6 +90,8 @@ export const clips: Record<string, Clip> = {
   glanceWindup,
   glanceLook,
   glanceBack,
+  // Glances aimed at the theft (TF1-fix-2): played step by step from render/glance.ts.
+  ...aimedGlanceClips(P, GLANCE_MS),
   fetch,
   'fetch@side': fetchSide,
   carry,

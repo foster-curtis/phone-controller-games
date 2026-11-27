@@ -2,16 +2,28 @@
 // shared pool; every stall open and closed in its canopy color with its items; items and map
 // pieces; effects; and the stress crowd (SPEC §7: 8 players → 24 NPCs, 4 guards, 10 merchants)
 // walking random paths. Each builder lays its page out on the 1920 × 1080 canvas. TF1-fix-1 adds the
-// staged glance sequence, the occupied stocks with outfits cycling and a confetti page.
+// staged glance sequence, the occupied stocks with outfits cycling and a confetti page; TF1-fix-2
+// turns the glance page into a grid of glances aimed at a thief (facing × target × outcome).
 import { balance, itemsOf, ITEMS, SHOP_IDS, type Outfit, type ShopId } from '../../content';
+import type { Vec2 } from '../../content/types';
 import { theme } from '../../shared/theme';
 import { placePiece, addPiece } from '../render/atlas';
 import { CANVAS_H, CANVAS_W } from '../render/camera';
 import { clipNames } from '../render/clips/index';
+import { FACING_VEC, facingView, glanceSteps, planGlance, playGlanceStep } from '../render/glance';
 import type { RigSprite } from '../render/rig';
 import { itemFrame } from '../render/stall';
 import { guardTints, merchantTints } from '../render/tones';
-import { EFFECT_KINDS, type RigId, type ViewId } from '../render/types';
+import {
+  EFFECT_KINDS,
+  FACINGS,
+  type Facing4,
+  type GlanceOutcome,
+  type GlanceRig,
+  type GlanceStep,
+  type RigId,
+  type ViewId,
+} from '../render/types';
 import type { RenderWorld } from '../render/world';
 
 export const PAGES = [
@@ -270,43 +282,79 @@ function effectsPage(kit: PageKit) {
 }
 
 /**
- * The staged glance (SPEC §6.6, §6.8; user C1 note 1): wind-up (head alone turns), look (the whole
- * body turns), back (body, then head), idle; merchant and citizen from each facing.
+ * Glances aimed at the theft (SPEC §6.6, §6.8; TF1-fix-2, user C1 follow-up): for the merchant and
+ * the citizen, every body facing × a target behind, to its own left, to its own right and ahead,
+ * each ending caught (point at the thief) or clear (turn back), looping: idle → wind-up (the head
+ * alone, a quarter turn) → look (body and head face the target) → the ending. The arrow by each rig
+ * shows where the thief is on screen.
  */
 function glancePage(kit: PageKit) {
-  const STEPS = [
-    ['glanceWindup', 900],
-    ['glanceLook', 1400],
-    ['glanceBack', 900],
-    ['idle', 1000],
-  ] as const;
-  const total = STEPS.reduce((n, [, ms]) => n + ms, 0);
-  const rows: { rig: RigId; y: number }[] = [
-    { rig: 'merchant', y: 420 },
-    { rig: 'citizen', y: 900 },
+  const TARGETS = ['behind', 'its left', 'its right', 'ahead'] as const;
+  const OUTCOMES: GlanceOutcome[] = ['caught', 'clear'];
+  const target = (f: Facing4, t: (typeof TARGETS)[number]): Vec2 => {
+    const F = FACING_VEC[f];
+    if (t === 'behind') return { x: -F.x, y: -F.y };
+    if (t === 'ahead') return F;
+    // The character's own left/right (y down): facing +x, its left is up the screen.
+    return t === 'its left' ? { x: F.y, y: -F.x } : { x: -F.y, y: F.x };
+  };
+  const arrow = (d: Vec2) =>
+    Math.abs(d.y) > Math.abs(d.x) ? (d.y < 0 ? '↑' : '↓') : d.x < 0 ? '←' : '→';
+  const DUR = { idle: 800, windup: 1000, look: 1200, end: 1500 };
+  const total = DUR.idle + DUR.windup + DUR.look + DUR.end;
+  const x0 = 150;
+  const colW = (CANVAS_W - x0) / (TARGETS.length * OUTCOMES.length);
+  const rowH = 115;
+  const halves: { rig: GlanceRig; top: number }[] = [
+    { rig: 'merchant', top: 44 },
+    { rig: 'citizen', top: 44 + 48 + rowH * 4 },
   ];
-  for (const { rig: rigId, y } of rows) {
-    kit.label(`${rigId}: wind-up → look → back → idle`, CANVAS_W / 2, y - 300, 22);
-    VIEWS.forEach((v, j) => {
-      const x = 300 + j * 440;
-      const r = kit.world.rig(rigId, {
-        view: v.view,
-        mirror: v.mirror,
-        ...(rigId === 'citizen' ? { outfit: randomOutfit() } : { tints: randomLook(rigId) }),
-        clip: 'idle',
-        scale: 2,
-      });
-      r.setPosition(x, y);
-      kit.label(`body ${v.label}`, x, y + 10, 16);
-      let step = -1;
-      kit.tick((_dt, t) => {
-        let u = t % total;
-        let i = 0;
-        while (u >= STEPS[i]![1]) u -= STEPS[i++]![1];
-        if (i === step) return;
-        step = i;
-        r.play(STEPS[i]![0], { restart: true, fadeMs: 0 });
-      });
+  for (const { rig: rigId, top } of halves) {
+    kit.label(
+      `${rigId}: idle → wind-up (head ¼ turn) → look (body + head) → caught: point / clear: turn back`,
+      CANVAS_W / 2 + 60,
+      top,
+      15,
+    );
+    TARGETS.forEach((t, ti) =>
+      OUTCOMES.forEach((o, oi) =>
+        kit.label(`thief ${t} · ${o}`, x0 + colW * (ti * 2 + oi + 0.5), top + 24, 12),
+      ),
+    );
+    FACINGS.forEach((facing, fi) => {
+      const y = top + 48 + rowH * fi + 108;
+      kit.label(`body ${facing}`, 70, y - 60, 14);
+      const home = facingView(facing);
+      TARGETS.forEach((t, ti) =>
+        OUTCOMES.forEach((outcome, oi) => {
+          const x = x0 + colW * (ti * 2 + oi + 0.5);
+          const dir = target(facing, t);
+          const plan = planGlance(rigId, facing, dir, { seed: fi });
+          const [, , end] = glanceSteps(plan, outcome);
+          const r = kit.world.rig(rigId, {
+            ...home,
+            ...(rigId === 'citizen' ? { outfit: randomOutfit() } : { tints: randomLook(rigId) }),
+            clip: 'idle',
+          });
+          r.setPosition(x, y);
+          kit.label(arrow(dir), x + 46, y - 74, 20);
+          const steps: [number, GlanceStep][] = [
+            [DUR.idle, { stage: 'turnBack', ...home, clip: 'idle', ms: null }],
+            [DUR.windup, plan.windup],
+            [DUR.look, plan.look],
+            [DUR.end, end!],
+          ];
+          let cur = -1;
+          kit.tick((_dt, now) => {
+            let u = now % total;
+            let i = 0;
+            while (u >= steps[i]![0]) u -= steps[i++]![0];
+            if (i === cur) return;
+            cur = i;
+            playGlanceStep(r, steps[i]![1]);
+          });
+        }),
+      );
     });
   }
 }

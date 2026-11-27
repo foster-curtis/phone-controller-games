@@ -5,7 +5,8 @@ import { expect, test } from './helpers';
 import { balance } from '../src/content';
 import { plannedNpcs } from '../src/host/sim/npc/churn';
 
-// TF1-fix-1 adds the staged glance, the occupied stocks and the confetti pages.
+// TF1-fix-1 adds the staged glance, the occupied stocks and the confetti pages; TF1-fix-2 makes the
+// glance page a grid of glances aimed at a thief.
 const PAGES = [
   'citizen',
   'merchant',
@@ -50,6 +51,8 @@ for (const page of PAGES) {
     )) as Probe;
     expect(probe.missing).toEqual([]);
     expect(probe.fallbacks).toBe(0);
+    // TF1-fix-2: merchant and citizen × 4 body facings × 4 targets × caught/clear.
+    if (page === 'glance') expect(probe.rigs).toBe(2 * 4 * 4 * 2);
     if (page === 'stress') {
       // 8 players + their planned NPCs (from balance), 4 guards, 10 merchants.
       expect(probe.rigs).toBe(8 + plannedNpcs(8, balance) + 4 + 10);
@@ -60,7 +63,8 @@ for (const page of PAGES) {
     await expect(tab.locator('#gallery-nav a')).toHaveCount(PAGES.length);
     await tab.screenshot({ path: `e2e/__screens__/tf1-gallery-${page}.png` });
     if (page === 'glance' || page === 'confetti') {
-      await tab.waitForTimeout(1300);
+      // The glance grid: a later shot lands on the look / ending stages.
+      await tab.waitForTimeout(page === 'glance' ? 1800 : 1300);
       await tab.screenshot({ path: `e2e/__screens__/tf1-gallery-${page}-later.png` });
       const later = (await tab.evaluate(
         () => (window as { __pcgGallery?: Probe }).__pcgGallery!,

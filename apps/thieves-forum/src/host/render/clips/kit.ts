@@ -224,3 +224,39 @@ export function glanceClips(
  */
 export const POINT_OUT = { rot: -120, sx: 0.6 } as const;
 export const POINT_IN = { rot: 66, sx: 0.6 } as const;
+
+/**
+ * Glances aimed at a theft (TF1-fix-2, user C1 follow-up; SPEC §6.6, §6.8): `render/glance.ts`
+ * picks the view and mirror for each step, these clips only draw it. `glanceHead` turns the head
+ * alone a quarter turn (side head on a front/back body facing the rig's +x, front head on a side
+ * body); `glanceHeadFlip` is the same side head turned the other way (the head subtree mirrored about
+ * its neck, so the body keeps its facing). `glanceStare` is the look, drawn in the view that faces the
+ * target (the caller turns the rig); `glanceSettle` is the turn back to the original facing.
+ */
+export function aimedGlanceClips(
+  p: GaitParts,
+  ms: { windup: number; look: number; settle: number },
+): Record<string, Clip> {
+  const turn = [{ t: 0, parts: { [p.head]: { view: 'turn' as const } } }];
+  const head = (flip: boolean): Tracks => ({
+    [p.head]: keys(
+      [0, { rot: 0, dy: 0, sx: flip ? -1 : 1 }],
+      [ms.windup, { rot: flip ? -4 : 4, dy: -0.3, sx: flip ? -1 : 1 }],
+    ),
+  });
+  const stare = loop(ms.look, breathe(ms.look, p, 0.3));
+  const settle = once(ms.settle, {
+    [p.root]: keys([0, { dy: -0.4 }], [ms.settle, { dy: 0 }]),
+    [p.head]: keys([0, { rot: 2 }], [ms.settle, { rot: 0 }]),
+  });
+  return {
+    glanceHead: { ...once(ms.windup, head(false)), stages: turn },
+    'glanceHead@side': { ...once(ms.windup, sideStand(), head(false)), stages: turn },
+    glanceHeadFlip: { ...once(ms.windup, head(true)), stages: turn },
+    'glanceHeadFlip@side': { ...once(ms.windup, sideStand(), head(true)), stages: turn },
+    glanceStare: stare,
+    'glanceStare@side': loop(ms.look, sideStand(), breathe(ms.look, p, 0.3)),
+    glanceSettle: settle,
+    'glanceSettle@side': once(ms.settle, sideStand(), settle.tracks),
+  };
+}

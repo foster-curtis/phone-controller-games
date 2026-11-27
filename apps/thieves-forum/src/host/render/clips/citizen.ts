@@ -5,7 +5,9 @@
 // C1 notes): staged glances (NPCs catching pickpockets, §6.8), a real run, point into/out of the
 // screen in front and back views, the raised near arm drawn in front of the head in side views.
 import type { Clip } from '../types';
+import { GLANCE_MS } from '../glance';
 import {
+  aimedGlanceClips,
   breathe,
   gaitFront,
   gaitSide,
@@ -197,4 +199,6 @@ export const clips: Record<string, Clip> = {
   caught,
   'caught@side': caughtSide,
   ...glance,
+  // Glances aimed at the theft (TF1-fix-2): played step by step from render/glance.ts.
+  ...aimedGlanceClips(P, GLANCE_MS),
 };

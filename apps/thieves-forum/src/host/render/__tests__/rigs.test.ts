@@ -120,6 +120,11 @@ describe('clips', () => {
         'glanceWindup',
         'glanceLook',
         'glanceBack',
+        // Glances aimed at the theft (TF1-fix-2, render/glance.ts).
+        'glanceHead',
+        'glanceHeadFlip',
+        'glanceStare',
+        'glanceSettle',
       ],
       merchant: [
         'idle',
@@ -127,6 +132,10 @@ describe('clips', () => {
         'glanceWindup',
         'glanceLook',
         'glanceBack',
+        'glanceHead',
+        'glanceHeadFlip',
+        'glanceStare',
+        'glanceSettle',
         'fetch',
         'carry',
         'point',

@@ -153,6 +153,43 @@ export interface ClipStage {
   parts?: Record<string, PartRef>;
 }
 
+// ---- glances aimed at a theft (SPEC §6.6, §6.8; TF1-fix-2, `render/glance.ts`) ------------------
+
+/** A body facing as the rigs draw it: front, back, or side facing screen-left / screen-right. */
+export type Facing4 = 'front' | 'back' | 'left' | 'right';
+export const FACINGS = ['front', 'back', 'left', 'right'] as const satisfies readonly Facing4[];
+
+/** The rigs that glance: merchants (stall theft) and citizens (NPCs catching a pickpocket). */
+export type GlanceRig = 'merchant' | 'citizen';
+
+/** How a glance ends: the thief was caught mid-steal, or not. */
+export type GlanceOutcome = 'caught' | 'clear';
+
+export type GlanceStage = 'windup' | 'look' | 'point' | 'turnBack';
+
+/** One step of a glance: `rig.setView(view, mirror)`, then play `clip` from its start. */
+export interface GlanceStep {
+  stage: GlanceStage;
+  view: ViewId;
+  mirror: boolean;
+  clip: string;
+  /** How long the step lasts, ms; null = it holds until the caller moves on (the point). */
+  ms: number | null;
+}
+
+/** A glance from one facing toward a target (`planGlance`); `resolveGlance` adds the ending. */
+export interface GlancePlan {
+  rig: GlanceRig;
+  /** The body facing before the glance (and after a clear one). */
+  facing: Facing4;
+  /** The facing that looks at the target. */
+  toward: Facing4;
+  /** Screen side the wind-up head turns to on a front/back body; null on a side body (front head). */
+  headSide: 'left' | 'right' | null;
+  windup: GlanceStep;
+  look: GlanceStep;
+}
+
 // ---- sprites.json (frames that aren't rig parts) --------------------------------------------------
 
 export type SpriteCategory = 'stalls' | 'map' | 'items' | 'effects' | 'ui';

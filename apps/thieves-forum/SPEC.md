@@ -610,6 +610,15 @@ interface Camera {
   occupied stocks are a `StocksInstance` drawn from `map/stocks-occupied-reference.svg` tinted with
   the occupant's outfit, not a rig pose (§6.13). Confetti bursts into single pieces from
   `effects/confetti/piece-<n>.svg`.)
+  (TF1-fix-2: glances are aimed at the theft. `render/glance.ts` `planGlance(rig, facing, dir)` takes
+  the glancer's body facing (`Facing4`: front, back, left, right, or the sim's facing in radians)
+  and the world direction to the thief: the **wind-up** keeps the body and turns the head alone a
+  quarter turn (a side head toward the thief's screen side on a front/back body, dead ahead/behind
+  picks a seeded side; a front head on a side body, never the back of the head), the **look** turns
+  body and head to the 4-view facing toward the thief (the same rule as `RigInstance.face`), and
+  `resolveGlance(plan, outcome)` ends it: `caught` → the `point` clip of the look facing, `clear` →
+  body and head turn back to the original facing, then the caller resumes. Each `GlanceStep` is a
+  view, mirror, clip and duration; `playGlanceStep(rig, step)` applies one.)
 - **Character scale:** about 1/10 of screen height (108 px): the 40 × 60 character viewBox (feet at
   20,55) draws at 2×.
 - **The renderer reads only `WorldView`** (§12.3) and **TV events** (`ch: 'tv'`). It never sees a player
