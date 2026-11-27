@@ -162,7 +162,8 @@ describe('steering and human moments (techniques 2, 3, 5)', () => {
     stepUntil(sim, () => c.npc.state === 'wandering' && c.npc.nav!.path.length > 0, 10 * SIM_HZ);
     const headings = new Set<number>();
     let arrived = false;
-    for (let t = 0; t < 40 * SIM_HZ && !arrived; t++) {
+    // 60 s (was 40): TF2-fix-1 shoppers stop, look round and change their minds on the way.
+    for (let t = 0; t < 60 * SIM_HZ && !arrived; t++) {
       sim.step();
       if (Math.hypot(c.vx, c.vy) > 0.5)
         headings.add(Math.round((Math.atan2(c.vy, c.vx) * 180) / Math.PI));

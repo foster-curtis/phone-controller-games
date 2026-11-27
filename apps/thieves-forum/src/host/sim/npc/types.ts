@@ -66,4 +66,22 @@ export interface NpcNav {
   /** Last position (for `still` / `stuck`). */
   lastX: number;
   lastY: number;
+  // TF2-fix-1 (SPEC §6.10 techniques 2, 3, 5), additive: a shopper less sure of itself.
+  /** How unsure of itself it is, 0..1 (personality, rolled at spawn); scales `TUNING.doubt`. */
+  doubt: number;
+  /** The human moment it is in, for tests and the debug view. */
+  moment: NpcMoment;
+  /** Low-frequency heading drift (radians), the drift it eases toward, and when it re-aims. */
+  drift: number;
+  driftTo: number;
+  driftAt: Tick;
+  /** While standing: the facing it turns toward (null = keep), the heading the looks are around, */
+  faceTo: number | null;
+  lookBase: number;
+  /** head turns still to come, and the tick of the next one. */
+  looks: number;
+  lookAt: Tick;
 }
+
+/** A shopper's current human moment (TF2-fix-1, additive). */
+export type NpcMoment = 'none' | 'hesitate' | 'reverse' | 'retarget' | 'stallSlow' | 'stallStop';

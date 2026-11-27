@@ -3,7 +3,7 @@
 // (technique 3), personality-driven speed and browse time (technique 4), human moments (technique 5:
 // a pause before choosing, doubling back, waiting in line, the coin-chase hook) and steering
 // (technique 2: seek + wander + separation, eased by the shared acceleration so no path is a straight
-// robotic line). Drives NPCs and, later, takeover and walk-on characters (SPEC §6.18).
+// robotic line). TF2-fix-1 makes them less sure of themselves (`./doubt`). Drives NPCs and, later, takeover and walk-on characters (SPEC §6.18).
 import type { Rng } from '@pcg/game-kit';
 import type { StallId, Vec2 } from '../../../content/types';
 import { spatialOf } from '../derived';
@@ -22,6 +22,14 @@ import type { StepContext } from '../systems';
 import { TUNING } from '../tuning';
 import type { Character, EntityId, World } from '../types';
 import { STEP_MS } from '../types';
+import {
+  driftAngle,
+  endStand,
+  hesitate,
+  maybeLookAround,
+  passStall,
+  standLook,
+} from './doubt';
 import { NPC_HOOKS } from './hooks';
 import type { NpcNav } from './types';
 
@@ -65,6 +73,7 @@ function walkTo(ctx: StepContext, c: Character, to: Vec2): void {
 
 function pause(ctx: StepContext, c: Character, rng: Rng): void {
   c.npc.nav!.pauseUntil = ctx.world.tick + ctx.ticks(between(rng, T.pauseMs));
+  maybeLookAround(ctx, c, rng);
 }
 
 function free(c: Character): void {
@@ -126,6 +135,7 @@ function chooseLeg(ctx: StepContext, c: Character, rng: Rng): void {
   nav.passed = nav.stall !== null ? [nav.stall] : [];
   nav.detour = false;
   nav.look = null;
+  nav.moment = 'none';
   nav.brisk = n.personality.hurried && rng.next() < T.briskLeg;
   while (n.wishList.length > 0 && stallFor(ctx.world, n.wishList[0]!) === null) n.wishList.shift();
   if (n.wishList.length === 0) {
@@ -186,7 +196,11 @@ function detours(ctx: StepContext, c: Character, rng: Rng): void {
     const cx = Math.max(cu.x0, Math.min(cu.x1, c.x));
     if (dist(c.x, c.y, cx, cu.y) > T.detourRadius) continue;
     nav.passed.push(st.id);
-    if (rng.next() >= c.npc.personality.distractibility) continue;
+    if (rng.next() >= c.npc.personality.distractibility) {
+      // Not distracted enough to detour: maybe just slow and drift toward it (TF2-fix-1).
+      if (nav.leg === 'stall' || nav.leg === 'roam') passStall(ctx, c, st.id, rng);
+      return;
+    }
     const r = rng.next();
     if (r < T.detourSlow || r < T.detourGlance) {
       nav.slow = r < T.detourSlow ? T.slowFactor : T.glanceFactor;
@@ -255,21 +269,9 @@ export function think(ctx: StepContext, c: Character, rng: Rng): boolean {
           beginApproach(ctx, c, nav.stall, false, rng);
           break;
         }
-        // Technique 5: now and then, turn round and walk back a few steps.
-        if (rng.next() < T.doubleBack / (4 * 60) && c.vx * c.vx + c.vy * c.vy > 0.5) {
-          const sp = Math.sqrt(c.vx * c.vx + c.vy * c.vy);
-          const bx = graphOf(ctx).bounds;
-          const back = {
-            x: Math.max(bx.x0 + 0.5, Math.min(bx.x1 - 0.5, c.x - (c.vx / sp) * T.doubleBackDist)),
-            y: Math.max(bx.y0 + 0.5, Math.min(bx.y1 - 0.5, c.y - (c.vy / sp) * T.doubleBackDist)),
-          };
-          if (clearPath(graphOf(ctx), c, back)) {
-            nav.leg = 'back';
-            nav.path = [back];
-            break;
-          }
-        }
       }
+      // Technique 5 (TF2-fix-1): stop and look around, or change its mind (turn back, retarget).
+      if ((nav.leg === 'stall' || nav.leg === 'roam') && hesitate(ctx, c, rng)) break;
       detours(ctx, c, rng);
       break;
     }
@@ -390,8 +392,10 @@ export function steer(ctx: StepContext, c: Character, rng: Rng): void {
   if (standing(c, t) || ctx.world.phase === 'opening') {
     nav.stuck = 0;
     easeVelocity(c, 0, 0);
+    if (n.state !== 'browsing' && n.state !== 'buying') standLook(ctx, c, rng);
     return;
   }
+  if (nav.faceTo !== null || nav.looks > 0) endStand(c);
   // Drop reached waypoints; skip ahead when the next one is in clear view (smooth corners).
   while (nav.path.length > 1) {
     const p = nav.path[0]!;
@@ -408,6 +412,15 @@ export function steer(ctx: StepContext, c: Character, rng: Rng): void {
   }
   let sx = (goal.x - c.x) / d;
   let sy = (goal.y - c.y) / d;
+  // Drift (TF2-fix-1): a slow heading offset, so it meanders and curves in rather than beelines.
+  if (nav.leg !== 'entry' && nav.leg !== 'coin') {
+    const a = driftAngle(ctx, c, rng, d);
+    const ca = Math.cos(a);
+    const sa = Math.sin(a);
+    const rx = sx * ca - sy * sa;
+    sy = sx * sa + sy * ca;
+    sx = rx;
+  }
   // Wander: a slowly drifting angle off the seek direction.
   nav.wander += (rng.next() - 0.5) * 2 * T.wanderStep;
   nav.wander = Math.max(-T.wanderMax, Math.min(T.wanderMax, nav.wander * 0.995));
@@ -440,12 +453,14 @@ export function steer(ctx: StepContext, c: Character, rng: Rng): void {
     const p = counterPoint(ctx.content.layout, nav.look);
     const ld = dist(c.x, c.y, p.x, p.y);
     if (ld > 1e-6) {
-      lx = ((p.x - c.x) / ld) * 0.4;
-      ly = ((p.y - c.y) / ld) * 0.4;
+      const pull = nav.moment === 'stallSlow' ? TUNING.doubt.stallPull : 0.4;
+      lx = ((p.x - c.x) / ld) * pull;
+      ly = ((p.y - c.y) / ld) * pull;
     }
   } else if (t >= nav.slowUntil) {
     nav.look = null;
     nav.slow = 1;
+    if (nav.moment === 'stallSlow') nav.moment = 'none';
   }
   sx = sx * b.crowd.seek + wx * b.crowd.wander + px * b.crowd.separation + lx;
   sy = sy * b.crowd.seek + wy * b.crowd.wander + py * b.crowd.separation + ly;

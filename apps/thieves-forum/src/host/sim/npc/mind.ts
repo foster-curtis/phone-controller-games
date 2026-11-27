@@ -1,10 +1,12 @@
 // An NPC mind (SPEC §6.10 techniques 1 and 4, §6.4): personality sliders, a short wish list from the
 // open shops ("spices, then bread"), the items it would buy from a player, its purse and its sale rate,
-// all rolled from the NPC's own seeded stream (SPEC §5, §12.3 `npc:<id>`).
+// all rolled from the NPC's own seeded stream (SPEC §5, §12.3 `npc:<id>`), plus (TF2-fix-1) how unsure
+// of itself it is.
 import type { Rng } from '@pcg/game-kit';
 import type { Content, Range, ShopId } from '../../../content/types';
 import { economy } from '../economy';
 import type { Npc } from '../types';
+import { TUNING } from '../tuning';
 import type { NpcNav } from './types';
 
 const inRange = (rng: Rng, [lo, hi]: Range): number => lo + (hi - lo) * rng.next();
@@ -29,6 +31,15 @@ export function newNav(x = 0, y = 0): NpcNav {
     stuck: 0,
     lastX: x,
     lastY: y,
+    doubt: 0,
+    moment: 'none',
+    drift: 0,
+    driftTo: 0,
+    driftAt: 0,
+    faceTo: null,
+    lookBase: 0,
+    looks: 0,
+    lookAt: 0,
   };
 }
 
@@ -58,6 +69,9 @@ export function createMind(rng: Rng, content: Content, open?: readonly ShopId[])
     const items = content.items.filter((i) => i.shop === s && i.rarity !== 'rare');
     return items.length ? [rng.pick(items).id] : [];
   });
+  // TF2-fix-1: rolled last so the rolls above keep their places in the stream.
+  const nav = newNav();
+  nav.doubt = rng.next() * (personality.hurried ? TUNING.doubt.hurried : 1);
   return {
     personality,
     state: 'entering',
@@ -69,6 +83,6 @@ export function createMind(rng: Rng, content: Content, open?: readonly ShopId[])
     until: 0,
     alertUntil: -1,
     glance: null,
-    nav: newNav(),
+    nav,
   };
 }
