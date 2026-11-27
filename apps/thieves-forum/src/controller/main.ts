@@ -11,6 +11,7 @@ import { mountVersionTag } from '../shared/version';
 import '../styles/brand.css';
 import '../styles/controller.css';
 import { createApp } from './app';
+import { createHoldEstimator } from './hold';
 
 const root = document.getElementById('app') ?? document.body;
 mountVersionTag();
@@ -29,7 +30,8 @@ function boot(): void {
     code,
     playerKey: getPlayerKey(code, undefined, GAME_ID),
   });
-  createApp({ root, client, code, goToRoom });
+  // TF3's estimator: the hold bar runs locally and the host's hold events correct it (SPEC §3).
+  createApp({ root, client, code, goToRoom, estimator: createHoldEstimator() });
   if (debugEnabled(import.meta.env.DEV)) {
     // `send` lets e2e act as this phone for messages that have no button yet (debug only).
     installDebug({

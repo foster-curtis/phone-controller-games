@@ -120,7 +120,8 @@ export function stepMovement(ctx: StepContext): void {
   for (const c of world.characters) {
     c.x += c.vx * DT;
     c.y += c.vy * DT;
-    collide(layout, c, !offMapAllowed(c));
+    // The stocks slots sit inside the stocks blocker; catches pins their occupants (TF9 hook).
+    if (c.activity.k !== 'stocks') collide(layout, c, !offMapAllowed(c));
     const speed = Math.sqrt(c.vx * c.vx + c.vy * c.vy);
     if (speed > TUNING.idleSpeed * 2) c.facing = Math.atan2(c.vy, c.vx);
     c.gait = gaitFor(speed, b);
@@ -135,7 +136,8 @@ export function stepMovement(ctx: StepContext): void {
     const slow = layout.alleys.some((a) => inRect(gd.x, gd.y, a.rect)) ? b.guards.alleySpeed : 1;
     gd.x += gd.vx * DT * slow;
     gd.y += gd.vy * DT * slow;
-    collide(layout, gd, gd.mode.k !== 'enter', world.gateOpen);
+    // A reinforcement walks the gate aisle, off the walkable box (TF9 hook).
+    if (gd.mode.k !== 'enter') collide(layout, gd, true, world.gateOpen);
   }
 }
 

@@ -41,6 +41,11 @@ export interface MatchOptions {
   content?: Content;
   /** How to play card count (SPEC §6.19); TF15's cards. */
   rulesCards?: number;
+  /**
+   * Open How to play on the session's first Start (SPEC §6.19; default true). The TF12 wiring passes
+   * false until TF15's cards replace the dev placeholder (BUILD_PLAN §8 [TF12]).
+   */
+  rulesOnFirstStart?: boolean;
   /** The podium's feedback QR target (PLATFORM decision #11). */
   feedbackUrl?: string;
   tuning?: Partial<MatchTuning>;
@@ -122,7 +127,7 @@ export function createMatch(opts: MatchOptions): Match {
   };
   let leaderId: PlayerId | null = null;
   let rules: RulesOverviewState | null = null;
-  let rulesShownOnStart = false;
+  let rulesShownOnStart = opts.rulesOnFirstStart === false;
   let room: { code: string | null; joinUrl: string | null } = { code: null, joinUrl: null };
   let outfits: Record<PlayerId, Outfit> = {};
   let haulsIn = false;

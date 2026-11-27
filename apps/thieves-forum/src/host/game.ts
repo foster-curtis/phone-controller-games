@@ -1,44 +1,52 @@
-// Host runtime for the crowd spike (SPEC §6.2, §6.18, §12.3, §12.5; BUILD_PLAN TF7): relay client ↔
-// lobby roster ↔ one round of the sim. Lobby (SPEC §6.18: phones get the `lobby` screen with color,
-// Ready and the leader's Start, re-sent on every roster/color/ready/leader change) → Start (the leader
-// phone's `leader start`, or the TV's Start key, both only when ≥ minPlayers are ready, TF10's rule) →
-// the players-only opening → play → hands up → back to the lobby. Phone input
-// samples become `PlayerInput`s each fixed 60 Hz step; the scene gets `WorldView` plus the previous
-// step's positions for interpolation. `timeScale` (debug) runs n steps per step slot. No Phaser here.
-// The match flow proper (rules, three rounds, reveal, podium) is TF10/TF12/TF16.
-import { catchUpSteps, createFixedStep, joinUrl } from '@pcg/game-kit';
+// Host runtime (SPEC §6.2, §6.11, §6.14, §6.17, §6.18, §12.3, §12.5; BUILD_PLAN TF12): relay client ↔
+// match machine (TF10) ↔ round sim (TF2, TF8, TF9) ↔ scene and phones. Phone messages go through the
+// handler registry (`net/handlers/*.ts`); match effects become phone screens, round sims and TV views;
+// each fixed 60 Hz step's `phone` events go privately to one phone (`net/phone.ts`) and its `tv` events
+// to the scene and the audio only. The sim and the match share one game clock: wall time × the debug
+// `timeScale`, so phone timers (`endsInMs`) are divided by it. No Phaser here.
+// Stress mode (`bots`) runs one round straight from Start with no match and no phones (TF7).
+import { catchUpSteps, createFixedStep, joinUrl, rngStream } from '@pcg/game-kit';
 import type { ConnectionStatus, HostClient } from '@pcg/net-client';
 import { CONTENT } from '../content';
 import type { StallId, Vec2 } from '../content/types';
-import {
-  isPhoneMsg,
-  MIN_PLAYERS,
-  PROTOCOL_VERSION,
-  type HostMsg,
-  type LobbyPlayer,
-  type Screen,
-} from '../shared/messages';
+import { isPhoneMsg, type HostMsg, type Screen } from '../shared/messages';
 import { PLAYER_COLOR_IDS, type PlayerColorId } from '../shared/theme';
-import { pickOpenStalls } from './match/openStalls';
+import { createMatch, type Effect, type Match, type MatchEvent } from './match/match';
+import type { MatchPhase } from './match/types';
 import { createInputStore } from './net/inputs';
-import { resolveLeader } from './party';
-import { createRoster } from './roster';
+import { createPhoneRouter } from './net/phone';
+import { dispatchPhone, loadContextProviders, loadHandlers } from './net/registry';
+import type { HandlerCtx } from './net/types';
+import { attachLedger } from './sim/catches';
+import { isTvEvent, type TvEvent } from './sim/events';
+import { createLedger, roundHauls } from './sim/ledger';
+import type { Ledger } from './sim/ledger/types';
+import { pickOpenStalls } from './match/openStalls';
 import type { FrameInput, SceneSource } from './scene/types';
 import type { DebugView, WorldView } from './sim/snapshot';
-import type { EntityId, PlayerId, PlayerInput, RoundStart } from './sim/types';
+import { THEFT_HOOKS } from './sim/stalls';
+import type {
+  Character,
+  EntityId,
+  PlayerId,
+  PlayerInput,
+  RoundStart,
+  SimCommand,
+} from './sim/types';
 import { STEP_MS } from './sim/types';
 import { createSim, type Sim } from './sim/world';
-import type { TvView } from './ui/types';
+import type { TvControl, TvView } from './ui/types';
 
 /** A frame is clamped to this before the accumulator (a hitch or a hidden tab). */
 export const MAX_FRAME_MS = 250;
 /** The debug speed-up tops out here; the catch-up cap covers it. */
 export const MAX_TIME_SCALE = 8;
-/** Hands up shows this long (wall ms) before the spike returns to the lobby. */
-export const HANDS_UP_MS = 6000;
 /** Recent step times kept for the perf readout. */
 const STEP_WINDOW = 600;
+/** TV events kept for the scene between frames (and for the debug log). */
+const TV_QUEUE_MAX = 400;
 
+/** The round as e2e and the dev tools see it (TF7 names). */
 export type SpikePhase = 'lobby' | 'opening' | 'play' | 'handsUp';
 
 export interface SpikePlayer {
@@ -57,12 +65,15 @@ export interface RuntimeOptions {
   /** The relay client; null runs without phones (stress mode). */
   client: HostClient | null;
   origin: string;
-  /** Round seed; default random. */
+  /** Match seed source; default random. */
   seed?: number;
   now?: () => number;
   /** Bots on the player slots (stress mode): their ids and a per-step input source. */
   bots?: { ids: readonly PlayerId[]; inputs(now: number): Map<PlayerId, PlayerInput> };
 }
+
+/** A step's TV events with the view after it (audio pans by position). */
+export type TvEventsListener = (events: readonly TvEvent[], view: WorldView) => void;
 
 export interface Runtime extends SceneSource {
   readonly client: HostClient | null;
@@ -70,46 +81,70 @@ export interface Runtime extends SceneSource {
   status(): ConnectionStatus;
   players(): SpikePlayer[];
   phase(): SpikePhase;
+  matchPhase(): MatchPhase;
   readonly timeScale: number;
   setTimeScale(n: number): void;
-  /** Starts the spike round; `by` is the phone asking (only the leader may). */
+  /** Start from the lobby; `by` is the phone asking (only the leader may), none = the TV. */
   start(by?: PlayerId): boolean;
+  /** The TV's keyboard / gamepad / rules-shell controls (SPEC §6.16). */
+  control(c: TvControl): void;
   /** Advances by wall time (a 60 Hz timer, not render frames). */
   tick(elapsedMs: number): void;
   setVisible(visible: boolean): void;
   tvView(): TvView;
   world(): WorldView | null;
   sim(): Sim | null;
+  ledger(): Ledger | null;
   /** Debug only: the overlay's view and the player character ids. */
   debugView(): DebugView | null;
   characterOf(id: PlayerId): EntityId | null;
   playerNames(): Map<EntityId, string>;
   stepStats(): StepStats;
+  /** Debug / e2e: the play timer runs out now. */
+  endRound(): void;
+  /** Debug log of recent TV events (e2e). */
+  tvLog(): readonly TvEvent[];
   /** Called when the TV view's phase changes (main.ts re-renders at once). */
   onChange(cb: () => void): void;
+  /** Every step's `tv` events (the audio; never `phone` events). */
+  onTvEvents(cb: TvEventsListener): void;
 }
 
+const IN_ROUND = new Set<MatchPhase>(['roundStart', 'play', 'handsUp', 'reveal', 'transition']);
+
 export function createRuntime(opts: RuntimeOptions): Runtime {
-  const now = opts.now ?? (() => performance.now());
+  const wallNow = opts.now ?? (() => performance.now());
   const { client } = opts;
-  const balance = CONTENT.balance;
-  const roster = createRoster();
+  const content = CONTENT;
+  const balance = content.balance;
   const inputs = createInputStore(balance.net);
+  const handlers = loadHandlers();
+  const providers = loadContextProviders();
   const listeners: (() => void)[] = [];
+  const tvListeners: TvEventsListener[] = [];
   let visible = true;
   let timeScale = 1;
-  let phase: SpikePhase = 'lobby';
+  /** Game ms: wall ms × timeScale, shared by the match deadlines and the sim steps. */
+  let gameMs = 0;
   let sim: Sim | null = null;
-  let roundPlayers: SpikePlayer[] = [];
-  let handsUpAt = 0;
-  let openStalls: StallId[] = CONTENT.layout.stalls.map((s) => s.id);
-  /** Lobby choices per roster phone (SPEC §6.18); the roster keeps join order and names. */
-  const lobby = new Map<PlayerId, { color: PlayerColorId; ready: boolean }>();
-  let leaderId: PlayerId | null = null;
+  let ledger: Ledger | null = null;
+  let commands: SimCommand[] = [];
+  let tvQueue: TvEvent[] = [];
+  const tvRecent: TvEvent[] = [];
+  let openStalls: StallId[] = content.layout.stalls.map((s) => s.id);
+  let botPlayers: SpikePlayer[] = [];
+  let lastCode: string | null = null;
   const prev = new Map<EntityId, Vec2>();
   const times = new Float64Array(STEP_WINDOW);
   let stepCount = 0;
   let loop = makeLoop();
+
+  const match: Match = createMatch({
+    rng: rngStream(opts.seed ?? Math.floor(Math.random() * 0x7fffffff), 'match'),
+    now: () => gameMs,
+    content,
+    rulesOnFirstStart: false,
+  });
 
   function makeLoop() {
     return createFixedStep({
@@ -122,244 +157,238 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
     for (const cb of listeners) cb();
   };
   const send = (msg: HostMsg, to: PlayerId) => client?.send(msg, to);
-  const colorOf = (i: number): PlayerColorId => PLAYER_COLOR_IDS[i % PLAYER_COLOR_IDS.length]!;
-  const lobbyPlayers = (): SpikePlayer[] =>
-    roster.players().map((p, i) => ({
-      id: p.id,
-      name: p.name,
-      color: lobby.get(p.id)?.color ?? colorOf(i),
-    }));
+  const wall = (gms: number) => Math.max(0, Math.round(gms / timeScale));
 
-  /** The earliest-joined phone leads and keeps it while present (party/leader.ts, TF10). */
-  function syncLeader() {
-    leaderId = resolveLeader(
-      leaderId,
-      roster.players().map((p) => ({ id: p.id, connected: true })),
+  function character(id: PlayerId): Character | null {
+    return (
+      sim?.world.characters.find((c) => c.control.k !== 'npc' && c.control.playerId === id) ??
+      null
     );
   }
 
-  /** TF10's rule (match.ts `canStart`): a leader and ≥ minPlayers ready players, in the lobby. */
-  function canStart(): boolean {
-    if (phase !== 'lobby' || leaderId === null) return false;
-    const ready = roster.players().filter((p) => lobby.get(p.id)?.ready).length;
-    return ready >= MIN_PLAYERS;
-  }
+  const router = createPhoneRouter({
+    content,
+    world: () => sim?.world ?? null,
+    ledger: () => ledger,
+    character,
+    send,
+    timeScale: () => timeScale,
+    providers,
+    onReleased: (p) => {
+      const s = match.screenFor(p);
+      if (s) sendScreen(p, s);
+    },
+  });
 
-  function lobbyRows(): (LobbyPlayer & { id: PlayerId })[] {
-    return lobbyPlayers().map((p) => ({
-      id: p.id,
-      name: p.name,
-      color: p.color,
-      ready: lobby.get(p.id)?.ready ?? false,
-      leader: p.id === leaderId,
-      connected: true,
-    }));
-  }
+  // ---- screens -------------------------------------------------------------------------------
 
-  /** Every lobby phone gets its `lobby` screen (SPEC §6.18); only the leader's carries canStart. */
-  function sendLobby() {
-    if (phase !== 'lobby') return;
-    const rows = lobbyRows();
-    const players: LobbyPlayer[] = rows.map(({ id: _id, ...p }) => p);
-    const ok = canStart();
-    rows.forEach((p, you) =>
-      send(
-        { t: 'screen', screen: { s: 'lobby', players, you, canStart: ok && p.id === leaderId } },
-        p.id,
-      ),
-    );
-  }
-
-  /** Roster, color, ready or leader changed: phones and the TV re-render. */
-  function lobbyChanged() {
-    syncLeader();
-    sendLobby();
-    changed();
-  }
-  const rounds = balance.match.rounds;
-  const wallMs = (simMs: number) => Math.max(0, Math.round(simMs / timeScale));
-
-  function characterOf(id: PlayerId): EntityId | null {
-    const c = sim?.world.characters.find(
-      (ch) => ch.control.k === 'player' && ch.control.playerId === id,
-    );
-    return c ? c.id : null;
-  }
-
-  /** The screen a round player's phone shows now (SPEC §6.17). */
-  function screenFor(p: SpikePlayer): Screen | null {
-    if (!sim) return null;
-    const w = sim.world;
-    const c = w.characters.find((ch) => ch.id === characterOf(p.id));
-    if (!c) return null;
-    if (phase === 'opening')
-      return {
-        s: 'roundStart',
-        round: w.round,
-        rounds,
-        outfits: [{ ...c.outfit }],
-        endsInMs: wallMs(((w.phaseEndsAt ?? w.tick) - w.tick) * STEP_MS),
-      };
-    if (phase === 'play')
-      return {
-        s: 'play',
-        round: w.round,
-        rounds,
-        endsInMs: wallMs(sim.view().timeLeftMs),
-        name: p.name,
-        color: p.color,
-      };
-    if (phase === 'handsUp') return { s: 'handsUp', bag: 0, items: [], total: 0 };
-    return null;
-  }
-
-  function sendRoundState(p: SpikePlayer) {
-    const s = screenFor(p);
-    if (!s) return;
-    send({ t: 'screen', screen: s }, p.id);
-    const c = sim?.world.characters.find((ch) => ch.id === characterOf(p.id));
-    if (c && phase !== 'handsUp') {
-      send({ t: 'outfit', outfit: { ...c.outfit } }, p.id);
-      // Holds, toss and tips are later milestones: the context buttons stay blank (TF12).
-      send({ t: 'context', main: null, tossReadyInMs: 0, tip: false, catch: false }, p.id);
+  /** Phone timers in wall ms; a player in the stocks keeps the stocks screen (SPEC §6.13). */
+  function sendScreen(to: PlayerId, screen: Screen): void {
+    let s: Screen = screen;
+    const c = character(to);
+    if (s.s === 'play' && c?.activity.k === 'stocks' && sim) {
+      const ms = (c.activity.until - sim.world.tick) * STEP_MS;
+      s = { s: 'stocks', pot: 0, endsInMs: ms };
     }
+    if ('endsInMs' in s) s = { ...s, endsInMs: wall(s.endsInMs) };
+    send({ t: 'screen', screen: s }, to);
+    if (s.s === 'play') router.resync(to, wallNow());
   }
 
-  function setPhase(next: SpikePhase) {
-    if (next === phase) return;
-    phase = next;
-    if (next === 'handsUp') handsUpAt = now();
-    for (const p of roundPlayers) sendRoundState(p);
-    changed();
-  }
+  // ---- rounds --------------------------------------------------------------------------------
 
-  function toLobby() {
-    sim = null;
-    phase = 'lobby';
-    prev.clear();
-    inputs.clear();
-    roundPlayers = [];
-    // Ready resets for the next Start, as TF10's Play again does (BUILD_PLAN §8 [TF7-fix-1]).
-    for (const l of lobby.values()) l.ready = false;
-    lobbyChanged();
-  }
-
-  function start(by?: PlayerId): boolean {
-    if (phase !== 'lobby') return false;
-    const players = opts.bots
-      ? opts.bots.ids.map((id, i) => ({ id, name: id, color: colorOf(i) }))
-      : lobbyPlayers();
-    if (!opts.bots) {
-      if (by !== undefined && by !== leaderId) return false; // only the leader
-      if (!canStart()) return false;
-    }
-    const seed = opts.seed ?? Math.floor(Math.random() * 0x7fffffff);
-    openStalls = pickOpenStalls(seed, players.length, CONTENT.layout, balance);
-    const rs: RoundStart = {
-      seed,
-      round: 1,
-      players: players.map((p) => ({ id: p.id, side: { kind: 'player', id: p.id } })),
-      openStalls,
-      guards: 0, // guards are TF9
-    };
-    sim = createSim(rs);
-    roundPlayers = players;
+  function beginRound(start: RoundStart): void {
+    sim = createSim(start, content);
+    ledger = createLedger(balance.match.packCapacity);
+    for (const p of start.players) ledger.open(p.side, balance.match.startPurse);
+    // TF8 / TF9 hooks: stall theft and catches pay through this round's ledger.
+    attachLedger(sim.world, ledger);
+    THEFT_HOOKS.ledger = ledger;
+    openStalls = [...start.openStalls];
+    router.reset();
+    commands = [];
+    tvQueue = [];
     prev.clear();
     loop = makeLoop();
-    phase = 'opening';
-    for (const p of roundPlayers) sendRoundState(p);
-    changed();
-    return true;
+    for (const p of start.players) router.resync(p.id, wallNow());
   }
 
+  function dropRound(): void {
+    sim = null;
+    ledger = null;
+    THEFT_HOOKS.ledger = null;
+    commands = [];
+    tvQueue = [];
+    prev.clear();
+    router.reset();
+  }
+
+  /** Time up (SPEC §6.14): freeze the round, close every sheet, hand the hauls to the match. */
+  function handsUp(round: number): void {
+    if (!sim || !ledger) return;
+    const w = sim.world;
+    if (w.phase === 'opening' || w.phase === 'play') {
+      w.phase = 'handsUp';
+      w.phaseEndsAt = null;
+    }
+    const chars: Record<PlayerId, EntityId> = {};
+    for (const c of w.characters) {
+      if (c.control.k === 'npc') continue;
+      chars[c.control.playerId] = c.id;
+      c.vx = 0;
+      c.vy = 0;
+      if (c.activity.k !== 'stocks') c.activity = { k: 'handsUp' };
+      c.pose = 'handsUp';
+    }
+    router.closeAll(Object.keys(chars));
+    apply(match.dispatch({ type: 'hauls', round, hauls: roundHauls(ledger), characters: chars }));
+  }
+
+  function apply(effects: readonly Effect[]): void {
+    let tv = false;
+    for (const f of effects) {
+      switch (f.k) {
+        case 'tv':
+          tv = true;
+          break;
+        case 'screen':
+          sendScreen(f.to, f.screen);
+          break;
+        case 'roundStart':
+          beginRound(f.start);
+          break;
+        case 'handsUp':
+          handsUp(f.round);
+          break;
+        case 'podium':
+        case 'lobby':
+          dropRound();
+          break;
+        case 'left':
+          inputs.forget(f.id);
+          break;
+        default:
+          break; // play, reveal, transition: the sim, scene and audio follow the TV view
+      }
+    }
+    if (tv) changed();
+  }
+
+  const dispatch = (e: MatchEvent) => apply(match.dispatch(e));
+
+  // ---- the step ------------------------------------------------------------------------------
+
+  const stepping = () => !!sim && (sim.world.phase === 'opening' || sim.world.phase === 'play');
+
   function stepOnce() {
-    if (!sim) return;
+    if (!sim || !stepping()) return;
     const w = sim.world;
     prev.clear();
     for (const c of w.characters) prev.set(c.id, { x: c.x, y: c.y });
-    const t = now();
+    const t = wallNow();
     const sample = opts.bots ? opts.bots.inputs(t) : inputs.sample(t);
+    const cmds = commands;
+    commands = [];
     const t0 = performance.now();
-    sim.step(sample);
+    sim.step(sample, cmds);
     times[stepCount++ % STEP_WINDOW] = performance.now() - t0;
-    if (w.phase === 'play' && phase === 'opening') setPhase('play');
-    else if (w.phase !== 'opening' && w.phase !== 'play' && phase !== 'handsUp')
-      setPhase('handsUp');
+    const tvEvents: TvEvent[] = [];
+    for (const e of sim.events()) {
+      if (isTvEvent(e)) tvEvents.push(e);
+      else router.event(e, t);
+    }
+    if (tvEvents.length > 0) {
+      tvQueue.push(...tvEvents);
+      if (tvQueue.length > TV_QUEUE_MAX) tvQueue.splice(0, tvQueue.length - TV_QUEUE_MAX);
+      tvRecent.push(...tvEvents);
+      if (tvRecent.length > TV_QUEUE_MAX) tvRecent.splice(0, tvRecent.length - TV_QUEUE_MAX);
+      const view = sim.view();
+      for (const cb of tvListeners) cb(tvEvents, view);
+    }
   }
+
+  // ---- phones --------------------------------------------------------------------------------
+
+  const hctx: HandlerCtx = {
+    now: wallNow,
+    character,
+    world: () => sim?.world ?? null,
+    playing: () => match.state().phase === 'play' && sim?.world.phase === 'play',
+    command: (cmd) => void commands.push(cmd),
+    match: dispatch,
+    send,
+    resync: (p) => router.resync(p, wallNow()),
+    inputs,
+  };
 
   if (client) {
     client.onMessage((from, data) => {
-      if (!isPhoneMsg(data)) return;
-      switch (data.t) {
-        case 'join': {
-          if ((data.proto ?? PROTOCOL_VERSION) !== PROTOCOL_VERSION) {
-            send({ t: 'outdated', proto: PROTOCOL_VERSION }, from);
-            return;
-          }
-          const name = roster.join(from, data.name);
-          if (name === null) return;
-          send({ t: 'joined', name }, from);
-          if (!lobby.has(from)) {
-            const used = new Set([...lobby.values()].map((l) => l.color));
-            const color = PLAYER_COLOR_IDS.find((c) => !used.has(c)) ?? PLAYER_COLOR_IDS[0];
-            lobby.set(from, { color, ready: false });
-          }
-          if (phase === 'lobby') {
-            lobbyChanged();
-            return;
-          }
-          syncLeader();
-          const p = roundPlayers.find((x) => x.id === from);
-          if (p)
-            sendRoundState(p); // a reconnect heals itself (SPEC §12.5)
-          else send({ t: 'screen', screen: { s: 'waiting', reason: 'nextRound' } }, from);
-          changed();
-          return;
-        }
-        case 'color': {
-          const l = lobby.get(from);
-          if (phase !== 'lobby' || !l || !PLAYER_COLOR_IDS.includes(data.color)) return;
-          if ([...lobby.entries()].some(([id, o]) => id !== from && o.color === data.color)) return;
-          l.color = data.color;
-          lobbyChanged();
-          return;
-        }
-        case 'ready': {
-          const l = lobby.get(from);
-          if (phase !== 'lobby' || !l || l.ready === data.ready) return;
-          l.ready = data.ready;
-          lobbyChanged();
-          return;
-        }
-        case 'input':
-          inputs.set(from, data.x, data.y, data.bits, now());
-          return;
-        case 'leader':
-          // How to play from the lobby is TF12's match wiring (BUILD_PLAN §8 [TF7-fix-1]).
-          if (data.action === 'start') start(from);
-          return;
-        default:
-          return; // holds, stalls, tips: later milestones
-      }
+      if (isPhoneMsg(data)) dispatchPhone(handlers, data, from, hctx);
     });
     client.onPeer((change) => {
-      roster.peer(change);
-      if (change.event === 'left') {
-        inputs.forget(change.playerId);
-        lobby.delete(change.playerId);
-      }
-      lobbyChanged();
+      if (change.event !== 'left') return;
+      inputs.forget(change.playerId);
+      // A drop mid-match keeps the spot (SPEC §6.18; takeover is TF16); in the lobby it's a leave.
+      const inMatch = IN_ROUND.has(match.state().phase);
+      dispatch(
+        inMatch
+          ? { type: 'disconnect', id: change.playerId }
+          : { type: 'leave', id: change.playerId },
+      );
     });
-    client.onRoom(() => changed());
-    client.onStatus(() => changed());
+    client.onRoom(() => syncRoom());
+    client.onStatus(() => {
+      syncRoom();
+      changed();
+    });
+  }
+
+  function syncRoom(): void {
+    const code = client?.code ?? null;
+    if (code === lastCode) return;
+    lastCode = code;
+    dispatch({ type: 'room', code, joinUrl: code ? joinUrl(opts.origin, code) : null });
+  }
+
+  // ---- views ---------------------------------------------------------------------------------
+
+  function phase(): SpikePhase {
+    const p = sim?.world.phase;
+    if (!p) return 'lobby';
+    return p === 'opening' ? 'opening' : p === 'play' ? 'play' : 'handsUp';
+  }
+
+  function tvView(): TvView {
+    syncRoom();
+    if (opts.bots) {
+      const w = sim?.world;
+      if (!w) return { phase: 'handsUp', round: 1, rounds: balance.match.rounds };
+      return {
+        phase: 'play',
+        round: w.round,
+        rounds: balance.match.rounds,
+        timeLeftMs: wall(sim!.view().timeLeftMs),
+        code: null,
+      };
+    }
+    const v = match.tvView();
+    if (v.phase === 'roundStart') return { ...v, endsInMs: wall(v.endsInMs) };
+    if (v.phase === 'play') return { ...v, timeLeftMs: wall(v.timeLeftMs) };
+    return v;
+  }
+
+  function players(): SpikePlayer[] {
+    if (opts.bots) return botPlayers.map((p) => ({ ...p }));
+    return match.state().players.map((p) => ({ id: p.id, name: p.name, color: p.color }));
   }
 
   return {
     client,
     code: () => client?.code ?? null,
     status: () => client?.status ?? 'idle',
-    players: () => (opts.bots && sim ? roundPlayers : lobbyPlayers()).map((p) => ({ ...p })),
-    phase: () => phase,
+    players,
+    phase,
+    matchPhase: () => match.state().phase,
     get timeScale() {
       return timeScale;
     },
@@ -369,15 +398,41 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
     setTimeScale(n) {
       if (Number.isFinite(n) && n > 0) timeScale = Math.min(MAX_TIME_SCALE, n);
     },
-    start,
-    tick(elapsedMs) {
-      if (!visible || !sim) return;
-      if (phase === 'handsUp' && now() - handsUpAt >= HANDS_UP_MS && !opts.bots) {
-        toLobby();
-        return;
+    start(by) {
+      if (opts.bots) {
+        if (sim) return false;
+        botPlayers = opts.bots.ids.map((id, i) => ({
+          id,
+          name: id,
+          color: PLAYER_COLOR_IDS[i % PLAYER_COLOR_IDS.length]!,
+        }));
+        const seed = opts.seed ?? Math.floor(Math.random() * 0x7fffffff);
+        beginRound({
+          seed,
+          round: 1,
+          players: botPlayers.map((p) => ({ id: p.id, side: { kind: 'player', id: p.id } })),
+          openStalls: pickOpenStalls(seed, botPlayers.length, content.layout, balance),
+          guards: 0,
+        });
+        changed();
+        return true;
       }
-      const dt = Math.min(Math.max(0, elapsedMs), MAX_FRAME_MS);
-      loop.advance(dt * timeScale, stepOnce);
+      const before = match.state().phase;
+      dispatch(
+        by === undefined
+          ? { type: 'control', action: 'start' }
+          : { type: 'leader', id: by, action: 'start' },
+      );
+      return before === 'lobby' && match.state().phase !== 'lobby';
+    },
+    control: (c) => dispatch({ type: 'control', action: c }),
+    tick(elapsedMs) {
+      if (!visible) return;
+      const dt = Math.min(Math.max(0, elapsedMs), MAX_FRAME_MS) * timeScale;
+      gameMs += dt;
+      if (stepping()) loop.advance(dt, stepOnce);
+      if (!opts.bots) dispatch({ type: 'tick' });
+      router.flush(wallNow());
     },
     setVisible(v) {
       visible = v;
@@ -385,55 +440,26 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
     },
     frame(): FrameInput | null {
       if (!sim) return null;
+      const events = tvQueue;
+      tvQueue = [];
       return {
         view: sim.view(),
         prev,
-        alpha: Math.min(0.999, loop.accumulator / STEP_MS),
+        alpha: stepping() ? Math.min(0.999, loop.accumulator / STEP_MS) : 1,
+        events,
       };
     },
-    tvView(): TvView {
-      const code = client?.code ?? null;
-      const w = sim?.world;
-      if (!w || phase === 'lobby') {
-        return {
-          phase: 'lobby',
-          code,
-          joinUrl: code ? joinUrl(opts.origin, code) : null,
-          players: lobbyRows().map((p) => ({
-            name: p.name,
-            color: p.color,
-            ready: p.ready,
-            leader: p.leader,
-          })),
-          canStart: canStart(),
-        };
-      }
-      if (phase === 'opening')
-        return {
-          phase: 'roundStart',
-          round: w.round,
-          rounds,
-          endsInMs: wallMs(((w.phaseEndsAt ?? w.tick) - w.tick) * STEP_MS),
-        };
-      if (phase === 'play')
-        return {
-          phase: 'play',
-          round: w.round,
-          rounds,
-          timeLeftMs: wallMs(sim!.view().timeLeftMs),
-          code,
-        };
-      return { phase: 'handsUp', round: w.round, rounds };
-    },
+    tvView,
     world: () => sim?.view() ?? null,
     sim: () => sim,
+    ledger: () => ledger,
     debugView: () => sim?.debugView() ?? null,
-    characterOf,
+    characterOf: (id) => character(id)?.id ?? null,
     playerNames() {
       const out = new Map<EntityId, string>();
-      for (const p of roundPlayers) {
-        const id = characterOf(p.id);
-        if (id !== null) out.set(id, p.name);
+      for (const p of players()) {
+        const id = character(p.id)?.id;
+        if (id !== undefined) out.set(id, p.name);
       }
       return out;
     },
@@ -447,8 +473,18 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
         steps: stepCount,
       };
     },
+    endRound() {
+      const st = match.state();
+      if (st.phase !== 'play' || st.phaseEndsAt === null) return;
+      gameMs = Math.max(gameMs, st.phaseEndsAt);
+      dispatch({ type: 'tick' });
+    },
+    tvLog: () => [...tvRecent],
     onChange(cb) {
       listeners.push(cb);
+    },
+    onTvEvents(cb) {
+      tvListeners.push(cb);
     },
   };
 }

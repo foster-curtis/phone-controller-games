@@ -1,7 +1,9 @@
 // Builds the round's views (SPEC §12.3 "Views"): `WorldView` for the renderer every frame and the
-// debug-only `DebugView`. A `CharacterView` is built key by key from the allowlist, so a player's
+// debug-only `DebugView`. Guards carry their view cone (TF9's `guardView`, wired at TF12). A `CharacterView` is built key by key from the allowlist, so a player's
 // character and an NPC give the same shape and nothing about who controls it (SPEC §6.11).
+import { guardView } from './guards';
 import type { CharacterView, DebugView, WorldView } from './snapshot';
+import type { Balance } from '../../content/types';
 import type { Character, World } from './types';
 import { STEP_MS } from './types';
 
@@ -18,7 +20,7 @@ export function characterView(c: Character): CharacterView {
   };
 }
 
-export function worldView(world: World): WorldView {
+export function worldView(world: World, balance: Balance): WorldView {
   const timeLeftMs =
     world.phase === 'play' && world.phaseEndsAt !== null
       ? Math.max(0, (world.phaseEndsAt - world.tick) * STEP_MS)
@@ -42,7 +44,7 @@ export function worldView(world: World): WorldView {
       shoutingAt: m.shouting ? m.shouting.at : null,
       carrying: m.carrying,
     })),
-    guards: [], // TF9 (cones need its balance values and modes)
+    guards: world.guards.map((g) => guardView(g, world.tick, balance)),
     stalls: world.stalls.map((s) => ({
       id: s.id,
       shop: s.shop,

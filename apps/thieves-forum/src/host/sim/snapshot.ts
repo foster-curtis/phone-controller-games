@@ -144,3 +144,6 @@ export interface DebugView {
 }
 
 export type { RigId };
+
+/** TV events (TF12 contract+): the scene's other input beside `WorldView` (`ch: 'tv'` only). */
+export type { TvEvent } from './events';

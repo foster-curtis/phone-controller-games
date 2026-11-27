@@ -176,7 +176,7 @@ export function createSim(start: RoundStart, content: Content = CONTENT): Sim {
     step(inputs = NO_INPUTS, commands = []) {
       runStep(SYSTEMS, ctxFor(inputs, commands));
     },
-    view: () => worldView(world),
+    view: () => worldView(world, content.balance),
     debugView: () => debugView(world),
     events: () => world.events,
     hash: () => stateHash(world),
