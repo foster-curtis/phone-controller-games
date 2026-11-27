@@ -1302,6 +1302,11 @@ Format: `- [TF#] decision: one line, with the reason.`
 - [TF1-fix-1] decision: the occupied stocks are `map/stocks-occupied-reference.svg` used as a frame (`sprites.json` `stocks-occupied-reference`), its tunic/skin/hair tint runs taking the occupant's outfit; the reference has no mantle, so none is drawn. Hook for TF12: while a character is in the stocks, hide its rig and call `stocks.setOccupant(outfit)` (one `StocksInstance` per standing slot); the citizen `stocks` clip stays for compatibility.
 - [TF1-fix-1] decision: confetti is six new files `art/forum/effects/confetti/piece-<n>.svg`, each one `<rect>` copied verbatim from `confetti-pieces.svg` with the sheet's viewBox (user-approved; the sheet stays and is still named); `spawn('confetti')` bursts 40 pieces (was one 6-piece sheet) at 0.6 scale that fly up, then fall under drag with sway, spin and flip (`render/confetti.ts`, tuning in `CONFETTI`).
 - [TF1-fix-1] decision: the gallery gains `glance` (wind-up → look → back → idle per facing), `stocks` (empty, four occupied with outfits cycling, a citizen at the same scale) and `confetti` pages; the items page shows the empty stocks.
+- [TF5-fix-1] decision: the kit's `showToast` positions inline at the bottom, so `controller.css` overrides it with `top`/`bottom: auto !important` under the 44px top banner plus the safe-area inset (packages stay untouched); the toast never reaches the main button.
+- [TF5-fix-1] decision: the main button is a circle (`--coin` = `clamp(76px, 27vmin, 150px)`, `border-radius: 50%`, `.coin-edge` dashes) and its hold bar is a conic-gradient ring driven by `--p` (set in `play.ts` from the same percent as `data-progress`, so the bar is still never 100 before `holdEnd complete`).
+- [TF5-fix-1] decision: the action stack's bottom offset is `20dvh` plus the safe-area inset (the coin above a row of Toss/Tip/Catch), width `clamp(210px, 46vw, 380px)` so it stays right of the joystick zone (42%) from 640x360 to 1180x820.
+- [TF5-fix-2] decision: reverses the TF5-fix-1 ring: the main hold bar is the original straight 10px bar in flow above the coin (`--p` and the conic ring are gone; `data-progress` still never reads 100 before `holdEnd complete`), and `.actions` uses `justify-items: center` so the coin is centered over the Toss/Tip/Catch row instead of right-aligned. Coin shape, top toasts and the raised stack stay.
+- [TF2-fix-2] decision: e2e derives NPC and open-stall counts from balance.ts, because TF2-fix-1 changed them and literals broke tf7-spike.
 
 ## 9. Final handoff (and early setup)
 
@@ -1390,8 +1395,3 @@ monorepo. You run in an ephemeral cloud sandbox: anything not pushed is lost.
 
 {Optional: "Checkpoint approved: C1. Preview URL: https://…" / "C2 notes: …" / "Audio delivered" / "Cut approved: …"}
 ```
-- [TF5-fix-1] decision: the kit's `showToast` positions inline at the bottom, so `controller.css` overrides it with `top`/`bottom: auto !important` under the 44px top banner plus the safe-area inset (packages stay untouched); the toast never reaches the main button.
-- [TF5-fix-1] decision: the main button is a circle (`--coin` = `clamp(76px, 27vmin, 150px)`, `border-radius: 50%`, `.coin-edge` dashes) and its hold bar is a conic-gradient ring driven by `--p` (set in `play.ts` from the same percent as `data-progress`, so the bar is still never 100 before `holdEnd complete`).
-- [TF5-fix-1] decision: the action stack's bottom offset is `20dvh` plus the safe-area inset (the coin above a row of Toss/Tip/Catch), width `clamp(210px, 46vw, 380px)` so it stays right of the joystick zone (42%) from 640x360 to 1180x820.
-- [TF5-fix-2] decision: reverses the TF5-fix-1 ring: the main hold bar is the original straight 10px bar in flow above the coin (`--p` and the conic ring are gone; `data-progress` still never reads 100 before `holdEnd complete`), and `.actions` uses `justify-items: center` so the coin is centered over the Toss/Tip/Catch row instead of right-aligned. Coin shape, top toasts and the raised stack stay.
-- [TF2-fix-2] decision: e2e derives NPC and open-stall counts from balance.ts, because TF2-fix-1 changed them and literals broke tf7-spike.
