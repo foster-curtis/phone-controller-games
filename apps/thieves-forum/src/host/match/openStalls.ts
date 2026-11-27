@@ -1,6 +1,6 @@
 // Open-stall rule (SPEC §6.3, §11 #24, §12.4; settled): once per match from the match seed, open the
 // pawnbroker, jewelry and one of bakery/pottery, then draw the rest at random from the remaining shops
-// until players + 2, clamped 5–10. The set is fixed for the whole match.
+// until players + 4, clamped 6–10 (user at C1, 2026-11-27). The set is fixed for the whole match.
 import { rngStream } from '@pcg/game-kit';
 import { ALWAYS_OPEN, CHEAP_ONE_OF } from '../../content/shops';
 import type { Balance, LayoutDef, ShopId, StallId } from '../../content/types';

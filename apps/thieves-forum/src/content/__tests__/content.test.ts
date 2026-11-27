@@ -180,11 +180,11 @@ const SEVEN: [string, () => unknown, unknown][] = [
   ['Post-stocks immunity', () => balance.stocks.immunityMs, 3000],
   ['Escape (out of sight)', () => balance.guards.escapeMs, 3000],
   ['Coin toss cost / cooldown', () => [balance.toss.cost, balance.toss.cooldownMs], [1, 8000]],
-  ['NPCs', () => [balance.npcs.base, balance.npcs.perPlayer], [8, 2]],
+  ['NPCs', () => [balance.npcs.base, balance.npcs.perPlayer], [32 / 3, 8 / 3]],
   [
     'Open stalls',
     () => [balance.stalls.openExtra, balance.stalls.openMin, balance.stalls.openMax],
-    [2, 5, 10],
+    [4, 6, 10],
   ],
   [
     'Starting guards',

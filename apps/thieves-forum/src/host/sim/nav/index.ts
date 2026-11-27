@@ -132,10 +132,13 @@ export function navGraph(layout: LayoutDef, radius: number): NavGraph {
 /**
  * Waypoints from `from` to `to` (the goal last; `from` excluded). A clear straight line is one
  * waypoint; otherwise Dijkstra over the graph from every node `from` can see to every node that can
- * see `to`. Returns [to] when no route exists (collision keeps the body out of blockers).
+ * see `to`. Returns [to] when no route exists (collision keeps the body out of blockers). `avoid`
+ * (TF2-fix-1, additive) is an area the route must not cross, such as a busy alley.
  */
-export function findPath(g: NavGraph, from: Vec2, to: Vec2): Vec2[] {
-  if (clearPath(g, from, to)) return [{ x: to.x, y: to.y }];
+export function findPath(g: NavGraph, from: Vec2, to: Vec2, avoid?: Rect): Vec2[] {
+  const open = (a: Vec2, b: Vec2) =>
+    clearPath(g, a, b) && !(avoid && segmentHitsRect(a.x, a.y, b.x, b.y, avoid));
+  if (open(from, to)) return [{ x: to.x, y: to.y }];
   const n = g.nodes.length;
   const best = new Float64Array(n).fill(Infinity);
   const prev = new Int32Array(n).fill(-1);
@@ -143,8 +146,8 @@ export function findPath(g: NavGraph, from: Vec2, to: Vec2): Vec2[] {
   const goalCost = new Float64Array(n).fill(Infinity);
   for (let i = 0; i < n; i++) {
     const p = g.nodes[i]!;
-    if (clearPath(g, from, p)) best[i] = dist(from.x, from.y, p.x, p.y);
-    if (clearPath(g, p, to)) goalCost[i] = dist(p.x, p.y, to.x, to.y);
+    if (open(from, p)) best[i] = dist(from.x, from.y, p.x, p.y);
+    if (open(p, to)) goalCost[i] = dist(p.x, p.y, to.x, to.y);
   }
   let bestEnd = -1;
   let bestTotal = Infinity;
@@ -163,6 +166,7 @@ export function findPath(g: NavGraph, from: Vec2, to: Vec2): Vec2[] {
       bestEnd = u;
     }
     for (const e of g.edges[u]!) {
+      if (avoid && !open(g.nodes[u]!, g.nodes[e.to]!)) continue;
       const nd = ud + e.d;
       if (nd < best[e.to]!) {
         best[e.to] = nd;

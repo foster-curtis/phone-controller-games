@@ -22,11 +22,13 @@ import type { StepContext } from '../systems';
 import { TUNING } from '../tuning';
 import type { Character, EntityId, World } from '../types';
 import { STEP_MS } from '../types';
+import { alleyGate, alleyWaitStep, repath } from './alleys';
 import {
   driftAngle,
   endStand,
   hesitate,
   maybeLookAround,
+  nearAlley,
   passStall,
   standLook,
 } from './doubt';
@@ -97,6 +99,7 @@ export function startLeaving(ctx: StepContext, c: Character, rng: Rng): void {
   const nav = c.npc.nav!;
   releaseSpot(nav);
   nav.leg = 'exit';
+  nav.avoid = -1;
   nav.exit = exit.id;
   nav.look = null;
   nav.path = [...findPath(graphOf(ctx), c, exit.at), { x: exit.spawn.x, y: exit.spawn.y }];
@@ -136,6 +139,7 @@ function chooseLeg(ctx: StepContext, c: Character, rng: Rng): void {
   nav.detour = false;
   nav.look = null;
   nav.moment = 'none';
+  nav.avoid = -1;
   nav.brisk = n.personality.hurried && rng.next() < T.briskLeg;
   while (n.wishList.length > 0 && stallFor(ctx.world, n.wishList[0]!) === null) n.wishList.shift();
   if (n.wishList.length === 0) {
@@ -239,6 +243,11 @@ export function think(ctx: StepContext, c: Character, rng: Rng): boolean {
   const n = c.npc;
   const nav = n.nav!;
   const t = ctx.world.tick;
+  // Waiting beside an alley for oncoming traffic (TF2-fix-1): that is all it does this tick.
+  if (nav.alley >= 0) {
+    alleyWaitStep(ctx, c, rng);
+    return false;
+  }
   switch (n.state) {
     case 'entering':
       if (nav.path.length === 0) {
@@ -396,6 +405,11 @@ export function steer(ctx: StepContext, c: Character, rng: Rng): void {
     return;
   }
   if (nav.faceTo !== null || nav.looks > 0) endStand(c);
+  // One way at a time through an alley (TF2-fix-1): go round or wait beside the mouth.
+  if (alleyGate(ctx, c, rng) && nav.path.length === 0) {
+    easeVelocity(c, 0, 0);
+    return;
+  }
   // Drop reached waypoints; skip ahead when the next one is in clear view (smooth corners).
   while (nav.path.length > 1) {
     const p = nav.path[0]!;
@@ -413,7 +427,8 @@ export function steer(ctx: StepContext, c: Character, rng: Rng): void {
   let sx = (goal.x - c.x) / d;
   let sy = (goal.y - c.y) / d;
   // Drift (TF2-fix-1): a slow heading offset, so it meanders and curves in rather than beelines.
-  if (nav.leg !== 'entry' && nav.leg !== 'coin') {
+  // Not near an alley: drifting there slides it along the stall walls into the alley.
+  if (nav.leg !== 'entry' && nav.leg !== 'coin' && !nearAlley(ctx, c)) {
     const a = driftAngle(ctx, c, rng, d);
     const ca = Math.cos(a);
     const sa = Math.sin(a);
@@ -482,7 +497,7 @@ export function steer(ctx: StepContext, c: Character, rng: Rng): void {
     // Nearly there (someone's standing on the spot), or an aside (doubling back, a roam, a coin)
     // that can't be reached: count it as reached.
     const aside = nav.leg === 'back' || nav.leg === 'roam' || nav.leg === 'coin';
-    nav.path = aside || (final && d < T.closeEnough) ? [] : findPath(g, c, end);
+    nav.path = aside || (final && d < T.closeEnough) ? [] : repath(ctx, c, end);
     nav.wander = angleDiff(rng.next() * 2 * Math.PI, 0) * 0.5;
     if (n.state === 'wandering' && nav.leg !== 'exit') {
       // Give way: a short sidestep pause, then on.

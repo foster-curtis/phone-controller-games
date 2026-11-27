@@ -109,6 +109,28 @@ export const TUNING = {
     /** …and faded out within this distance of the waypoint so it still arrives (tiles). */
     driftFade: 2.5,
   },
+  /**
+   * TF2-fix-1 (C1 note: up to 6 NPCs jammed in an alley): alleys are one person wide (§6.3), so they
+   * go one way at a time. Anyone (player or NPC, counted alike) inside an alley, or about to step in
+   * from the other mouth, is traffic; same-direction followers may enter.
+   */
+  alley: {
+    /** Traffic about to enter: within this far outside a mouth (tiles), moving toward it. */
+    zone: 1.2,
+    /** An NPC decides this far out from the mouth it is heading for (tiles). */
+    decide: 2,
+    /** Moving along the alley above this |vy| (tiles/s); slower inside counts as blocking it. */
+    moving: 0.15,
+    /** Followers going the same way may enter while fewer than this many are inside. */
+    maxIn: 2,
+    /** Share of NPCs meeting oncoming traffic that go round (other alley, end passage) vs wait. */
+    reroute: 0.85,
+    /** Waiting spot beside the mouth: this far to the side of the alley edge, and out from it. */
+    waitSide: 0.9,
+    waitOut: 0.8,
+    /** The longest wait before going round anyway, ms (well under `npc.maxStillMs`). */
+    waitMs: 4000,
+  },
   churn: {
     /** After the stream-in, a missing NPC is replaced after a random delay in this range, ms. */
     arrivalMs: [300, 2500] as const,

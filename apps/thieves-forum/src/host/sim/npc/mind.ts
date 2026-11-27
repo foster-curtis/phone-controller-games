@@ -40,6 +40,11 @@ export function newNav(x = 0, y = 0): NpcNav {
     lookBase: 0,
     looks: 0,
     lookAt: 0,
+    alley: -1,
+    alleyDir: 0,
+    alleyUntil: 0,
+    held: [],
+    avoid: -1,
   };
 }
 

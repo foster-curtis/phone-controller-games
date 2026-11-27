@@ -1,4 +1,4 @@
-// Open-stall rule (SPEC §6.3, §11 #24): players + 2 clamped 5–10, pawnbroker + jewelry + one of
+// Open-stall rule (SPEC §6.3, §11 #24): players + 4 clamped 6–10 (§11 #31), pawnbroker + jewelry + one of
 // bakery/pottery always, seeded, fixed for the match.
 import { describe, expect, it } from 'vitest';
 import { balance } from '../../../content/balance';
@@ -9,11 +9,12 @@ const shopOf = (id: number) => LAYOUT.stalls[id]!.shop;
 
 describe('open stalls', () => {
   it.each([
-    [1, 5],
-    [2, 5],
-    [3, 5],
-    [4, 6],
-    [6, 8],
+    [1, 6],
+    [2, 6],
+    [3, 7],
+    [4, 8],
+    [5, 9],
+    [6, 10],
     [8, 10],
     [9, 10],
     [12, 10],

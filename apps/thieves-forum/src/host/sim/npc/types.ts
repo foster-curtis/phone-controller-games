@@ -81,7 +81,25 @@ export interface NpcNav {
   /** head turns still to come, and the tick of the next one. */
   looks: number;
   lookAt: Tick;
+  // TF2-fix-1 (C1 note: alley bottlenecks), additive: one-way-at-a-time alleys.
+  /** The alley (index in `layout.alleys`) it is waiting beside for oncoming traffic, or −1, */
+  alley: number;
+  /** which way it wants through (+1 down the map, −1 up) and when it gives up and goes round. */
+  alleyDir: number;
+  alleyUntil: Tick;
+  /** The path it was on before stepping aside to wait. */
+  held: Vec2[];
+  /** An alley this leg avoids after going round it (re-paths keep avoiding it), or −1. */
+  avoid: number;
 }
 
 /** A shopper's current human moment (TF2-fix-1, additive). */
-export type NpcMoment = 'none' | 'hesitate' | 'reverse' | 'retarget' | 'stallSlow' | 'stallStop';
+export type NpcMoment =
+  | 'none'
+  | 'hesitate'
+  | 'reverse'
+  | 'retarget'
+  | 'stallSlow'
+  | 'stallStop'
+  | 'alleyWait'
+  | 'alleyReroute';

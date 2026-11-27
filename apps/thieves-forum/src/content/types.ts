@@ -150,6 +150,7 @@ export interface Balance {
   npcSale: { rate: Range };
   /** SPEC §6.10 crowd. */
   npcs: {
+    /** Planned count = round(base + perPlayer × players) (§6.10, §7). */
     base: number;
     perPlayer: number;
     /** ±fraction of the planned count. */

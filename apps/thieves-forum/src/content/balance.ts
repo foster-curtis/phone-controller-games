@@ -26,8 +26,8 @@ export const balance = {
     rate: [1.1, 1.5], // §7 NPC sale rate, rolled per NPC at spawn (§6.4)
   },
   npcs: {
-    base: 8, // §7 NPCs = 8 + 2 × players (§6.10)
-    perPlayer: 2, // §7
+    base: 32 / 3, // §7 NPCs = round(32/3 + 8/3 × players): 2p → 16 … 8p → 32 (§6.10; user at C1)
+    perPlayer: 8 / 3, // §7
     tolerance: 0.08, // §7 NPC count tolerance ±8% (§6.10)
     toleranceMin: 1, // §6.10 "rounded, at least ±1"
     purse: [20, 60], // build value: enough for a few cheap buys (§6.8 "enough for their shopping")
@@ -101,8 +101,8 @@ export const balance = {
     merchantRange: 7, // build value: "nearest merchant within range"
   },
   stalls: {
-    openExtra: 2, // §7 Open stalls = players + 2 (§6.3)
-    openMin: 5, // §7 min 5
+    openExtra: 4, // §7 Open stalls = players + 4 (§6.3; user at C1)
+    openMin: 6, // §7 min 6
     openMax: 10, // §7 max 10
   },
   merchants: {

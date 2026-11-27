@@ -359,7 +359,7 @@ describe('round start', () => {
       starts.push(s.advance(T.transitionMs).find((e) => e.k === 'roundStart')!);
     }
     const open = s.m.state().openStalls;
-    expect(open).toHaveLength(5);
+    expect(open).toHaveLength(7);
     const seeds = new Set<number>();
     starts.forEach((e, i) => {
       if (e.k !== 'roundStart') throw new Error('no roundStart');
@@ -382,7 +382,7 @@ describe('round start', () => {
     const s = started(5);
     const e = s.fx.find((x) => x.k === 'roundStart');
     expect(e?.k === 'roundStart' && e.start.guards).toBe(balance.guards.start.large[0]);
-    expect(s.m.state().openStalls).toHaveLength(7);
+    expect(s.m.state().openStalls).toHaveLength(9);
   });
 
   it('keeps the open stalls fixed for the match and lists the always-open shops', () => {

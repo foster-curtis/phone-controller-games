@@ -1,4 +1,4 @@
-// Crowd churn (SPEC §6.10, §6.2): the planned count is `8 + 2 × players`; after the players-only
+// Crowd churn (SPEC §6.10, §6.2): the planned count is `round(32/3 + 8/3 × players)`; after the players-only
 // opening the planned NPCs stream in over `balance.npcs.streamInMs`, then NPCs keep walking on and off
 // through the four lane entries (never the gate) for the whole round, keeping the live count within
 // ±8% of the plan (rounded, at least ±1). Departures are natural (a finished wish list); arrivals refill
@@ -13,9 +13,14 @@ import type { CrowdBand } from '../lifecycle/types';
 import { createMind } from './mind';
 import type { CrowdState } from './types';
 
+/** The planned NPC count for `players`: round(base + perPlayer × players) (SPEC §6.10, §7). */
+export function plannedNpcs(players: number, b: Balance): number {
+  return Math.round(b.npcs.base + b.npcs.perPlayer * players);
+}
+
 /** The planned NPC count and its tolerance band for `players` (SPEC §6.10, §7). */
 export function crowdBand(players: number, b: Balance): CrowdBand {
-  return bandFor(b.npcs.base + b.npcs.perPlayer * players, b);
+  return bandFor(plannedNpcs(players, b), b);
 }
 
 /** The tolerance band around a planned count. */

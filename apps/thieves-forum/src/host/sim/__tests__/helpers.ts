@@ -11,7 +11,7 @@ export function roundStart(seed: number, players: number, openStalls?: number[])
     round: 1,
     players: ids.map((id) => ({ id, side: { kind: 'player', id } })),
     openStalls:
-      openStalls ?? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].slice(0, Math.min(10, Math.max(5, players + 2))),
+      openStalls ?? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].slice(0, Math.min(10, Math.max(6, players + 4))),
     guards: 1,
   };
 }

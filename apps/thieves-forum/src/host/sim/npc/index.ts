@@ -11,7 +11,7 @@ import type { NpcApi } from './types';
 
 export type { CrowdState, NpcApi, NpcLeg, NpcMoment, NpcNav } from './types';
 export { chaseCoin, startLeaving } from './brain';
-export { bandFor, crowdBand, liveNpcs } from './churn';
+export { bandFor, crowdBand, liveNpcs, plannedNpcs } from './churn';
 export { NPC_HOOKS, type NpcHooks } from './hooks';
 
 export function step(ctx: StepContext): void {

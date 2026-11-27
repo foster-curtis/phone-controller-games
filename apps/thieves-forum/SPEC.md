@@ -96,7 +96,7 @@ Single fixed camera showing the whole market (no scrolling), Fort Frenzy's obliq
 
 - **Stalls block line of sight** for guards' view cones (§6.12). Ducking into an alley breaks it.
 - **Alleys slow guards** (they squeeze through at reduced speed), giving a fleeing thief a head start. Players and NPCs pass at normal speed.
-- **Open stalls = players + 2, min 5, max 10. The pawnbroker is always open.** Which shop stalls open is chosen per match so the open set spans the value range (always at least one cheap shop and the jewelry stall from 5 open stalls up). **Selection rule (settled, §11 #24):** once per match from the seed, open the pawnbroker, jewelry and one of bakery/pottery, then draw the rest at random from the remaining shops until players + 2 (clamped 5–10). The set is fixed for the whole match, so mid-match joins never open more stalls. **Closed stalls** keep the full canopy, valance, shelf and counter but have **no items and no merchant**, with the area under the canopy darkened (~40% black). Not boarded up.
+- **Open stalls = players + 4, min 6, max 10. The pawnbroker is always open.** Which shop stalls open is chosen per match so the open set spans the value range (always at least one cheap shop and the jewelry stall from 5 open stalls up). **Selection rule (settled, §11 #24):** once per match from the seed, open the pawnbroker, jewelry and one of bakery/pottery, then draw the rest at random from the remaining shops until players + 4 (clamped 6–10; raised from players + 2 by the user at C1, §11 #31). The set is fixed for the whole match, so mid-match joins never open more stalls. **Closed stalls** keep the full canopy, valance, shelf and counter but have **no items and no merchant**, with the area under the canopy darkened (~40% black). Not boarded up.
 - **One canopy color per shop:** pawnbroker charcoal `#3a404b`, bakery linen `#d9cfb8`, pottery terracotta `#a85f45`, clothing woad `#5b7186`, wine madder `#9c5a63`, smithy umber `#7a5a43`, perfume sage `#8a9a7e`, spices bronze `#a8703a`, rugs olive `#7d7f4f`, jewelry mulberry `#6e5a72`.
 
 ### 6.4 Economy and scoring
@@ -225,7 +225,7 @@ Values roughly track real-world worth. **Rarity:** common = always restocks; unc
 
 ### 6.10 NPCs
 
-- **Planned count = 8 + 2 × players** (2 players → 12, 8 players → 24).
+- **Planned count = round(32/3 + 8/3 × players)** (2 players → 16, 5 → 24, 8 players → 32; raised from 8 + 2 × players by the user at C1, §11 #31).
 - **Constant churn:** NPCs walk on and off the screen **throughout the whole round** (finished shoppers leave, new ones arrive), keeping the live count **within ±8% of the planned count** (rounded, at least ±1). Arrivals and departures use the **four entries: the left and right ends of the upper and lower lanes** (the top gate stays closed). Someone walking on or off is always normal, which is what lets mid-round joiners (§6.18) and leaving players blend in.
 - At round start, NPCs stream in through the same entries after the players-only opening (§6.2).
 - **They must move like people.** If players can't tell NPCs from players by movement, the disguise holds. All five techniques are required:
@@ -235,6 +235,8 @@ Values roughly track real-world worth. **Rarity:** common = always restocks; unc
   4. **Personality sliders** rolled per NPC: walking speed, distractibility, browse duration (same trick as Fort Frenzy's scrap mites).
   5. **Little human moments:** brief pauses before choosing a direction, occasional doubling back, waiting in line, picking up a dropped coin (they also chase tossed coins sometimes, like merchants).
 - **NPCs buy and sell for real:** they spend at stalls (which can empty uncommon stock) and are the buyers for player sales (§6.4). Each NPC's wish list says what it will buy from a player.
+- **Not too sure of themselves (§11 #32):** NPCs sometimes stop and look around, change their mind and turn back, slow down and drift toward stalls they pass, and meander rather than walk straight, each by its own personality, so a player's natural hesitation looks like everyone else's.
+- **Alleys one way at a time (§11 #32):** an NPC about to enter an alley with someone coming the other way (player or NPC, counted alike) mostly goes round by the other alley or an end passage, otherwise waits beside the mouth until it clears.
 - **Gaits:** NPCs mostly walk; a hurried NPC personality occasionally walks briskly. Nobody but a fleeing player (or a guard) runs.
 - **Player movement:** the joystick maps to speed from a slow shuffle up to a **jog** at full tilt. Full tilt is noticeably faster than any NPC, so running is a visible tell (players learn to keep the stick at walking pace when blending in).
 
@@ -422,8 +424,8 @@ All in one config file (`src/content/balance.ts` or equivalent). Tune in playtes
 | Post-stocks immunity | 3 s | |
 | Escape (out of sight) | 3 s | §6.12 |
 | Coin toss cost / cooldown | 1 d / 8 s | |
-| NPCs | 8 + 2 × players | |
-| Open stalls | players + 2, 5–10 | Pawnbroker always |
+| NPCs | round(32/3 + 8/3 × players) | 2p → 16, 5p → 24, 8p → 32 (was 8 + 2 × players; §11 #31) |
+| Open stalls | players + 4, 6–10 | Pawnbroker always (was players + 2, 5–10; §11 #31) |
 | Starting guards | 1/2/3 (5+ players), 1/1/2 (2–4) | |
 | Activations per extra guard | 5 | |
 | Guard cap | 4 | |
@@ -439,7 +441,7 @@ The fee-setting rule (decided): once playtests show how many coins a thief earns
 ## 8. v1 scope
 
 - Free-for-all, 2–8 players, 3 rounds.
-- 10 stalls (players + 2 open), 34 starter items, 1 map.
+- 10 stalls (players + 4 open), 34 starter items, 1 map.
 - Merchants (glance, dialog, bring-forward, catches), NPCs (§6.10), guards with escalation (§6.12).
 - Stall theft, pickpocketing, coin toss, buying, pawnbroker and NPC selling, in-person catches, tip-offs, stocks.
 - Round reveal, round transition, podium.
@@ -465,7 +467,7 @@ Build v1 so these can be added without rewrites.
 1. **Tagline:** "Blend in. Swipe gold. Don't get caught." is a placeholder.
 2. **Final name check** before any public release (Steam, itch.io, USPTO), as for Fort Frenzy.
 3. **Balance numbers** (§7): all starting values, to be set from playtesting, especially the escape window, tip fee, pickpocket amount, merchant glance timing and how often merchants bring items forward or leave them out.
-4. ~~**Open-stall selection rule** (§6.3)~~ **Settled 2026-11-25** (§6.3, §11 #24): pawnbroker + jewelry + bakery or pottery, then random to players + 2. Review in playtesting.
+4. ~~**Open-stall selection rule** (§6.3)~~ **Settled 2026-11-25** (§6.3, §11 #24): pawnbroker + jewelry + bakery or pottery, then random to players + 2. Review in playtesting. **Reopened by the user at C1 (2026-11-27, §11 #31):** same rule, now random to players + 4 (clamped 6–10).
 5. **Art still to draw:** final character rigs in all poses (§6.21), title screen, podium, reveal cards.
 
 ## 11. Decision log
@@ -502,6 +504,8 @@ Design decisions made in the project before this spec (full history: `claude/mar
 28. 2026-11-25 (build plan): the **tip-off snapshot excludes the tipper's own character**, and an open snapshot **expires** after a short time (start 20 s in `balance.ts`, §12.4) so a forgotten sheet can't land a late tip (§6.13, §6.17).
 29. 2026-11-25 (build plan): **in-person catches use mid-steal + 300 ms grace; only tip-offs use the 5 s hot-hands window** (§6.13 as written, confirmed).
 30. 2026-11-25 (build plan): a **disconnected player's character under NPC takeover can still be pickpocketed and caught** as normal, and the hands-up reveal includes disconnected players (§6.14, §6.18).
+31. 2026-11-27 (user at C1): **more NPCs and more open stalls**: planned NPCs = round(32/3 + 8/3 × players) (≈ 4–8 more per round: 2p 16, 5p 24, 8p 32; tolerance unchanged), open stalls = players + 4 clamped 6–10 (same pick rule as #24). Values in `balance.ts`.
+32. 2026-11-27 (user at C1): **NPCs less sure of themselves** (they sometimes stop and look around, change their mind and turn back, slow down near stalls, and drift instead of walking straight), so players' natural hesitation blends in; and **alleys go one way at a time**: an NPC meeting oncoming traffic (players and NPCs alike) mostly goes round by the other alley or an end passage, otherwise waits beside the mouth (§6.10).
 
 ---
 
@@ -611,7 +615,7 @@ interface Camera {
 - **The renderer reads only `WorldView`** (§12.3) and **TV events** (`ch: 'tv'`). It never sees a player
   id, a controller kind or a phone event, so it can't reveal a player during a round (§6.11). The
   reveal draws from a separate `RevealView` that exists only in the `handsUp` phase.
-- **Performance target:** the full crowd (8 players + 24 NPCs, 10 merchants, 4 guards) at 60 fps on a
+- **Performance target:** the full crowd (8 players + 32 NPCs, 10 merchants, 4 guards) at 60 fps on a
   2020-era laptop's integrated GPU; TF2 logs sim bench numbers, TF7 the frame rate.
 
 ### 12.3 Simulation
@@ -707,6 +711,10 @@ interface RoundStart {
   shops. The sim core entry is `createSim(roundStart, content?)` in `sim/world.ts`; the spatial hash and
   input edges are derived per world (`sim/derived.ts`), not stored in it. TF2 tuning the §7 sheet doesn't
   give (pauses, detour odds, queue gap, stand-still cap, player stick bands) is in `sim/tuning.ts`.
+  TF2-fix-1 (additive): `NpcNav` also carries the shopper's `doubt`, its current `moment` (hesitate,
+  reverse, retarget, stall slow/stop, alley wait/reroute), its heading drift, look-around state and alley
+  wait/avoid state (`sim/npc/doubt.ts`, `sim/npc/alleys.ts`, rates in `TUNING.doubt` and `TUNING.alley`);
+  `nav.findPath` takes an optional `avoid` rect; the planned count is `plannedNpcs(players, balance)`.
 - **Merchants and stalls (TF8, additive):** `Merchant.desk?: MerchantDesk` (serving queue, served list,
   current `MerchantTask`: idle, serve with dialog, fetch get/bring/stow, show, away; the slot he left on
   the counter) and `StallSlot.stocked?` (the item a slot restocks and `putBack` restores), types in
@@ -747,8 +755,8 @@ interface RoundStart {
   `hair` and `skin` tone **indices**; the brand kit has no hair or skin palette, so the tone colors are a
   render table (TF1) and the sim only rolls indices (`balance.outfit`).
 - **Open-stall rule (§6.3, settled):** once per match from the match seed: pawnbroker + jewelry + one of
-  bakery/pottery, then the rest drawn at random from the remaining shops until `players + 2`, clamped
-  5–10. Fixed for the match, so mid-match joins never open stalls.
+  bakery/pottery, then the rest drawn at random from the remaining shops until `players + 4`, clamped
+  6–10 (§11 #31). Fixed for the match, so mid-match joins never open stalls.
 
 ### 12.5 Network protocol
 
@@ -910,7 +918,7 @@ TF4), the host handler registry (TF12). Tuning values in `src/content/` are neve
 | 14 | 2026-11-25 | Distractions | A handler list, coin toss first | §9 noisy-distraction prep |
 | 15 | 2026-11-25 | Outfits | One `assignOutfit(rng, pool)` callable mid-round; hair and skin as tone indices | §9 outfit-stall prep; the brand kit has no hair or skin palette |
 | 16 | 2026-11-25 | Config | TS data with `satisfies`; items, shops, layout and audio map are data | §6.5 and §9: more items and maps are content |
-| 17 | 2026-11-25 | Open stalls | Pawnbroker + jewelry + bakery or pottery, then random to players + 2 (5–10), once per match | Spans the value range (§6.3); joins never reopen stalls |
+| 17 | 2026-11-25 | Open stalls | Pawnbroker + jewelry + bakery or pottery, then random to players + 2 (5–10), once per match (players + 4, 6–10 since §11 #31) | Spans the value range (§6.3); joins never reopen stalls |
 | 18 | 2026-11-25 | Stocks | Several standing slots | Two catches within 20 s are likely with 8 players |
 | 19 | 2026-11-25 | Catches | In-person: mid-steal + 300 ms grace; tip-offs: hot hands 5 s | §6.13 as written |
 | 20 | 2026-11-25 | Takeover | A disconnected player's character stays catchable and robbable; the reveal includes them | Behaving differently would expose them |

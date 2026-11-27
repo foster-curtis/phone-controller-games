@@ -2,7 +2,7 @@
 // only, separation, the disguise shape of the view.
 import { describe, expect, it } from 'vitest';
 import { CONTENT } from '../../../content';
-import { bandFor } from '../npc';
+import { bandFor, plannedNpcs } from '../npc';
 import { CHARACTER_VIEW_KEYS } from '../snapshot';
 import { SIM_HZ } from '../types';
 import { createSim } from '../world';
@@ -63,7 +63,7 @@ describe('churn (SPEC §6.10)', () => {
     it(`keeps the live count within ±8% every second for ${players} players over 270 s`, () => {
       const sim = createSim(roundStart(players * 7, players));
       const drive = stickDriver(players, players);
-      const band = bandFor(b.npcs.base + b.npcs.perPlayer * players, b);
+      const band = bandFor(plannedNpcs(players, b), b);
       const settle = OPENING + Math.round((b.npcs.streamInMs / 1000) * SIM_HZ) + SIM_HZ;
       let arrivals = 0;
       let exits = 0;

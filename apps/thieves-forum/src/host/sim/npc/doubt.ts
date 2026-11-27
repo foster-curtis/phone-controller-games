@@ -25,13 +25,13 @@ export const mix = ([lo, hi]: readonly [number, number], doubt: number): number 
 /** A per-minute rate as a per-tick chance. */
 const perTick = (perMin: number): number => perMin / (60 * SIM_HZ);
 
-/** Starts `n` look-left/right head turns while standing, the first one now-ish. */
+/** Starts `n` look-left/right head turns while standing (then a look back ahead), the first now-ish. */
 export function startLooks(ctx: StepContext, c: Character, rng: Rng, n: number): void {
   const nav = c.npc.nav!;
   nav.lookBase = c.facing;
-  nav.looks = n;
+  nav.looks = n + 1; // n turns away, then one back to the way it was heading
   nav.faceTo = null;
-  nav.lookAt = ctx.world.tick + ctx.ticks(between(rng, [100, 300]));
+  nav.lookAt = ctx.world.tick + ctx.ticks(between(rng, [50, 150]));
 }
 
 /** Pause-before-choosing (technique 5) sometimes looks around too. */
@@ -81,6 +81,8 @@ export function hesitate(ctx: StepContext, c: Character, rng: Rng): boolean {
   const n = c.npc;
   const nav = n.nav!;
   if (c.vx * c.vx + c.vy * c.vy < 0.5) return false;
+  // Never stop or turn round in an alley or its mouth: that's how they jam (TF2-fix-1).
+  if (nearAlley(ctx, c)) return false;
   if (rng.next() < perTick(mix(D.stopPerMin, nav.doubt))) {
     const ms = between(rng, D.stopMs);
     if (rng.next() < D.stopTurn && reverse(ctx, c, rng, ms)) return true;
@@ -195,6 +197,19 @@ export function driftAngle(ctx: StepContext, c: Character, rng: Rng, d: number):
   }
   nav.drift += (nav.driftTo - nav.drift) * Math.min(1, D.driftEase * DT);
   return nav.drift * Math.min(1, d / D.driftFade);
+}
+
+/** In an alley or close to one of its mouths (no stopping or turning round there). */
+export function nearAlley(ctx: StepContext, c: Character): boolean {
+  for (const { rect: r } of ctx.content.layout.alleys)
+    if (
+      c.x >= r.x - 0.6 &&
+      c.x <= r.x + r.w + 0.6 &&
+      c.y >= r.y - TUNING.alley.zone &&
+      c.y <= r.y + r.h + TUNING.alley.zone
+    )
+      return true;
+  return false;
 }
 
 function graphOf(content: Content) {

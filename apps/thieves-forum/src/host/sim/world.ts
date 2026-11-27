@@ -19,7 +19,7 @@ import * as lifecycle from './lifecycle';
 import * as merchants from './merchants';
 import { stepMovement, stepSeparation } from './movement';
 import * as npc from './npc';
-import { newCrowd } from './npc/churn';
+import { newCrowd, plannedNpcs } from './npc/churn';
 import { createMind } from './npc/mind';
 import { assignOutfit, OUTFIT_STREAM } from './outfits';
 import * as pickpocket from './pickpocket';
@@ -117,7 +117,7 @@ export function createWorld(
     gateOpen: false,
     activations: 0,
     pawn: { rate: b.pawn.rate[0], rerollAt: 0 },
-    plannedNpcs: b.npcs.base + b.npcs.perPlayer * start.players.length,
+    plannedNpcs: plannedNpcs(start.players.length, b),
     crowd: newCrowd(),
     events: [],
   };
