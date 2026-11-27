@@ -1371,3 +1371,6 @@ monorepo. You run in an ephemeral cloud sandbox: anything not pushed is lost.
 
 {Optional: "Checkpoint approved: C1. Preview URL: https://…" / "C2 notes: …" / "Audio delivered" / "Cut approved: …"}
 ```
+- [TF5-fix-1] decision: the kit's `showToast` positions inline at the bottom, so `controller.css` overrides it with `top`/`bottom: auto !important` under the 44px top banner plus the safe-area inset (packages stay untouched); the toast never reaches the main button.
+- [TF5-fix-1] decision: the main button is a circle (`--coin` = `clamp(76px, 27vmin, 150px)`, `border-radius: 50%`, `.coin-edge` dashes) and its hold bar is a conic-gradient ring driven by `--p` (set in `play.ts` from the same percent as `data-progress`, so the bar is still never 100 before `holdEnd complete`).
+- [TF5-fix-1] decision: the action stack's bottom offset is `20dvh` plus the safe-area inset (the coin above a row of Toss/Tip/Catch), width `clamp(210px, 46vw, 380px)` so it stays right of the joystick zone (42%) from 640x360 to 1180x820.

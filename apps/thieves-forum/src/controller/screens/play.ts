@@ -221,6 +221,7 @@ export function playView(ctx: Ctx, _first: Extract<Screen, { s: 'play' }>): View
     if (pct !== null) {
       (mainBar.firstElementChild as HTMLElement).style.width = `${pct}%`;
       mainBar.dataset.progress = String(pct);
+      mainBar.style.setProperty('--p', String(pct));
     } else delete mainBar.dataset.progress;
     stallPane?.tick(now);
     pawnEl?.tick(now);
