@@ -2,6 +2,8 @@
 // console errors (fonts blocked) and no fallback shapes, and saves screenshots for C1/C7 review.
 // The glance and confetti pages also save a second, later screenshot (motion over time).
 import { expect, test } from './helpers';
+import { balance } from '../src/content';
+import { plannedNpcs } from '../src/host/sim/npc/churn';
 
 // TF1-fix-1 adds the staged glance, the occupied stocks and the confetti pages.
 const PAGES = [
@@ -49,7 +51,8 @@ for (const page of PAGES) {
     expect(probe.missing).toEqual([]);
     expect(probe.fallbacks).toBe(0);
     if (page === 'stress') {
-      expect(probe.rigs).toBe(32 + 4 + 10);
+      // 8 players + their planned NPCs (from balance), 4 guards, 10 merchants.
+      expect(probe.rigs).toBe(8 + plannedNpcs(8, balance) + 4 + 10);
       expect(probe.fps ?? 0).toBeGreaterThan(0);
     }
     // Fonts are blocked offline; their failed requests are not app errors.

@@ -1,14 +1,21 @@
 // Gallery stress view (SPEC §12.2 performance target, §7 crowd): the full 8-player crowd (8 players
-// + 24 NPCs, 4 guards, 10 merchants in 10 open stalls) walking random paths over a paved market,
+// + the planned NPCs for 8 players from balance, 4 guards, 10 merchants in 10 open stalls) walking random paths over a paved market,
 // with an FPS readout. Rendering only; TF7 logs the real scene's frame rate.
-import { SHOP_IDS, itemsOf } from '../../content';
+import { SHOP_IDS, balance, itemsOf } from '../../content';
 import { addPiece, placePiece } from '../render/atlas';
 import { CANVAS_W } from '../render/camera';
 import type { RigSprite } from '../render/rig';
 import type { RigId } from '../render/types';
+import { plannedNpcs } from '../sim/npc/churn';
 import { randomLook, randomOutfit, type PageKit } from './pages';
 
-export const STRESS = { citizens: 32, guards: 4, merchants: 10 } as const;
+/** The stress crowd: 8 players plus their planned NPCs (TF2-fix-1: follows balance). */
+export const STRESS_PLAYERS = 8;
+export const STRESS = {
+  citizens: STRESS_PLAYERS + plannedNpcs(STRESS_PLAYERS, balance),
+  guards: 4,
+  merchants: 10,
+} as const;
 
 interface Walker {
   rig: RigSprite;
