@@ -27,6 +27,8 @@ function run(seed: number, seconds: number) {
     retarget: 0,
     stallSlow: 0,
     stallStop: 0,
+    alleyWait: 0,
+    alleyReroute: 0,
   };
   // Hesitation starts and walking ticks, split by doubt (low < 0.3 ≤ mid < 0.6 ≤ high).
   const byDoubt = { low: { stops: 0, walk: 0 }, high: { stops: 0, walk: 0 } };
