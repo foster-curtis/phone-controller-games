@@ -1,6 +1,7 @@
 // Effect spawners (SPEC §6.9, §6.12–§6.15; ART_NOTES "Effects"): one-shot sprites with a simple
 // pop, hold and fade, and the coin toss arc. Timing polish is TF20's (effects choreography); this
 // is the API the scene calls. Effects never mark a grab, a pickpocket or a tip payout (§6.11).
+// Confetti bursts into single pieces that fall like paper (TF1-fix-1, `confetti.ts`).
 import type * as Phaser from 'phaser';
 import type { Vec2 } from '../../content/types';
 import {
@@ -13,6 +14,7 @@ import {
   type ArtPiece,
 } from './atlas';
 import { CHAR_UNIT_PX } from './camera';
+import { CONFETTI, confettiBurst, flakeFlip, stepFlake, type Flake } from './confetti';
 import { EFFECT_FRAMES } from './effectFrames';
 import type { EffectKind, EffectOptions, EffectSpawner } from './types';
 
@@ -28,6 +30,8 @@ interface Live {
   mirror: boolean;
   /** Coin arc: start and end points. */
   arc?: { from: Vec2; to: Vec2 };
+  /** A confetti piece. */
+  flake?: Flake;
 }
 
 export class Effects implements EffectSpawner {
@@ -44,6 +48,7 @@ export class Effects implements EffectSpawner {
   }
 
   spawn(kind: EffectKind, at: Vec2, opts: EffectOptions = {}) {
+    if (kind === 'confetti') return this.confetti(at, opts);
     const k = EFFECT_FRAMES[kind];
     const piece = this.lib.piece(k.frame);
     if (opts.tint !== undefined) tintPiece(piece, { player: opts.tint });
@@ -59,6 +64,26 @@ export class Effects implements EffectSpawner {
     };
     this.live.push(e);
     this.draw(e);
+  }
+
+  /** A burst of single confetti pieces, smaller and more of them than the delivered sheet. */
+  private confetti(at: Vec2, opts: EffectOptions) {
+    for (const flake of confettiBurst(at)) {
+      const piece = this.lib.piece(flake.frame);
+      addPiece(piece, this.layers.overlay);
+      const e: Live = {
+        kind: 'confetti',
+        piece,
+        at,
+        age: 0,
+        ms: opts.ms ?? CONFETTI.ms,
+        scale: (opts.scale ?? 1) * CONFETTI.scale,
+        mirror: false,
+        flake,
+      };
+      this.live.push(e);
+      this.draw(e);
+    }
   }
 
   coinArc(from: Vec2, to: Vec2, ms = 700) {
@@ -127,8 +152,14 @@ export class Effects implements EffectSpawner {
         alpha = 1 - u;
         break;
       case 'confetti':
-        y += u * 60;
-        alpha = fadeOut;
+        if (e.flake) {
+          if (e.age > e.flake.age) stepFlake(e.flake, e.age - e.flake.age);
+          x = e.flake.x;
+          y = e.flake.y;
+          rot = e.flake.rot;
+          sx = flakeFlip(e.flake);
+        }
+        alpha = u > 0.8 ? 1 - (u - 0.8) / 0.2 : 1;
         break;
       case 'coin':
         if (e.arc) {

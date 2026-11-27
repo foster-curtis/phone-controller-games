@@ -4,7 +4,8 @@
     "anchor: the placement and y-sort point in the file's own units. Stalls anchor at the counter's front edge (SPEC §12.2); characters stand at the rig foot (20, 55).",
     "layer: ground, world (y-sorted) or overlay (SPEC §12.2). ppu: atlas px per unit at 1× (stalls, gate and stocks draw at 3 px per unit like the 640 × 360 layout reference ×3; characters and effects at about 1.8).",
     "Tint variables (--canopy on the stall frame, --player on the reveal ring) become their own white layers, tinted at draw time.",
-    "Files with \"reference\" in the name are composed references, not frames."
+    "Files with \"reference\" in the name are composed references, not frames.",
+    "TF1-fix-1: confetti/piece-<n> are the six pieces of confetti-pieces.svg, one per file (copied verbatim, same viewBox), anchored at each piece's center so they spin and fall alone. stocks-occupied-reference is the one composed reference used as a frame: a thief in the stocks (front view), its --tunic, --skin and --hair tinted from the occupant's outfit."
   ],
   "frames": {
     "alert-bang": {
@@ -133,6 +134,66 @@
       "anchor": [
         36,
         8
+      ],
+      "layer": "overlay",
+      "ppu": 2
+    },
+    "confetti/piece-1": {
+      "category": "effects",
+      "file": "effects/confetti/piece-1.svg",
+      "anchor": [
+        4.98,
+        8.61
+      ],
+      "layer": "overlay",
+      "ppu": 2
+    },
+    "confetti/piece-2": {
+      "category": "effects",
+      "file": "effects/confetti/piece-2.svg",
+      "anchor": [
+        20.17,
+        4.21
+      ],
+      "layer": "overlay",
+      "ppu": 2
+    },
+    "confetti/piece-3": {
+      "category": "effects",
+      "file": "effects/confetti/piece-3.svg",
+      "anchor": [
+        26.54,
+        10.49
+      ],
+      "layer": "overlay",
+      "ppu": 2
+    },
+    "confetti/piece-4": {
+      "category": "effects",
+      "file": "effects/confetti/piece-4.svg",
+      "anchor": [
+        41.77,
+        7.37
+      ],
+      "layer": "overlay",
+      "ppu": 2
+    },
+    "confetti/piece-5": {
+      "category": "effects",
+      "file": "effects/confetti/piece-5.svg",
+      "anchor": [
+        56.71,
+        4.83
+      ],
+      "layer": "overlay",
+      "ppu": 2
+    },
+    "confetti/piece-6": {
+      "category": "effects",
+      "file": "effects/confetti/piece-6.svg",
+      "anchor": [
+        63.75,
+        6.71
       ],
       "layer": "overlay",
       "ppu": 2
@@ -570,6 +631,16 @@
           33.5
         ]
       }
+    },
+    "stocks-occupied-reference": {
+      "category": "map",
+      "file": "map/stocks-occupied-reference.svg",
+      "anchor": [
+        30,
+        58
+      ],
+      "layer": "world",
+      "ppu": 3
     },
     "thief-bubble": {
       "category": "effects",

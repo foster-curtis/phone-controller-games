@@ -1,5 +1,5 @@
 // `?gallery=1` art gallery (SPEC §6.21, §12.7; BUILD_PLAN TF1), in dev or with `?debug=1`: one page at
-// a time (`&page=citizen|merchant|guard|stalls|items|effects|stress`, buttons on top), rebuilt on
+// a time (`&page=` one of `PAGES` in pages.ts, buttons on top), rebuilt on
 // every switch. `window.__pcgGallery` reports readiness, fallback shapes and the stress FPS for e2e.
 // Frozen at TF0 (BUILD_PLAN §3): the `mount(root)` signature.
 import { debugEnabled } from '@pcg/game-kit';

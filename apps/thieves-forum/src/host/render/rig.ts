@@ -1,8 +1,10 @@
 // Rig instances (SPEC §12.2, §6.21): compose a view's pose set in `order` (optional groups off unless
 // a clip or code turns them on), turn each part about its pivot chained through its parents, tint
 // each part's slot layers from the outfit, and crossfade clips. A clip's `pose` swaps in a delivered
-// pose drawing when the view has one; `<clip>@<view>` variants win over `<clip>`. Adapted from Fort
-// Frenzy (`src/host/render/rig.ts`): copied from Fort Frenzy, extraction candidate, BUILD_PLAN §8.
+// pose drawing when the view has one; `<clip>@<view>` variants win over `<clip>`. A clip's stages
+// can draw the body or single parts from another view (staged glances) and move parts in the draw
+// order (TF1-fix-1, `drawn.ts`). Adapted from Fort Frenzy (`src/host/render/rig.ts`): copied from
+// Fort Frenzy, extraction candidate, BUILD_PLAN §8.
 import type * as Phaser from 'phaser';
 import type { Outfit, Vec2 } from '../../content/types';
 import { theme } from '../../shared/theme';
@@ -16,6 +18,7 @@ import {
   type ArtPiece,
 } from './atlas';
 import { blendSamples, sampleClip, type ClipSample } from './clip';
+import { drawnPose, type DrawnPose } from './drawn';
 import { attachPoint, composePose, decompose, viewForFacing, type Mat } from './rigMath';
 import { DEFAULT_HAIR, DEFAULT_SKIN, HAIR_TONES, SKIN_TONES, outfitTints } from './tones';
 import {
@@ -27,7 +30,6 @@ import {
   type RigId,
   type RigInstance,
   type RigOptions,
-  type RigPose,
   type TintSlot,
   type Tints,
   type ViewId,
@@ -61,8 +63,7 @@ interface Playing {
 export class RigSprite implements RigInstance {
   readonly root: Phaser.GameObjects.Container;
   private nodes: Node[] = [];
-  private poseName = '';
-  private rp!: RigPose;
+  private drawn!: DrawnPose;
   private mats = new Map<string, Mat>();
   private cur: Playing | null = null;
   private prev: Playing | null = null;
@@ -111,7 +112,11 @@ export class RigSprite implements RigInstance {
     return this.cur?.name ?? null;
   }
   get pose(): string {
-    return this.poseName;
+    return this.drawn.pose;
+  }
+  /** The view the body is drawn in right now (a glance's look turns it, TF1-fix-1). */
+  get drawnView(): ViewId {
+    return this.drawn.body;
   }
   get clipDone(): boolean {
     const c = this.cur;
@@ -137,7 +142,7 @@ export class RigSprite implements RigInstance {
     if (view === this._view) return;
     this._view = view;
     for (const p of [this.cur, this.prev]) if (p) p.clip = this.clipFor(p.name) ?? p.clip;
-    this.build();
+    this.build(this.resolve());
     this.update(0);
   }
 
@@ -179,12 +184,14 @@ export class RigSprite implements RigInstance {
       return true;
     }
     const fadeMs = opts.fadeMs ?? DEFAULT_FADE_MS;
-    const poseChanges = this.poseOf(clip) !== this.poseName;
+    const t = opts.offsetMs ?? 0;
+    const next = drawnPose(this.def, this._view, clip, t);
+    const poseChanges = next.key !== this.drawn.key;
     // A pose swap redraws the parts: no crossfade across different drawings.
     this.prev = fadeMs > 0 && !poseChanges ? this.cur : null;
-    this.cur = { name, clip, t: opts.offsetMs ?? 0, speed: opts.speed ?? 1 };
+    this.cur = { name, clip, t, speed: opts.speed ?? 1 };
     this.fade = { t: 0, ms: fadeMs };
-    if (poseChanges) this.build();
+    if (poseChanges) this.build(next);
     this.update(0);
     return true;
   }
@@ -198,7 +205,7 @@ export class RigSprite implements RigInstance {
   }
 
   attach(name: string): Vec2 | null {
-    const u = attachPoint(this.rp, this.mats, name);
+    const u = attachPoint(this.drawn.rp, this.mats, name);
     if (!u) return null;
     const [fx, fy] = this.def.foot;
     const k = this.unitPx;
@@ -212,6 +219,12 @@ export class RigSprite implements RigInstance {
     let sample: ClipSample = new Map();
     if (this.cur) {
       this.cur.t += dtMs * this.cur.speed;
+      // A stage boundary (glance wind-up → look) swaps drawings: rebuild, no crossfade across it.
+      const next = this.resolve();
+      if (next.key !== this.drawn.key) {
+        this.prev = null;
+        this.build(next);
+      }
       sample = sampleClip(this.cur.clip, this.cur.t);
       if (this.prev && this.fade.ms > 0) {
         this.prev.t += dtMs * this.prev.speed;
@@ -221,7 +234,7 @@ export class RigSprite implements RigInstance {
         if (w >= 1) this.prev = null;
       }
     }
-    this.mats = composePose(this.rp, sample);
+    this.mats = composePose(this.drawn.rp, sample);
     const clipGroups = this.cur?.clip.groups ?? [];
     const [fx, fy] = this.def.foot;
     for (const n of this.nodes) {
@@ -246,24 +259,23 @@ export class RigSprite implements RigInstance {
 
   // ---- internals ----------------------------------------------------------------------------------
 
-  private poseOf(clip: Clip | undefined): string {
-    const v = this.def.views[this._view];
-    return clip?.pose && v.poses[clip.pose] ? clip.pose : v.defaultPose;
+  private resolve(): DrawnPose {
+    return drawnPose(this.def, this._view, this.cur?.clip, this.cur?.t ?? 0);
   }
 
-  private build() {
+  private build(drawn: DrawnPose = this.resolve()) {
     for (const n of this.nodes) if (n.piece) destroyPiece(n.piece);
     this.nodes = [];
-    this.poseName = this.poseOf(this.cur?.clip);
-    this.rp = this.def.views[this._view].poses[this.poseName]!;
+    this.drawn = drawn;
     const groupsOf = new Map<string, string[]>();
     for (const [g, parts] of Object.entries(this.def.optional ?? {}))
       for (const p of parts) groupsOf.set(p, [...(groupsOf.get(p) ?? []), g]);
-    for (const name of this.rp.order) {
-      const part = this.rp.parts[name]!;
+    for (const name of drawn.rp.order) {
+      const part = drawn.rp.parts[name]!;
+      const from = drawn.from[name]!;
       const piece = part.src
         ? this.lib.piece(
-            rigFrameName(this.def.id, this._view, this.poseName, name) as FrameKey,
+            rigFrameName(this.def.id, from.view, from.pose, name) as FrameKey,
             part.pivot,
           )
         : null;

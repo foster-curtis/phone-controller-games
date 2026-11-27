@@ -1,17 +1,24 @@
 // Citizen clips (SPEC §6.21, §12.2): players and NPCs share every one, so no clip can tell them
 // apart (SPEC §6.11). Browse and reach/grab are one clip (`browse`), so stealing looks like browsing
 // (§6.7). Delivered pose drawings: point (front, side, back), handsUp (front), run (side); the other
-// views of hands-up and run are composed here as `<clip>@<view>` (BUILD_PLAN §8).
+// views of hands-up and run are composed here as `<clip>@<view>` (BUILD_PLAN §8). TF1-fix-1 (user
+// C1 notes): staged glances (NPCs catching pickpockets, §6.8), a real run, point into/out of the
+// screen in front and back views, the raised near arm drawn in front of the head in side views.
 import type { Clip } from '../types';
 import {
   breathe,
   gaitFront,
   gaitSide,
+  glanceClips,
   hold,
   keys,
   loop,
   once,
+  POINT_IN,
+  POINT_OUT,
   posed,
+  runFront,
+  runSide,
   sideStand,
   wave,
   withGroups,
@@ -89,6 +96,19 @@ const pointShake = loop(500, {
   head: wave(500, 4, (u) => ({ rot: 3 * Math.sin(u * Math.PI * 2) })),
   tunic: wave(500, 4, (u) => ({ dx: 0.3 * Math.sin(u * Math.PI * 4) })),
 });
+// Front/back point into / out of the screen (user C1 note 7), in front of the mantle when out.
+const jab = (aim: { rot: number; sx: number }) =>
+  keys(
+    [0, { ...aim }],
+    [120, { rot: aim.rot, sx: aim.sx * 1.08 }],
+    [250, { ...aim }],
+    [500, { ...aim }],
+  );
+const pointFront: Clip = {
+  ...posed(loop(500, pointShake.tracks, { 'arm-l': jab(POINT_OUT) }), 'point'),
+  reorder: { 'arm-l': 'mantle' },
+};
+const pointBack = posed(loop(500, pointShake.tracks, { 'arm-l': jab(POINT_IN) }), 'point');
 
 /** Hands up (§6.14): the front drawing; the other views raise the base arms. */
 const handsUp = posed(loop(1200, breathe(1200, P, 0.3)), 'handsUp');
@@ -96,18 +116,33 @@ const handsUpBack = loop(1200, breathe(1200, P, 0.3), {
   'arm-l': hold({ rot: 155 }),
   'arm-r': hold({ rot: -155 }),
 });
-const handsUpSide = loop(1200, sideStand(), breathe(1200, P, 0.3), {
-  'arm-l': hold({ rot: -165 }),
-  'arm-r': hold({ rot: -170 }),
-});
+// The near arm is drawn in front of the head (user C1 note 5); the far one stays behind it.
+const handsUpSide: Clip = {
+  ...loop(1200, sideStand(), breathe(1200, P, 0.3), {
+    'arm-l': hold({ rot: -170 }),
+    // Up and a little forward, so the near arm passes in front of the brow, not across the face.
+    'arm-r': hold({ rot: -145 }),
+  }),
+  reorder: { 'arm-r': 'top' },
+};
 
-/** Run (§6.12, §6.14): the side drawing with speed lines; front and back are a fast stride. */
-const RUN_MS = 420;
-const runSide = withGroups(
-  posed(loop(RUN_MS, gaitSide(RUN_MS, P, { legs: 14, arms: 25, bob: 1, baked: 24 })), 'run'),
-  ['speed'],
-);
-const run = loop(RUN_MS, gaitFront(RUN_MS, P, { legs: 30, arms: 30, bob: 1.2 }));
+/**
+ * Run (§6.12, §6.14; user C1 note 3): a true running cycle with pedaling legs, a forward lean and
+ * arms pumping at the sides. Side: the delivered run drawing (legs, lean, speed lines) with the base
+ * drawing's hanging arms, so they pump beside the body instead of reaching out in front.
+ */
+const RUN_MS = 460;
+const runSideClip: Clip = {
+  ...withGroups(
+    posed(
+      loop(RUN_MS, runSide(RUN_MS, P, { legs: 26, arms: 34, bob: 1, lean: 6, baked: 24 })),
+      'run',
+    ),
+    ['speed'],
+  ),
+  stages: [{ t: 0, parts: { 'arm-l': { pose: 'base' }, 'arm-r': { pose: 'base' } } }],
+};
+const run = loop(RUN_MS, runFront(RUN_MS, P, { legs: 26, arms: 0.22, bob: 1.2, lean: 6 }));
 
 /** In the stocks (§6.13): head and hands through the board, a slow sway. */
 const stocksTracks = {
@@ -119,16 +154,23 @@ const stocksTracks = {
 const stocks = loop(3000, stocksTracks);
 const stocksSide = loop(3000, sideStand(), stocksTracks);
 
-/** Caught (§6.13): a flinch, arms half up. */
+/** Caught (§6.13): a flinch, arms thrown up high (user C1 note 8). */
 const caught = once(500, {
   tunic: keys([0, { dy: 0 }], [120, { dy: -2 }], [300, { dy: 0 }]),
-  'arm-l': keys([0, { rot: 0 }], [150, { rot: 70 }]),
-  'arm-r': keys([0, { rot: 0 }], [150, { rot: -70 }]),
+  'arm-l': keys([0, { rot: 0 }], [150, { rot: 150 }]),
+  'arm-r': keys([0, { rot: 0 }], [150, { rot: -150 }]),
 });
-const caughtSide = once(500, sideStand(), {
-  tunic: keys([0, { dy: 0 }], [120, { dy: -2 }], [300, { dy: 0 }]),
-  'arm-r': keys([0, { rot: 0 }], [150, { rot: -120 }]),
-});
+const caughtSide: Clip = {
+  ...once(500, sideStand(), {
+    tunic: keys([0, { dy: 0 }], [120, { dy: -2 }], [300, { dy: 0 }]),
+    'arm-l': keys([0, { rot: 0 }], [150, { rot: -150 }]),
+    'arm-r': keys([0, { rot: 0 }], [150, { rot: -145 }]),
+  }),
+  reorder: { 'arm-r': 'top' },
+};
+
+/** The NPC glance at a pickpocket (§6.8): the same staged glance as the merchant's. */
+const glance = glanceClips(P, { windup: 400, look: 1200, back: 600 });
 
 /** Every citizen clip by `PoseId` (and `<clip>@<view>` variants). Keyed by rig only. */
 export const clips: Record<string, Clip> = {
@@ -141,16 +183,18 @@ export const clips: Record<string, Clip> = {
   pickpocket,
   'pickpocket@side': pickpocketSide,
   throw: throwFront,
-  'throw@side': throwSide,
-  point: posed(pointShake, 'point'),
+  'throw@side': { ...throwSide, reorder: { 'arm-r': 'top' } },
+  point: pointFront,
+  'point@back': pointBack,
   'point@side': posed(loop(500, sideStand(), pointShake.tracks), 'point'),
   handsUp,
   'handsUp@back': handsUpBack,
   'handsUp@side': handsUpSide,
   run,
-  'run@side': runSide,
+  'run@side': runSideClip,
   stocks,
   'stocks@side': stocksSide,
   caught,
   'caught@side': caughtSide,
+  ...glance,
 };

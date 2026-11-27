@@ -13,7 +13,8 @@
   "ppu": 2,
   "notes": [
     "The legionary guard (SPEC §6.12). Same naming as the citizen rig; the cuirass is the root. helmet-top (crest and bowl) is its own group only in the front view; side and back carry the crest inside helmet.",
-    "The side view draws no far arm (it is behind the scutum): arm-l is hidden there."
+    "The side view draws no far arm (it is behind the scutum): arm-l is hidden there.",
+    "The scutum is parented to the shield arm (his left: arm-r in front, arm-l in side and back), so it moves only with that arm (TF1-fix-1)."
   ],
   "views": {
     "front": {
@@ -164,7 +165,7 @@
                 32,
                 36.7
               ],
-              "parent": "cuirass"
+              "parent": "arm-r"
             }
           },
           "order": [
@@ -258,7 +259,7 @@
                 28,
                 36.5
               ],
-              "parent": "cuirass"
+              "parent": "arm-l"
             },
             "arm-l": {
               "src": null,
@@ -447,7 +448,7 @@
                 8,
                 36.7
               ],
-              "parent": "cuirass"
+              "parent": "arm-l"
             },
             "arm-l": {
               "src": {

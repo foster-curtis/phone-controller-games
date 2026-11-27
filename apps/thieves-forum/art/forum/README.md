@@ -97,6 +97,7 @@ Status: **approved** = approved concept source, signed off in design (SPEC §6.2
 | `effects/coin-flat.svg` | Coin lying flat after landing | §6.9 | approved |
 | `effects/coin.svg` | Coin (toss arc, pot coin shower) | §6.9, §6.13 | approved |
 | `effects/confetti-pieces.svg` | Round-end confetti | §6.14 | approved |
+| `effects/confetti/piece-1.svg` … `piece-6.svg` | The six pieces of `confetti-pieces.svg`, one per file, copied verbatim (same viewBox and fills; user-approved split, TF1-fix-1) | §6.14 | approved |
 | `effects/crown-laurel.svg` | Gold laurel crown over the top earner | §6.14, §6.15 | approved |
 | `effects/firework-gold.svg` | Podium firework, amber | §6.15 | approved |
 | `effects/firework-white.svg` | Podium firework, white | §6.15 | approved |

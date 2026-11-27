@@ -116,6 +116,10 @@ describe('clips', () => {
         'run',
         'stocks',
         'caught',
+        // NPC glance at a pickpocket (SPEC §6.8), staged like the merchant's (TF1-fix-1).
+        'glanceWindup',
+        'glanceLook',
+        'glanceBack',
       ],
       merchant: [
         'idle',

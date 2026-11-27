@@ -1,8 +1,21 @@
 // TF1 art gallery (SPEC §6.21, BUILD_PLAN TF1): `/?gallery=1&debug=1` renders every page with no
 // console errors (fonts blocked) and no fallback shapes, and saves screenshots for C1/C7 review.
+// The glance and confetti pages also save a second, later screenshot (motion over time).
 import { expect, test } from './helpers';
 
-const PAGES = ['citizen', 'merchant', 'guard', 'stalls', 'items', 'effects', 'stress'] as const;
+// TF1-fix-1 adds the staged glance, the occupied stocks and the confetti pages.
+const PAGES = [
+  'citizen',
+  'merchant',
+  'guard',
+  'glance',
+  'stalls',
+  'items',
+  'stocks',
+  'effects',
+  'confetti',
+  'stress',
+] as const;
 
 interface Probe {
   ready: boolean;
@@ -43,5 +56,13 @@ for (const page of PAGES) {
     expect(errors.filter((e) => !/fonts\.(googleapis|gstatic)|ERR_FAILED/.test(e))).toEqual([]);
     await expect(tab.locator('#gallery-nav a')).toHaveCount(PAGES.length);
     await tab.screenshot({ path: `e2e/__screens__/tf1-gallery-${page}.png` });
+    if (page === 'glance' || page === 'confetti') {
+      await tab.waitForTimeout(1300);
+      await tab.screenshot({ path: `e2e/__screens__/tf1-gallery-${page}-later.png` });
+      const later = (await tab.evaluate(
+        () => (window as { __pcgGallery?: Probe }).__pcgGallery!,
+      )) as Probe;
+      expect(later.fallbacks).toBe(0);
+    }
   });
 }

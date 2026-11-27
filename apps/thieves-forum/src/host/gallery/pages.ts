@@ -1,7 +1,8 @@
 // Gallery pages (SPEC §6.21, BUILD_PLAN TF1): every rig × view × clip with outfits cycling from the
 // shared pool; every stall open and closed in its canopy color with its items; items and map
 // pieces; effects; and the stress crowd (SPEC §7: 8 players → 24 NPCs, 4 guards, 10 merchants)
-// walking random paths. Each builder lays its page out on the 1920 × 1080 canvas.
+// walking random paths. Each builder lays its page out on the 1920 × 1080 canvas. TF1-fix-1 adds the
+// staged glance sequence, the occupied stocks with outfits cycling and a confetti page.
 import { balance, itemsOf, ITEMS, SHOP_IDS, type Outfit, type ShopId } from '../../content';
 import { theme } from '../../shared/theme';
 import { placePiece, addPiece } from '../render/atlas';
@@ -17,9 +18,12 @@ export const PAGES = [
   'citizen',
   'merchant',
   'guard',
+  'glance',
   'stalls',
   'items',
+  'stocks',
   'effects',
+  'confetti',
   'stress',
 ] as const;
 export type PageId = (typeof PAGES)[number];
@@ -203,15 +207,9 @@ function itemsPage(kit: PageKit) {
     addPiece(p, kit.world.layers.world);
     kit.label(name, x, mapY + 290, 14);
   });
-  const stocksX = 1000;
-  const stocksY = mapY + 260;
-  const thief = kit.world.rig('citizen', { outfit: randomOutfit(), clip: 'stocks' });
-  thief.setPosition(stocksX, stocksY - 6, stocksY - 1);
-  const st = kit.world.lib.piece('stocks');
-  placePiece(st, stocksX, stocksY, 3);
-  st.layers.forEach((l) => l.img.setDepth(stocksY));
-  addPiece(st, kit.world.layers.world);
-  kit.label('stocks + citizen stocks clip', stocksX, stocksY + 14, 14);
+  const stocks = kit.world.stocks();
+  stocks.setPosition(1000, mapY + 260);
+  kit.label('stocks (occupied: stocks page)', 1000, mapY + 274, 14);
   (['view-cone', 'view-cone-alert'] as const).forEach((name, i) => {
     const p = kit.world.lib.piece(name);
     placePiece(p, 1300, mapY + 40 + i * 140, 2);
@@ -271,11 +269,107 @@ function effectsPage(kit: PageKit) {
   });
 }
 
+/**
+ * The staged glance (SPEC §6.6, §6.8; user C1 note 1): wind-up (head alone turns), look (the whole
+ * body turns), back (body, then head), idle; merchant and citizen from each facing.
+ */
+function glancePage(kit: PageKit) {
+  const STEPS = [
+    ['glanceWindup', 900],
+    ['glanceLook', 1400],
+    ['glanceBack', 900],
+    ['idle', 1000],
+  ] as const;
+  const total = STEPS.reduce((n, [, ms]) => n + ms, 0);
+  const rows: { rig: RigId; y: number }[] = [
+    { rig: 'merchant', y: 420 },
+    { rig: 'citizen', y: 900 },
+  ];
+  for (const { rig: rigId, y } of rows) {
+    kit.label(`${rigId}: wind-up → look → back → idle`, CANVAS_W / 2, y - 300, 22);
+    VIEWS.forEach((v, j) => {
+      const x = 300 + j * 440;
+      const r = kit.world.rig(rigId, {
+        view: v.view,
+        mirror: v.mirror,
+        ...(rigId === 'citizen' ? { outfit: randomOutfit() } : { tints: randomLook(rigId) }),
+        clip: 'idle',
+        scale: 2,
+      });
+      r.setPosition(x, y);
+      kit.label(`body ${v.label}`, x, y + 10, 16);
+      let step = -1;
+      kit.tick((_dt, t) => {
+        let u = t % total;
+        let i = 0;
+        while (u >= STEPS[i]![1]) u -= STEPS[i++]![1];
+        if (i === step) return;
+        step = i;
+        r.play(STEPS[i]![0], { restart: true, fadeMs: 0 });
+      });
+    });
+  }
+}
+
+/** The occupied stocks (SPEC §6.13; user C1 note 4), front view, outfits cycling; empty for scale. */
+function stocksPage(kit: PageKit) {
+  const y = 640;
+  const empty = kit.world.stocks(5);
+  empty.setPosition(260, y);
+  kit.label('empty', 260, y + 20, 18);
+  const occupied = [0, 1, 2, 3].map((i) => {
+    const s = kit.world.stocks(5);
+    const x = 620 + i * 340;
+    s.setPosition(x, y);
+    s.setOccupant(randomOutfit());
+    kit.label(`occupied ${i + 1}`, x, y + 20, 18);
+    return s;
+  });
+  // A standing citizen at the same scale, to compare sizes (the stocks thief is a little larger).
+  const ref = kit.world.rig('citizen', { outfit: randomOutfit(), scale: 5 / 3 });
+  ref.setPosition(1820, y);
+  kit.label('citizen (same scale)', 1780, y + 20, 14);
+  let t = 0;
+  kit.tick((dt) => {
+    t += dt;
+    if (t < 1200) return;
+    t = 0;
+    for (const s of occupied) s.setOccupant(randomOutfit());
+  });
+}
+
+/** Confetti (SPEC §6.14; user C1 note 9): single pieces bursting and fluttering down. */
+function confettiPage(kit: PageKit) {
+  const spots = [
+    { x: 480, y: 380 },
+    { x: 960, y: 300 },
+    { x: 1440, y: 380 },
+  ];
+  spots.forEach((at, i) => {
+    let t = 2400 - i * 700;
+    kit.tick((dt) => {
+      t += dt;
+      if (t < 2400) return;
+      t = 0;
+      kit.world.fx.spawn('confetti', at);
+    });
+  });
+  kit.label(
+    'confetti: single pieces, burst up, sway, spin and flip as they fall',
+    CANVAS_W / 2,
+    90,
+    20,
+  );
+}
+
 export const PAGE_BUILDERS: Record<Exclude<PageId, 'stress'>, (kit: PageKit) => void> = {
   citizen: rigPage('citizen'),
   merchant: rigPage('merchant'),
   guard: rigPage('guard'),
+  glance: glancePage,
   stalls: stallsPage,
   items: itemsPage,
+  stocks: stocksPage,
   effects: effectsPage,
+  confetti: confettiPage,
 };

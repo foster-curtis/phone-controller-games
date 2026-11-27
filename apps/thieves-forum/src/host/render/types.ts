@@ -121,6 +121,36 @@ export interface Clip {
   groups?: string[];
   /** Keyframe tracks per part name. */
   tracks: Record<string, Keyframe[]>;
+  /**
+   * View stages (TF1-fix-1, SPEC §12.2): from each stage's `t` on, the whole body and/or single
+   * parts (with their children) are drawn from another view's or pose's art. The rigs are 2D cut-outs
+   * of a 3D figure, so a glance turns the head alone first, then the whole body.
+   */
+  stages?: ClipStage[];
+  /**
+   * Draw-order moves while playing (TF1-fix-1): each part is drawn right after the named part, or
+   * last with `'top'` (a raised near arm in front of the head).
+   */
+  reorder?: Record<string, string>;
+}
+
+/** A view relative to the facing view: `'turn'` = side from front/back, front from side. */
+export type ViewRef = ViewId | 'turn';
+
+/** Where a part's art comes from during a stage: another view and/or pose of the same rig. */
+export interface PartRef {
+  view?: ViewRef;
+  /** Pose in that view (default: the body's pose in the same view, else that view's default). */
+  pose?: string;
+}
+
+export interface ClipStage {
+  /** ms from clip start; the stage holds until the next one. */
+  t: number;
+  /** Draw the whole rig in this view (the look of a glance). */
+  body?: ViewRef;
+  /** Per-part art overrides; a part's children come along. */
+  parts?: Record<string, PartRef>;
 }
 
 // ---- sprites.json (frames that aren't rig parts) --------------------------------------------------
@@ -285,6 +315,23 @@ export interface StallInstance {
   /** 0 = at the counter, 1 = at the back shelf (he rises on screen, SPEC §6.21). */
   setMerchantDepth(t: number, xUnits?: number): void;
   update(dtMs: number): void;
+  destroy(): void;
+}
+
+// ---- stocks (SPEC §6.13; TF1-fix-1) ----------------------------------------------------------------
+
+/**
+ * The stocks in the lower-left corner. An occupant is drawn from `map/stocks-occupied-reference.svg`
+ * (front view only, slightly larger than a character), tinted with that character's outfit; the
+ * occupant's rig is hidden meanwhile (wiring: TF12).
+ */
+export interface StocksInstance {
+  readonly occupied: boolean;
+  /** The stocks' foot (anchor 30, 58 in its units) in screen px; it y-sorts there. */
+  setPosition(sx: number, sy: number): void;
+  /** An outfit puts a thief in the stocks; null empties them. */
+  setOccupant(outfit: Outfit | null): void;
+  setVisible(visible: boolean): void;
   destroy(): void;
 }
 

@@ -598,6 +598,14 @@ interface Camera {
   keyframed part rotations and offsets per pose (walk, browse/reach, pickpocket, throw, point, hands-up,
   run, stocks; merchant glance in three stages, fetch, carry; guard patrol, jog, catch, march). Browse and
   reach share one clip, so stealing never looks different from browsing (§6.7, §6.21).
+  (TF1-fix-1: a clip may carry `stages`, which draw the whole body or single parts with their children
+  from another view or pose from a given time (`'turn'` = side from front/back, front from side), and
+  `reorder`, which moves parts in the draw order. A glance is staged with them: wind-up turns the head
+  alone, look turns the whole body, back returns the body and then the head; merchants and citizens
+  (NPC glances, §6.8) share it. The guard's scutum is parented to his shield arm in every view. The
+  occupied stocks are a `StocksInstance` drawn from `map/stocks-occupied-reference.svg` tinted with
+  the occupant's outfit, not a rig pose (§6.13). Confetti bursts into single pieces from
+  `effects/confetti/piece-<n>.svg`.)
 - **Character scale:** about 1/10 of screen height (108 px): the 40 × 60 character viewBox (feet at
   20,55) draws at 2×.
 - **The renderer reads only `WorldView`** (§12.3) and **TV events** (`ch: 'tv'`). It never sees a player
@@ -879,7 +887,7 @@ ride in `send.data` and are defined in `src/shared/messages.ts` with runtime gua
 | `src/host/sim/<subsystem>/{index,types}.ts` | each subsystem's step and API (`raiseAlert`, the ledger keyed by `Side` (additive at TF10: `settleCatch`, `chargeWrongGrab`, `chargeTipFee`, `roundHauls`, optional `createLedger(packCapacity)`), the distraction handler list, `assignOutfit`, …) |
 | `src/host/match/types.ts`, `src/host/ui/types.ts` | `MatchPhase`, `Side`, `MatchState`, `RoundResult`; `TvView`; additive at TF6: `TvControl`, `TvAnchors` |
 | Mode entries (`host/{gallery,spike}/index.ts`, `host/ui/preview.ts`, `controller/dev.ts`, `controller/tipoff/spike.ts`) | `mount(root)` |
-| `src/host/render/types.ts` (TF1) | rig JSON (`RigDef`, parts as SVG `id` groups, viewer-relative names, hidden parts), `Clip` (with `pose`, `groups`, `<clip>@<view>` variants), `sprites.json`, `AssetManifest` / `FrameMeta` (raster `layers` per tint slot), `Camera`, `RigInstance`, `StallInstance`, `EffectSpawner` |
+| `src/host/render/types.ts` (TF1) | rig JSON (`RigDef`, parts as SVG `id` groups, viewer-relative names, hidden parts), `Clip` (with `pose`, `groups`, `<clip>@<view>` variants; additive at TF1-fix-1: `stages` (`ClipStage`, `ViewRef`, `PartRef`) and `reorder`), `sprites.json`, `AssetManifest` / `FrameMeta` (raster `layers` per tint slot), `Camera`, `RigInstance`, `StallInstance`, `EffectSpawner`; additive at TF1-fix-1: `StocksInstance` |
 
 Later freezes: the renderer API and asset manifest (TF1), the hold machine and blob-transfer APIs (TF3,
 TF4), the host handler registry (TF12). Tuning values in `src/content/` are never frozen.

@@ -1,6 +1,7 @@
 // The render kit one scene owns (SPEC §12.2): the three layers (ground → world, y-sorted → overlay),
 // the art library at the picked atlas scale, the camera, the effect spawner and factories for rigs
-// and stalls. The gallery uses it now; the market scene (TF7) builds on it.
+// and stalls, and the stocks (TF1-fix-1). The gallery uses it now; the market scene (TF7) builds on
+// it.
 import type * as Phaser from 'phaser';
 import type { ShopId } from '../../content/types';
 import { ATLASES, MANIFEST, RIGS } from './assets';
@@ -10,6 +11,7 @@ import { CLIPS } from './clips/index';
 import { Effects } from './effects';
 import { RigSprite } from './rig';
 import { StallSprite } from './stall';
+import { StocksSprite } from './stocks';
 import type { LayerId, RigId, RigOptions } from './types';
 
 export class RenderWorld {
@@ -47,6 +49,11 @@ export class RenderWorld {
     const s = new StallSprite(this.lib, this.layers.world, shop, unitPx);
     this.stalls.add(s);
     return s;
+  }
+
+  /** The stocks, empty or with an occupant (TF12 swaps the occupant's rig for this). */
+  stocks(unitPx = MAP_UNIT_PX): StocksSprite {
+    return new StocksSprite(this.lib, this.layers.world, unitPx);
   }
 
   update(dtMs: number) {
