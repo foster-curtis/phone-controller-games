@@ -4,6 +4,8 @@
 // the TV logs no console errors; the live NPC count stays within tolerance for 20 s at timeScale 2.
 // Also: `?stress=1&debug=1` runs the 8-bot crowd and reports FPS and step time (logged, BUILD_PLAN §8).
 import { closeContexts, expect, joinPhone, test, type Phone } from './helpers';
+import { balance } from '../src/content';
+import { plannedNpcs } from '../src/host/sim/npc/churn';
 import { holdStick, openSpikeHost, phoneId, type W } from './helpers-tf7';
 
 test.afterEach(closeContexts);
@@ -89,7 +91,7 @@ test('three phones drive their characters through the spike round', async ({ bro
       return { live: d.liveNpcs, planned: d.plannedNpcs };
     });
   const { planned } = await npcs();
-  expect(planned).toBe(8 + 2 * 3);
+  expect(planned).toBe(plannedNpcs(3, balance)); // from balance.ts (three phones)
   const tol = Math.max(1, Math.round(planned * 0.08));
   await expect
     .poll(async () => (await npcs()).live, { timeout: 30_000 })
