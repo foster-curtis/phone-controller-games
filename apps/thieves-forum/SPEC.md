@@ -806,6 +806,11 @@ ride in `send.data` and are defined in `src/shared/messages.ts` with runtime gua
   side: `press(now)`, `correct(event, now)`, `progress(now)` (0..1), `release(now)`.
 - **Room events:** the host decides everything; a phone's private state never reaches another phone or
   the TV.
+- **Host wiring (TF12):** each discrete message has one handler file in `host/net/handlers/`; each
+  step's `phone` events go to that player only (`host/net/phone.ts`); a stall view goes out on open and
+  again on every change of that stall, at most one resend per 100 ms per phone; a Catch! tap is latched
+  until the next step samples it. Timers and hold durations on the wire are wall ms (sim ms ÷ the debug
+  `timeScale`).
 
 ### 12.6 Viewer formats
 
@@ -905,6 +910,8 @@ ride in `send.data` and are defined in `src/shared/messages.ts` with runtime gua
 | `src/host/match/types.ts`, `src/host/ui/types.ts` | `MatchPhase`, `Side`, `MatchState`, `RoundResult`; `TvView`; additive at TF6: `TvControl`, `TvAnchors` |
 | Mode entries (`host/{gallery,spike}/index.ts`, `host/ui/preview.ts`, `controller/dev.ts`, `controller/tipoff/spike.ts`) | `mount(root)` |
 | `src/host/render/types.ts` (TF1) | rig JSON (`RigDef`, parts as SVG `id` groups, viewer-relative names, hidden parts), `Clip` (with `pose`, `groups`, `<clip>@<view>` variants; additive at TF1-fix-1: `stages` (`ClipStage`, `ViewRef`, `PartRef`) and `reorder`), `sprites.json`, `AssetManifest` / `FrameMeta` (raster `layers` per tint slot), `Camera`, `RigInstance`, `StallInstance`, `EffectSpawner`; additive at TF1-fix-1: `StocksInstance` |
+
+| `src/host/net/types.ts` + `net/handlers/*.ts`, `net/context/*.ts` (TF12) | the host message-handler registry: `MessageHandler` (one default-exported file per discrete phone message, found with `import.meta.glob`), `HandlerCtx` (queue a `SimCommand`, feed the match, send to one phone, resync a phone), `ContextProvider` (one file per main-button action, `MAIN_PRIORITY` BROWSE > SELL > PICKPOCKET); additive at TF12: `snapshot.ts` re-exports `TvEvent` so the scene reads TV events beside `WorldView` |
 
 Later freezes: the renderer API and asset manifest (TF1), the hold machine and blob-transfer APIs (TF3,
 TF4), the host handler registry (TF12). Tuning values in `src/content/` are never frozen.
