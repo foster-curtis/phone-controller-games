@@ -31,4 +31,14 @@ describe('input store', () => {
     s.forget('a');
     expect(s.sample(0).size).toBe(0);
   });
+
+  it('latches a Catch! tap that came and went between two samples (TF12)', () => {
+    const store = createInputStore({ inputStaleMs: 250, holdStaleMs: 500 });
+    store.set('p', 0, 0, 0, 0);
+    expect(store.sample(1).get('p')!.catch).toBe(false);
+    store.set('p', 0, 0, 2, 10); // down
+    store.set('p', 0, 0, 0, 130); // up, before the next sample
+    expect(store.sample(140).get('p')!.catch).toBe(true);
+    expect(store.sample(157).get('p')!.catch).toBe(false);
+  });
 });

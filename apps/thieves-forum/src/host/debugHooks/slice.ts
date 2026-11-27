@@ -40,7 +40,7 @@ const slice: HookGroup = (rt, register) => {
   });
   register('character', (player: string) => {
     const c = charOf(player);
-    return c ? { id: c.id, x: c.x, y: c.y, activity: c.activity.k } : null;
+    return c ? { id: c.id, x: c.x, y: c.y, facing: c.facing, activity: c.activity.k } : null;
   });
   /** Open selling stalls with the middle of their customer line (where BROWSE applies). */
   register('stalls', () => {

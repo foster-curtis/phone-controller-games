@@ -76,6 +76,8 @@ async function logHas(tv: Page, pred: (e: TvEv) => boolean) {
     await expect.poll(async () => (await tvLog(tv)).some(pred), { timeout: 15_000 }).toBe(true);
   } catch (err) {
     console.log('tv log tail:', JSON.stringify((await tvLog(tv)).slice(-12)));
+    for (const p of await pcg<{ id: string; name: string }[]>(tv, 'players'))
+      console.log(p.name, JSON.stringify(await pcg(tv, 'character', p.id)));
     throw err;
   }
 }
@@ -142,6 +144,7 @@ test('one round of the slice on three phones', async ({ browser }) => {
   await pcg(tv, 'setTimeScale', 0.2);
   await pressTile(A, await freeTile(A, true));
   await holding(tv, a);
+  await pcg(tv, 'place', c, at.x + 0.7, at.y, Math.PI); // C turns to A again (crowd pushes)
   await C.page.locator('[data-role=catch]').click();
   await logHas(tv, (e) => e.e === 'grabAttempt' && e.at === at.id && e.right === true);
   await logHas(tv, (e) => e.e === 'caught' && e.thief === at.id);

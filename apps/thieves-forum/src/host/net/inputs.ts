@@ -1,6 +1,8 @@
 // Phone input state → sim `PlayerInput` (SPEC §3, §12.5): the host stamps each `input` sample on
 // receipt; older than `balance.net.inputStaleMs` the stick and the catch bit read zero, and the hold
-// bit reads released after `balance.net.holdStaleMs` (BUILD_PLAN §8 [TF0]). Plain TS, no relay imports.
+// bit reads released after `balance.net.holdStaleMs` (BUILD_PLAN §8 [TF0]). A Catch! press is latched
+// until the next step samples it, so a tap is never lost when the TV's timer runs late or packets bunch
+// (TF12). Plain TS, no relay imports.
 import { BIT_CATCH, BIT_HOLD, STICK_MAX } from '../../shared/messages';
 import type { PlayerId, PlayerInput } from '../sim/types';
 
@@ -14,6 +16,8 @@ interface Sample {
   y: number;
   bits: number;
   at: number;
+  /** A catch press seen since the last `sample` (rising edge latch). */
+  catchSeen: boolean;
 }
 
 export interface InputStore {
@@ -29,7 +33,9 @@ export function createInputStore(stale: InputStaleness): InputStore {
   const last = new Map<PlayerId, Sample>();
   return {
     set(id, x, y, bits, now) {
-      last.set(id, { x, y, bits, at: now });
+      const was = last.get(id);
+      const down = (bits & BIT_CATCH) !== 0;
+      last.set(id, { x, y, bits, at: now, catchSeen: (was?.catchSeen ?? false) || down });
     },
     forget: (id) => void last.delete(id),
     clear: () => last.clear(),
@@ -41,8 +47,9 @@ export function createInputStore(stale: InputStaleness): InputStore {
         out.set(id, {
           move: fresh ? { x: s.x / STICK_MAX, y: s.y / STICK_MAX } : { x: 0, y: 0 },
           hold: age <= stale.holdStaleMs && (s.bits & BIT_HOLD) !== 0,
-          catch: fresh && (s.bits & BIT_CATCH) !== 0,
+          catch: (fresh && (s.bits & BIT_CATCH) !== 0) || s.catchSeen,
         });
+        s.catchSeen = false;
       }
       return out;
     },
