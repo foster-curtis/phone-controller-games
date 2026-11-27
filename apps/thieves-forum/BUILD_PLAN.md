@@ -1061,7 +1061,7 @@ Rules:
   - [x] Dev overlay, stress mode, phone wiring
   - [x] Spike e2e + scene disguise test
   - [x] Merged to `thieves-forum` and pushed
-  - [ ] User approved C1 (crowd spike, tip-off spike, phone dev, gallery)
+  - [x] User approved C1 (crowd spike, tip-off spike, phone dev, gallery)
 - **TF8**
   - [x] Stock, placement, restock, stall view state + tests
   - [x] Merchant attention, glance, suspicion, dialog, fetch/bring forward + tests
@@ -1313,6 +1313,8 @@ Format: `- [TF#] decision: one line, with the reason.`
 - [TF1-fix-2] decision: a side head turning to screen-left on a front/back body is the side head subtree mirrored about its neck (`sx −1` on the head track, clip `glanceHeadFlip`), so the body keeps its exact drawing and mirror; no art was added. A target within 10% of dead ahead/behind turns the head to a seeded side (`seed` even → right, odd → left; default right).
 - [TF1-fix-2] decision: the gallery `glance` page is a grid per rig (merchant, citizen): body front/back/left/right × thief behind / its left / its right / ahead (the character's own sides) × caught/clear, looping idle → wind-up → look → ending, an arrow by each rig showing the thief's screen direction (64 rigs; the e2e checks the count).
 - [TF1-fix-2] hook for TF12: when a glancer's glance starts (merchant `glance` → `windup`, or an NPC victim's wind-up), call `planGlance(rig, facing, target − glancer, {seed: id})` with the glancer's sim facing (radians) and the thief's position, and `playGlanceStep(rig, plan.windup)` (spawn the glance swoosh at `head-top`); on `look`, `playGlanceStep(rig, plan.look)`; when the sim decides, `resolveGlance(plan, 'caught' | 'clear')` and play its steps (caught: `point` until `shoutingAt` clears; clear: `turnBack` for `ms`, then resume the sim's pose). The scene holds the plan per glancer and skips its usual `face(facing)` / `play(pose)` while a glance runs. Gap for TF12: `MerchantView` carries only the glance stage (the sim's `glance.at` is internal) and NPC victim glances have no view field yet, so TF12 adds a target point (e.g. `glanceAt: Vec2 | null`, a position only, never a player id) or falls back to the counter in front of him for merchants.
+- [C1] decision: user approved C1 on 2026-11-27 after the fixes TF7-fix-1, TF5-fix-1/2, TF1-fix-1/2, TF2-fix-1/2. C1 numbers: TV ~120 FPS in `?stress=1`; tip snapshots 33.8–34.3 KB, 175–267 ms on real phones via the deployed relay; watchers spotted players mainly by stop-and-turn hesitation (addressed by TF2-fix-1).
+- [C1] decision: for TF12: the glance target the scene passes to `planGlance` must not single out a player beyond what SPEC §6.6/§6.8 already show (a merchant's timed glance looks toward its own counter/shelf or the served customer, not at a thief it can't see yet); only a glance that is actually aimed at a theft by the rules may face the thief. Check against the disguise tests.
 
 ## 9. Final handoff (and early setup)
 
