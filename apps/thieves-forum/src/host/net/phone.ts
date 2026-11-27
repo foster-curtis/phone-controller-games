@@ -99,7 +99,8 @@ export function createPhoneRouter(o: PhoneRouterOptions): PhoneRouter {
     const s = w?.stalls.find((x) => x.id === stall);
     if (!w || !s) return null;
     const v = stallViewFor(w, s, o.character(player), o.content);
-    const scale = (rows: StallView['counter']) => rows.map((r) => ({ ...r, grabMs: wall(r.grabMs) }));
+    const scale = (rows: StallView['counter']) =>
+      rows.map((r) => ({ ...r, grabMs: wall(r.grabMs) }));
     return { ...v, counter: scale(v.counter), shelf: scale(v.shelf) };
   }
 
@@ -138,7 +139,8 @@ export function createPhoneRouter(o: PhoneRouterOptions): PhoneRouter {
       const def = o.content.items.find((i) => i.id === sl.item);
       if (!def) continue;
       buy.push({ item: def.id, name: def.name, price: def.value });
-      if (sl.row === 'shelf' && !sl.forward) ask.push({ slot: sl.slot, item: def.id, name: def.name });
+      if (sl.row === 'shelf' && !sl.forward)
+        ask.push({ slot: sl.slot, item: def.id, name: def.name });
     }
     o.send({ t: 'dialog', open: true, buy, ask }, player);
   }
@@ -147,7 +149,9 @@ export function createPhoneRouter(o: PhoneRouterOptions): PhoneRouter {
     const w = o.world();
     const c = o.character(player);
     const live = w !== null && c !== null && w.phase === 'play';
-    const main = live ? mainAction(o.providers, { world: w, character: c, content: o.content }) : null;
+    const main = live
+      ? mainAction(o.providers, { world: w, character: c, content: o.content })
+      : null;
     const msg: HostMsg = {
       t: 'context',
       main,
@@ -162,7 +166,12 @@ export function createPhoneRouter(o: PhoneRouterOptions): PhoneRouter {
     o.send(msg, player);
   }
 
-  function toast(player: PlayerId, kind: 'gain' | 'lucky' | 'loss' | 'info', text: string, amount?: number) {
+  function toast(
+    player: PlayerId,
+    kind: 'gain' | 'lucky' | 'loss' | 'info',
+    text: string,
+    amount?: number,
+  ) {
     o.send({ t: 'toast', kind, text, ...(amount !== undefined ? { amount } : {}) }, player);
   }
 
@@ -260,7 +269,8 @@ export function createPhoneRouter(o: PhoneRouterOptions): PhoneRouter {
     event,
     flush(now) {
       for (const [p, s] of slots) {
-        if (s.dirty && s.stall !== null && now - s.lastSentAt >= STALL_VIEW_MIN_MS) sendView(p, now);
+        if (s.dirty && s.stall !== null && now - s.lastSentAt >= STALL_VIEW_MIN_MS)
+          sendView(p, now);
         if (o.character(p)) context(p);
       }
       const w = o.world();

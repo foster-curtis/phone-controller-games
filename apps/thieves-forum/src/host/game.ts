@@ -102,12 +102,14 @@ export interface Runtime extends SceneSource {
   stepStats(): StepStats;
   /** Debug / e2e: the play timer runs out now. */
   endRound(): void;
-  /** Debug log of recent TV events (e2e). */
-  tvLog(): readonly TvEvent[];
+  /** Debug log of recent TV events with a running sequence number (e2e). */
+  tvLog(): readonly (TvEvent & { seq: number })[];
   /** Called when the TV view's phase changes (main.ts re-renders at once). */
   onChange(cb: () => void): void;
   /** Every step's `tv` events (the audio; never `phone` events). */
   onTvEvents(cb: TvEventsListener): void;
+  /** After every sim step (debug hooks only: they stage e2e beats on the world). */
+  onStep(cb: (sim: Sim) => void): void;
 }
 
 const IN_ROUND = new Set<MatchPhase>(['roundStart', 'play', 'handsUp', 'reveal', 'transition']);
@@ -122,6 +124,7 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
   const providers = loadContextProviders();
   const listeners: (() => void)[] = [];
   const tvListeners: TvEventsListener[] = [];
+  const stepListeners: ((sim: Sim) => void)[] = [];
   let visible = true;
   let timeScale = 1;
   /** Game ms: wall ms × timeScale, shared by the match deadlines and the sim steps. */
@@ -130,7 +133,8 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
   let ledger: Ledger | null = null;
   let commands: SimCommand[] = [];
   let tvQueue: TvEvent[] = [];
-  const tvRecent: TvEvent[] = [];
+  const tvRecent: (TvEvent & { seq: number })[] = [];
+  let tvSeq = 0;
   let openStalls: StallId[] = content.layout.stalls.map((s) => s.id);
   let botPlayers: SpikePlayer[] = [];
   let lastCode: string | null = null;
@@ -161,8 +165,7 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
 
   function character(id: PlayerId): Character | null {
     return (
-      sim?.world.characters.find((c) => c.control.k !== 'npc' && c.control.playerId === id) ??
-      null
+      sim?.world.characters.find((c) => c.control.k !== 'npc' && c.control.playerId === id) ?? null
     );
   }
 
@@ -300,11 +303,12 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
     if (tvEvents.length > 0) {
       tvQueue.push(...tvEvents);
       if (tvQueue.length > TV_QUEUE_MAX) tvQueue.splice(0, tvQueue.length - TV_QUEUE_MAX);
-      tvRecent.push(...tvEvents);
+      for (const e of tvEvents) tvRecent.push({ ...e, seq: ++tvSeq });
       if (tvRecent.length > TV_QUEUE_MAX) tvRecent.splice(0, tvRecent.length - TV_QUEUE_MAX);
       const view = sim.view();
       for (const cb of tvListeners) cb(tvEvents, view);
     }
+    for (const cb of stepListeners) cb(sim);
   }
 
   // ---- phones --------------------------------------------------------------------------------
@@ -485,6 +489,9 @@ export function createRuntime(opts: RuntimeOptions): Runtime {
     },
     onTvEvents(cb) {
       tvListeners.push(cb);
+    },
+    onStep(cb) {
+      stepListeners.push(cb);
     },
   };
 }

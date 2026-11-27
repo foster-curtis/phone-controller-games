@@ -112,3 +112,17 @@ export async function joinPhone(browser: Browser, code: string, name: string): P
 export function screen(page: Page, kind: 'join' | 'connected') {
   return page.locator(`[data-screen=${kind}]`);
 }
+
+// ---- TF12 (additive) ----
+
+/** Calls a host debug hook by name (`window.__pcg[name](...args)`, `?debug=1`) and returns its value. */
+export function pcg<T = unknown>(page: Page, name: string, ...args: unknown[]): Promise<T> {
+  return page.evaluate(
+    ([n, a]) => {
+      const api = (window as unknown as { __pcg: Record<string, (...x: unknown[]) => unknown> })
+        .__pcg;
+      return api[n as string]!(...(a as unknown[]));
+    },
+    [name, args] as const,
+  ) as Promise<T>;
+}

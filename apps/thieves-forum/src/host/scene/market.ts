@@ -24,13 +24,7 @@ import type { StocksSprite } from '../render/stocks';
 import { guardTints, merchantTints } from '../render/tones';
 import type { GlancePlan } from '../render/types';
 import { RenderWorld } from '../render/world';
-import type {
-  CharacterView,
-  GuardView,
-  MerchantView,
-  TvEvent,
-  WorldView,
-} from '../sim/snapshot';
+import type { CharacterView, GuardView, MerchantView, TvEvent, WorldView } from '../sim/snapshot';
 import coinToss from './coinToss';
 import { conePolygon } from './cone';
 import effects from './effects/index';

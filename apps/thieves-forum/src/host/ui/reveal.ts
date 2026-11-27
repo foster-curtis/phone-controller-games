@@ -20,6 +20,9 @@ function fmt(n: number): string {
   return String(Math.round(n));
 }
 
+/** A haul with its sign: "+12", or "−5" for a round that lost money (SPEC §6.4 hauls may be negative). */
+const signed = (n: number): string => (Math.round(n) < 0 ? `−${fmt(-n)}` : `+${fmt(n)}`);
+
 /** One reveal card (also used on its own by `?ui=reveal` fixtures and tests). */
 export function createRevealCard(entry: RevealEntry): HTMLElement {
   const card = h('article', 'reveal-card');
@@ -51,11 +54,11 @@ export function createRevealCard(entry: RevealEntry): HTMLElement {
 
   const strip = h('div', 'reveal-haul coin-edge');
   strip.dataset.role = 'haul';
-  strip.append(h('span', 'money', `+${fmt(entry.haul)}`));
+  strip.append(h('span', 'money', signed(entry.haul)));
 
   const tag = h('div', 'reveal-tag money');
   tag.dataset.role = 'haul-tag';
-  tag.textContent = `+${fmt(entry.haul)}`;
+  tag.textContent = signed(entry.haul);
 
   card.append(name, bag, items, strip, tag);
   return card;
