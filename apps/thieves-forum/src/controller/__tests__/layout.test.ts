@@ -1,4 +1,4 @@
-// TF5-fix-1: toasts are top-anchored and the main button is a coin (circle) with a ring hold bar (SPEC §6.17).
+// TF5-fix-1: toasts are top-anchored and the main button is a coin (circle) with a straight hold bar above it (TF5-fix-2, SPEC §6.17).
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -17,9 +17,20 @@ describe('controller layout rules', () => {
     expect(r).toMatch(/safe-area-inset-top/);
   });
   it('makes the main button a circle: square coin box, 50% radius', () => {
-    expect(rule('.main-wrap')).toMatch(/width:\s*var\(--coin\)[\s\S]*height:\s*var\(--coin\)/);
+    expect(rule('.main-wrap')).toMatch(/width:\s*var\(--coin\)/);
+    expect(rule('.btn.main')).toMatch(/width:\s*var\(--coin\)[\s\S]*height:\s*var\(--coin\)/);
     expect(rule('.btn.main')).toMatch(/border-radius:\s*50%/);
-    expect(rule('.main-bar')).toMatch(/border-radius:\s*50%/);
+  });
+  it('centers the coin over the other buttons', () => {
+    expect(rule('.actions')).toMatch(/justify-items:\s*center/);
+  });
+  it('keeps the hold bar a straight in-flow bar above the coin, not a ring', () => {
+    const r = rule('.main-bar');
+    expect(r).toMatch(/position:\s*static/);
+    expect(r).toMatch(/height:\s*10px/);
+    expect(r).not.toMatch(/conic-gradient|border-radius:\s*50%/);
+    const html = readFileSync(resolve(process.cwd(), 'src/controller/screens/play.ts'), 'utf8');
+    expect(html).toMatch(/el\('div', \{ class: 'main-wrap' \}, mainBar, main\)/);
   });
   it('scales with the viewport and respects safe areas', () => {
     expect(rule('.actions')).toMatch(/clamp\(.*vmin/);

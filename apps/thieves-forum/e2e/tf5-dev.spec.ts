@@ -97,6 +97,25 @@ for (const [w, h] of [
       for (let j = i + 1; j < btns.length; j++) expect(hit(btns[i]!, btns[j]!)).toBe(false);
     await page.screenshot({ path: `e2e/__screens__/tf5-layout-${w}x${h}.png` });
 
+    // TF5-fix-2: the coin is centered over the other buttons' column.
+    const col = [Math.min(...rest.map((b) => b.x)), Math.max(...rest.map((b) => b.x + b.width))];
+    expect(Math.abs(main.x + main.width / 2 - (col[0]! + col[1]!) / 2)).toBeLessThanOrEqual(2);
+
+    // A hold shows a straight bar above the coin: wider than tall, bottom at or above the button's top.
+    await page.locator('[data-dev-screen=toss]').dispatchEvent('click');
+    await expect(page.locator('[data-role=main][data-main=pickpocket]')).toBeVisible();
+    const pp = (await box('[data-role=main]'))!;
+    await page.mouse.move(pp.x + pp.width / 2, pp.y + pp.height / 2);
+    await page.mouse.down();
+    const bar = page.locator('.main-bar');
+    await expect(bar).toBeVisible();
+    const bb = (await bar.boundingBox())!;
+    expect(bb.width).toBeGreaterThan(bb.height);
+    expect(bb.y + bb.height).toBeLessThanOrEqual(pp.y + 0.5);
+    expect(bb.y).toBeGreaterThanOrEqual(0);
+    await page.screenshot({ path: `e2e/__screens__/tf5-holdbar-${w}x${h}.png` });
+    await page.mouse.up();
+
     await page.locator('[data-dev-screen=toast]').dispatchEvent('click');
     const toast = page.locator('.pcg-toast.toast-lucky');
     await expect(toast).toBeVisible();

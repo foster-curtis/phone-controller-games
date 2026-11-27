@@ -593,17 +593,18 @@ body,
   bottom: max(var(--space-3), calc(env(safe-area-inset-bottom) + 20dvh));
   width: clamp(210px, 46vw, 380px);
   display: grid;
-  justify-items: end;
+  justify-items: center;
   gap: var(--space-2);
 }
 .main-wrap {
-  position: relative;
+  /* Hold bar in flow above the coin; the wrap is centered over the secondary row (TF5-fix-2). */
+  display: grid;
+  gap: var(--space-2);
   width: var(--coin);
-  height: var(--coin);
 }
 .btn.main {
-  width: 100%;
-  height: 100%;
+  width: var(--coin);
+  height: var(--coin);
   min-height: 0;
   padding: 0;
   border-radius: 50%;
@@ -637,19 +638,12 @@ body,
   width: 0;
   background: var(--gold);
 }
-/* The main button's hold bar is a ring around the coin, filled by --p (set from the same percent). */
+/* The main button's hold bar is a straight bar above the coin (TF5-fix-2; reverses the TF5-fix-1 ring). */
 .main-bar {
-  inset: -7px;
-  height: auto;
-  border-radius: 50%;
-  overflow: visible;
-  pointer-events: none;
-  background: conic-gradient(var(--gold) calc(var(--p, 0) * 1%), var(--scrim) 0);
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px));
-}
-.main-bar i {
-  display: none;
+  position: static;
+  height: 10px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border-control);
 }
 .caught-banner {
   position: absolute;
